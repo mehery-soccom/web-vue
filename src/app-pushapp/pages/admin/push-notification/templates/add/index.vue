@@ -1,5 +1,4 @@
 <script setup>
-import MyColorPicker from "@app-pushapp/components/Form/MyColorPicker.vue";
 import NotificationPreview from "@app-pushapp/views/admin/push-notification/NotificationPreview.vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
@@ -302,7 +301,7 @@ watch(
                         </VCol> -->
 
                         <VCol cols="12" md="12">
-                          <AppTextField
+                          <MyFileInputUpload
                             v-model="template.style.image_url"
                             label="Image URL ( public )"
                           />
@@ -403,13 +402,13 @@ watch(
 
                         <!-- Images -->
                         <VCol cols="12" md="12">
-                          <AppTextField
+                          <MyFileInputUpload
                             v-model="template.style.logo_url"
                             label="Logo URL ( public )"
                           />
                         </VCol>
                         <VCol cols="12" md="12">
-                          <AppTextField
+                          <MyFileInputUpload
                             v-model="template.style.image_url"
                             label="Image URL ( public )"
                           />

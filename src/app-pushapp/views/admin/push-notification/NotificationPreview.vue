@@ -541,7 +541,8 @@ watch(
   background-color: rgba(30, 30, 30, 0.94);
   color: white;
   padding: 14px 16px;
-  margin-top: 220px;
+  position: absolute;
+  bottom: 80px;
 
   .content {
     display: flex;

@@ -1,5 +1,4 @@
 <script setup>
-import MyDataTable from "@/@common/components/vuexy/MyDataTable.vue";
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";

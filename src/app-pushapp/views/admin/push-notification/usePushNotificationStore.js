@@ -240,5 +240,14 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     deleteTemplate({ id }) {
       return axios.delete(`/api/templates/${id}`);
     },
+
+    // 👉 Upload doc
+    uploadDoc(params) {
+      return axios.post("/api/dms", params, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+    },
   },
 });

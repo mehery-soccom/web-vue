@@ -1,5 +1,4 @@
 <script setup>
-import MyDataTable from "@/@common/components/vuexy/MyDataTable.vue";
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 

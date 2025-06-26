@@ -1,5 +1,4 @@
 <script setup>
-import MyDataTable from "@/@common/components/vuexy/MyDataTable.vue";
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";

@@ -1,5 +1,5 @@
 <template>
-  <AppTextField v-model="color" :label="label">
+  <AppTextField v-model="color" maxlength="7" :label="label">
     <template #append-inner>
       <v-tooltip text="Pick a color">
         <template #activator="{ props }">
@@ -67,7 +67,7 @@ watch(color, (val) => {
 });
 </script>
 
-<style scoped>
+<style>
 .color-swatch {
   width: 24px;
   height: 24px;
@@ -75,5 +75,10 @@ watch(color, (val) => {
   border: 1px solid #ccc;
   cursor: pointer;
   margin-left: 8px;
+}
+.v-color-picker-preview__sliders {
+  .v-color-picker-preview__alpha {
+    display: none !important;
+  }
 }
 </style>

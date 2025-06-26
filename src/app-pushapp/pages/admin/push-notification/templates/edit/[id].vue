@@ -1,5 +1,4 @@
 <script setup>
-import MyColorPicker from "@app-pushapp/components/Form/MyColorPicker.vue";
 import NotificationPreview from "@app-pushapp/views/admin/push-notification/NotificationPreview.vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
