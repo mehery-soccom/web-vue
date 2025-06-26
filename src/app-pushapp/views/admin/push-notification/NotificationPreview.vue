@@ -133,9 +133,9 @@ watch(
         <div :class="[template.view.platform + '-content']">
           <div class="notification-header">
             <img
-              v-if="template.style.logo_url"
+              v-if="template.style.logo_url || templateConfig.logo_url"
+              :src="template.style.logo_url || templateConfig.logo_url"
               class="notification-image"
-              :src="template.style.logo_url"
               alt="logo"
             />
             <div class="notification-text">
@@ -290,7 +290,7 @@ watch(
 <style scoped lang="scss">
 .phone-frame {
   width: 360px;
-  height: 618px;
+  // height: 618px;
   border-radius: 42px;
   overflow: hidden;
   position: relative;
@@ -362,7 +362,8 @@ watch(
   .left-icons,
   .right-icons {
     display: flex;
-    gap: 8px;
+    gap: 15px;
+    margin: 0 10px;
   }
 }
 

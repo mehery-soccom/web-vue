@@ -24,6 +24,8 @@ const template = reactive({
   desc: "",
   code: "",
   style: {
+    code: "simple",
+
     /** simple */
     title: "",
     message: "",
@@ -183,10 +185,27 @@ watch(
     template.code = sanitizeAndUnderscore(val);
   }
 );
+
+watch(
+  () => template.type,
+  (val) => {
+    if (val === "simple") {
+      template.subType = null;
+    }
+  }
+);
+
+watch(
+  () => template.subType,
+  (val) => {
+    if (val) template.style.code = val;
+    else template.style.code = "simple";
+  }
+);
 </script>
 
 <template>
-  <v-row>
+  <v-row style="height: calc(100vh - 105px)">
     <!-- template Column -->
     <v-col cols="12" md="8" class="template-form">
       <v-card>
@@ -246,11 +265,11 @@ watch(
                         </VCol>
 
                         <VCol cols="12" md="6">
-                          <AppTextField
+                          <!-- <AppTextField
                             v-model="template.code"
                             label="Code"
                             placeholder="Enter Code"
-                          />
+                          /> -->
                         </VCol>
                       </VRow>
                     </VCol>
@@ -275,12 +294,12 @@ watch(
                           />
                         </VCol>
 
-                        <VCol cols="12" md="12">
+                        <!-- <VCol cols="12" md="12">
                           <AppTextField
                             v-model="template.style.logo_url"
                             label="Logo URL ( public )"
                           />
-                        </VCol>
+                        </VCol> -->
 
                         <VCol cols="12" md="12">
                           <AppTextField
@@ -481,18 +500,18 @@ watch(
       <VRow>
         <v-col cols="5" class="px-0">
           <v-btn-toggle v-model="view.platform" mandatory density="compact">
-            <v-btn value="ios">iOS</v-btn>
-            <v-btn value="android">Android</v-btn>
+            <v-btn color="primary" value="ios">iOS</v-btn>
+            <v-btn color="primary" value="android">Android</v-btn>
           </v-btn-toggle>
         </v-col>
         <v-col cols="7" class="pl-3">
           <v-btn-toggle v-model="view.mode" mandatory density="compact">
-            <v-btn value="collapse">Collapse</v-btn>
-            <v-btn value="expand">Expand</v-btn>
+            <v-btn color="primary" value="collapse">Collapse</v-btn>
+            <v-btn color="primary" value="expand">Expand</v-btn>
           </v-btn-toggle>
         </v-col>
       </VRow>
-      <VRow>
+      <VRow style="height: calc(100% - 36px)">
         <v-col cols="12" class="d-flex justify-center pt-0">
           <NotificationPreview :template="templatePreview" />
         </v-col>
@@ -503,7 +522,7 @@ watch(
 
 <style scoped lang="scss">
 .template-form {
-  height: 688px;
+  height: inherit;
   overflow: scroll;
 }
 </style>
