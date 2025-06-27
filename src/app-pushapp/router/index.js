@@ -12,6 +12,12 @@ export default BootRouter.route({
       },
     },
     {
+      path: "/app/home",
+      redirect: () => {
+        return { name: "dashboards-analytics" };
+      },
+    },
+    {
       path: "/pages/user-profile",
       redirect: () => ({
         name: "pages-user-profile-tab",
