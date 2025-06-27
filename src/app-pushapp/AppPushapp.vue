@@ -1,8 +1,8 @@
 <script setup>
 import "@app-pushapp/@fake-db/db";
 
-import "@app-pushapp/styles/styles.scss";
 import "@app-pushapp/@core/scss/template/index.scss";
+import "@app-pushapp/styles/styles.scss";
 
 import { loadFonts } from "@app-pushapp/plugins/webfontloader";
 loadFonts();
