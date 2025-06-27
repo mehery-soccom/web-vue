@@ -1,5 +1,5 @@
-import axios from "axios";
 import { defineStore } from "pinia";
+import DataService from "@/@common/services/DataService";
 
 export const useChannelsStore = defineStore("ChannelsStore", {
   state: () => ({
@@ -11,7 +11,7 @@ export const useChannelsStore = defineStore("ChannelsStore", {
   actions: {
     // 👉 Fetch all Channels
     async fetchChannels() {
-      let apiRes = await axios.get("/api/channels");
+      let apiRes = await DataService.axios.get("/api/channels");
       this.channels = apiRes.data.channels;
       let res = {
         results: apiRes.data.channels,
@@ -25,12 +25,12 @@ export const useChannelsStore = defineStore("ChannelsStore", {
 
     // 👉 Fetch single Channel
     fetchChannel({ id }) {
-      return axios.get(`/api/channel/${id}`);
+      return DataService.axios.get(`/api/channel/${id}`);
     },
 
     // 👉 Create Channel
     createChannel(params) {
-      return axios.post("/api/channel", params, {
+      return DataService.axios.post("/api/channel", params, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -39,7 +39,7 @@ export const useChannelsStore = defineStore("ChannelsStore", {
 
     // 👉 Update Channel
     updateChannel(id, params) {
-      return axios.put(`/api/channel/${id}`, params, {
+      return DataService.axios.put(`/api/channel/${id}`, params, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -48,7 +48,7 @@ export const useChannelsStore = defineStore("ChannelsStore", {
 
     // 👉 Update Platform
     updatePlatform({ channel_id, platform_id }, params) {
-      return axios.put(
+      return DataService.axios.put(
         `/api/channel/${channel_id}/platform/${platform_id}/deactivate`,
         params
       );
@@ -56,7 +56,9 @@ export const useChannelsStore = defineStore("ChannelsStore", {
 
     // 👉 Delete Channel
     deleteChannel({ id }) {
-      return axios.delete(`/api/channel/${id}?user_id=user123`);
+      return DataService.axios.delete(`/api/channel/${id}?user_id=user123`, {
+        toast: false,
+      });
     },
   },
 });

@@ -149,7 +149,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
       <!-- platforms -->
       <template #item.filters.platform="{ item }">
-        <div class="d-flex gap-2">
+        <div class="d-flex gap-2" v-if="item.raw.filters">
           <VChip
             v-for="p in item.raw.filters.platform"
             :key="p"

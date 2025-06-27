@@ -1,4 +1,4 @@
-import axios from "axios";
+import DataService from "@/@common/services/DataService";
 import { defineStore } from "pinia";
 
 export const usePushNotificationStore = defineStore("PushNotificationStore", {
@@ -88,7 +88,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
   actions: {
     // 👉 Fetch Simple Notifications
     async fetchSimpleNotifications() {
-      let apiRes = await axios.get("/api/notifications");
+      let apiRes = await DataService.axios.get("/api/notifications");
       let res = {
         results: apiRes.data.data,
         data: {},
@@ -99,20 +99,20 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     // 👉 Fetch Single Notification
     async fetchSimpleNotification({ id }) {
-      return axios.get(`/api/notification/${id}`);
+      return DataService.axios.get(`/api/notification/${id}`);
     },
 
     // 👉 Send Bulk Notification
     sendBulk(params) {
-      return axios.post("/api/send-notification-bulk", params);
+      return DataService.axios.post("/api/send-notification-bulk", params);
     },
     sendBulkV2(params) {
-      return axios.post("/api/v2/send-notification-bulk", params);
+      return DataService.axios.post("/api/v2/send-notification-bulk", params);
     },
 
     // 👉 Send Single Notification
     sendSingle(params) {
-      return axios.post(
+      return DataService.axios.post(
         `/api/live-activity/${params.activity_id ? "update" : "start"}`,
         params
       );
@@ -124,19 +124,19 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
-      return axios.get(`/api/v1/campaign`, {
+      return DataService.axios.get(`/api/v1/campaign`, {
         params: { page, limit: itemsPerPage, sort, search: filters },
       });
     },
 
     // 👉 Fetch Single Campaign
     fetchCampaign({ id }) {
-      return axios.get(`/api/v1/campaign/${id}`);
+      return DataService.axios.get(`/api/v1/campaign/${id}`);
     },
 
     // 👉 Fetch all Templates
     async fetchTemplates() {
-      let apiRes = await axios.get("/api/templates");
+      let apiRes = await DataService.axios.get("/api/templates");
       this.templates = apiRes.data.results;
       let res = {
         results: apiRes.data.results || [
@@ -223,27 +223,27 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     // 👉 Fetch single Template
     fetchTemplate({ id }) {
-      return axios.get(`/api/templates/${id}`);
+      return DataService.axios.get(`/api/templates/${id}`);
     },
 
     // 👉 Create Template
     createTemplate(params) {
-      return axios.post("/api/templates", params);
+      return DataService.axios.post("/api/templates", params);
     },
 
     // 👉 Update Template
     updateTemplate(id, params) {
-      return axios.put(`/api/templates/${id}`, params);
+      return DataService.axios.put(`/api/templates/${id}`, params);
     },
 
     // 👉 Delete Template
     deleteTemplate({ id }) {
-      return axios.delete(`/api/templates/${id}`);
+      return DataService.axios.delete(`/api/templates/${id}`);
     },
 
     // 👉 Upload doc
     uploadDoc(params) {
-      return axios.post("/api/dms", params, {
+      return DataService.axios.post("/api/dms", params, {
         headers: {
           "Content-Type": "multipart/form-data",
         },

@@ -97,8 +97,10 @@ onMounted(async () => {
           ...template,
           ..._template,
           model: {
-            ..._template.model,
-            data: JSON.stringify(_template.model.data, null, 2),
+            ...(_template.model || {}),
+            data: _template.model?.data
+              ? JSON.stringify(_template.model.data, null, 2)
+              : DEFAULT_VARIABLES_DATA,
           },
         });
         let _buttonGroupValue = {};

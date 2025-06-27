@@ -346,7 +346,7 @@ const deleteTemplate = (id, dialogCloseRef) => {
                     <VCol cols="12" md="4">
                       <AppTextField
                         v-model="testNotification.user_id"
-                        label="Testing Device"
+                        label="Target Device/  User"
                         placeholder="Enter Testing User ID"
                       />
                     </VCol>
@@ -355,9 +355,10 @@ const deleteTemplate = (id, dialogCloseRef) => {
                         v-if="item.raw.type === 'styled'"
                         readonly
                         v-model="testNotification.activity_id"
-                        label="Activity ID"
-                        hint="Used to update live activity"
+                        label="Activity ID ( for update purpose only )"
+                        hint="This will be pre-populated once you start the activity."
                         persistent-hint
+                        clearable
                       />
                     </VCol>
                     <VCol cols="12" md="8">
@@ -404,6 +405,13 @@ const deleteTemplate = (id, dialogCloseRef) => {
                     @click="onSendStyled(item.raw, true)"
                     :disabled="!testNotification.activity_id"
                     >Update Activity</v-btn
+                  >
+                  <v-btn
+                    variant="text"
+                    @click="
+                      Object.assign(testNotification, DEFAULT_TEST_NOTIFICATION)
+                    "
+                    >Reset</v-btn
                   >
                   <v-btn variant="text" @click="isActive.value = false"
                     >Cancel</v-btn

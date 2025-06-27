@@ -97,8 +97,8 @@ onMounted(async () => {
           ...template,
           ..._template,
           model: {
-            ..._template.model,
-            data: _template?.model?.data
+            ...(_template.model || {}),
+            data: _template.model?.data
               ? JSON.stringify(_template.model.data, null, 2)
               : DEFAULT_VARIABLES_DATA,
           },
@@ -305,7 +305,7 @@ watch(
                         </VCol> -->
 
                         <VCol cols="12" md="12">
-                          <AppTextField
+                          <MyFileInputUpload
                             v-model="template.style.image_url"
                             label="Image URL ( public )"
                           />
@@ -406,13 +406,13 @@ watch(
 
                         <!-- Images -->
                         <VCol cols="12" md="12">
-                          <AppTextField
+                          <MyFileInputUpload
                             v-model="template.style.logo_url"
                             label="Logo URL ( public )"
                           />
                         </VCol>
                         <VCol cols="12" md="12">
-                          <AppTextField
+                          <MyFileInputUpload
                             v-model="template.style.image_url"
                             label="Image URL ( public )"
                           />
