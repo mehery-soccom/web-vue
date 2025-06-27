@@ -25,7 +25,7 @@ module.exports = AppConfig.extend({
     // },
     insights360: {
       component: () => import("@/app-insights360/AppInsights360.vue"),
-      context: "/insights360",
+      context: "/nexus/insights360",
       entry: "./src/main.js",
       plugins: () => import("@/app-insights360/plugins"),
     },
