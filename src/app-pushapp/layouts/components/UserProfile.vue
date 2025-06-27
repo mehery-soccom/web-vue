@@ -8,17 +8,7 @@ const router = useRouter();
 const userData = JSON.parse(localStorage.getItem("userData") || "null");
 
 const logout = () => {
-  // Remove "userData" from localStorage
-  // localStorage.removeItem("userData");
-
-  // Remove "accessToken" from localStorage
-  // localStorage.removeItem("accessToken");
-  router.push("/login").then(() => {
-    // Remove "userAbilities" from localStorage
-    // localStorage.removeItem("userAbilities");
-    // Reset ability to initial ability
-    // ability.update(initialAbility);
-  });
+  window.location.href = "/pushapp/auth/logout?_" + Date.now();
 };
 
 const userProfileList = [
