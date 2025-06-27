@@ -238,6 +238,17 @@ watch(
               :style="{
                 color: template.style.line1_font_color,
                 fontSize: template.style.line1_font_size + 'px',
+                fontWeight: template.style.line1_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line1_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line1_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
               }"
             >
               {{ _bind(template.style.line_1) || "Your title comes here" }}

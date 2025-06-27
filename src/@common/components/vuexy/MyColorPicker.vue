@@ -1,5 +1,11 @@
 <template>
-  <AppTextField v-model="color" maxlength="7" :label="label">
+  <AppTextField
+    v-model="color"
+    maxlength="7"
+    :label="label"
+    :placeholder="placeholder"
+    prepend-inner-icon="mdi-palette"
+  >
     <template #append-inner>
       <v-tooltip text="Pick a color">
         <template #activator="{ props }">
@@ -46,7 +52,9 @@ const props = defineProps({
   },
   label: {
     type: String,
-    default: "Color",
+  },
+  placeholder: {
+    type: String,
   },
 });
 

@@ -4,6 +4,14 @@ import { usePushNotification } from "@app-pushapp/views/admin/push-notification/
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 const { show } = inject("snackbar");
 
+const required = (v) => !!v || "This field is required";
+const urlRule = (v) =>
+  !v || /^https?:\/\/\S+$/.test(v) || "Must be a valid URL";
+const lineOpen = reactive({ 1: false, 2: false, 3: false });
+const toggleLine = (line) => {
+  lineOpen[line] = !lineOpen[line];
+};
+
 const DEFAULT_VARIABLES_DATA = `{
 
 }`;
@@ -43,6 +51,9 @@ const template = reactive({
     line1_font_color: "",
     line2_font_color: "",
     line3_font_color: "",
+    line1_font_text_styles: [],
+    line2_font_text_styles: [],
+    line3_font_text_styles: [],
     bg_color: "",
     bg_color_gradient: "",
     bg_color_gradient_dir: null,
@@ -229,231 +240,244 @@ watch(
               <VWindowItem value="tab-details">
                 <VForm>
                   <VRow>
-                    <VCol cols="12" md="12">
-                      <VRow>
-                        <VCol cols="12" md="6">
-                          <AppSelect
-                            v-model="template.type"
-                            :items="[
-                              { label: 'Simple', value: 'simple' },
-                              { label: 'Styled', value: 'styled' },
-                            ]"
-                            label="Type"
-                            placeholder="Select Type"
-                            item-title="label"
-                            item-value="value"
-                          />
-                        </VCol>
+                    <VCol cols="12" md="6">
+                      <AppSelect
+                        v-model="template.type"
+                        :items="[
+                          { label: 'Simple', value: 'simple' },
+                          { label: 'Styled', value: 'styled' },
+                        ]"
+                        label="Type"
+                        placeholder="Select Type"
+                        item-title="label"
+                        item-value="value"
+                        :rules="[required]"
+                        prepend-inner-icon="mdi-shape"
+                      />
+                    </VCol>
 
-                        <VCol cols="12" md="6">
-                          <AppSelect
-                            v-if="template.type === 'styled'"
-                            v-model="template.subType"
-                            :items="[{ label: 'Delivery', value: 'delivery' }]"
-                            label="Sub Type"
-                            placeholder="Select Sub Type"
-                            item-title="label"
-                            item-value="value"
-                          />
-                        </VCol>
+                    <VCol cols="12" md="6">
+                      <AppSelect
+                        v-if="template.type === 'styled'"
+                        v-model="template.subType"
+                        :items="[{ label: 'Delivery', value: 'delivery' }]"
+                        label="Sub Type"
+                        placeholder="Select Sub Type"
+                        item-title="label"
+                        item-value="value"
+                        :rules="[required]"
+                        prepend-inner-icon="mdi-subdirectory-arrow-right"
+                      />
+                    </VCol>
 
-                        <VCol cols="12" md="6">
-                          <AppTextField
-                            v-model="template.desc"
-                            label="Name"
-                            placeholder="Enter Name"
-                          />
-                        </VCol>
-
-                        <VCol cols="12" md="6">
-                          <!-- <AppTextField
-                            v-model="template.code"
-                            label="Code"
-                            placeholder="Enter Code"
-                          /> -->
-                        </VCol>
-                      </VRow>
+                    <VCol cols="12" md="6">
+                      <AppTextField
+                        v-model="template.desc"
+                        label="Template Name"
+                        placeholder="Enter name"
+                        :rules="[required]"
+                        prepend-inner-icon="mdi-text-box"
+                      />
                     </VCol>
 
                     <VDivider class="mt-4" />
 
-                    <VCol cols="12" md="12">
-                      <VRow v-if="template.type === 'simple'">
-                        <VCol cols="12" md="12">
-                          <AppTextField
-                            v-model="template.style.title"
-                            label="Title"
-                            placeholder="Enter Notification Title"
-                          />
-                        </VCol>
+                    <!-- Simple Template Fields -->
+                    <template v-if="template.type === 'simple'">
+                      <VCol cols="12" md="12">
+                        <AppTextField
+                          v-model="template.style.title"
+                          label="Title"
+                          placeholder="Enter Notification Title"
+                          :rules="[required]"
+                          prepend-inner-icon="mdi-format-title"
+                        />
+                      </VCol>
 
-                        <VCol cols="12" md="12">
-                          <AppTextarea
-                            v-model="template.style.message"
-                            label="Message"
-                            placeholder="Enter Notification Message"
-                          />
-                        </VCol>
+                      <VCol cols="12">
+                        <AppTextarea
+                          v-model="template.style.message"
+                          label="Message"
+                          placeholder="Enter Message"
+                          :rules="[required]"
+                          prepend-inner-icon="mdi-message-text"
+                        />
+                      </VCol>
 
-                        <!-- <VCol cols="12" md="12">
-                          <AppTextField
-                            v-model="template.style.logo_url"
-                            label="Logo URL ( public )"
-                          />
-                        </VCol> -->
+                      <VCol cols="12">
+                        <MyFileInputUpload
+                          v-model="template.style.image_url"
+                          label="Image URL ( public )"
+                        />
+                      </VCol>
 
-                        <VCol cols="12" md="12">
-                          <MyFileInputUpload
-                            v-model="template.style.image_url"
-                            label="Image URL ( public )"
-                          />
-                        </VCol>
+                      <VCol cols="12" md="6">
+                        <AppSelect
+                          v-model="template.style.category"
+                          :items="pushNotificationStore.buttonGroupList"
+                          label="CTA Group"
+                          placeholder="Select Button Group"
+                          item-title="label"
+                          item-value="value"
+                          clearable
+                          prepend-inner-icon="mdi-gesture-tap-button"
+                        />
+                      </VCol>
 
-                        <VCol cols="12" md="6">
-                          <AppSelect
-                            v-model="template.style.category"
-                            :items="pushNotificationStore.buttonGroupList"
-                            label="CTA Group"
-                            placeholder="Select Button Group"
-                            item-title="label"
-                            item-value="value"
-                            clearable
-                          />
-                        </VCol>
+                      <VCol
+                        v-for="b in buttonGroupFields"
+                        :key="b.text"
+                        cols="12"
+                      >
+                        <AppTextField
+                          v-model="buttonGroupValue[b.text]"
+                          :label="'Button > ' + b.text"
+                          placeholder="Enter URL"
+                          :rules="[urlRule]"
+                          prepend-inner-icon="mdi-link"
+                        />
+                      </VCol>
+                    </template>
 
-                        <VCol
-                          cols="12"
-                          md="12"
-                          v-if="buttonGroupFields.length"
-                          v-for="b in buttonGroupFields"
-                        >
-                          <AppTextField
-                            v-model="buttonGroupValue[b.text]"
-                            :label="'Button > ' + b.text"
-                            placeholder="Enter URL"
-                          />
-                        </VCol>
-                      </VRow>
+                    <!-- Styled Template Fields -->
+                    <template v-else>
+                      <template v-for="line in [1, 2, 3]" :key="line">
+                        <VCol cols="12">
+                          <VRow no-gutters align="end">
+                            <VCol cols="11">
+                              <AppTextField
+                                v-model="template.style[`line_${line}`]"
+                                :label="`Line ${line} Text`"
+                                class="mb-1"
+                                placeholder="Enter text for this line"
+                                prepend-inner-icon="mdi-text"
+                                density="compact"
+                              />
+                            </VCol>
+                            <VCol
+                              cols="1"
+                              class="d-flex align-center justify-end"
+                            >
+                              <VBtn
+                                icon
+                                variant="text"
+                                @click="toggleLine(line)"
+                              >
+                                <VIcon>{{
+                                  lineOpen[line]
+                                    ? "mdi-chevron-up"
+                                    : "mdi-pencil"
+                                }}</VIcon>
+                              </VBtn>
+                            </VCol>
+                          </VRow>
 
-                      <VRow v-else>
-                        <!-- Line 1 -->
-                        <VCol cols="12" md="7">
-                          <AppTextField
-                            v-model="template.style.line_1"
-                            label="Title"
-                            placeholder="Enter Title"
-                          />
-                        </VCol>
-                        <VCol cols="12" md="2">
-                          <AppSelect
-                            v-model="template.style.line1_font_size"
-                            :items="FONT_SIZES"
-                            label="Font Size"
-                          />
-                        </VCol>
-                        <VCol cols="12" md="3">
-                          <MyColorPicker
-                            v-model="template.style.line1_font_color"
-                            label="Font Color"
-                          />
-                        </VCol>
+                          <VExpandTransition>
+                            <div v-show="lineOpen[line]">
+                              <VRow dense class="mt-1">
+                                <!-- Font Size -->
+                                <VCol cols="12" md="4">
+                                  <AppSelect
+                                    v-model="
+                                      template.style[`line${line}_font_size`]
+                                    "
+                                    :items="FONT_SIZES"
+                                    prepend-inner-icon="mdi-format-size"
+                                    placeholder="Font Size"
+                                  />
+                                </VCol>
 
-                        <!-- Line 2 -->
-                        <VCol cols="12" md="7">
-                          <AppTextField
-                            v-model="template.style.line_2"
-                            label="Text"
-                            placeholder="Enter Text"
-                          />
-                        </VCol>
-                        <VCol cols="12" md="2">
-                          <AppSelect
-                            v-model="template.style.line2_font_size"
-                            :items="FONT_SIZES"
-                            label="Font Size"
-                          />
-                        </VCol>
-                        <VCol cols="12" md="3">
-                          <MyColorPicker
-                            v-model="template.style.line2_font_color"
-                            label="Font Color"
-                          />
-                        </VCol>
+                                <!-- Font Color -->
+                                <VCol cols="12" md="4">
+                                  <MyColorPicker
+                                    v-model="
+                                      template.style[`line${line}_font_color`]
+                                    "
+                                    placeholder="Font Color"
+                                  />
+                                </VCol>
 
-                        <!-- Line 3 -->
-                        <VCol cols="12" md="7">
-                          <AppTextField
-                            v-model="template.style.line_3"
-                            label="Message"
-                            placeholder="Enter Message"
-                          />
+                                <!-- Text Style Buttons -->
+                                <VCol cols="12" md="4">
+                                  <VBtnToggle
+                                    v-model="
+                                      template.style[`line${line}_text_styles`]
+                                    "
+                                    multiple
+                                    variant="outlined"
+                                    class="text-style-toggle"
+                                  >
+                                    <VBtn color="primary" value="bold" icon
+                                      ><VIcon>mdi-format-bold</VIcon></VBtn
+                                    >
+                                    <VBtn color="primary" value="italic" icon
+                                      ><VIcon>mdi-format-italic</VIcon></VBtn
+                                    >
+                                    <VBtn color="primary" value="underline" icon
+                                      ><VIcon>mdi-format-underline</VIcon></VBtn
+                                    >
+                                  </VBtnToggle>
+                                </VCol>
+                              </VRow>
+                            </div>
+                          </VExpandTransition>
                         </VCol>
-                        <VCol cols="12" md="2">
-                          <AppSelect
-                            v-model="template.style.line3_font_size"
-                            :items="FONT_SIZES"
-                            label="Font Size"
-                          />
-                        </VCol>
-                        <VCol cols="12" md="3">
-                          <MyColorPicker
-                            v-model="template.style.line3_font_color"
-                            label="Font Color"
-                          />
-                        </VCol>
+                      </template>
 
-                        <!-- Images -->
-                        <VCol cols="12" md="12">
-                          <MyFileInputUpload
-                            v-model="template.style.logo_url"
-                            label="Logo URL ( public )"
-                          />
-                        </VCol>
-                        <VCol cols="12" md="12">
-                          <MyFileInputUpload
-                            v-model="template.style.image_url"
-                            label="Image URL ( public )"
-                          />
+                      <VCol cols="12">
+                        <MyFileInputUpload
+                          v-model="template.style.logo_url"
+                          label="Logo URL ( public )"
+                        />
+                      </VCol>
 
-                          <!-- Background -->
-                        </VCol>
+                      <VCol cols="12">
+                        <MyFileInputUpload
+                          v-model="template.style.image_url"
+                          label="Image URL ( public )"
+                        />
+                      </VCol>
 
-                        <!-- Backgroud -->
-                        <VCol cols="12" md="3"
-                          ><MyColorPicker
-                            v-model="template.style.bg_color"
-                            label="Background Color"
-                        /></VCol>
-                        <VCol cols="12" md="3">
-                          <MyColorPicker
-                            v-model="template.style.bg_color_gradient"
-                            label="Gradient Color"
-                        /></VCol>
-                        <VCol cols="12" md="3"
-                          ><AppSelect
-                            v-model="template.style.bg_color_gradient_dir"
-                            :items="GRADIENT_DIRS"
-                            label="Gradient Direction"
-                        /></VCol>
-                        <VCol cols="12" md="3"></VCol>
+                      <!-- Background -->
+                      <VCol cols="12" md="3">
+                        <MyColorPicker
+                          v-model="template.style.bg_color"
+                          label="Background Color"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="3">
+                        <MyColorPicker
+                          v-model="template.style.bg_color_gradient"
+                          label="Gradient Color"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="3">
+                        <AppSelect
+                          v-model="template.style.bg_color_gradient_dir"
+                          :items="GRADIENT_DIRS"
+                          label="Gradient Direction"
+                          prepend-inner-icon="mdi-arrow-expand-all"
+                        />
+                      </VCol>
 
-                        <!-- Progress Bar -->
-                        <VCol cols="12" md="3"
-                          ><MyColorPicker
-                            v-model="template.style.progress_color"
-                            label="Progress Color"
-                        /></VCol>
-                        <VCol cols="12" md="9"></VCol>
+                      <!-- Progress -->
+                      <VCol cols="12" md="3">
+                        <MyColorPicker
+                          v-model="template.style.progress_color"
+                          label="Progress Color"
+                        />
+                      </VCol>
 
-                        <!-- Alignment -->
-                        <VCol cols="12" md="4"
-                          ><AppSelect
-                            v-model="template.style.align"
-                            :items="TEMPLATE_ALIGN"
-                            label="Direction"
-                        /></VCol>
-                      </VRow>
-                    </VCol>
+                      <!-- Alignment -->
+                      <VCol cols="12" md="4">
+                        <AppSelect
+                          v-model="template.style.align"
+                          :items="TEMPLATE_ALIGN"
+                          label="Template Alignment"
+                          prepend-inner-icon="mdi-format-align-center"
+                        />
+                      </VCol>
+                    </template>
                   </VRow>
                 </VForm>
               </VWindowItem>
@@ -525,5 +549,12 @@ watch(
 .template-form {
   height: inherit;
   overflow: scroll;
+}
+.text-style-toggle .v-btn {
+  min-width: 56px;
+  height: 36px;
+}
+.v-btn-group {
+  height: 44px !important;
 }
 </style>

@@ -66,9 +66,9 @@ const handleFileUpload = async (event) => {
       message: "Failed to upload image. Please try again.",
       color: "error",
     });
-    file.value = null;
   } finally {
     uploading.value = false;
+    file.value = null;
   }
 };
 
@@ -89,27 +89,37 @@ watch(url, (val) => {
 </script>
 
 <template>
-  <VLabel class="mb-1 text-body-2 text-high-emphasis" :text="label" />
-  <VFileInput
-    v-if="!url"
-    :loading="uploading"
-    color="primary"
-    variant="outlined"
-    accept="image/*"
-    @change="handleFileUpload"
-    v-model="file"
-  />
-  <div v-else class="d-flex align-center ga-3">
-    <VTextField
-      v-model="url"
-      variant="outlined"
-      class="flex-grow-1"
-      :append-inner-icon="'mdi-pencil'"
-      clearable
-      @click:clear="clearUpload"
-      readonly
-    />
-  </div>
+  <VRow no-gutters align="end">
+    <VCol :cols="!url ? '12' : '11'">
+      <VLabel class="mb-1 text-body-2 text-high-emphasis" :text="label" />
+      <VFileInput
+        v-if="!url"
+        :loading="uploading"
+        color="primary"
+        variant="outlined"
+        accept="image/*"
+        @change="handleFileUpload"
+        v-model="file"
+        placeholder="Select a file"
+        prepend-inner-icon="mdi-image"
+        prepend-icon=""
+      />
+      <div v-else class="d-flex align-center ga-3">
+        <VTextField
+          v-model="url"
+          variant="outlined"
+          class="flex-grow-1"
+          prepend-inner-icon="mdi-image"
+          readonly
+        />
+      </div>
+    </VCol>
+    <VCol v-if="url" cols="1" class="d-flex align-center justify-end">
+      <VBtn icon variant="text" @click="clearUpload">
+        <VIcon>mdi-trash</VIcon>
+      </VBtn>
+    </VCol>
+  </VRow>
 </template>
 
 <style lang="scss"></style>
