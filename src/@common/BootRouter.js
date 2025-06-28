@@ -93,8 +93,9 @@ export default {
 
   getAutoRoutes: function (app) {
     console.log("[v3] [BootRouter] getAutoRoutes", routes);
-    if (!routes.length) {
-      return console.log("No auto routes found");
+    if (!routes?.length) {
+      console.log("[v3] [BootRouter] getAutoRoutes : No auto routes found");
+      return [];
     }
 
     const _routes = this.flattenRoutes(routes).filter((r) => {
