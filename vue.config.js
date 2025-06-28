@@ -26,7 +26,7 @@ process.env.VUE_APP_VERSION = require("./package.json").version;
 process.env.VUE_APP_TIMESTAMP = Date.now();
 const appName = process.env.VUE_APP_NAME || "default";
 
-console.log("webpack", { appName });
+console.log("webpack", {});
 module.exports = defineConfig({
   publicPath: process.env.NODE_ENV === "production" ? "./" : "/",
 
