@@ -70,11 +70,15 @@ function getValueByPath(obj, path) {
 }
 
 function _bind(template) {
-  let data = props.template?.model?.data || {};
-  return template.replace(/{{\s*data\.([\w$.]+)\s*}}/g, (_, path) => {
-    const value = getValueByPath(data, path);
-    return value !== undefined ? value : `{{data.${path}}}`;
-  });
+  const data = props.template?.model || {};
+  return template.replace(
+    /{{\s*([\w]+)\.([\w$.]+)\s*}}/g,
+    (_, prefix, path) => {
+      const fullPath = `${prefix}.${path}`;
+      const value = getValueByPath(data, fullPath);
+      return value !== undefined && value !== "" ? value : `{{${fullPath}}}`;
+    }
+  );
 }
 
 watch(

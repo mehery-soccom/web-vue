@@ -30,6 +30,8 @@
     "pinia": "^3.0.3",
     "prismjs": "1.29.0",
     "roboto-fontface": "0.10.0",
+    "textarea-caret": "^3.1.0",
+    "textcomplete": "^0.18.2",
     "vee-validate": "^4.15.1",
     "vue": "^3.2.13",
     "vue-chartjs": "5.2.0",

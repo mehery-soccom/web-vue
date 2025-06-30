@@ -64,6 +64,9 @@ const template = reactive({
     data: DEFAULT_VARIABLES_DATA,
   },
 });
+// const model = ref({
+//   data: {},
+// });
 const view = ref({
   platform: "ios",
   mode: "collapse",
@@ -94,6 +97,7 @@ const templatePreview = computed(() => {
     model: {
       data,
     },
+    // model: model.value,
   };
 });
 
@@ -301,6 +305,7 @@ watch(
                           placeholder="Enter Message"
                           :rules="[required]"
                           prepend-inner-icon="mdi-message-text"
+                          :suggestions="model"
                         />
                       </VCol>
 
@@ -498,6 +503,19 @@ watch(
                     />
                   </VCol>
                 </VRow>
+                <!-- <VRow>
+                  <VCol cols="12" md="12">
+                    <DynamicFieldEditor
+                      v-model="model"
+                      :fields="[
+                        toRef(template.style, 'title'),
+                        toRef(template.style, 'message'),
+                      ]"
+                      :dynamic-prefixes="['data']"
+                    />
+                  </VCol>
+                </VRow> -->
+                <!-- toRef - bc, watching multiple fields in an array -->
               </VWindowItem>
             </VWindow>
           </VCardText>
