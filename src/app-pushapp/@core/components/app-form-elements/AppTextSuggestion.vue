@@ -2,8 +2,15 @@
 import { ref, onMounted, onUnmounted, useAttrs } from "vue";
 import { Textcomplete, Textarea } from "textcomplete";
 import getCaretCoordinates from "textarea-caret";
+import AppTextField from "./AppTextField";
+import AppTextarea from "./AppTextarea";
 
 const props = defineProps({
+  type: {
+    type: String,
+    enum: ["input", "textarea"],
+    default: "input",
+  },
   suggestions: {
     type: Array,
     required: true,
@@ -30,16 +37,11 @@ const model = defineModel({ type: String, default: "" });
 
 const textareaRef = ref(null);
 
-let textcompleteInstance = null;
-
-let editorEl = null;
-
 const setupTextcomplete = () => {
-  editorEl = textareaRef.value?.$el?.querySelector("textarea");
+  const editorEl = textareaRef.value?.$el?.querySelector(props.type);
   if (!editorEl) return;
 
   const textcomplete = new Textcomplete(new Textarea(editorEl));
-  textcompleteInstance = textcomplete;
 
   textcomplete.register([
     {
@@ -68,7 +70,7 @@ const setupTextcomplete = () => {
   });
 
   const reposition = () => {
-    const dropdownEl = document.querySelector(".textcomplete-dropdown");
+    const dropdownEl = textcomplete.dropdown?.el;
     if (!dropdownEl || !editorEl) return;
 
     const caret = getCaretCoordinates(editorEl, editorEl.selectionEnd);
@@ -82,26 +84,31 @@ const setupTextcomplete = () => {
     dropdownEl.style.minWidth = `160px`;
   };
 
+  const hideDropdown = () => {
+    textcomplete?.hide();
+  };
+
   window.addEventListener("scroll", reposition, true);
   window.addEventListener("resize", reposition);
   document.addEventListener("click", hideDropdown);
-};
 
-const hideDropdown = () => {
-  textcompleteInstance?.hide();
+  onUnmounted(() => {
+    window.removeEventListener("scroll", reposition, true);
+    window.removeEventListener("resize", reposition);
+    document.removeEventListener("click", hideDropdown);
+  });
 };
 
 onMounted(setupTextcomplete);
 
-onUnmounted(() => {
-  document.removeEventListener("click", hideDropdown);
-  window.removeEventListener("scroll", customReposition, true);
-  window.removeEventListener("resize", customReposition);
+const currentComponent = computed(() => {
+  return props.type == "textarea" ? AppTextarea : AppTextField;
 });
 </script>
 
 <template>
-  <AppTextarea
+  <component
+    :is="currentComponent"
     ref="textareaRef"
     v-model="model"
     class="textcomplete-input"

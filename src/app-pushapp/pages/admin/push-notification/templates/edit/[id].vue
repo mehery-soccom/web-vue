@@ -1,4 +1,5 @@
 <script setup>
+import { toRef } from "vue";
 import NotificationPreview from "@app-pushapp/views/admin/push-notification/NotificationPreview.vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
@@ -12,9 +13,9 @@ const toggleLine = (line) => {
   lineOpen[line] = !lineOpen[line];
 };
 
-const DEFAULT_VARIABLES_DATA = `{
+// const DEFAULT_VARIABLES_DATA = `{
 
-}`;
+// }`;
 
 const route = useRoute();
 const router = useRouter();
@@ -61,7 +62,7 @@ const template = reactive({
     align: "left",
   },
   model: {
-    data: DEFAULT_VARIABLES_DATA,
+    data: {},
   },
 });
 const view = ref({
@@ -81,19 +82,19 @@ const buttonGroupFields = computed(() => {
   return [];
 });
 const templatePreview = computed(() => {
-  let data = {};
-  try {
-    data = JSON.parse(template.model.data);
-  } catch (error) {}
+  // let data = {};
+  // try {
+  //   data = JSON.parse(template.model.data);
+  // } catch (error) {}
   return {
     view: view.value,
     ...template,
     options: {
       buttons: buttonGroupFields.value,
     },
-    model: {
-      data,
-    },
+    // model: {
+    //   data,
+    // },
   };
 });
 
@@ -107,12 +108,10 @@ onMounted(async () => {
         Object.assign(template, {
           ...template,
           ..._template,
-          model: {
-            ...(_template.model || {}),
-            data: _template.model?.data
-              ? JSON.stringify(_template.model.data, null, 2)
-              : DEFAULT_VARIABLES_DATA,
-          },
+          // model: {
+          //   ...(_template.model || {}),
+          //   data: {}
+          // },
         });
         let _buttonGroupValue = {};
         _template.options.buttons.map((b) => {
@@ -133,12 +132,12 @@ const onUpdate = async () => {
   try {
     isLoading.value = true;
 
-    let data = {};
-    try {
-      data = JSON.parse(template.model.data || DEFAULT_VARIABLES_DATA);
-    } catch (error) {
-      return show({ message: "Invalid variables json", color: "error" });
-    }
+    // let data = {};
+    // try {
+    //   data = JSON.parse(template.model.data || DEFAULT_VARIABLES_DATA);
+    // } catch (error) {
+    //   return show({ message: "Invalid variables json", color: "error" });
+    // }
 
     let payload = {};
     if (template.type === "simple") {
@@ -152,19 +151,19 @@ const onUpdate = async () => {
             button_url: buttonGroupValue.value[b.text],
           })),
         },
-        model: {
-          ...(template.model || {}),
-          data,
-        },
+        // model: {
+        //   ...(template.model || {}),
+        //   data,
+        // },
       };
     } else {
       payload = {
         ...template,
         options: {},
-        model: {
-          ...(template.model || {}),
-          data,
-        },
+        // model: {
+        //   ...(template.model || {}),
+        //   data,
+        // },
       };
     }
 
@@ -287,22 +286,25 @@ watch(
                     <!-- Simple Template Fields -->
                     <template v-if="template.type === 'simple'">
                       <VCol cols="12" md="12">
-                        <AppTextField
+                        <AppTextSuggestion
                           v-model="template.style.title"
                           label="Title"
                           placeholder="Enter Notification Title"
                           :rules="[required]"
                           prepend-inner-icon="mdi-format-title"
+                          :suggestions="template.model"
                         />
                       </VCol>
 
                       <VCol cols="12">
-                        <AppTextarea
+                        <AppTextSuggestion
                           v-model="template.style.message"
                           label="Message"
                           placeholder="Enter Message"
                           :rules="[required]"
                           prepend-inner-icon="mdi-message-text"
+                          type="textarea"
+                          :suggestions="template.model"
                         />
                       </VCol>
 
@@ -485,7 +487,7 @@ watch(
               </VWindowItem>
 
               <VWindowItem value="tab-variables">
-                <VRow>
+                <!-- <VRow>
                   <VCol cols="12" md="12">
                     <AppTextarea
                       v-model="template.model.data"
@@ -499,7 +501,20 @@ watch(
                       persistent-hint
                     />
                   </VCol>
+                </VRow> -->
+                <VRow>
+                  <VCol cols="12" md="12">
+                    <DynamicFieldEditor
+                      v-model="template.model"
+                      :fields="[
+                        toRef(template.style, 'title'),
+                        toRef(template.style, 'message'),
+                      ]"
+                      :dynamic-prefixes="['data']"
+                    />
+                  </VCol>
                 </VRow>
+                <!-- toRef - bc, watching multiple fields in an array -->
               </VWindowItem>
             </VWindow>
           </VCardText>

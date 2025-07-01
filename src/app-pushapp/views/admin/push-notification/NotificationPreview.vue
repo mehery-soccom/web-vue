@@ -262,6 +262,17 @@ watch(
               :style="{
                 color: template.style.line2_font_color,
                 fontSize: template.style.line2_font_size + 'px',
+                fontWeight: template.style.line2_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line2_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line2_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
               }"
             >
               {{ _bind(template.style.line_2) || "Your text comes here" }}
@@ -271,6 +282,17 @@ watch(
               :style="{
                 color: template.style.line3_font_color,
                 fontSize: template.style.line3_font_size + 'px',
+                fontWeight: template.style.line3_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line3_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line3_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
               }"
             >
               {{ _bind(template.style.line_3) || "Your message comes here" }}
