@@ -222,7 +222,7 @@ const deleteTemplate = (id, dialogCloseRef) => {
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
-          :to="{ name: 'admin-push-notification-templates-add' }"
+          :to="{ name: 'admin-push-notification-templates-add-id?' }"
         >
           Create Template
         </VBtn>
@@ -287,7 +287,7 @@ const deleteTemplate = (id, dialogCloseRef) => {
 
         <IconBtn
           :to="{
-            name: 'admin-push-notification-templates-edit-id',
+            name: 'admin-push-notification-templates-add-id?',
             params: { id: item.raw._id },
           }"
         >
@@ -297,7 +297,7 @@ const deleteTemplate = (id, dialogCloseRef) => {
 
         <IconBtn
           :to="{
-            name: 'admin-push-notification-templates-add',
+            name: 'admin-push-notification-templates-add-id?',
             query: { copy: item.raw._id },
           }"
         >

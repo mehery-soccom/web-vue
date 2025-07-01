@@ -92,7 +92,7 @@ export default {
   },
 
   getAutoRoutes: function (app) {
-    console.log("[v3] [BootRouter] getAutoRoutes", routes);
+    /* console.log("[v3] [BootRouter] getAutoRoutes", routes); */
     if (!routes?.length) {
       console.log("[v3] [BootRouter] getAutoRoutes : No auto routes found");
       return [];
@@ -101,8 +101,8 @@ export default {
     const _routes = this.flattenRoutes(routes).filter((r) => {
       return r.appName === `app_${app}`;
     });
+    console.log("[v3] [BootRouter] _routes", _routes);
     /*
-    console.log(_routes);
     {
         "name": "apps-invoice-list",
         "path": "/apps/invoice/list",

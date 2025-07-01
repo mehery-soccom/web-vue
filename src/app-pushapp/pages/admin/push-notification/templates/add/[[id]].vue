@@ -18,21 +18,24 @@ const toggleLine = (line) => {
 // }`;
 
 const route = useRoute();
-const router = useRouter();
-const pushNotificationStore = usePushNotificationStore();
+const PARAM_ID = route.params.id;
+const QUERY_COPY = route.query.copy;
 
+const router = useRouter();
+
+const pushNotificationStore = usePushNotificationStore();
 const { FONT_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATES_CONFIG } =
   usePushNotification();
 
 const tab = ref("tab-details");
 const isLoading = ref(false);
 const template = reactive({
-  type: null,
+  type: "simple",
   subType: null,
   desc: "",
   code: "",
   style: {
-    code: "",
+    code: "simple",
 
     /** simple */
     title: "",
@@ -97,12 +100,13 @@ const templatePreview = computed(() => {
     // },
   };
 });
+const formRef = ref();
+const formRefVersion = ref(1);
 
 onMounted(async () => {
-  const id = route.params.id;
-  if (id) {
+  if (PARAM_ID) {
     pushNotificationStore
-      .fetchTemplate({ id })
+      .fetchTemplate({ id: PARAM_ID })
       .then((response) => {
         const _template = response.data.data;
         Object.assign(template, {
@@ -124,11 +128,103 @@ onMounted(async () => {
         show({ message: "Something went wrong", color: "error" });
       });
   } else {
-    show({ message: "Channel ID missing", color: "error" });
+    if (QUERY_COPY) {
+      pushNotificationStore
+        .fetchTemplate({ id: QUERY_COPY })
+        .then((response) => {
+          const _template = response.data.data;
+          Object.assign(template, {
+            ...template,
+            ..._template,
+            // model: {
+            //   ...(_template.model || {}),
+            //   data: {},
+            // },
+          });
+          let _buttonGroupValue = {};
+          _template.options.buttons.map((b) => {
+            _buttonGroupValue[b.button_text] = b.button_url;
+          });
+          buttonGroupValue.value = _buttonGroupValue;
+        })
+        .catch((error) => {
+          console.log(error);
+          show({ message: "Something went wrong", color: "error" });
+        });
+    }
   }
 });
 
+const onCreate = async () => {
+  let validationResult = await formRef.value.validate();
+
+  console.log("onCreate", validationResult.errors);
+
+  if (!validationResult.valid) {
+    return;
+  }
+
+  try {
+    isLoading.value = true;
+
+    // let data = {};
+    // try {
+    //   data = JSON.parse(template.model.data || DEFAULT_VARIABLES_DATA);
+    // } catch (error) {
+    //   return show({ message: "Invalid variables json", color: "error" });
+    // }
+
+    let payload = {};
+    if (template.type === "simple") {
+      payload = {
+        ...template,
+        options: {
+          ...(template.options || {}),
+          buttons: buttonGroupFields.value.map((b) => ({
+            button_id: b.id,
+            button_text: b.text,
+            button_url: buttonGroupValue.value[b.text],
+          })),
+        },
+        // model: {
+        //   ...(template.model || {}),
+        //   data,
+        // },
+      };
+    } else {
+      payload = {
+        ...template,
+        options: {},
+        // model: {
+        //   ...(template.model || {}),
+        //   data,
+        // },
+      };
+    }
+
+    await pushNotificationStore.createTemplate(payload);
+
+    show({ message: "Template created successfully", color: "success" });
+
+    router.push({ name: "admin-push-notification-templates-list" });
+  } catch (error) {
+    console.error(error);
+
+    show({ message: "Something went wrong. try again", color: "error" });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 const onUpdate = async () => {
+  let validationResult = await formRef.value.validate();
+
+  console.log("onUpdate", validationResult.errors);
+
+  if (!validationResult.valid) {
+    return;
+  }
+
   try {
     isLoading.value = true;
 
@@ -202,6 +298,8 @@ watch(
 watch(
   () => template.type,
   (val) => {
+    formRefVersion.value += 1;
+
     if (val === "simple") {
       template.subType = null;
     }
@@ -239,7 +337,7 @@ watch(
           <VCardText>
             <VWindow v-model="tab" class="disable-tab-transition">
               <VWindowItem value="tab-details">
-                <VForm>
+                <VForm ref="formRef" :key="formRefVersion">
                   <VRow>
                     <VCol cols="12" md="6">
                       <AppSelect
@@ -522,9 +620,13 @@ watch(
           <VDivider />
 
           <VCardText class="d-flex gap-4">
-            <VBtn @click="onUpdate" :disabled="isLoading">{{
-              isLoading ? "loading..." : "Update"
-            }}</VBtn>
+            <VBtn
+              @click="PARAM_ID ? onUpdate() : onCreate()"
+              :disabled="isLoading"
+              >{{
+                isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
+              }}</VBtn
+            >
             <VBtn
               variant="tonal"
               color="secondary"
