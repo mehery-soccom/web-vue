@@ -1,5 +1,7 @@
 <!-- eslint-disable vue/no-mutating-props -->
 <script setup>
+import { requiredValidator } from "@app-pushapp/@core/utils/validators";
+
 const props = defineProps({
   index: {
     type: Number,
@@ -50,6 +52,7 @@ const removePlatform = () => {
             label="Platform Type"
             placeholder="Select Platform Type"
             class="mb-3"
+            :rules="[requiredValidator]"
           />
         </VCol>
 
@@ -58,6 +61,7 @@ const removePlatform = () => {
             v-model="data.bundle_id"
             label="Bundle ID"
             placeholder="Enter Bundle ID"
+            :rules="[requiredValidator]"
           />
         </VCol>
       </VRow>
@@ -68,6 +72,7 @@ const removePlatform = () => {
             v-model="data.team_id"
             label="Team ID"
             placeholder="Enter Team ID"
+            :rules="[requiredValidator]"
         /></VCol>
 
         <VCol cols="12" md="6">
@@ -75,6 +80,7 @@ const removePlatform = () => {
             v-model="data.key_id"
             label="Key ID"
             placeholder="Enter Key ID"
+            :rules="[requiredValidator]"
         /></VCol>
       </VRow>
 

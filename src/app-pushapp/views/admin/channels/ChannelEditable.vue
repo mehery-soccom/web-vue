@@ -1,5 +1,6 @@
 <script setup>
 import ChannelPlatformEditable from "./ChannelPlatformEditable.vue";
+import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 
 const props = defineProps({
   mode: {
@@ -48,7 +49,7 @@ const removePlatform = (index) => {
   let platform_id = props.data.platforms[index].platform_id;
 
   if (!platform_id) {
-    props.data.platforms.splice(index, 1);
+    if (props.data.platforms.length > 1) props.data.platforms.splice(index, 1);
   } else {
     emit("updatePlatform", { channel_id, platform_id });
   }
@@ -63,7 +64,6 @@ const handleFileUpload = (file, index) => {
   <VCard>
     <v-card-item>
       <v-card-title>App Details</v-card-title>
-      <!-- <v-card-subtitle>Details below</v-card-subtitle> -->
     </v-card-item>
 
     <VCardText>
@@ -73,28 +73,13 @@ const handleFileUpload = (file, index) => {
             v-model="data.channel_name"
             label="App Name"
             placeholder="Enter App Name"
+            :rules="[requiredValidator]"
           />
         </VCol>
         <VCol cols="12" md="6" v-if="data.channel_id">
           <AppTextField v-model="data.channel_id" label="App ID" readonly />
         </VCol>
       </VRow>
-      <!-- <VRow>
-        <VCol cols="12" md="6">
-          <AppTextField
-            v-model="data.company_name"
-            label="Company Name"
-            placeholder="Your Company Name"
-          />
-        </VCol>
-        <VCol cols="12" md="6">
-          <AppTextField
-            v-model="data.company_id"
-            label="Company ID"
-            placeholder="Your Company ID"
-          />
-        </VCol>
-      </VRow> -->
     </VCardText>
 
     <VDivider />

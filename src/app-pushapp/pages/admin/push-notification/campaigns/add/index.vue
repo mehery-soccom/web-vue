@@ -1,6 +1,7 @@
 <script setup>
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
+import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 const { show } = inject("snackbar");
 
 const route = useRoute();
@@ -14,10 +15,11 @@ const notification = reactive({
   campaignName: "",
   template: null,
   channel_id: null,
-  platforms: [],
+  platforms: null,
 });
 const ChannelList = ref([]);
 const TemplateListSimple = ref([]);
+const formRef = ref();
 
 onMounted(async () => {
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
@@ -57,6 +59,14 @@ onMounted(async () => {
 });
 
 const onSendSimple = async () => {
+  let validationResult = await formRef.value.validate();
+
+  console.log("onSendSimple", validationResult.errors);
+
+  if (!validationResult.valid) {
+    return;
+  }
+
   try {
     isLoading.value = true;
 
@@ -111,17 +121,18 @@ const onSendSimple = async () => {
           <VTab value="tab-segments"> Segments </VTab>
         </VTabs>
 
-        <VCard flat>
-          <VCardText>
-            <VWindow v-model="tab" class="disable-tab-transition">
-              <VWindowItem value="tab-details">
-                <VForm>
+        <VForm ref="formRef">
+          <VCard flat>
+            <VCardText>
+              <VWindow v-model="tab" class="disable-tab-transition">
+                <VWindowItem value="tab-details">
                   <VRow>
                     <VCol cols="12" md="6">
                       <AppTextField
                         v-model="notification.campaignName"
                         label="Notification Name"
                         placeholder="Enter Notification Name"
+                        :rules="[requiredValidator]"
                       />
                     </VCol>
 
@@ -134,6 +145,7 @@ const onSendSimple = async () => {
                         item-title="code"
                         item-value="_id"
                         clearable
+                        :rules="[requiredValidator]"
                       >
                         <template #item="{ props, item }">
                           <v-list-item v-bind="props" class="px-4">
@@ -145,11 +157,9 @@ const onSendSimple = async () => {
                       </AppSelect>
                     </VCol>
                   </VRow>
-                </VForm>
-              </VWindowItem>
+                </VWindowItem>
 
-              <VWindowItem value="tab-segments">
-                <VForm>
+                <VWindowItem value="tab-segments">
                   <VRow>
                     <VCol cols="12" md="6">
                       <AppSelect
@@ -160,6 +170,7 @@ const onSendSimple = async () => {
                         item-title="channel_name"
                         item-value="channel_id"
                         clearable
+                        :rules="[requiredValidator]"
                       />
                     </VCol>
 
@@ -176,6 +187,7 @@ const onSendSimple = async () => {
                         clearable
                         multiple
                         chips
+                        :rules="[requiredValidator]"
                       />
                     </VCol>
 
@@ -183,29 +195,29 @@ const onSendSimple = async () => {
                       <AppTextField label="Target" value="All Users" disabled />
                     </VCol>
                   </VRow>
-                </VForm>
-              </VWindowItem>
-            </VWindow>
-          </VCardText>
+                </VWindowItem>
+              </VWindow>
+            </VCardText>
 
-          <VDivider />
+            <VDivider />
 
-          <VCardText class="d-flex gap-4">
-            <VBtn
-              v-if="tab === 'tab-segments'"
-              @click="onSendSimple"
-              :disabled="isLoading"
-              >{{ isLoading ? "loading..." : "Send Now" }}</VBtn
-            >
-            <VBtn
-              variant="tonal"
-              color="secondary"
-              :to="{ name: 'admin-push-notification-campaigns-list' }"
-            >
-              Cancel
-            </VBtn>
-          </VCardText>
-        </VCard>
+            <VCardText class="d-flex gap-4">
+              <VBtn
+                v-if="tab === 'tab-segments'"
+                @click="onSendSimple"
+                :disabled="isLoading"
+                >{{ isLoading ? "loading..." : "Send Now" }}</VBtn
+              >
+              <VBtn
+                variant="tonal"
+                color="secondary"
+                :to="{ name: 'admin-push-notification-campaigns-list' }"
+              >
+                Cancel
+              </VBtn>
+            </VCardText>
+          </VCard>
+        </VForm>
       </v-card>
     </v-col>
   </v-row>

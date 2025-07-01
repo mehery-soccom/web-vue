@@ -79,7 +79,10 @@ const deleteChannel = (id, dialogCloseRef) => {
 
       <div class="d-flex align-center flex-wrap gap-4">
         <!-- 👉 Create -->
-        <VBtn prepend-icon="tabler-plus" :to="{ name: 'admin-channels-add' }">
+        <VBtn
+          prepend-icon="tabler-plus"
+          :to="{ name: 'admin-channels-add-id?' }"
+        >
           Create App
         </VBtn>
       </div>
@@ -92,7 +95,7 @@ const deleteChannel = (id, dialogCloseRef) => {
       <template #item.channel_name="{ item }">
         <RouterLink
           :to="{
-            name: 'admin-channels-preview-id',
+            name: 'admin-channels-add-id?',
             params: { id: item.raw.channel_id },
           }"
         >
@@ -146,7 +149,7 @@ const deleteChannel = (id, dialogCloseRef) => {
 
         <IconBtn
           :to="{
-            name: 'admin-channels-edit-id',
+            name: 'admin-channels-add-id?',
             params: { id: item.raw.channel_id },
           }"
         >
