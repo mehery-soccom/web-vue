@@ -409,7 +409,7 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Image URL ( public )"
+                          label="Upload Image"
                         />
                       </VCol>
 
@@ -447,13 +447,14 @@ watch(
                         <VCol cols="12">
                           <VRow no-gutters align="end">
                             <VCol cols="11">
-                              <AppTextField
+                              <AppTextSuggestion
                                 v-model="template.style[`line_${line}`]"
                                 :label="`Line ${line} Text`"
                                 class="mb-1"
                                 placeholder="Enter text for this line"
                                 prepend-inner-icon="mdi-text"
                                 density="compact"
+                                :suggestions="template.model"
                               />
                             </VCol>
                             <VCol
@@ -529,14 +530,14 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.logo_url"
-                          label="Logo URL ( public )"
+                          label="Upload Logo"
                         />
                       </VCol>
 
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Image URL ( public )"
+                          label="Upload Image"
                         />
                       </VCol>
 
@@ -607,6 +608,9 @@ watch(
                       :fields="[
                         toRef(template.style, 'title'),
                         toRef(template.style, 'message'),
+                        toRef(template.style, 'line_1'),
+                        toRef(template.style, 'line_2'),
+                        toRef(template.style, 'line_3'),
                       ]"
                       :dynamic-prefixes="['data']"
                     />

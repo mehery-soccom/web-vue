@@ -78,6 +78,9 @@ const deleteChannel = (id, dialogCloseRef) => {
       <VSpacer />
 
       <div class="d-flex align-center flex-wrap gap-4">
+        <VBtn icon @click="fetchChannels" :loading="isLoading" variant="text">
+          <VIcon>tabler-refresh</VIcon>
+        </VBtn>
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"

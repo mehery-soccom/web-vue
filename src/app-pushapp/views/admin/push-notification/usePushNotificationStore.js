@@ -102,20 +102,22 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       return DataService.axios.get(`/api/notification/${id}`);
     },
 
-    // 👉 Send Bulk Notification
-    sendBulk(params) {
-      return DataService.axios.post("/api/send-notification-bulk", params);
-    },
-    sendBulkV2(params) {
-      return DataService.axios.post("/api/v2/send-notification-bulk", params);
+    // 👉 Push Notification
+    push(params) {
+      return DataService.axios.post("/api/v1/notification/push", params);
     },
 
-    // 👉 Send Single Notification
-    sendSingle(params) {
+    // 👉 Send Styled Notification
+    sendStyled(params) {
       return DataService.axios.post(
         `/api/live-activity/${params.activity_id ? "update" : "start"}`,
         params
       );
+    },
+
+    // 👉 Create Campaign
+    createCampaign(params) {
+      return DataService.axios.post(`/api/v1/campaign`, params);
     },
 
     // 👉 Fetch All Campaign

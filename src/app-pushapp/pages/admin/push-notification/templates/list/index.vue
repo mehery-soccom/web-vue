@@ -14,7 +14,6 @@ const DEFAULT_TEST_NOTIFICATION = {
   channel_id: null,
   user_id: "",
   activity_id: "",
-  campaignName: "",
 };
 
 const channelsStore = useChannelsStore();
@@ -89,36 +88,60 @@ const onSendStyled = async (template, update) => {
     }
     const { progress_percent, ...data } = _data;
 
-    let payload = {
+    // let payload = {
+    //   to: {
+    //     filter: {
+    //       user_id: testNotification.user_id,
+    //     },
+    //   },
+    //   channel_id: testNotification.channel_id,
+    //   style: {
+    //     code: template.subType,
+    //     ...template.style,
+    //     progress_percent: parseFloat(progress_percent),
+    //   },
+    //   template: {
+    //     code: template.code,
+    //     data: { ...(template.model?.data || {}), ...data },
+    //     lang: "en",
+    //   },
+    //   options: {
+    //     buttons: [],
+    //   },
+
+    //   type: template.type,
+    //   activity_id: testNotification.activity_id,
+    // };
+    // let res = await pushNotificationStore.sendStyled(payload);
+
+    let pushPayload = {
       to: {
-        filter: {
-          user_id: testNotification.user_id,
-        },
+        code: testNotification.user_id,
       },
-      channel_id: testNotification.channel_id,
-      style: {
-        code: template.subType,
-        ...template.style,
-        progress_percent: parseFloat(progress_percent),
-      },
+      channelId: testNotification.channel_id,
       template: {
         code: template.code,
-        data: { ...(template.model?.data || {}), ...data },
+        data: {
+          ...(template.model?.data || {}),
+          ...data,
+          progress_percent: parseFloat(progress_percent),
+        },
         lang: "en",
       },
       options: {
         buttons: [],
       },
-
       type: template.type,
-      activity_id: testNotification.activity_id,
+      [template.type]: {
+        activity_id: testNotification.activity_id,
+      },
     };
+    let res = await pushNotificationStore.push(pushPayload);
 
-    let res = await pushNotificationStore.sendSingle(payload);
     if (update) {
       show({ message: "Notification updated successfully", color: "success" });
     } else {
-      testNotification.activity_id = res.data.activity_id;
+      testNotification.activity_id = res.data.id || res.data.activity_id;
       show({ message: "Notification sent successfully", color: "success" });
     }
   } catch (error) {
@@ -134,17 +157,6 @@ const onSendSimple = async (template) => {
   try {
     isLoading.value = true;
 
-    let payload = {
-      ...template.style,
-      buttons: template.options.buttons,
-
-      filter: {
-        user_id: testNotification.user_id,
-      },
-      channel_id: testNotification.channel_id,
-    };
-
-    /*
     let _data = {};
     try {
       _data = JSON.parse(testNotification.dataSimple);
@@ -153,14 +165,11 @@ const onSendSimple = async (template) => {
     }
     const { progress_percent, ...data } = _data;
 
-    let payloadV2 = {
+    let payload = {
       to: {
-        filter: {
-          user_id: testNotification.user_id,
-        },
+        code: testNotification.user_id,
       },
-      channel_id: testNotification.channel_id,
-      style: { code: "simple", ...template.style },
+      channelId: testNotification.channel_id,
       template: {
         code: template.code,
         data: { ...(template.model?.data || {}), ...data },
@@ -169,14 +178,10 @@ const onSendSimple = async (template) => {
       options: {
         buttons: template.options.buttons,
       },
-
       type: template.type,
-      campaignName: testNotification.campaignName,
     };
-    */
 
-    await pushNotificationStore.sendBulk(payload);
-    // await pushNotificationStore.sendBulkV2(payloadV2);
+    await pushNotificationStore.push(payload);
 
     show({ message: "Notification sent successfully", color: "success" });
   } catch (error) {
@@ -219,6 +224,14 @@ const deleteTemplate = (id, dialogCloseRef) => {
       <VSpacer />
 
       <div class="d-flex align-center flex-wrap gap-4">
+        <VBtn
+          icon
+          @click="() => fetchTemplates()"
+          :loading="isLoading"
+          variant="text"
+        >
+          <VIcon>tabler-refresh</VIcon>
+        </VBtn>
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"

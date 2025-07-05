@@ -74,15 +74,26 @@ const onSendSimple = async () => {
       (t) => t._id === notification.template
     );
 
-    let payloadV2 = {
+    let campaignPayload = {
+      template: {
+        code: template.code,
+      },
+      campaignName: notification.campaignName,
+    };
+
+    let campaignRes = await pushNotificationStore.createCampaign(
+      campaignPayload
+    );
+
+    let pushPayload = {
+      campaignId: campaignRes.data.campaignId,
       to: {
         filter: {
           platform: notification.platforms,
           session_type: "all",
         },
       },
-      channel_id: notification.channel_id,
-      style: { code: "simple", ...template.style },
+      channelId: notification.channel_id,
       template: {
         code: template.code,
         data: template.model?.data,
@@ -91,12 +102,10 @@ const onSendSimple = async () => {
       options: {
         buttons: template.options.buttons,
       },
-
       type: template.type,
-      campaignName: notification.campaignName,
     };
 
-    await pushNotificationStore.sendBulkV2(payloadV2);
+    await pushNotificationStore.push(pushPayload);
 
     show({ message: "Notification sent successfully", color: "success" });
 

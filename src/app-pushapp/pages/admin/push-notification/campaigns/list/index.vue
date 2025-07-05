@@ -9,7 +9,7 @@ const pushNotificationStore = usePushNotificationStore();
 const isLoading = ref(false);
 const notifications = ref([]);
 const headers = [
-  //   { title: "", key: "data-table-expand" },
+  { title: "", key: "data-table-expand" },
   {
     title: "Name",
     key: "campaignName",
@@ -22,11 +22,11 @@ const headers = [
     title: "Status",
     key: "status",
   },
-  {
-    title: "Platform(s)",
-    key: "filters.platform",
-    sortable: false,
-  },
+  // {
+  //   title: "Platform(s)",
+  //   key: "filters.platform",
+  //   sortable: false,
+  // },
   {
     title: "Start",
     key: "createdStamp",
@@ -63,6 +63,8 @@ const pagination = reactive({
     templateCode: "",
   },
 });
+const logDialog = ref(false);
+const selectedLogs = ref([]);
 
 onMounted(async () => {
   fetchCampaigns({ ...pagination });
@@ -83,6 +85,11 @@ const fetchCampaigns = async (params) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const openLogDialog = (logs) => {
+  selectedLogs.value = logs || [];
+  logDialog.value = true;
 };
 
 const onUpdateOptions = (options) => {
@@ -108,6 +115,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <VSpacer />
 
       <div class="d-flex align-center flex-wrap gap-4">
+        <VBtn
+          icon
+          @click="() => fetchCampaigns({ ...pagination })"
+          :loading="isLoading"
+          variant="text"
+        >
+          <VIcon>tabler-refresh</VIcon>
+        </VBtn>
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
@@ -129,13 +144,13 @@ const onUpdateOptionsDebounced = debounce((options) => {
       @update:options="onUpdateOptionsDebounced"
     >
       <!-- Expanded Row Data [ show-expand ] -->
-      <!-- <template #expanded-row="slotProps">
+      <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
           <td :colspan="headers.length">
-            <NotificationQuickAnalytics :data="slotProps.item.raw" />
+            <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
           </td>
         </tr>
-      </template> -->
+      </template>
 
       <!-- status -->
       <template #item.status="{ item }">
@@ -173,8 +188,46 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
         </IconBtn>
+        <IconBtn
+          v-if="item.raw.logs?.length"
+          @click="openLogDialog(item.raw.logs)"
+        >
+          <VIcon>mdi-alert-circle-outline</VIcon>
+          <VTooltip activator="parent">Logs</VTooltip>
+        </IconBtn>
       </template>
     </MyDataTable>
+    <!-- Modal -->
+    <VDialog v-model="logDialog" max-width="800">
+      <VCard>
+        <VCardTitle class="text-h6">Logs</VCardTitle>
+        <VCardText class="log-scroll-area">
+          <VList v-if="selectedLogs.length">
+            <VListItem
+              v-for="(log, index) in selectedLogs"
+              :key="index"
+              class="mb-2"
+            >
+              <!-- The following content must be inside VListItem -->
+              <template #prepend>
+                <VIcon color="error">mdi-alert</VIcon>
+              </template>
+              <VListItemTitle class="font-mono text-sm text-error">
+                {{ log.error }}
+              </VListItemTitle>
+              <VListItemSubtitle class="font-mono text-xs text-grey">
+                Token: {{ log.token }}
+              </VListItemSubtitle>
+            </VListItem>
+          </VList>
+          <div v-else class="text-grey">No logs found.</div>
+        </VCardText>
+        <VCardActions class="sticky-footer">
+          <VSpacer />
+          <VBtn text @click="logDialog = false">Close</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
   </VCard>
 </template>
 
@@ -195,5 +248,17 @@ const onUpdateOptionsDebounced = debounce((options) => {
 }
 .col-status {
   max-width: 125px;
+}
+.log-scroll-area {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 8px; /* optional for scrollbar spacing */
+}
+.sticky-footer {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  z-index: 1;
+  border-top: 1px solid #eee;
 }
 </style>
