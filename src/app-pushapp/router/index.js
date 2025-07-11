@@ -36,6 +36,16 @@ export default BootRouter.route({
   beforeEach: function (to, from, next) {
     console.log("[pushapp] [router] beforeEach");
 
-    next();
+    if (window.CONST.CONFIG && !Object.keys(window.CONST.CONFIG).length) {
+      let host = window.location.host;
+      let h = host.split(".");
+      h.shift();
+      h = h.join(".");
+      let u = `https://app.${h}/common/auth/logout?_=${Date.now()}&referer=https://${host}/pushapp/`;
+
+      window.location.href = u;
+    } else {
+      next();
+    }
   },
 });

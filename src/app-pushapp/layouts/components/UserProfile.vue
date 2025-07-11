@@ -3,12 +3,13 @@ import { PerfectScrollbar } from "vue3-perfect-scrollbar";
 // import { initialAbility } from "@app-pushapp/plugins/casl/ability";
 // import { useAppAbility } from "@app-pushapp/plugins/casl/useAppAbility";
 
-const router = useRouter();
+// const router = useRouter();
 // const ability = useAppAbility();
-const userData = JSON.parse(localStorage.getItem("userData") || "null");
+// const userData = JSON.parse(localStorage.getItem("userData") || "null");
+const userData = window.CONST.CONFIG;
 
 const logout = () => {
-  window.location.href = "/pushapp/auth/logout?_" + Date.now();
+  window.location.href = "/pushapp/auth/logout?_=" + Date.now();
 };
 
 const userProfileList = [
@@ -123,9 +124,13 @@ const userProfileList = [
             </template>
 
             <VListItemTitle class="font-weight-medium">
-              {{ userData?.fullName || userData?.username }}
+              {{
+                userData?.fullName || userData?.username || userData?.domainUser
+              }}
             </VListItemTitle>
-            <VListItemSubtitle>{{ userData?.role }}</VListItemSubtitle>
+            <VListItemSubtitle>{{
+              userData?.role || userData?.domainUserEmail
+            }}</VListItemSubtitle>
           </VListItem>
 
           <PerfectScrollbar :options="{ wheelPropagation: false }">

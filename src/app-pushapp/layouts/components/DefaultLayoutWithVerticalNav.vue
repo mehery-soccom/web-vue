@@ -32,14 +32,14 @@ const { width: windowWidth } = useWindowSize();
           <VIcon size="26" icon="tabler-menu-2" />
         </IconBtn>
 
-        <NavSearchBar class="ms-lg-n3" />
+        <!-- <NavSearchBar class="ms-lg-n3" /> -->
 
         <VSpacer />
 
         <!-- <NavBarI18n class="me-1" /> -->
         <NavbarThemeSwitcher class="me-1" />
-        <NavbarShortcuts class="me-1" />
-        <NavBarNotifications class="me-2" />
+        <!-- <NavbarShortcuts class="me-1" /> -->
+        <!-- <NavBarNotifications class="me-2" /> -->
         <UserProfile />
       </div>
     </template>
