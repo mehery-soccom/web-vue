@@ -29,6 +29,12 @@ module.exports = AppConfig.extend({
       entry: "./src/main.js",
       plugins: () => import("@/app-insights360/plugins"),
     },
+    notebook: {
+      component: () => import("@/app-notebook/AppNotebook.vue"),
+      context: "/nexus/notebook",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-notebook/plugins"),
+    },
     pushapp: {
       component: () => import("@/app-pushapp/AppPushapp.vue"),
       context: "/pushapp",

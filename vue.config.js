@@ -65,6 +65,7 @@ module.exports = defineConfig({
         "@app": path.resolve(__dirname, "src/app"),
         "@app-pushapp": path.resolve(__dirname, "src/app-pushapp"),
         "@app-insights360": path.resolve(__dirname, "src/app-insights360"),
+        "@app-notebook": path.resolve(__dirname, "src/app-notebook"),
       },
     },
     plugins: [
