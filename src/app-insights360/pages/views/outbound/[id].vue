@@ -106,37 +106,37 @@ onMounted(async () => {
         <template #item.contact.lane="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.contact.lane }}</span
+            >{{ item.raw.contact.lane }}</span
           >
         </template>
         <template #item.contact.phone="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.contact.phone || item.value.contact.email }}</span
+            >{{ item.raw.contact.phone || item.raw.contact.email }}</span
           >
         </template>
         <template #item.stamps.CRTD="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatTimestamp(item.value.stamps.CRTD) }}</span
+            >{{ formatTimestamp(item.raw.stamps.CRTD) }}</span
           >
         </template>
         <template #item.stamps.SENT="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatTimestamp(item.value.stamps.SENT) }}</span
+            >{{ formatTimestamp(item.raw.stamps.SENT) }}</span
           >
         </template>
         <template #item.stamps.DLVRD="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatTimestamp(item.value.stamps.DLVRD) }}</span
+            >{{ formatTimestamp(item.raw.stamps.DLVRD) }}</span
           >
         </template>
         <template #item.stamps.READ="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatTimestamp(item.value.stamps.READ) }}</span
+            >{{ formatTimestamp(item.raw.stamps.READ) }}</span
           >
         </template>
       </DemoDataTableKitchenSink>
@@ -164,6 +164,7 @@ onMounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+  color: black;
 }
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
@@ -173,6 +174,7 @@ onMounted(async () => {
   border-bottom: 2px solid #ccc;
   width: 300px;
   margin-right: 20px;
+  background-color: #eee;
 }
 
 .tab {

@@ -6,6 +6,13 @@ const router = useRouter();
 // const ability = useAppAbility();
 const userData = JSON.parse(localStorage.getItem("userData") || "null");
 
+const moveToAdmin = async () => {
+  try{
+    window.location.href = `${window.location.origin}/admin/app/home`;
+  }catch(e){
+    console.error("Logout not successful", e);
+  }
+};
 const logout = async () => {
   try {
     window.location.href = `${window.location.origin}/nexus/insights360/auth/logout`;
@@ -15,6 +22,13 @@ const logout = async () => {
 };
 
 const userProfileList = [
+  { type: "divider" },
+  {
+    type: "navItem",
+    icon: "tabler-user-shield",
+    title: "Admin Panel",
+    onClick: moveToAdmin,
+  },
   { type: "divider" },
   {
     type: "navItem",

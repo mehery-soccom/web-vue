@@ -1,5 +1,6 @@
 <script setup>
 import { VDataTable } from 'vuetify/labs/VDataTable';
+import { ref, toRaw } from 'vue';
 const props = defineProps({
   productList: {
     type: Array,
@@ -148,7 +149,7 @@ const filteredItems = computed(() => {
               :item="item" v-if="$slots[`item.${header.key}`]"
             />
             <template v-else>
-              <span>{{ item.value[header.key] }}</span>
+              <span>{{ item.raw[header.key] }}</span>
             </template>
           </td>
         </tr>

@@ -96,12 +96,12 @@ onMounted(async () => {
         :title="'Campaign CTA'"
       >
         <template #item.contact.phone="{ item }">
-          <span>{{ item.value.contact.phone }}</span>
+          <span>{{ item.raw.contact.phone }}</span>
         </template>
         <template #item.timestamp="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatTimestamp(item.value.timestamp) }}</span
+            >{{ formatTimestamp(item.raw.timestamp) }}</span
           >
         </template>
       </DemoDataTableKitchenSink>
@@ -129,6 +129,7 @@ onMounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+  color: black;
 }
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
@@ -138,6 +139,7 @@ onMounted(async () => {
   border-bottom: 2px solid #ccc;
   width: 300px;
   margin-right: 20px;
+  background-color: #eee;
 }
 
 .tab {

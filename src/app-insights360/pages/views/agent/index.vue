@@ -12,11 +12,7 @@ const headers = [
   { title: "Agent", key: "agent", searchable: true, sortable: true },
   { title: "Team", key: "deptName", searchable: true },
   { title: "Status", key: "status", sortable: false },
-  {
-    title: "No. of Conv",
-    key: "totalConversations",
-    information: "Number of Conversations",
-  },
+  { title: "No. of Conv", key: "totalConversations", information: "Number of Conversations" },
   { title: "Av Start Lag", key: "averageStartLag" },
   { title: "Av Response Time", key: "averageResponseTime" },
   { title: "Duration", key: "averageAssignedDuration" },
@@ -62,8 +58,8 @@ const onDateUpdate = (selectedDates, dateStr) => {
 };
 
 const onDateClosed = (selectedDates, dateStr) => {
-  console.log("Closed:", selectedDates, toRaw(oldDates.value), dateStr);
-  if (selectedDates.length === 2 && toRaw(oldDates.value) != selectedDates) {
+  console.log("Closed:", selectedDates, oldDates.value, dateStr);
+  if (selectedDates.length === 2 && oldDates.value != selectedDates) {
     oldDates.value = selectedDates;
     const start = new Date(selectedDates[0]);
     start.setHours(0, 0, 0, 0);
@@ -110,13 +106,13 @@ const findStatus = (sess) => {
       activity = "offline";
     else if (session.isAway) activity = "away";
     else if (session.isOnline) activity = "online";
-    console.log(
-      "sess 2",
-      sess,
-      sess.isOnline,
-      session.isAway,
-      !session || !session.isEnabled || !session.isLoggedIn
-    );
+    // console.log(
+    //   "sess 2",
+    //   sess,
+    //   sess.isOnline,
+    //   session.isAway,
+    //   !session || !session.isEnabled || !session.isLoggedIn
+    // );
   }
   return activity;
 };
@@ -200,73 +196,72 @@ onMounted(async () => {
       >
         <template #item.agent="{ item }">
           <span style="min-width: 100px; display: inline-block">{{
-            item.value.agent
+            item.raw.agent
           }}</span>
         </template>
         <template #item.deptName="{ item }">
           <span style="min-width: 100px; display: inline-block">{{
-            item.value.deptName
+            item.raw.deptName
           }}</span>
         </template>
         <template #item.totalConversations="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.totalConversations }}</span
+            >{{ item.raw.totalConversations }}</span
           >
         </template>
         <template #item.averageStartLag="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatDuration(item.value.averageStartLag) }}</span
+            >{{ formatDuration(item.raw.averageStartLag) }}</span
           >
         </template>
 
         <template #item.averageResponseTime="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatDuration(item.value.averageResponseTime) }}</span
+            >{{ formatDuration(item.raw.averageResponseTime) }}</span
           >
         </template>
 
         <template #item.averageAssignedDuration="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ formatDuration(item.value.averageAssignedDuration) }}</span
+            >{{ formatDuration(item.raw.averageAssignedDuration) }}</span
           >
         </template>
         <template #item.openConversations="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.openConversations }}</span
+            >{{ item.raw.openConversations }}</span
           >
         </template>
         <template #item.resolvedConversations="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.resolvedConversations }}</span
+            >{{ item.raw.resolvedConversations }}</span
           >
         </template>
         <template #item.expiredConversations="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.expiredConversations }}</span
+            >{{ item.raw.expiredConversations }}</span
           >
         </template>
         <template #item.averageSatisfaction="{ item }">
-          <span v-if="item.value.averageSatisfaction">{{
-            String(Math.round(item.value.averageSatisfaction * 100) / 100)
+          <span v-if="item.raw.averageSatisfaction">{{
+            String(Math.round(item.raw.averageSatisfaction * 100) / 100)
           }}</span>
           <span v-else>0</span>
         </template>
-        <!-- {{ findStatus(item.value.session) }} -->
         <template #item.status="{ item }">
           <span style="width: 100%; display: inline-block; text-align: center">
             <span
-              v-if="item.value.activity === 'online'"
+              v-if="item.raw.activity === 'online'"
               class="status-dot green-dot"
             ></span>
             <span
-              v-else-if="item.value.activity === 'away'"
+              v-else-if="item.raw.activity === 'away'"
               class="status-dot orange-dot"
             ></span>
             <span v-else class="status-dot red-dot"></span>
@@ -285,6 +280,7 @@ onMounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+  color: black;
 }
 .flatpickr-custom-btn:hover {
   background-color: #ddd;

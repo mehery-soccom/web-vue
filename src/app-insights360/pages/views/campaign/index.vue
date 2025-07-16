@@ -2,7 +2,7 @@
 import CardStatisticsTransactions from "@/app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
 import DemoDataTableKitchenSink from "@/app-insights360/views/tables/DemoDataTableKitchenSink.vue";
 import { useProjectStore } from "@app-insights360/views/dashboards/analytics/useProjectStore";
-import { ref } from "vue";
+// import { ref } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 
@@ -262,11 +262,11 @@ onMounted(async () => {
           <RouterLink
             :to="{
               name: 'views-outbound-id',
-              params: { id: item.value.campaignCode },
+              params: { id: item.raw.campaignCode },
             }"
             style="width: 100%; display: inline-block; text-align: center"
           >
-            {{ item.value.name }}
+            {{ item.raw.name }}
           </RouterLink>
         </template>
         <!-- <IconBtn
@@ -281,37 +281,37 @@ onMounted(async () => {
         <template #item.total="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.total }}</span
+            >{{ item.raw.total }}</span
           >
         </template>
         <template #item.sent="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.sent }}</span
+            >{{ item.raw.sent }}</span
           >
         </template>
         <template #item.delivered="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.delivered }}</span
+            >{{ item.raw.delivered }}</span
           >
         </template>
         <template #item.read="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.read }}</span
+            >{{ item.raw.read }}</span
           >
         </template>
         <template #item.responded="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.responded }}</span
+            >{{ item.raw.responded }}</span
           >
         </template>
         <template #item.failed="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.value.failed }}</span
+            >{{ item.raw.failed }}</span
           >
         </template>
       </DemoDataTableKitchenSink>
@@ -339,6 +339,7 @@ onMounted(async () => {
   padding: 4px 8px;
   border-radius: 4px;
   cursor: pointer;
+  color: black;
 }
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
