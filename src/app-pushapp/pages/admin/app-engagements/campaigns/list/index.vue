@@ -69,9 +69,9 @@ onMounted(async () => {});
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
-          :to="{ name: 'admin-app-engagements-templates-add-id?' }"
+          :to="{ name: 'admin-app-engagements-campaigns-add' }"
         >
-          New Notification
+          New Campaign
         </VBtn>
       </div>
     </VCardText>

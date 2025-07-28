@@ -50,7 +50,7 @@ onMounted(async () => {});
           prepend-icon="tabler-plus"
           :to="{ name: 'admin-app-engagements-templates-add-id?' }"
         >
-          Create Template
+          New Template
         </VBtn>
       </div>
     </VCardText>
