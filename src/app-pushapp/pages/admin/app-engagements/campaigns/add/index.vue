@@ -1,5 +1,7 @@
 <script setup>
-import CreateTemplate from "@/app-pushapp/pages/admin/app-engagements/templates/add/[[id]].vue";
+import Template from "@app-pushapp/pages/admin/app-engagements/templates/add/[[id]].vue";
+import Audience from "@app-pushapp/views/admin/app-engagements/Audience.vue";
+import Scheduling from "@app-pushapp/views/admin/app-engagements/Scheduling.vue";
 
 const { show } = inject("snackbar");
 
@@ -12,33 +14,52 @@ const isLoading = ref(false);
 const campaign = reactive({
   title: "",
 });
-const activeTab = ref("tab-template");
+const activeTab = ref(0);
 const tabs = [
   {
     title: "Template",
     icon: "tabler-user-check",
-    tab: "tab-template",
   },
   {
     title: "Audience",
     icon: "tabler-users",
-    tab: "tab-audience",
   },
   {
     title: "Scheduling",
     icon: "tabler-layout-grid",
-    tab: "tab-scheduling",
   },
   /*
   {
     title: "Goals",
-    icon: "tabler-link",
-    tab: "tab-goals",
+    icon: "tabler-link"
   },
   */
 ];
+const nextTab = computed(() => {
+  const next = tabs[activeTab.value + 1];
+  return next ? `Proceed to ${next.title}` : null;
+});
+const templateRef = ref();
+const audienceRef = ref();
+const schedulingRef = ref();
 
 onMounted(async () => {});
+
+const create = async () => {
+  const results = await Promise.all([
+    templateRef.value.isValid(),
+    audienceRef.value.isValid(),
+    schedulingRef.value.isValid(),
+  ]);
+
+  console.log("create", results);
+
+  if (results.every((r) => !!r)) {
+    console.log("all valid");
+  } else {
+    console.log("Validation failed");
+  }
+};
 </script>
 
 <template>
@@ -58,16 +79,18 @@ onMounted(async () => {});
 
       <!-- Right Section: Actions -->
       <div class="d-flex align-center gap-2 ml-auto">
-        <!-- <VBtn variant="outlined" color="primary"> Save Changes </VBtn> -->
-        <VBtn color="primary">
-          Proceed to { next tab }
+        <VBtn color="primary" v-if="nextTab" @click="activeTab += 1">
+          {{ nextTab }}
           <VIcon end icon="mdi-arrow-right" />
         </VBtn>
+        <VBtn color="primary" v-else @click="create">
+          Save Changes <VIcon end icon="mdi-check"
+        /></VBtn>
       </div>
     </VToolbar>
 
     <VTabs v-model="activeTab" class="v-tabs-pill">
-      <VTab v-for="item in tabs" :key="item.icon" :value="item.tab">
+      <VTab v-for="(item, index) in tabs" :key="item.icon" :value="index">
         <VIcon size="20" start :icon="item.icon" />
         {{ item.title }}
       </VTab>
@@ -79,18 +102,18 @@ onMounted(async () => {});
       :touch="false"
     >
       <!-- tab-template -->
-      <VWindowItem value="tab-template">
-        <CreateTemplate />
+      <VWindowItem>
+        <Template ref="templateRef" />
       </VWindowItem>
 
       <!-- tab-audience -->
-      <VWindowItem value="tab-audience"> Audience </VWindowItem>
+      <VWindowItem> <Audience ref="audienceRef" /> </VWindowItem>
 
       <!-- tab-scheduling -->
-      <VWindowItem value="tab-scheduling"> Scheduling </VWindowItem>
+      <VWindowItem> <Scheduling ref="schedulingRef" /> </VWindowItem>
 
       <!-- tab-goals -->
-      <!-- <VWindowItem value="tab-goals"> Goals </VWindowItem> -->
+      <!-- <VWindowItem> Goals </VWindowItem> -->
     </VWindow>
   </div>
 </template>

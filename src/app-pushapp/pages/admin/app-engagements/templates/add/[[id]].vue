@@ -41,6 +41,16 @@ const templatePreview = computed(() => {
 
 onMounted(async () => {});
 
+const isValid = async () => {
+  return true;
+};
+
+const val = async () => {
+  return {
+    test: true,
+  };
+};
+
 const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
@@ -59,6 +69,8 @@ watch(
     template.code = sanitizeAndUnderscore(val);
   }
 );
+
+defineExpose({ isValid, val });
 </script>
 
 <template>
