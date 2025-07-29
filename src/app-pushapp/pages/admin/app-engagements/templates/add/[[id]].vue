@@ -2,8 +2,10 @@
 const { show } = inject("snackbar");
 
 const route = useRoute();
-const PARAM_ID = route.params.t_id;
+const IS_PAGE = route.name?.includes("admin-app-engagements-templates-add");
+const PARAM_ID = route.params.id;
 const QUERY_COPY = route.query.t_copy;
+const QUERY_EDIT = route.query.t_edit;
 
 const router = useRouter();
 
@@ -42,6 +44,14 @@ onMounted(async () => {});
 const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
+
+watch(
+  () => template.subType,
+  (val) => {
+    if (val) template.style.code = val;
+    else template.style.code = null;
+  }
+);
 
 watch(
   () => template.desc,
@@ -83,20 +93,22 @@ watch(
             </VWindow>
           </VCardText>
 
-          <VDivider />
+          <template v-if="IS_PAGE">
+            <VDivider />
 
-          <VCardText class="d-flex gap-4">
-            <VBtn :disabled="isLoading">{{
-              isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
-            }}</VBtn>
-            <VBtn
-              variant="tonal"
-              color="secondary"
-              :to="{ name: 'admin-app-engagements-templates-list' }"
-            >
-              Cancel
-            </VBtn>
-          </VCardText>
+            <VCardText class="d-flex gap-4">
+              <VBtn :disabled="isLoading">{{
+                isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
+              }}</VBtn>
+              <VBtn
+                variant="tonal"
+                color="secondary"
+                :to="{ name: 'admin-app-engagements-templates-list' }"
+              >
+                Cancel
+              </VBtn>
+            </VCardText>
+          </template>
         </VCard>
       </v-card>
     </v-col>
