@@ -61,6 +61,7 @@ const loadNotification = () => {
 };
 
 function getValueByPath(obj, path) {
+  // console.log("obj", obj, path)
   return path
     .split(".")
     .reduce(
@@ -315,6 +316,162 @@ watch(
         </div>
       </div>
     </transition>
+          <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;"> -->
+    <transition name="fade-slide">
+        <div v-if="showNotification && template.type === 'pop-up'"
+          class="preview-wrapper pop-up-dimensions"
+          :style="{
+            background: backgroundStyle,
+            direction: template.style.align === 'right' ? 'rtl' : 'ltr',
+          }"
+        >
+          <div class="content">
+            <div
+              class="text-block"
+              :style="{
+                textAlign: template.style.align === 'right' ? 'right' : 'left',
+              }"
+            >
+              <div
+                class="line1 ellipsis"
+                :style="{
+                  color: template.style.line1_font_color,
+                  fontSize: template.style.line1_font_size + 'px',
+                  fontWeight: template.style.line1_text_styles?.includes('bold')
+                    ? 'bold'
+                    : 'normal',
+                  fontStyle: template.style.line1_text_styles?.includes('italic')
+                    ? 'italic'
+                    : 'normal',
+                  textDecoration: template.style.line1_text_styles?.includes(
+                    'underline'
+                  )
+                    ? 'underline'
+                    : 'none',
+                }"
+              >
+                {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+              </div>
+              <div
+                class="line2 ellipsis"
+                :style="{
+                  color: template.style.line2_font_color,
+                  fontSize: template.style.line2_font_size + 'px',
+                  fontWeight: template.style.line2_text_styles?.includes('bold')
+                    ? 'bold'
+                    : 'normal',
+                  fontStyle: template.style.line2_text_styles?.includes('italic')
+                    ? 'italic'
+                    : 'normal',
+                  textDecoration: template.style.line2_text_styles?.includes(
+                    'underline'
+                  )
+                    ? 'underline'
+                    : 'none',
+                }"
+              >
+                {{ _bind(template.style.line_2) || "Your text comes here" }}
+              </div>
+              <div
+                class="line3 ellipsis"
+                :style="{
+                  color: template.style.line3_font_color,
+                  fontSize: template.style.line3_font_size + 'px',
+                  fontWeight: template.style.line3_text_styles?.includes('bold')
+                    ? 'bold'
+                    : 'normal',
+                  fontStyle: template.style.line3_text_styles?.includes('italic')
+                    ? 'italic'
+                    : 'normal',
+                  textDecoration: template.style.line3_text_styles?.includes(
+                    'underline'
+                  )
+                    ? 'underline'
+                    : 'none',
+                }"
+              >
+                {{ _bind(template.style.line_3) || "Your message comes here" }}
+              </div>
+            </div>
+          </div>
+        </div>
+    </transition>
+    <!-- <transition name="fade-slide">
+      <div
+        v-if="showNotification && template.type === 'pop-up' && (template.subType === 'roadblock-image' || template.subType === 'roadblock-video')"
+        class="preview-wrapper pop-up-dimensions"
+        :style="{
+          background: backgroundStyle,
+          direction: template.style.align === 'right' ? 'rtl' : 'ltr',
+        }"
+      >
+        <div class="content pop-up-vertical-content">
+          <div
+            class="line1 ellipsis"
+            :style="{
+              color: template.style.line1_font_color,
+              fontSize: template.style.line1_font_size + 'px',
+              fontWeight: template.style.line1_text_styles?.includes('bold') ? 'bold' : 'normal',
+              fontStyle: template.style.line1_text_styles?.includes('italic') ? 'italic' : 'normal',
+              textDecoration: template.style.line1_text_styles?.includes('underline') ? 'underline' : 'none',
+            }"
+          >
+            {{ _bind(template.style.line_1) || 'Your title comes here' }}
+          </div>
+          <div>a {{ template.subType }}</div>
+          <div class="media-preview" v-if="template.style.image_url || template.style.video_url">
+            <img
+              v-if="template.style.image_url"
+              :src="template.style.image_url"
+              class="media-item"
+              alt="preview"
+            />
+            <video
+              v-else
+              :src="template.style.video_url"
+              class="media-item"
+              controls
+            ></video>
+          </div>
+
+          <div
+            class="line2 ellipsis"
+            :style="{
+              color: template.style.line2_font_color,
+              fontSize: template.style.line2_font_size + 'px',
+              fontWeight: template.style.line2_text_styles?.includes('bold') ? 'bold' : 'normal',
+              fontStyle: template.style.line2_text_styles?.includes('italic') ? 'italic' : 'normal',
+              textDecoration: template.style.line2_text_styles?.includes('underline') ? 'underline' : 'none',
+            }"
+          >
+            {{ _bind(template.style.line_2) || 'Your text comes here' }}
+          </div>
+
+          <div
+            class="line3 ellipsis"
+            :style="{
+              color: template.style.line3_font_color,
+              fontSize: template.style.line3_font_size + 'px',
+              fontWeight: template.style.line3_text_styles?.includes('bold') ? 'bold' : 'normal',
+              fontStyle: template.style.line3_text_styles?.includes('italic') ? 'italic' : 'normal',
+              textDecoration: template.style.line3_text_styles?.includes('underline') ? 'underline' : 'none',
+            }"
+          >
+            {{ _bind(template.style.line_3) || 'Your message comes here' }}
+          </div>
+
+          <div class="cta-button-group" v-if="template.buttonGroupFields?.length">
+            <button
+              v-for="btn in template.buttonGroupFields"
+              :key="btn.text"
+              class="cta-button"
+            >
+              {{ btn.text }}
+            </button>
+          </div>
+        </div>
+      </div> 
+    </transition> -->
 
     <!-- Bottom Icons -->
     <div v-if="template.view.platform === 'ios'" class="bottom-icons">
@@ -611,5 +768,65 @@ watch(
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+.pop-up-dimensions {
+  width: auto !important;
+  height: auto !important;
+  bottom: 0 !important;
+  // padding: 0 !important;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  justify-content: center;
+}
+
+.pop-up-dimensions {
+  width: v-bind('template.style.width?.value + "%"') !important;
+  height: v-bind('template.style.height?.value + "%"') !important;
+}
+.pop-up-vertical-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: center;
+  padding: 12px;
+}
+
+.media-preview {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.media-item {
+  width: 100%;
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.cta-button-group {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.cta-button {
+  padding: 6px 12px;
+  font-size: 13px;
+  border: none;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  cursor: pointer;
+  flex: 1;
+  max-width: 48%;
 }
 </style>

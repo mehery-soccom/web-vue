@@ -11,9 +11,13 @@ const AppEngagementsStore = useAppEngagementsStore();
 const typesList = AppEngagements.TYPES;
 const subTypesList = AppEngagements.SUB_TYPES;
 
-const availableSubTypes = computed(() =>
-  subTypesList.filter((sub) => sub.type === template.type)
-);
+const availableSubTypes = computed(() => {
+  const filtered = subTypesList.filter(sub => sub.type === template.type);
+  if (filtered.length === 1 && filtered[0].value === template.type && template.subType !== filtered[0].value) {
+    template.subType = filtered[0].value;
+  }
+  return filtered;
+});
 
 const required = (v) => !!v || "This field is required";
 const route = useRoute();
@@ -130,8 +134,11 @@ const onCreate = async () => {
 };
 
 const formFields = computed(() => {
-  const subtype = subTypesList.find((s) => s.value === template.subType && s.type === template.type);
-  return subtype?.form?.fields ?? [];
+  const matched = subTypesList.find(s =>
+      (template.subType && s.value === template.subType && s.type === template.type) ||
+      (!template.subType && s.value === template.type)
+  );
+  return matched?.form?.fields ?? [];
 });
 
 function onFormUpdate(updated) {
@@ -155,6 +162,10 @@ const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
 
+watch(() => template.type,(val) => {
+    template.subType = '';
+  }
+);
 watch(
   () => template.subType,
   (val) => {

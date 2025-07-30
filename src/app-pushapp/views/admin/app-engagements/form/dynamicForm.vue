@@ -44,7 +44,7 @@ watch(local, () => {
   // console.log("emit hap", JSON.parse(JSON.stringify(local)));
   if (!isUpdating) {
     isUpdating = true
-    // emit('update:formData', JSON.parse(JSON.stringify(local)))
+    emit('update:formData', JSON.parse(JSON.stringify(local)))
     nextTick(() => isUpdating = false)
   }
 }, { deep: true })
