@@ -15,10 +15,22 @@ export const usePushNotification = () => {
     { title: "16px", value: 16 },
     { title: "18px", value: 18 },
   ];
+  const WIDTH_SIZES = [
+    { label: "100 %", value: 100 },
+    { label: "95 %", value: 95 },
+    { label: "90 %", value: 90 },
+    { label: "85 %", value: 85 },
+    { label: "80 %", value: 80 },
+    { label: "75 %", value: 75 },
+  ];
   const GRADIENT_DIRS = ["to right", "to bottom", "to top", "to left"];
   const TEMPLATE_ALIGN = [
     { title: "left to right", value: "left" },
     { title: "right to left", value: "right" },
+  ];
+  const TEMPLATE_ALIGN_2 = [
+    { label: "left to right", value: "left" },
+    { label: "right to left", value: "right" },
   ];
   const TEMPLATES_CONFIG = {
     simple: {
@@ -40,8 +52,10 @@ export const usePushNotification = () => {
     DEFAULT_IMAGE_URL,
     DEFAULT_LOGO_URL,
     FONT_SIZES,
+    WIDTH_SIZES,
     GRADIENT_DIRS,
     TEMPLATE_ALIGN,
+    TEMPLATE_ALIGN_2,
     TEMPLATES_CONFIG,
   };
 };

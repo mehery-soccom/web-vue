@@ -1,5 +1,13 @@
 import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@common/constants";
+import DefaultLayout from '../layouts/default.vue';
+import Dashboard from '../pages/dashboards/analytics.vue';
+import TemplateList from '../pages/admin/app-engagements/templates/list/index.vue';
+import TemplateAdd from '../pages/admin/app-engagements/templates/add/[[id]].vue';
+import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vue';
+import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue';
+import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
+import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 
 export default BootRouter.route({
   app: "pushapp",
@@ -30,6 +38,98 @@ export default BootRouter.route({
         name: "pages-account-settings-tab",
         params: { tab: "account" },
       }),
+    },
+    // "/admin/app-engagements/templates/list"
+    {
+      path: "/dashboards/analytics",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-analytics",
+          component: Dashboard,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/push-notification/templates/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-templates-list",
+          component: TemplateList2,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/push-notification/templates/add",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-templates-add-id?",
+          component: TemplateAdd2,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/app-engagements/templates/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-app-engagements-templates-list",
+          component: TemplateList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/app-engagements/templates/add",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-app-engagements-templates-add-id?",
+          component: TemplateAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/app-engagements/campaigns/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-app-engagements-campaigns-list",
+          component: CampaignList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/app-engagements/campaigns/add",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-app-engagements-campaigns-add",
+          component: CampaignAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
     },
   ],
   autoRoutes: true,

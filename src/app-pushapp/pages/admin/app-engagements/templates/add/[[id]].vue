@@ -1,6 +1,29 @@
 <script setup>
+import { toRef } from 'vue';
 const { show } = inject("snackbar");
+import DynamicForm from '@/app-pushapp/views/admin/app-engagements/form/dynamicForm.vue';
+import DynamicFieldEditor from '@/app-pushapp/components/DynamicFieldEditor.vue';
+import { usePushNotification } from '@/app-pushapp/views/admin/push-notification/usePushNotification';
+import { usePushNotificationStore } from '@/app-pushapp/views/admin/push-notification/usePushNotificationStore';
+import { useAppEngagementsStore } from '@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore';
+import NotificationPreview from '@/app-pushapp/views/admin/push-notification/NotificationPreview.vue';
+const { FONT_SIZES, WIDTH_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATE_ALIGN_2, TEMPLATES_CONFIG } = usePushNotification();
+// const pushNotificationStore = usePushNotificationStore();
+import { useAppEngagements } from '@/app-pushapp/views/admin/app-engagements/useAppEngagements';
+const AppEngagements = useAppEngagements();
+const AppEngagementsStore = useAppEngagementsStore();
+// import type, subtypes, etc from the useAppEngagement composable.
+const typesList = AppEngagements.TYPES;
+const subTypesList = AppEngagements.SUB_TYPES;
 
+const selectedType = ref('');
+const selectedSubType = ref('');
+
+const availableSubTypes = computed(() =>
+  subTypesList.filter((sub) => sub.type === selectedType.value)
+);
+
+const required = (v) => !!v || "This field is required";
 const route = useRoute();
 const IS_PAGE = route.name?.includes("admin-app-engagements-templates-add");
 const PARAM_ID = route.params.id;
@@ -12,18 +35,57 @@ const router = useRouter();
 const isLoading = ref(false);
 const isPreStep = ref(false);
 const activeTemplateTab = ref("tab-details");
+// const templateExtras = reactive({
+//   buttonGroupList: AppEngagementsStore.buttonGroupList,
+//   buttonGroupFields: [],
+//   buttonGroupValue: {},
+//   buttonWidthList: WIDTH_SIZES,
+//   buttonHeightList: WIDTH_SIZES,
+//   buttonDirList: GRADIENT_DIRS,
+//   buttonTemAlign: TEMPLATE_ALIGN_2
+// })
 const template = reactive({
   type: null,
   subType: null,
-  desc: "",
-  code: "",
-  style: {
-    code: null,
-  },
-  model: {
-    data: {},
-  },
-});
+  desc: '',
+  code: '',
+  model: { data: [] },
+  style:{
+    code: 'simple',
+    title: "",
+    message: "",
+    category: null,
+
+    image_url: "",
+    logo_url: "",
+    button1_url: "",
+    button2_url: "",
+
+    /** styled */
+    line_1: "",
+    line_2: "",
+    line_3: "",
+    line1_font_size: null,
+    line2_font_size: null,
+    line3_font_size: null,
+    line1_font_color: "",
+    line2_font_color: "",
+    line3_font_color: "",
+    line1_font_text_styles: [],
+    line2_font_text_styles: [],
+    line3_font_text_styles: [],
+    bg_color: "",
+    bg_color_gradient: "",
+    bg_color_gradient_dir: null,
+    progress_color: "",
+    align: "left",
+
+    /** roadblock */
+    height: '',
+    width: '',
+    btn: [],
+  }
+})
 const view = ref({
   platform: "ios",
   mode: "collapse",
@@ -33,11 +95,107 @@ const templatePreview = computed(() => {
   return {
     view: view.value,
     ...template,
-    options: {
-      buttons: buttonGroupFields.value,
-    },
+    // options: {
+    //   buttons: template.buttonGroupFields.value,
+    // },
   };
 });
+const activeTab = ref("tab-template");
+const tabs = [
+  {
+    title: "Template",
+    icon: "tabler-user-check",
+    tab: "tab-template",
+  },
+  {
+    title: "Audience",
+    icon: "tabler-users",
+    tab: "tab-audience",
+  },
+  {
+    title: "Scheduling",
+    icon: "tabler-layout-grid",
+    tab: "tab-scheduling",
+  },
+  {
+    title: "Goals",
+    icon: "tabler-link",
+    tab: "tab-goals",
+  },
+];
+const formRef = ref(null);
+
+const submit = async () => {
+  const { valid, errors } = formRef.value.validate();
+  if (!valid) {
+    show({ message: errors.join(', '), color: 'error' });
+    return;
+  }
+  await onCreate();
+  console.log("valid form", formRef, formRef.value, template, dynamicFields, JSON.stringify(template, null, 2))
+};
+const onCreate = async () => {
+  try {
+    isLoading.value = true;
+    let payload = {};
+    if (template.type === "simple") {
+      payload = {
+        ...template,
+        options: {
+          ...(template.options || {}),
+          // buttons: buttonGroupFields.value.map((b) => ({
+          //   button_id: b.id,
+          //   button_text: b.text,
+          //   button_url: buttonGroupValue.value[b.text],
+          // })),
+        },
+      };
+    } else {
+      payload = {
+        ...template,
+        options: {},
+      };
+    }
+    template.style.code = template.subType || template.type;
+
+    await AppEngagementsStore.createTemplate(payload);
+    show({ message: "Template created successfully", color: "success" });
+    router.push({ name: "admin-app-engagements-templates-list" });
+  } catch (error) {
+    console.error(error);
+    show({ message: "Something went wrong. try again", color: "error" });
+  } finally {
+    isLoading.value = false;
+  }
+};
+// const dynamicFields = computed(() => {
+//   return template.type ? formConfig[template.type] : [];
+// });
+watch(selectedType, (val) => {
+  template.type = val;
+
+  const subs = subTypesList.filter((s) => s.type === val);
+  if (subs.length === 1 && subs[0].value === val) {
+    selectedSubType.value = subs[0].value;
+    template.subType = subs[0].value;
+  } else {
+    selectedSubType.value = null;
+    template.subType = null;
+  }
+});
+
+watch(selectedSubType, (val) => {
+  template.subType = val;
+});
+const formFields = computed(() => {
+  const subtype = subTypesList.find((s) => s.value === selectedSubType.value && s.type === selectedType.value);
+  return subtype?.form?.fields ?? [];
+});
+
+function onFormUpdate(updated) {
+  Object.assign(template, updated)
+  console.log('[Parent] got update:', template.style)
+}
 
 onMounted(async () => {});
 
@@ -96,38 +254,118 @@ defineExpose({ isValid, val });
           <VTab value="tab-variables"> Variables </VTab>
         </VTabs>
 
-        <VCard flat>
+        <!-- <VCard flat>
           <VCardText>
             <VWindow v-model="activeTemplateTab" class="disable-tab-transition">
-              <VWindowItem value="tab-details"> Form </VWindowItem>
+              <VWindowItem value="tab-details"> Form </VWindowItem> -->
 
-              <VWindowItem value="tab-variables"> Variables </VWindowItem>
-            </VWindow>
-          </VCardText>
-
-          <template v-if="IS_PAGE">
-            <VDivider />
-
-            <VCardText class="d-flex gap-4">
-              <VBtn :disabled="isLoading">{{
-                isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
-              }}</VBtn>
-              <VBtn
-                variant="tonal"
-                color="secondary"
-                :to="{ name: 'admin-app-engagements-templates-list' }"
+          <VCard flat>
+            <VCardText>
+              <VWindow
+                v-model="activeTemplateTab"
+                class="disable-tab-transition"
               >
-                Cancel
-              </VBtn>
+                <VWindowItem value="tab-details">
+                  <div>
+                    <VRow>
+                      <VCol cols="12" md="6">
+                        <!-- <AppSelect v-model="template.type" :items="Object.keys(formConfig)" label="Type" :rules="[required]" /> -->
+                        <AppSelect
+                          v-model="selectedType"
+                          :items="typesList.map(t => ({ label: t.label, value: t.value }))"
+                          label="Type" item-title="label" item-value="value"
+                          :rules="[required]"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="6">
+                        <!-- <AppSelect v-if="subtypeOptions.length" v-model="template.subtype"
+                          :items="subtypeOptions" label="Subtype" :rules="[required]"
+                        /> -->
+                        <AppSelect
+                          v-if="availableSubTypes.length > 1 || (availableSubTypes.length === 1 && availableSubTypes[0].value !== selectedType)"
+                          v-model="selectedSubType" item-title="label" item-value="value"
+                          :items="availableSubTypes.map(s => ({ label: s.label, value: s.value }))"
+                          label="Subtype"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="6">
+                        <AppTextField v-model="template.desc" label="Template Name" placeholder="Enter name"
+                          :rules="[required]" prepend-inner-icon="mdi-text-box"
+                        />
+                      </VCol>
+                    </VRow>
+                    <VDivider class="mt-4" />
+
+                    <DynamicForm
+                      v-if="formFields.length"
+                      ref="formRef"
+                      :formData="template"
+                      :fields="formFields"
+                      @update:formData="onFormUpdate"
+                    />
+                  </div>
+                </VWindowItem>
+
+                <VWindowItem value="tab-variables"> 
+                  <VRow>
+                    <VCol cols="12" md="12">
+                      <DynamicFieldEditor
+                        v-model="template.model"
+                        :fields="[
+                          toRef(template.style, 'title'),
+                          toRef(template.style, 'message'),
+                          toRef(template.style, 'line_1'),
+                          toRef(template.style, 'line_2'),
+                          toRef(template.style, 'line_3'),
+                        ]"
+                        :dynamic-prefixes="['data']"
+                      />
+                    </VCol>
+                  </VRow>
+                </VWindowItem>
+              </VWindow>
             </VCardText>
-          </template>
+            <template v-if="IS_PAGE">
+              <VDivider />
+              <VCardText class="d-flex gap-4">
+                <VBtn :disabled="isLoading">{{
+                  isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
+                }}</VBtn>
+                <VBtn
+                  variant="tonal"
+                  color="secondary"
+                  :to="{ name: 'admin-app-engagements-templates-list' }"
+                >
+                  Cancel
+                </VBtn>
+              </VCardText>
+            </template>
         </VCard>
       </v-card>
     </v-col>
 
     <!-- Preview Column -->
     <VCol v-if="!isPreStep" cols="12" md="4">
-      <VCard>Preview</VCard>
+      <!-- <VCol cols="12" md="4"> -->
+        <VRow>
+          <v-col cols="5" class="px-0">
+            <v-btn-toggle v-model="view.platform" mandatory density="compact">
+              <v-btn color="primary" value="ios">iOS</v-btn>
+              <v-btn color="primary" value="android">Android</v-btn>
+            </v-btn-toggle>
+          </v-col>
+          <v-col cols="7" class="pl-3">
+            <v-btn-toggle v-model="view.mode" mandatory density="compact">
+              <v-btn color="primary" value="collapse">Collapse</v-btn>
+              <v-btn color="primary" value="expand">Expand</v-btn>
+            </v-btn-toggle>
+          </v-col>
+        </VRow>
+        <VRow style="height: calc(100% - 36px); max-height: 550px;">
+          <v-col cols="12" class="d-flex justify-center pt-0">
+            <NotificationPreview :template="templatePreview" />
+          </v-col>
+        </VRow>
     </VCol>
   </v-row>
 </template>

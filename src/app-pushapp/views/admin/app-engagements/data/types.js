@@ -1,5 +1,15 @@
 export default [
   {
+    label: "Simple",
+    value: "simple",
+    desc: "can close / skip",
+  },
+  {
+    label: "Styled",
+    value: "styled",
+    desc: "fixed widget, cannot be closed",
+  },
+  {
     label: "Pop Up",
     value: "pop-up",
     desc: "can close / skip",
