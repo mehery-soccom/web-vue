@@ -13,7 +13,22 @@ const router = useRouter();
 const isLoading = ref(false);
 const campaign = reactive({
   title: "",
+  template: {},
+  audience: {
+    userSet: "All Users",
+    segmentCondition: "any",
+    segment: null,
+    filters: { type: "group", conjunction: "and", children: [] },
+  },
+  scheduling: {},
 });
+watch(
+  campaign,
+  (val) => {
+    console.log("campaign", val);
+  },
+  { immediate: true, deep: true }
+);
 const activeTab = ref(0);
 const tabs = [
   {
@@ -44,6 +59,31 @@ const audienceRef = ref();
 const schedulingRef = ref();
 
 onMounted(async () => {});
+
+const proceedToNextTab = async () => {
+  const next = activeTab.value + 1;
+
+  switch (activeTab.value) {
+    case 0:
+      console.log("proceeding to ", next);
+      activeTab.value = next;
+      break;
+    case 1:
+      console.log("proceeding to ", next);
+      const valid = await audienceRef.value?.isValid();
+      if (!valid) {
+        console.log("Audience form is invalid!");
+        return;
+      } else {
+        console.log("Audience form:", campaign.audience);
+        activeTab.value = next;
+      }
+      break;
+
+    default:
+      break;
+  }
+};
 
 const create = async () => {
   const results = await Promise.all([
@@ -79,7 +119,7 @@ const create = async () => {
 
       <!-- Right Section: Actions -->
       <div class="d-flex align-center gap-2 ml-auto">
-        <VBtn color="primary" v-if="nextTab" @click="activeTab += 1">
+        <VBtn color="primary" v-if="nextTab" @click="proceedToNextTab">
           {{ nextTab }}
           <VIcon end icon="mdi-arrow-right" />
         </VBtn>
@@ -107,10 +147,14 @@ const create = async () => {
       </VWindowItem>
 
       <!-- tab-audience -->
-      <VWindowItem> <Audience ref="audienceRef" /> </VWindowItem>
+      <VWindowItem>
+        <Audience ref="audienceRef" v-model="campaign.audience" />
+      </VWindowItem>
 
       <!-- tab-scheduling -->
-      <VWindowItem> <Scheduling ref="schedulingRef" /> </VWindowItem>
+      <VWindowItem>
+        <Scheduling ref="schedulingRef" v-model="campaign.scheduling" />
+      </VWindowItem>
 
       <!-- tab-goals -->
       <!-- <VWindowItem> Goals </VWindowItem> -->
