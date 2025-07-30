@@ -165,6 +165,8 @@ const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
 
+onMounted(async () => {});
+
 watch(
   () => template.type,
   (val) => {
