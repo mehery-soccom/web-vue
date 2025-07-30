@@ -73,12 +73,19 @@ const proceedToNextTab = async () => {
   switch (activeTab.value) {
     case 0:
       console.log("proceeding to ", next);
-      activeTab.value = next;
+      const templateValid = await templateRef.value?.isValid();
+      if (!templateValid) {
+        console.log("template form is invalid!");
+        return;
+      } else {
+        console.log("template form:", campaign.template);
+        activeTab.value = next;
+      }
       break;
     case 1:
       console.log("proceeding to ", next);
-      const valid = await audienceRef.value?.isValid();
-      if (!valid) {
+      const audienceValid = await audienceRef.value?.isValid();
+      if (!audienceValid) {
         console.log("Audience form is invalid!");
         return;
       } else {

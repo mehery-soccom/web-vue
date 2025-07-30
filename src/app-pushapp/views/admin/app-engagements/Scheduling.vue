@@ -1,16 +1,18 @@
 <script setup>
 const props = defineProps({
-  modelValue: { type: Object, required: true },
+  modelValue: {
+    type: Object,
+    required: true,
+  },
 });
 const emit = defineEmits(["update:modelValue"]);
 
-const form = ref({ ...props.modelValue });
+const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 
-watch(
-  () => form.value,
-  (val) => emit("update:modelValue", val),
-  { deep: true }
-);
+watch(form, (val) => emit("update:modelValue", val), { deep: true });
+
+const now = new Date();
+const minTime = `${now.getHours()}:${now.getMinutes()}`;
 
 const errors = ref({});
 
@@ -20,28 +22,26 @@ const clearError = (field) => {
 
 const summary = computed(() => ({
   duration:
-    form.value.durationType === "paused"
+    form.durationType === "paused"
       ? "Campaign will run until it is manually paused."
-      : form.value.durationType === "specific"
-      ? `Campaign runs from ${form.value.startDate || "?"} to ${
-          form.value.endDate || "?"
-        }.`
-      : form.value.durationType === "days"
-      ? `Campaign runs on ${form.value.days || "selected days"}.`
+      : form.durationType === "specific"
+      ? `Campaign runs from ${form.startDate || "?"} to ${form.endDate || "?"}.`
+      : form.durationType === "days"
+      ? `Campaign runs on ${form.days || "selected days"}.`
       : "",
   repeat:
-    form.value.repeatType === "once"
+    form.repeatType === "once"
       ? "Each user will see the campaign only once."
-      : form.value.repeatType === "repeat"
+      : form.repeatType === "repeat"
       ? `Each user will see the campaign up to ${
-          form.value.repeatCount || "?"
+          form.repeatCount || "?"
         } time(s).`
-      : form.value.repeatType === "afterDays"
+      : form.repeatType === "afterDays"
       ? `Each user will see the campaign again after ${
-          form.value.repeatAfterDays || "?"
+          form.repeatAfterDays || "?"
         } day(s).`
       : "",
-  delivery: form.value.ignoreLimit
+  delivery: form.ignoreLimit
     ? "Global impression limits will be ignored for this campaign."
     : "Global impression limits will be applied to this campaign.",
 }));
@@ -49,23 +49,23 @@ const summary = computed(() => ({
 const isValid = async (silent = false) => {
   const e = {};
 
-  if (form.value.durationType === "specific") {
-    if (!form.value.startDate) e.startDate = "Start date is required";
+  if (form.durationType === "specific") {
+    if (!form.startDate) e.startDate = "Start date is required";
 
-    if (!form.value.endDate) e.endDate = "End date is required";
+    if (!form.endDate) e.endDate = "End date is required";
   }
-  if (form.value.durationType === "days" && !form.value.days) {
+  if (form.durationType === "days" && !form.days) {
     e.days = "Please enter at least one day";
   }
   if (
-    form.value.repeatType === "repeat" &&
-    (!form.value.repeatCount || form.value.repeatCount < 1)
+    form.repeatType === "repeat" &&
+    (!form.repeatCount || form.repeatCount < 1)
   ) {
     e.repeatCount = "Enter a valid repeat count";
   }
   if (
-    form.value.repeatType === "afterDays" &&
-    (!form.value.repeatAfterDays || form.value.repeatAfterDays < 1)
+    form.repeatType === "afterDays" &&
+    (!form.repeatAfterDays || form.repeatAfterDays < 1)
   ) {
     e.repeatAfterDays = "Enter valid days count";
   }
@@ -77,7 +77,7 @@ const isValid = async (silent = false) => {
 defineExpose({ isValid });
 </script>
 
-<template scoped>
+<template>
   <VCard class="pa-6 scheduling">
     <!-- Summary Section -->
     <template v-if="false">
@@ -113,10 +113,11 @@ defineExpose({ isValid });
                 v-model="form.startDate"
                 placeholder="Select Date"
                 class="flex-grow-1 tiny-input"
-                style="min-width: 140px"
+                style="min-width: 170px"
                 :error="!!errors.startDate"
                 @update:modelValue="clearError('startDate')"
                 :disabled="form.durationType !== 'specific'"
+                :config="{ enableTime: true, minDate: 'today', minTime }"
               />
               <span>ending on</span>
               <AppDateTimePicker
@@ -124,10 +125,11 @@ defineExpose({ isValid });
                 v-model="form.endDate"
                 placeholder="Select Date"
                 class="flex-grow-1 tiny-input"
-                style="min-width: 140px"
+                style="min-width: 170px"
                 :error="!!errors.endDate"
                 @update:modelValue="clearError('endDate')"
                 :disabled="form.durationType !== 'specific'"
+                :config="{ enableTime: true, minDate: 'today', minTime }"
               />
             </div>
           </div>
