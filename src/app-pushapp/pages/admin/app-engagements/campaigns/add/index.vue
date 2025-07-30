@@ -20,7 +20,14 @@ const campaign = reactive({
     segment: null,
     filters: { type: "group", conjunction: "and", children: [] },
   },
-  scheduling: {},
+  scheduling: {
+    durationType: "paused",
+    startDate: "",
+    endDate: "",
+    repeatType: "once",
+    repeatCount: 1,
+    repeatAfterDays: 1,
+  },
 });
 watch(
   campaign,
@@ -87,9 +94,9 @@ const proceedToNextTab = async () => {
 
 const create = async () => {
   const results = await Promise.all([
-    templateRef.value.isValid(),
-    audienceRef.value.isValid(),
-    schedulingRef.value.isValid(),
+    templateRef.value?.isValid(),
+    audienceRef.value?.isValid(),
+    schedulingRef.value?.isValid(),
   ]);
 
   console.log("create", results);

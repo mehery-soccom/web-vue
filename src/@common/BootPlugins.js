@@ -1,3 +1,4 @@
+import "@/@iconify/icons-bundle";
 import { toast } from "vue3-toastify";
 import "vue3-toastify/dist/index.css";
 import { i18n } from "./services/i18n";

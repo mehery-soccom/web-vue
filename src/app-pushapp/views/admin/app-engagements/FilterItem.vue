@@ -121,7 +121,7 @@ defineExpose({ isValid });
         :items="['event', 'attribute']"
         placeholder="Select Type"
         density="compact"
-        class="filter-type"
+        class="filter-entity filter-type"
         @update:modelValue="clearErrorAndUpdate"
       />
 
@@ -131,7 +131,7 @@ defineExpose({ isValid });
         v-model="element.field"
         :items="eventOptions"
         placeholder="Select Event"
-        class="field"
+        class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
       />
       <AppSelect
@@ -139,7 +139,7 @@ defineExpose({ isValid });
         v-model="element.field"
         :items="attributeOptions"
         placeholder="Select Attribute"
-        class="field"
+        class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
       />
 
@@ -149,7 +149,7 @@ defineExpose({ isValid });
         v-model="element.operator"
         :items="operatorOptions[element.filterType] || []"
         placeholder="Select Operator"
-        class="operator"
+        class="filter-entity operator"
         @update:modelValue="clearErrorAndUpdate"
       />
 
@@ -160,7 +160,7 @@ defineExpose({ isValid });
           v-model="element.value"
           :items="valueFieldMeta[element.field]?.options || []"
           placeholder="Select Value"
-          class="value"
+          class="filter-entity value"
           :disabled="!element.field"
           @update:modelValue="clearErrorAndUpdate"
         />
@@ -168,7 +168,7 @@ defineExpose({ isValid });
           v-else
           v-model="element.value"
           placeholder="Enter Value"
-          class="value"
+          class="filter-entity value"
           :disabled="!element.field"
           @update:modelValue="clearErrorAndUpdate"
         />
@@ -182,21 +182,21 @@ defineExpose({ isValid });
         <AppSelect
           v-model="element.freqOperator"
           :items="freqOperators"
-          class="freq-operator"
+          class="filter-entity freq-operator"
           placeholder="Frequency"
           @update:modelValue="clearErrorAndUpdate"
         />
         <AppTextField
           v-model="element.freqCount"
           type="number"
-          class="freq-count"
+          class="filter-entity freq-count"
           @update:modelValue="clearErrorAndUpdate"
         />
         <span class="text-caption">time(s)</span>
         <AppSelect
           v-model="element.freqPeriod"
           :items="freqPeriods"
-          class="freq-period"
+          class="filter-entity freq-period"
           placeholder="Period"
           @update:modelValue="clearErrorAndUpdate"
         />

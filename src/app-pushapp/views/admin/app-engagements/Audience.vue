@@ -34,7 +34,7 @@ defineExpose({ isValid });
 </script>
 
 <template>
-  <VCard class="pa-6">
+  <VCard class="pa-6 audience">
     <h3 class="mb-2">Segments</h3>
     <p class="text-caption mb-4">
       Select whether you want to target all users or specific segments
@@ -46,6 +46,7 @@ defineExpose({ isValid });
           v-model="form.userSet"
           :items="userSetOptions"
           label="User Set"
+          class="flex-grow-1 tiny-input"
         />
       </VCol>
 
@@ -90,3 +91,14 @@ defineExpose({ isValid });
     <FilterBuilder v-model="form.filters" ref="filterRef" />
   </VCard>
 </template>
+
+<style>
+.audience {
+  .tiny-input .v-field__input {
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    font-size: 1rem !important;
+    min-height: 32px !important; /* instead of ~40px */
+  }
+}
+</style>

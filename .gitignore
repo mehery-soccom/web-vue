@@ -23,3 +23,6 @@ pnpm-debug.log*
 *.njsproj
 *.sln
 *.sw?
+
+# iconify dist files
+src/@iconify/icons-bundle.js
