@@ -87,7 +87,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
       return DataService.axios.get(`/api/something/${id}`);
     },
     createTemplate(params) {
-      return DataService.axios.post("/api/templates", params);
+      return DataService.axios.post("/api/templates/in-app", params);
     },
   },
 });
