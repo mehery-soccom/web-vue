@@ -18,7 +18,6 @@ const { FONT_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATES_CONFIG } = usePushN
 const props = defineProps({
   formData: { type: Object, required: true },
   fields: { type: Array, required: true },
-  // extra: { type: Object, required: false },
 })
 
 const emit = defineEmits(['update:formData'])
@@ -39,13 +38,13 @@ watch(() => props.formData, newVal => {
     Object.assign(local, JSON.parse(JSON.stringify(newVal)));
     nextTick(() => isUpdating = false)
   }
-  console.log("props hap", JSON.parse(JSON.stringify(local)));
+  // console.log("props hap", JSON.parse(JSON.stringify(local)));
 }, { deep: true, immediate: true });
 watch(local, () => {
-  console.log("emit hap", JSON.parse(JSON.stringify(local)));
+  // console.log("emit hap", JSON.parse(JSON.stringify(local)));
   if (!isUpdating) {
     isUpdating = true
-    emit('update:formData', JSON.parse(JSON.stringify(local)))
+    // emit('update:formData', JSON.parse(JSON.stringify(local)))
     nextTick(() => isUpdating = false)
   }
 }, { deep: true })
@@ -121,7 +120,6 @@ defineExpose({ validate });
         :formData="local"
         @updateChild="({ key, val }) => set(local, key, val)"
       />
-      <!-- to do: can pass just what is needed -->
       <MyAddButton
         v-if="f.type === 'addButton'"
         :model-value="get(local, f.path)"

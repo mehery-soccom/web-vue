@@ -3,24 +3,16 @@ import { toRef } from 'vue';
 const { show } = inject("snackbar");
 import DynamicForm from '@/app-pushapp/views/admin/app-engagements/form/dynamicForm.vue';
 import DynamicFieldEditor from '@/app-pushapp/components/DynamicFieldEditor.vue';
-import { usePushNotification } from '@/app-pushapp/views/admin/push-notification/usePushNotification';
-import { usePushNotificationStore } from '@/app-pushapp/views/admin/push-notification/usePushNotificationStore';
 import { useAppEngagementsStore } from '@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore';
 import NotificationPreview from '@/app-pushapp/views/admin/push-notification/NotificationPreview.vue';
-const { FONT_SIZES, WIDTH_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATE_ALIGN_2, TEMPLATES_CONFIG } = usePushNotification();
-// const pushNotificationStore = usePushNotificationStore();
 import { useAppEngagements } from '@/app-pushapp/views/admin/app-engagements/useAppEngagements';
 const AppEngagements = useAppEngagements();
 const AppEngagementsStore = useAppEngagementsStore();
-// import type, subtypes, etc from the useAppEngagement composable.
 const typesList = AppEngagements.TYPES;
 const subTypesList = AppEngagements.SUB_TYPES;
 
-const selectedType = ref('');
-const selectedSubType = ref('');
-
 const availableSubTypes = computed(() =>
-  subTypesList.filter((sub) => sub.type === selectedType.value)
+  subTypesList.filter((sub) => sub.type === template.type)
 );
 
 const required = (v) => !!v || "This field is required";
@@ -35,15 +27,6 @@ const router = useRouter();
 const isLoading = ref(false);
 const isPreStep = ref(false);
 const activeTemplateTab = ref("tab-details");
-// const templateExtras = reactive({
-//   buttonGroupList: AppEngagementsStore.buttonGroupList,
-//   buttonGroupFields: [],
-//   buttonGroupValue: {},
-//   buttonWidthList: WIDTH_SIZES,
-//   buttonHeightList: WIDTH_SIZES,
-//   buttonDirList: GRADIENT_DIRS,
-//   buttonTemAlign: TEMPLATE_ALIGN_2
-// })
 const template = reactive({
   type: null,
   subType: null,
@@ -100,29 +83,6 @@ const templatePreview = computed(() => {
     // },
   };
 });
-const activeTab = ref("tab-template");
-const tabs = [
-  {
-    title: "Template",
-    icon: "tabler-user-check",
-    tab: "tab-template",
-  },
-  {
-    title: "Audience",
-    icon: "tabler-users",
-    tab: "tab-audience",
-  },
-  {
-    title: "Scheduling",
-    icon: "tabler-layout-grid",
-    tab: "tab-scheduling",
-  },
-  {
-    title: "Goals",
-    icon: "tabler-link",
-    tab: "tab-goals",
-  },
-];
 const formRef = ref(null);
 
 const submit = async () => {
@@ -168,33 +128,15 @@ const onCreate = async () => {
     isLoading.value = false;
   }
 };
-// const dynamicFields = computed(() => {
-//   return template.type ? formConfig[template.type] : [];
-// });
-watch(selectedType, (val) => {
-  template.type = val;
 
-  const subs = subTypesList.filter((s) => s.type === val);
-  if (subs.length === 1 && subs[0].value === val) {
-    selectedSubType.value = subs[0].value;
-    template.subType = subs[0].value;
-  } else {
-    selectedSubType.value = null;
-    template.subType = null;
-  }
-});
-
-watch(selectedSubType, (val) => {
-  template.subType = val;
-});
 const formFields = computed(() => {
-  const subtype = subTypesList.find((s) => s.value === selectedSubType.value && s.type === selectedType.value);
+  const subtype = subTypesList.find((s) => s.value === template.subType && s.type === template.type);
   return subtype?.form?.fields ?? [];
 });
 
 function onFormUpdate(updated) {
   Object.assign(template, updated)
-  console.log('[Parent] got update:', template.style)
+  // console.log('[Parent] got update:', template.style)
 }
 
 onMounted(async () => {});
@@ -236,6 +178,7 @@ defineExpose({ isValid, val });
     <!-- Pre step -->
     <v-col v-if="isPreStep" cols="12" md="12">
       <VCard>Pre step</VCard>
+
     </v-col>
 
     <!-- Form Column -->
@@ -271,7 +214,7 @@ defineExpose({ isValid, val });
                       <VCol cols="12" md="6">
                         <!-- <AppSelect v-model="template.type" :items="Object.keys(formConfig)" label="Type" :rules="[required]" /> -->
                         <AppSelect
-                          v-model="selectedType"
+                          v-model="template.type"
                           :items="typesList.map(t => ({ label: t.label, value: t.value }))"
                           label="Type" item-title="label" item-value="value"
                           :rules="[required]"
@@ -282,8 +225,8 @@ defineExpose({ isValid, val });
                           :items="subtypeOptions" label="Subtype" :rules="[required]"
                         /> -->
                         <AppSelect
-                          v-if="availableSubTypes.length > 1 || (availableSubTypes.length === 1 && availableSubTypes[0].value !== selectedType)"
-                          v-model="selectedSubType" item-title="label" item-value="value"
+                          v-if="availableSubTypes.length > 1 || (availableSubTypes.length === 1 && availableSubTypes[0].value !== template.type)"
+                          v-model="template.subType" item-title="label" item-value="value"
                           :items="availableSubTypes.map(s => ({ label: s.label, value: s.value }))"
                           label="Subtype"
                         />
@@ -328,7 +271,7 @@ defineExpose({ isValid, val });
             <template v-if="IS_PAGE">
               <VDivider />
               <VCardText class="d-flex gap-4">
-                <VBtn :disabled="isLoading">{{
+                <VBtn :disabled="isLoading" @click="submit">{{
                   isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
                 }}</VBtn>
                 <VBtn
@@ -337,7 +280,7 @@ defineExpose({ isValid, val });
                   :to="{ name: 'admin-app-engagements-templates-list' }"
                 >
                   Cancel
-                </VBtn>
+                </VBtn> 
               </VCardText>
             </template>
         </VCard>

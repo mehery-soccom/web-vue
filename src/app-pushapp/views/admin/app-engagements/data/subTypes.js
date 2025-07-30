@@ -1,11 +1,3 @@
-// MySelectExtended
-// path: style.category and emit changes to it,
-// children path:  { style.button1_url: '', style.button2_url: '', }
-
-
-// key should be changed to path
-
-// handling columns in case of custom types
 import { usePushNotification } from '@/app-pushapp/views/admin/push-notification/usePushNotification';
 import { useAppEngagementsStore } from '@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore';
 
@@ -22,7 +14,6 @@ export function getSubTypes() {
         fields: [
           { id: "sim-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "", required: true, readonly: false, defaultValue: null },
           { id: "sim-message", name: "", path: "style.message", type: "textarea", label: "Message", placeholder: "", required: true, readonly: false, defaultValue: null},
-          // { id: "sim-category", name: "", path: "style.category", type: "select", label: "CTA Group", optionsPath: "buttonGroupList", placeholder: "", required: false, readonly: false, defaultValue: null },
           { id: "sim-cta-button", name: "", path: "style.category", type: "extendedSelect", label: "CTA Group", optionsPath: AppEngagementsStore.buttonGroupList, placeholder: "", required: false, readonly: false, defaultValue: null, 
             // children : [
             //   { id: "sim-button1", name: "", path: "style.button1_url", type: "text", label: "Button URL -> 1", placeholder: "Enter URL", required: true, readonly: false, defaultValue: null },
@@ -30,12 +21,6 @@ export function getSubTypes() {
             // ] 
           },
           { id: "sim-image", name: "", path: "style.image_url", type: "file", label: "Upload Image", placeholder: "", required: false, readonly: false, defaultValue: null },
-          // { id: "sim-btn", name: "", path: "style.btn", type: "addButton", label: "Title",max: 2, placeholder: "", required: true, readonly: false, defaultValue: null },
-          // style.btn will be array at time of submission.
-          // at time of edit, render the array 
-          // {
-          //    label: "", value: "", desc: ""
-          // }
 
         ]
       }
@@ -145,7 +130,6 @@ export function getSubTypes() {
           { id: "road-car-btn", name: "", path: "style.btn", type: "addButton", label: "Buttons",max: 2, placeholder: "", required: true, readonly: false, defaultValue: null },
           { id: "road-car-image", name: "", path: "style.image_urls", type: "addFiles", label: "Image", max: 3, placeholder: "", required: true, readonly: false, defaultValue: null }
         ]
-        // image_urls will be array of objects
       }
     },
     {
@@ -167,7 +151,6 @@ export function getSubTypes() {
           { id: "road-car-btn", name: "", path: "style.btn", type: "addButton", label: "Buttons",max: 2, placeholder: "", required: true, readonly: false, defaultValue: null },
           { id: "road-car-video", name: "", path: "style.video_urls", type: "addFiles", label: "Image", max: 3, placeholder: "", required: true, readonly: false, defaultValue: null }
         ]
-        // image_urls will be array of objects
       }
     },
   ];

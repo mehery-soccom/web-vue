@@ -1,5 +1,6 @@
 import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@common/constants";
+import { routes } from "vue-router/auto-routes";
 import DefaultLayout from '../layouts/default.vue';
 import Dashboard from '../pages/dashboards/analytics.vue';
 import TemplateList from '../pages/admin/app-engagements/templates/list/index.vue';
@@ -9,37 +10,34 @@ import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue'
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 
-export default BootRouter.route({
-  app: "pushapp",
-  base: CDN_CONTEXT,
-  routes: [
-    {
-      path: "/",
-      redirect: () => {
-        return { name: "dashboards-analytics" };
-      },
-    },
-    {
-      path: "/app/home",
-      redirect: () => {
-        return { name: "dashboards-analytics" };
-      },
-    },
-    {
-      path: "/pages/user-profile",
-      redirect: () => ({
-        name: "pages-user-profile-tab",
-        params: { tab: "profile" },
-      }),
-    },
-    {
-      path: "/pages/account-settings",
-      redirect: () => ({
-        name: "pages-account-settings-tab",
-        params: { tab: "account" },
-      }),
-    },
-    // "/admin/app-engagements/templates/list"
+console.log("routes", routes)
+const baseRoutes = [
+  {
+    path: "/",
+    redirect: () => ({ name: "dashboards-analytics" }),
+  },
+  {
+    path: "/app/home",
+    redirect: () => ({ name: "dashboards-analytics" }),
+  },
+  {
+    path: "/pages/user-profile",
+    redirect: () => ({
+      name: "pages-user-profile-tab",
+      params: { tab: "profile" },
+    }),
+  },
+  {
+    path: "/pages/account-settings",
+    redirect: () => ({
+      name: "pages-account-settings-tab",
+      params: { tab: "account" },
+    }),
+  },
+];
+
+if (!routes || routes?.length < 3) {
+  baseRoutes.push(
     {
       path: "/dashboards/analytics",
       component: DefaultLayout,
@@ -130,8 +128,14 @@ export default BootRouter.route({
           meta: { layout: "default" },
         },
       ],
-    },
-  ],
+    }
+  );
+}
+
+export default BootRouter.route({
+  app: "pushapp",
+  base: CDN_CONTEXT,
+  routes: baseRoutes,
   autoRoutes: true,
   beforeEach: function (to, from, next) {
     console.log("[pushapp] [router] beforeEach");

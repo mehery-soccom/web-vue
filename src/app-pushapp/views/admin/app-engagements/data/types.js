@@ -2,12 +2,12 @@ export default [
   {
     label: "Simple",
     value: "simple",
-    desc: "can close / skip",
+    desc: "",
   },
   {
     label: "Styled",
     value: "styled",
-    desc: "fixed widget, cannot be closed",
+    desc: "",
   },
   {
     label: "Pop Up",
