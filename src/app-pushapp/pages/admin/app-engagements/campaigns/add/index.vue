@@ -203,7 +203,7 @@ const create = async () => {
           <VIcon end icon="mdi-arrow-right" />
         </VBtn>
         <VBtn color="primary" v-else @click="create" :loading="isLoading">
-          Save Changes <VIcon end icon="mdi-check"
+          Save Campaign <VIcon end icon="mdi-check"
         /></VBtn>
       </div>
     </VToolbar>

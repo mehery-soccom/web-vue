@@ -78,7 +78,7 @@ const isValid = (silent = false) => {
   const el = props.element;
   let valid = true;
   if (!el.field) valid = false;
-  if (valueFieldMeta[el.field] && !el.operator && !el.value) valid = false;
+  if (valueFieldMeta[el.field] && (!el.operator || !el.value)) valid = false;
   if (
     el.filterType === "event" &&
     freqFieldMeta[el.field] &&
