@@ -29,6 +29,7 @@ const lineOpen = reactive({ 1: false, 2: false, 3: false });
 function toggleLine(line) {
     lineOpen[line] = !lineOpen[line];
 }
+const required = (v) => !!v || "This field is required";
 const extendedVisible = reactive({})
 
 // Sync back on change
@@ -54,17 +55,19 @@ watch(local, () => {
 function validate() {
   const errors = []
   props.fields.forEach(f => {
-    if (f.rules?.includes('required') && !get(local, f.path)) {
+    const isRequired = f.required || f.rules?.includes('required');
+    if (isRequired && !get(local, f.path)) {
       errors.push(`${f.label} is required`)
     }
-    if (f.type === 'extendedSelect' && f.children && get(local, f.path)) {
-      f.children.forEach(child => {
-        if (child.required && !get(local, child.path)) {
-          errors.push(`${child.label} is required`)
-        }
-      })
-    }
+    // if (f.type === 'extendedSelect' && f.children && get(local, f.path)) {
+    //   f.children.forEach(child => {
+    //     if (child.required && !get(local, child.path)) {
+    //       errors.push(`${child.label} is required`)
+    //     }
+    //   })
+    // }
   })
+  console.log("called after", props.formData, props.fields, errors)
   return { valid: errors.length === 0, errors }
 }
 
@@ -80,20 +83,20 @@ defineExpose({ validate });
         v-if="f.type === 'text'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
-        :label="f.label" :placeholder="f.placeholder"
+        :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
       />
       <AppTextarea
         v-if="f.type === 'textarea'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
-        :label="f.label" :placeholder="f.placeholder"
+        :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
       />
       <AppSelect
         v-if="f.type === 'select'"
         :value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
         :items="f.optionsPath || []"
-        :label="f.label" :placeholder="f.placeholder"
+        :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
         item-title="label"
         item-value="value"
         return-object
@@ -102,6 +105,7 @@ defineExpose({ validate });
         v-if="f.type === 'file'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
+        :rules="f.required ? [required] : []"
         :label="f.label"
       />
       <MyColorPicker
@@ -117,6 +121,7 @@ defineExpose({ validate });
         :items="f.optionsPath || []"
         :label="f.label"
         :placeholder="f.placeholder"
+        :rules="f.required ? [required] : []"
         :formData="local"
         @updateChild="({ key, val }) => set(local, key, val)"
       />
@@ -125,6 +130,7 @@ defineExpose({ validate });
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
         :label="f.label"
+        :rules="f.required ? [required] : []"
         :placeholder="f.placeholder"
         :max="f.max"
       />
@@ -134,6 +140,7 @@ defineExpose({ validate });
         @update:modelValue="val => set(local, f.path, val)"
         :label="f.label"
         :placeholder="f.placeholder"
+        :rules="f.required ? [required] : []"
         :max="f.max"
       />
       <div v-if="f.type === 'textinputstyle'" class="mb-4">
@@ -144,6 +151,7 @@ defineExpose({ validate });
               @update:modelValue="val => set(local, f.path, val)"
               :label="f.label"
               :placeholder="f.placeholder"
+              :rules="f.required ? [required] : []"
               :suggestions="get(local, 'model.' + f.textinputstylesKey)"
             />
           </VCol>

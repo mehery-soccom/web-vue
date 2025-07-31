@@ -95,6 +95,7 @@ watch(
   <div :class="['phone-frame', template.view.platform]">
     <!-- Background -->
     <div :class="[template.view.platform + '-wallpaper']"></div>
+    <div v-if="template.view.platform === 'ios' && template.type === 'pop-up'" class="ios-white-background"></div>
 
     <!-- Notch and Top Bar -->
     <div v-if="template.view.platform === 'ios'" class="notch"></div>
@@ -316,8 +317,8 @@ watch(
         </div>
       </div>
     </transition>
-          <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;"> -->
     <transition name="fade-slide">
+      <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;z-index: 5;"> -->
         <div v-if="showNotification && template.type === 'pop-up'"
           class="preview-wrapper pop-up-dimensions"
           :style="{
@@ -395,6 +396,7 @@ watch(
             </div>
           </div>
         </div>
+      <!-- </div> -->
     </transition>
     <!-- <transition name="fade-slide">
       <div
@@ -511,6 +513,12 @@ watch(
   background-size: cover;
   background-position: center;
   z-index: 0;
+}
+.ios-white-background {
+  position: absolute;
+  inset: 0;
+  background-color: white;
+  z-index: 1;
 }
 
 .notch {
@@ -771,8 +779,9 @@ watch(
 }
 
 .pop-up-dimensions {
-  width: auto !important;
-  height: auto !important;
+  width: 100% !important;
+  height: calc(100% - 32px) !important;
+  margin-top: 16px;
   bottom: 0 !important;
   // padding: 0 !important;
   position: absolute;
@@ -783,10 +792,10 @@ watch(
   justify-content: center;
 }
 
-.pop-up-dimensions {
-  width: v-bind('template.style.width?.value + "%"') !important;
-  height: v-bind('template.style.height?.value + "%"') !important;
-}
+// .pop-up-dimensions {
+//   width: v-bind('template.style.width?.value + "%"') !important;
+//   height: v-bind('template.style.height?.value + "%"') !important;
+// }
 .pop-up-vertical-content {
   display: flex;
   flex-direction: column;

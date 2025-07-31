@@ -83,30 +83,34 @@ const availableSubTypes = computed(() =>
   SUB_TYPES.filter((sub) => sub.type === template.type)
 );
 const formFields = computed(() => {
-  const subtype = SUB_TYPES.find(
-    (s) => s.value === template.subType && s.type === template.type
+  const matched = SUB_TYPES.find(s =>
+      (template.subType && s.value === template.subType && s.type === template.type) ||
+      (!template.subType && s.value === template.type)
   );
-  return subtype?.form?.fields ?? [];
+  return matched?.form?.fields ?? [];
 });
-const formRef = ref(null);
+const formRef = ref();
+const formRefVersion = ref(1);
 
 function onFormUpdate(updated) {
   Object.assign(template, updated);
   // console.log('[Parent] got update:', template.style)
 }
 const submit = async () => {
-  const { valid, errors } = formRef.value.validate();
-  if (!valid) {
-    show({ message: errors.join(", "), color: "error" });
+  let validationResult = await formRef.value.validate();
+  console.log("val res", validationResult)
+
+  console.log("onCreate", validationResult.errors);
+
+  if (!validationResult.valid) {
     return;
   }
+
   await onCreate();
   console.log(
     "valid form",
-    formRef,
     formRef.value,
     template,
-    dynamicFields,
     JSON.stringify(template, null, 2)
   );
 };
@@ -118,25 +122,26 @@ const createPayload = () => {
 const onCreate = async () => {
   try {
     isLoading.value = true;
-    let payload = {};
-    if (template.type === "simple") {
-      payload = {
-        ...template,
-        options: {
-          ...(template.options || {}),
-          // buttons: buttonGroupFields.value.map((b) => ({
-          //   button_id: b.id,
-          //   button_text: b.text,
-          //   button_url: buttonGroupValue.value[b.text],
-          // })),
-        },
-      };
-    } else {
-      payload = {
-        ...template,
-        options: {},
-      };
-    }
+    // let payload = {};
+    // if (template.type === "simple") {
+    //   payload = {
+    //     ...template,
+    //     options: {
+    //       ...(template.options || {}),
+    //       // buttons: buttonGroupFields.value.map((b) => ({
+    //       //   button_id: b.id,
+    //       //   button_text: b.text,
+    //       //   button_url: buttonGroupValue.value[b.text],
+    //       // })),
+    //     },
+    //   };
+    // } else {
+    //   payload = {
+    //     ...template,
+    //     options: {},
+    //   };
+    // }
+    let payload = createPayload();
     template.style.code = template.subType || template.type;
 
     await AppEngagementsStore.createTemplate(payload);
@@ -182,6 +187,7 @@ onMounted(async () => {});
 watch(
   () => template.type,
   (val) => {
+    formRefVersion.value += 1;
     template.subType = null;
   }
 );
@@ -189,6 +195,7 @@ watch(
 watch(
   () => template.subType,
   (val) => {
+    formRefVersion.value += 1;
     if (val) template.style.code = val;
     else template.style.code = null;
   }
@@ -227,64 +234,57 @@ defineExpose({ isValid, _onCreate });
           <VTab value="tab-variables"> Variables </VTab>
         </VTabs>
 
-        <!-- <VCard flat>
-          <VCardText>
-            <VWindow v-model="activeTemplateTab" class="disable-tab-transition">
-              <VWindowItem value="tab-details"> Form </VWindowItem> -->
-
         <VCard flat>
           <VCardText>
             <VWindow v-model="activeTemplateTab" class="disable-tab-transition">
               <VWindowItem value="tab-details">
                 <div>
-                  <VRow>
-                    <VCol cols="12" md="6">
-                      <!-- <AppSelect v-model="template.type" :items="Object.keys(formConfig)" label="Type" :rules="[required]" /> -->
-                      <AppSelect
-                        v-model="template.type"
-                        :items="TYPES"
-                        label="Type"
-                        item-title="label"
-                        item-value="value"
-                        :rules="[required]"
-                      />
-                    </VCol>
-                    <VCol cols="12" md="6">
-                      <!-- <AppSelect v-if="subtypeOptions.length" v-model="template.subtype"
-                          :items="subtypeOptions" label="Subtype" :rules="[required]"
-                        /> -->
-                      <AppSelect
-                        v-if="
-                          availableSubTypes.length > 1 ||
-                          (availableSubTypes.length === 1 &&
-                            availableSubTypes[0].value !== template.type)
-                        "
-                        v-model="template.subType"
-                        item-title="label"
-                        item-value="value"
-                        :items="availableSubTypes"
-                        label="Subtype"
-                      />
-                    </VCol>
-                    <VCol cols="12" md="6">
-                      <AppTextField
-                        v-model="template.desc"
-                        label="Template Name"
-                        placeholder="Enter name"
-                        :rules="[required]"
-                        prepend-inner-icon="mdi-text-box"
-                      />
-                    </VCol>
-                  </VRow>
-                  <VDivider class="mt-4" />
-
-                  <DynamicForm
-                    v-if="formFields.length"
-                    ref="formRef"
-                    :formData="template"
-                    :fields="formFields"
-                    @update:formData="onFormUpdate"
-                  />
+                  <VForm ref="formRef" :key="formRefVersion">
+                    <VRow>
+                      <VCol cols="12" md="6">
+                        <AppSelect
+                          v-model="template.type"
+                          :items="TYPES"
+                          label="Type"
+                          item-title="label"
+                          item-value="value"
+                          :rules="[required]"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="6">
+                        <AppSelect
+                          v-if="
+                            availableSubTypes.length > 1 ||
+                            (availableSubTypes.length === 1 &&
+                              availableSubTypes[0].value !== template.type)
+                          "
+                          v-model="template.subType"
+                          item-title="label"
+                          item-value="value"
+                          :items="availableSubTypes" 
+                          :rules="availableSubTypes.length > 1 ||
+                            (availableSubTypes.length === 1 &&
+                              availableSubTypes[0].value !== template.type) ? [required] : []"
+                          label="Subtype"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="6">
+                        <AppTextField
+                          v-model="template.desc"
+                          label="Template Name"
+                          placeholder="Enter name"
+                          :rules="[required]"
+                          prepend-inner-icon="mdi-text-box"
+                        />
+                      </VCol>
+                    </VRow>
+                    <VDivider class="mt-4" v-if="formFields.length"/>
+                    <DynamicForm
+                      :formData="template"
+                      :fields="formFields"
+                      @update:formData="onFormUpdate"
+                    />
+                  </VForm>
                 </div>
               </VWindowItem>
 

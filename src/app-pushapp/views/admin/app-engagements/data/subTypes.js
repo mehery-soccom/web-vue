@@ -52,9 +52,9 @@ export function getSubTypes() {
       type: "pop-up",
       form: {
         fields: [
-          { id: "road-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
-          { id: "road-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
-          { id: "road-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
+          // { id: "road-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
+          { id: "road-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: true, readonly: false, defaultValue: null },
+          { id: "road-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: true, readonly: false, defaultValue: null },
           { id: "road-bg-color", name: "", path: "style.bg_color", type: "color", label: "Background Color", placeholder: "Enter color",cols:4, required: false, readonly: false, defaultValue: null },
           { id: "road-bg-gradient", name: "", path: "style.bg_color_gradient", type: "color", label: "Color gradient", placeholder: "Enter color",cols:4,required: false, readonly: false, defaultValue: null },
           { id: "road-bg-gradient-dir", name: "", path: "style.bg_color_gradient_dir", type: "select", label: "Color gradient direction",optionsPath: GRADIENT_DIRS, placeholder: "",cols:4, required: false, readonly: false, defaultValue: null },
@@ -76,9 +76,9 @@ export function getSubTypes() {
       type: "pop-up",
       form: {
         fields: [
-          { id: "road-img-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
-          { id: "road-img-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
-          { id: "road-img-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
+          // { id: "road-img-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
+          { id: "road-img-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: true, readonly: false, defaultValue: null },
+          { id: "road-img-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: true, readonly: false, defaultValue: null },
           { id: "road-img-bg-color", name: "", path: "style.bg_color", type: "color", label: "Background Color", placeholder: "Enter color",cols:4, required: false, readonly: false, defaultValue: null },
           { id: "road-img-bg-gradient", name: "", path: "style.bg_color_gradient", type: "color", label: "Color gradient", placeholder: "Enter color",cols:4,required: false, readonly: false, defaultValue: null },
           { id: "road-img-bg-gradient-dir", name: "", path: "style.bg_color_gradient_dir", type: "select", label: "Color gradient direction",optionsPath: GRADIENT_DIRS, placeholder: "",cols:4, required: false, readonly: false, defaultValue: null },
@@ -86,7 +86,7 @@ export function getSubTypes() {
           { id: "road-img-line2", name: "", path: "style.line_2",type: "textinputstyle",label: "Line 2 Text",placeholder: "Enter text for line 2",line:2, textinputstylesKey: "data",fontSizeKey: "style.line2_font_size",fontColorKey: "style.line2_font_color",textStylesKey: "style.line2_text_styles"},
           { id: "road-img-line3", name: "", path: "style.line_3",type: "textinputstyle",label: "Line 3 Text",placeholder: "Enter text for line 3",line:3, textinputstylesKey: "data",fontSizeKey: "style.line3_font_size",fontColorKey: "style.line3_font_color",textStylesKey: "style.line3_text_styles"},
           { id: "road-btn", name: "", path: "style.btn", type: "addButton", label: "Buttons",max: 2, placeholder: "", required: true, readonly: false, defaultValue: null },
-          { id: "road-img-image", name: "", path: "style.image_url", type: "file", label: "Image" }
+          { id: "road-img-image", name: "", path: "style.image_url", type: "file", label: "Image", required: true }
         ]
       }
     },
@@ -97,7 +97,7 @@ export function getSubTypes() {
       type: "pop-up",
       form: {
         fields: [
-          { id: "road-vid-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
+          // { id: "road-vid-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
           { id: "road-vid-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
           { id: "road-vid-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
           { id: "road-vid-bg-color", name: "", path: "style.bg_color", type: "color", label: "Background Color", placeholder: "Enter color",cols:4, required: false, readonly: false, defaultValue: null },
@@ -107,7 +107,7 @@ export function getSubTypes() {
           { id: "road-vid-line2", name: "", path: "style.line_2",type: "textinputstyle",label: "Line 2 Text",placeholder: "Enter text for line 2",line:2, textinputstylesKey: "data",fontSizeKey: "style.line2_font_size",fontColorKey: "style.line2_font_color",textStylesKey: "style.line2_text_styles"},
           { id: "road-vid-line3", name: "", path: "style.line_3",type: "textinputstyle",label: "Line 3 Text",placeholder: "Enter text for line 3",line:3, textinputstylesKey: "data",fontSizeKey: "style.line3_font_size",fontColorKey: "style.line3_font_color",textStylesKey: "style.line3_text_styles"},
           { id: "road-btn", name: "", path: "style.btn", type: "addButton", label: "Buttons",max: 2, placeholder: "", required: true, readonly: false, defaultValue: null },
-          { id: "road-vid-video", name: "", path: "style.video_url", type: "file", label: "Video" }
+          { id: "road-vid-video", name: "", path: "style.video_url", type: "file", label: "Video", required: true }
         ]
       }
     },
@@ -118,7 +118,7 @@ export function getSubTypes() {
       type: "pop-up",
       form: {
         fields: [
-          { id: "road-car-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
+          // { id: "road-car-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
           { id: "road-car-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
           { id: "road-car-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
           { id: "road-car-bg-color", name: "", path: "style.bg_color", type: "color", label: "Background Color", placeholder: "Enter color",cols:4, required: false, readonly: false, defaultValue: null },
@@ -139,7 +139,7 @@ export function getSubTypes() {
       type: "pop-up",
       form: {
         fields: [
-          { id: "road-car-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
+          // { id: "road-car-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
           { id: "road-car-width", name: "", path: "style.width", type: "select", label: "Select width", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
           { id: "road-car-height", name: "", path: "style.height", type: "select", label: "Select height", optionsPath: WIDTH_SIZES, placeholder: "", cols:6, required: false, readonly: false, defaultValue: null },
           { id: "road-car-bg-color", name: "", path: "style.bg_color", type: "color", label: "Background Color", placeholder: "Enter color",cols:4, required: false, readonly: false, defaultValue: null },
