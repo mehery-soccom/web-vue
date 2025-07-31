@@ -110,6 +110,11 @@ const submit = async () => {
     JSON.stringify(template, null, 2)
   );
 };
+const createPayload = () => {
+  return {
+    ...template,
+  };
+};
 const onCreate = async () => {
   try {
     isLoading.value = true;
@@ -145,6 +150,19 @@ const onCreate = async () => {
   }
 };
 
+const _onCreate = async () => {
+  try {
+    isLoading.value = true;
+    let payload = createPayload();
+    let res = await AppEngagementsStore.createTemplate(payload);
+    return res.data;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 const isValid = async () => {
   let validationResult = await formRef.value?.validate();
 
@@ -153,12 +171,6 @@ const isValid = async () => {
   }
 
   return true;
-};
-
-const val = async () => {
-  return {
-    test: true,
-  };
 };
 
 const sanitizeAndUnderscore = (str) => {
@@ -189,7 +201,7 @@ watch(
   }
 );
 
-defineExpose({ isValid, val });
+defineExpose({ isValid, _onCreate });
 </script>
 
 <template>
