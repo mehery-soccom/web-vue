@@ -1,14 +1,14 @@
 export default [
-  {
-    label: "Simple",
-    value: "simple",
-    desc: "",
-  },
-  {
-    label: "Styled",
-    value: "styled",
-    desc: "",
-  },
+  // {
+  //   label: "Simple",
+  //   value: "simple",
+  //   desc: "",
+  // },
+  // {
+  //   label: "Styled",
+  //   value: "styled",
+  //   desc: "",
+  // },
   {
     label: "Pop Up",
     value: "pop-up",
