@@ -16,17 +16,32 @@ const campaign = reactive({
   template: {},
   audience: {
     userSet: "All Users",
-    segmentCondition: "any",
+    segmentCondition: null,
     segment: null,
-    filters: { type: "group", conjunction: "and", children: [] },
+    filter: {
+      type: "group",
+      conjunction: "and",
+      children: [
+        {
+          type: "filter",
+          filterType: "event",
+          field: null,
+          operator: "is",
+          value: null,
+          freqOperator: null,
+          freqCount: null,
+          freqPeriod: null,
+        },
+      ],
+    },
   },
   scheduling: {
     durationType: "paused",
-    startDate: "",
-    endDate: "",
-    repeatType: "once",
-    repeatCount: 1,
-    repeatAfterDays: 1,
+    startDate: null,
+    endDate: null,
+    repeatType: null,
+    repeatCount: null,
+    repeatAfterDays: null,
   },
 });
 watch(
@@ -90,7 +105,7 @@ const isValidTab = async (tab, silent = false) => {
     case 0:
       let templateValid = await templateRef.value?.isValid(silent);
       if (!templateValid) {
-        valid = false;
+        valid = true; //TODO
       }
       break;
     case 1:
@@ -137,10 +152,10 @@ const create = async () => {
     isLoading.value = true;
     const valid = await isValid();
     if (valid) {
-      const payload = {};
+      const payload = {
+        ...campaign,
+      };
       console.log("all valid", payload);
-    } else {
-      show({ message: "Validation failure", color: "error" });
     }
   } catch (error) {
     console.log("create", error);

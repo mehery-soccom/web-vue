@@ -88,7 +88,7 @@ defineExpose({ isValid });
       Apply filters based on app events and latest user attributes
     </p>
 
-    <FilterBuilder v-model="form.filters" ref="filterRef" />
+    <FilterBuilder v-model="form.filter" ref="filterRef" />
   </VCard>
 </template>
 

@@ -112,7 +112,7 @@ defineExpose({ isValid });
     <!-- Filter Row -->
     <div
       v-if="element.type === 'filter'"
-      class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 border position-relative"
+      class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 position-relative"
       :class="hasError ? 'border-red' : 'border-grey-lighten-1'"
     >
       <!-- Type -->
@@ -148,7 +148,7 @@ defineExpose({ isValid });
         v-if="valueFieldMeta[element.field]"
         v-model="element.operator"
         :items="operatorOptions[element.filterType] || []"
-        placeholder="Select Operator"
+        placeholder="Operator"
         class="filter-entity operator"
         @update:modelValue="clearErrorAndUpdate"
       />
@@ -237,24 +237,24 @@ defineExpose({ isValid });
   border: 1px solid red !important;
 }
 .filter-type {
-  width: 120px;
+  max-width: 120px;
 }
 .field {
-  width: 220px;
+  max-width: 220px;
 }
 .operator {
-  width: 140px;
+  max-width: 140px;
 }
 .value {
-  width: 220px;
+  max-width: 220px;
 }
 .freq-operator {
-  width: 140px;
+  max-width: 140px;
 }
 .freq-count {
-  width: 60px;
+  max-width: 60px;
 }
 .freq-period {
-  width: 160px;
+  max-width: 160px;
 }
 </style>
