@@ -92,7 +92,8 @@ onMounted(() => {
 });
 
 const emitModelValue = (val) => {
-  emit("update:modelValue", val);
+  const ts = val ? new Date(val).getTime() : null
+  emit("update:modelValue", ts);
 };
 
 const elementId = computed(() => {
