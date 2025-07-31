@@ -3,16 +3,20 @@ import { reactive, ref } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
 
 const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true,
-  },
+  modelValue: { type: Object, required: true },
+  filter: { type: Object, required: true },
 });
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "update:filter"]);
 
+// Clone object for internal form usage
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
+const filterLocal = reactive(JSON.parse(JSON.stringify(props.filter)));
 
+// Watch & sync
 watch(form, (val) => emit("update:modelValue", val), { deep: true });
+watch(filterLocal, (val) => emit("update:filter", val), { deep: true });
+
+const filterRef = ref(null);
 
 const userSetOptions = [
   { title: "All Users", value: "All Users" },
@@ -27,7 +31,6 @@ const segmentsOptions = [
   { title: "Segment 2", value: "2" },
 ];
 
-const filterRef = ref(null);
 const isValid = async () => filterRef.value?.isValid();
 
 defineExpose({ isValid });
@@ -88,7 +91,7 @@ defineExpose({ isValid });
       Apply filters based on app events and latest user attributes
     </p>
 
-    <FilterBuilder v-model="form.filter" ref="filterRef" />
+    <FilterBuilder v-model="filterLocal" ref="filterRef" />
   </VCard>
 </template>
 

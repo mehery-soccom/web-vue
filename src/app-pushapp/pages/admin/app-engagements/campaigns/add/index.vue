@@ -26,25 +26,25 @@ const campaign = reactive({
     userSet: "All Users",
     segmentCondition: null,
     segment: null,
-    filter: {
-      type: "group",
-      conjunction: "and",
-      children: [
-        {
-          type: "filter",
-          filterType: "event",
-          field: null,
-          operator: "is",
-          value: null,
-          freqOperator: null,
-          freqCount: null,
-          freqPeriod: null,
-        },
-      ],
-    },
+  },
+  filter: {
+    type: "group",
+    conjunction: "and",
+    children: [
+      {
+        type: "filter",
+        filterType: "event",
+        field: null,
+        operator: "is",
+        value: null,
+        freqOperator: null,
+        freqCount: null,
+        freqPeriod: null,
+      },
+    ],
   },
   schedule: {
-    durationType: "paused",
+    durationType: "manual",
     startDate: null,
     endDate: null,
     repeatType: null,
@@ -231,7 +231,11 @@ const create = async () => {
 
       <!-- tab-audience -->
       <VWindowItem>
-        <Audience ref="audienceRef" v-model="campaign.audience" />
+        <Audience
+          ref="audienceRef"
+          v-model="campaign.audience"
+          v-model:filter="campaign.filter"
+        />
       </VWindowItem>
 
       <!-- tab-schedule -->

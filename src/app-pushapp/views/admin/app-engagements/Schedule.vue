@@ -22,8 +22,8 @@ const clearError = (field) => {
 
 const summary = computed(() => ({
   duration:
-    form.durationType === "paused"
-      ? "Campaign will run until it is manually paused."
+    form.durationType === "manual"
+      ? "Campaign will run until it is manually ended."
       : form.durationType === "specific"
       ? `Campaign runs from ${form.startDate || "?"} to ${form.endDate || "?"}.`
       : form.durationType === "days"
@@ -97,9 +97,9 @@ defineExpose({ isValid });
       Choose how long the campaign will remain active
     </p>
     <VRadioGroup v-model="form.durationType" hide-details>
-      <VRadio value="paused">
+      <VRadio value="manual">
         <template #label>
-          <span>Till the campaign is paused</span>
+          <span>Till the campaign is manually ended</span>
         </template>
       </VRadio>
 
