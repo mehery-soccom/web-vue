@@ -83,8 +83,11 @@ const availableSubTypes = computed(() =>
   SUB_TYPES.filter((sub) => sub.type === template.type)
 );
 const formFields = computed(() => {
-  const matched = SUB_TYPES.find(s =>
-      (template.subType && s.value === template.subType && s.type === template.type) ||
+  const matched = SUB_TYPES.find(
+    (s) =>
+      (template.subType &&
+        s.value === template.subType &&
+        s.type === template.type) ||
       (!template.subType && s.value === template.type)
   );
   return matched?.form?.fields ?? [];
@@ -98,9 +101,7 @@ function onFormUpdate(updated) {
 }
 const submit = async () => {
   let validationResult = await formRef.value.validate();
-  console.log("val res", validationResult)
-
-  console.log("onCreate", validationResult.errors);
+  console.log("val res", validationResult);
 
   if (!validationResult.valid) {
     return;
@@ -122,28 +123,8 @@ const createPayload = () => {
 const onCreate = async () => {
   try {
     isLoading.value = true;
-    // let payload = {};
-    // if (template.type === "simple") {
-    //   payload = {
-    //     ...template,
-    //     options: {
-    //       ...(template.options || {}),
-    //       // buttons: buttonGroupFields.value.map((b) => ({
-    //       //   button_id: b.id,
-    //       //   button_text: b.text,
-    //       //   button_url: buttonGroupValue.value[b.text],
-    //       // })),
-    //     },
-    //   };
-    // } else {
-    //   payload = {
-    //     ...template,
-    //     options: {},
-    //   };
-    // }
     let payload = createPayload();
     template.style.code = template.subType || template.type;
-
     await AppEngagementsStore.createTemplate(payload);
     show({ message: "Template created successfully", color: "success" });
     router.push({ name: "admin-app-engagements-templates-list" });
@@ -163,6 +144,7 @@ const _onCreate = async () => {
     return res.data;
   } catch (error) {
     console.error(error);
+    throw error;
   } finally {
     isLoading.value = false;
   }
@@ -172,7 +154,7 @@ const isValid = async () => {
   let validationResult = await formRef.value?.validate();
 
   if (!validationResult?.valid) {
-    return true; //TODO
+    return false;
   }
 
   return true;
@@ -261,10 +243,14 @@ defineExpose({ isValid, _onCreate });
                           v-model="template.subType"
                           item-title="label"
                           item-value="value"
-                          :items="availableSubTypes" 
-                          :rules="availableSubTypes.length > 1 ||
+                          :items="availableSubTypes"
+                          :rules="
+                            availableSubTypes.length > 1 ||
                             (availableSubTypes.length === 1 &&
-                              availableSubTypes[0].value !== template.type) ? [required] : []"
+                              availableSubTypes[0].value !== template.type)
+                              ? [required]
+                              : []
+                          "
                           label="Subtype"
                         />
                       </VCol>
@@ -278,7 +264,7 @@ defineExpose({ isValid, _onCreate });
                         />
                       </VCol>
                     </VRow>
-                    <VDivider class="mt-4" v-if="formFields.length"/>
+                    <VDivider class="mt-4" v-if="formFields.length" />
                     <DynamicForm
                       :formData="template"
                       :fields="formFields"
