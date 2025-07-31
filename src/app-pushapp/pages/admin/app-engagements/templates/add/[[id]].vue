@@ -146,9 +146,9 @@ const onCreate = async () => {
 };
 
 const isValid = async () => {
-  let validationResult = await formRef.value.validate();
+  let validationResult = await formRef.value?.validate();
 
-  if (!validationResult.valid) {
+  if (!validationResult?.valid) {
     return false;
   }
 

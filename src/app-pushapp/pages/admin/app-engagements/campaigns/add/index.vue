@@ -36,7 +36,6 @@ watch(
   },
   { immediate: true, deep: true }
 );
-const activeTab = ref(0);
 const tabs = [
   {
     title: "Template",
@@ -57,61 +56,97 @@ const tabs = [
   },
   */
 ];
+const activeTab = ref(0);
 const nextTab = computed(() => {
   const next = tabs[activeTab.value + 1];
   return next ? `Proceed to ${next.title}` : null;
 });
+const tabErrors = ref({
+  0: false,
+  1: false,
+  2: false,
+});
 const templateRef = ref();
 const audienceRef = ref();
 const schedulingRef = ref();
+const errors = ref({});
 
-onMounted(async () => {});
+const clearError = (field) => {
+  errors.value[field] = null;
+};
 
 const proceedToNextTab = async () => {
-  const next = activeTab.value + 1;
+  let valid = await isValidTab(activeTab.value);
 
-  switch (activeTab.value) {
+  if (valid) {
+    activeTab.value += 1;
+  }
+};
+
+const isValidTab = async (tab, silent = false) => {
+  let valid = true;
+
+  switch (tab) {
     case 0:
-      console.log("proceeding to ", next);
-      const templateValid = await templateRef.value?.isValid();
+      let templateValid = await templateRef.value?.isValid(silent);
       if (!templateValid) {
-        console.log("template form is invalid!");
-        return;
-      } else {
-        console.log("template form:", campaign.template);
-        activeTab.value = next;
+        valid = false;
       }
       break;
     case 1:
-      console.log("proceeding to ", next);
-      const audienceValid = await audienceRef.value?.isValid();
+      let audienceValid = await audienceRef.value?.isValid(silent);
       if (!audienceValid) {
-        console.log("Audience form is invalid!");
-        return;
-      } else {
-        console.log("Audience form:", campaign.audience);
-        activeTab.value = next;
+        valid = false;
+      }
+      break;
+    case 2:
+      let schedulingValid = await schedulingRef.value?.isValid(silent);
+      if (!schedulingValid) {
+        valid = false;
       }
       break;
 
     default:
       break;
   }
+
+  if (!silent) tabErrors.value[tab] = !valid;
+
+  return valid;
+};
+
+const isValid = async (silent = false) => {
+  let _tabs = await Promise.allSettled(
+    tabs.map((t, i) => isValidTab(i, silent))
+  );
+  let tabsValid = _tabs.every((r) => !!r.value);
+
+  let e = {};
+
+  if (!campaign["title"]) {
+    e["title"] = true;
+  }
+
+  if (!silent) errors.value = e;
+
+  return !Object.keys(e).length && tabsValid;
 };
 
 const create = async () => {
-  const results = await Promise.all([
-    templateRef.value?.isValid(),
-    audienceRef.value?.isValid(),
-    schedulingRef.value?.isValid(),
-  ]);
-
-  console.log("create", results);
-
-  if (results.every((r) => !!r)) {
-    console.log("all valid");
-  } else {
-    console.log("Validation failed");
+  try {
+    isLoading.value = true;
+    const valid = await isValid();
+    if (valid) {
+      const payload = {};
+      console.log("all valid", payload);
+    } else {
+      show({ message: "Validation failure", color: "error" });
+    }
+  } catch (error) {
+    console.log("create", error);
+    show({ message: "Failed to create Campaign. Try again", color: "error" });
+  } finally {
+    isLoading.value = false;
   }
 };
 </script>
@@ -124,9 +159,11 @@ const create = async () => {
         <VIcon size="28" class="mr-3" color="pink">mdi-bullseye-arrow</VIcon>
         <div class="position-relative flex-grow-1" style="min-width: 300px">
           <AppTextField
-            v-model="campaign.title"
-            placeholder="Untitled Campaign"
             autofocus
+            v-model="campaign['title']"
+            placeholder="Untitled Campaign"
+            :error="!!errors['title']"
+            @update:modelValue="() => clearError('title')"
           />
         </div>
       </div>
@@ -137,27 +174,31 @@ const create = async () => {
           {{ nextTab }}
           <VIcon end icon="mdi-arrow-right" />
         </VBtn>
-        <VBtn color="primary" v-else @click="create">
+        <VBtn color="primary" v-else @click="create" :loading="isLoading">
           Save Changes <VIcon end icon="mdi-check"
         /></VBtn>
       </div>
     </VToolbar>
 
     <VTabs v-model="activeTab" class="v-tabs-pill">
-      <VTab v-for="(item, index) in tabs" :key="item.icon" :value="index">
+      <VTab
+        v-for="(item, index) in tabs"
+        :key="item.icon"
+        :value="index"
+        :class="{ 'error-tab': tabErrors[index] }"
+      >
         <VIcon size="20" start :icon="item.icon" />
         {{ item.title }}
+        <VIcon v-if="tabErrors[index]" color="error" size="16" class="ml-1">
+          mdi-exclamation-thick
+        </VIcon>
       </VTab>
     </VTabs>
 
-    <VWindow
-      v-model="activeTab"
-      class="mt-4 disable-tab-transition"
-      :touch="false"
-    >
+    <VWindow v-model="activeTab" class="mt-4">
       <!-- tab-template -->
       <VWindowItem>
-        <Template ref="templateRef" />
+        <Template ref="templateRef" v-model="campaign.template" />
       </VWindowItem>
 
       <!-- tab-audience -->
@@ -180,5 +221,9 @@ const create = async () => {
 .sticky-toolbar {
   background: white;
   border-bottom: 1px solid #eee;
+}
+.error-tab {
+  color: #d32f2f !important; /* red text */
+  font-weight: 600;
 }
 </style>
