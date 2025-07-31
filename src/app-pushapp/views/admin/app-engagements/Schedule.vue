@@ -78,7 +78,7 @@ defineExpose({ isValid });
 </script>
 
 <template>
-  <VCard class="pa-6 scheduling">
+  <VCard class="pa-6 schedule">
     <!-- Summary Section -->
     <template v-if="false">
       <h3 class="mb-2">Summary</h3>
@@ -222,7 +222,7 @@ defineExpose({ isValid });
 </template>
 
 <style>
-.scheduling {
+.schedule {
   .tiny-input .v-field__input {
     padding-top: 0 !important;
     padding-bottom: 0 !important;

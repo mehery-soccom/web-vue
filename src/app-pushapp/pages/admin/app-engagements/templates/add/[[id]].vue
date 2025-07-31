@@ -167,7 +167,7 @@ const isValid = async () => {
   let validationResult = await formRef.value?.validate();
 
   if (!validationResult?.valid) {
-    return false;
+    return true; //TODO
   }
 
   return true;

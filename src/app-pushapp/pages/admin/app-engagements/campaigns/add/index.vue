@@ -1,9 +1,11 @@
 <script setup>
 import Template from "@app-pushapp/pages/admin/app-engagements/templates/add/[[id]].vue";
 import Audience from "@app-pushapp/views/admin/app-engagements/Audience.vue";
-import Scheduling from "@app-pushapp/views/admin/app-engagements/Scheduling.vue";
+import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
+import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 
 const { show } = inject("snackbar");
+const appEngagementsStore = useAppEngagementsStore();
 
 const route = useRoute();
 const QUERY_COPY = route.query.c_copy;
@@ -13,7 +15,12 @@ const router = useRouter();
 const isLoading = ref(false);
 const campaign = reactive({
   title: "",
-  template: {},
+  action: {
+    type: "template",
+    template: {
+      id: null,
+    },
+  },
   audience: {
     userSet: "All Users",
     segmentCondition: null,
@@ -35,7 +42,7 @@ const campaign = reactive({
       ],
     },
   },
-  scheduling: {
+  schedule: {
     durationType: "paused",
     startDate: null,
     endDate: null,
@@ -83,7 +90,7 @@ const tabErrors = ref({
 });
 const templateRef = ref();
 const audienceRef = ref();
-const schedulingRef = ref();
+const scheduleRef = ref();
 const errors = ref({});
 
 const clearError = (field) => {
@@ -105,7 +112,7 @@ const isValidTab = async (tab, silent = false) => {
     case 0:
       let templateValid = await templateRef.value?.isValid(silent);
       if (!templateValid) {
-        valid = true; //TODO
+        valid = false;
       }
       break;
     case 1:
@@ -115,8 +122,8 @@ const isValidTab = async (tab, silent = false) => {
       }
       break;
     case 2:
-      let schedulingValid = await schedulingRef.value?.isValid(silent);
-      if (!schedulingValid) {
+      let scheduleValid = await scheduleRef.value?.isValid(silent);
+      if (!scheduleValid) {
         valid = false;
       }
       break;
@@ -155,11 +162,15 @@ const create = async () => {
       const payload = {
         ...campaign,
       };
-      console.log("all valid", payload);
+      const templateRes = await templateRef.value._onCreate();
+      payload.action.template.id = templateRes.data._id;
+      await appEngagementsStore.createFilter(payload);
+      show({ message: "Campaign saved successfully", color: "success" });
+      router.push({ name: "admin-app-engagements-campaigns-list" });
     }
   } catch (error) {
     console.log("create", error);
-    show({ message: "Failed to create Campaign. Try again", color: "error" });
+    show({ message: "Failed to save Campaign. Try again", color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -213,7 +224,7 @@ const create = async () => {
     <VWindow v-model="activeTab" class="mt-4">
       <!-- tab-template -->
       <VWindowItem>
-        <Template ref="templateRef" v-model="campaign.template" />
+        <Template ref="templateRef" v-model="campaign.action.template" />
       </VWindowItem>
 
       <!-- tab-audience -->
@@ -221,9 +232,9 @@ const create = async () => {
         <Audience ref="audienceRef" v-model="campaign.audience" />
       </VWindowItem>
 
-      <!-- tab-scheduling -->
+      <!-- tab-schedule -->
       <VWindowItem>
-        <Scheduling ref="schedulingRef" v-model="campaign.scheduling" />
+        <Schedule ref="scheduleRef" v-model="campaign.schedule" />
       </VWindowItem>
 
       <!-- tab-goals -->
