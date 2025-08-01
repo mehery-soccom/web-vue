@@ -12,7 +12,7 @@ import MyMultipleFilesUpload from '@/@common/components/vuexy/MyMultipleFilesUpl
 import MySelectExtended from '@/@common/components/vuexy/MySelectExtended.vue'
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 
-const { FONT_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATES_CONFIG } = usePushNotification();
+const { FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } = usePushNotification();
 
 // Props & emits
 const props = defineProps({
@@ -97,9 +97,8 @@ defineExpose({ validate });
         @update:modelValue="val => set(local, f.path, val)"
         :items="f.optionsPath || []"
         :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
-        item-title="label"
+        item-title="title"
         item-value="value"
-        return-object
       />
       <MyFileInputUpload
         v-if="f.type === 'file'"

@@ -14,23 +14,30 @@ export const usePushNotification = () => {
     { title: "14px", value: 14 },
     { title: "16px", value: 16 },
     { title: "18px", value: 18 },
+    { title: "24px", value: 24 },
   ];
   const WIDTH_SIZES = [
-    { label: "100 %", value: 100 },
-    { label: "95 %", value: 95 },
-    { label: "90 %", value: 90 },
-    { label: "85 %", value: 85 },
-    { label: "80 %", value: 80 },
-    { label: "75 %", value: 75 },
+    { title: "100 %", value: 100 },
+    { title: "95 %", value: 95 },
+    { title: "90 %", value: 90 },
+    { title: "85 %", value: 85 },
+    { title: "80 %", value: 80 },
+    { title: "75 %", value: 75 },
   ];
   const GRADIENT_DIRS = ["to right", "to bottom", "to top", "to left"];
+  const GRADIENT_DIRS_2 = [
+    { title: "to right", value: "to right" },
+    { title: "to bottom", value: "to bottom" },
+    { title: "to top", value: "to top" },
+    { title: "to left", value: "to left" },
+  ];
   const TEMPLATE_ALIGN = [
     { title: "left to right", value: "left" },
     { title: "right to left", value: "right" },
   ];
   const TEMPLATE_ALIGN_2 = [
-    { label: "left to right", value: "left" },
-    { label: "right to left", value: "right" },
+    { title: "left to right", value: "left" },
+    { title: "right to left", value: "right" },
   ];
   const TEMPLATES_CONFIG = {
     simple: {
@@ -328,6 +335,7 @@ export const usePushNotification = () => {
     FONT_SIZES,
     WIDTH_SIZES,
     GRADIENT_DIRS,
+    GRADIENT_DIRS_2,
     TEMPLATE_ALIGN,
     TEMPLATE_ALIGN_2,
     TEMPLATES_CONFIG,

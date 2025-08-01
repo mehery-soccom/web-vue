@@ -65,7 +65,7 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
-      path: "/admin/push-notification/templates/add",
+      path: "/admin/push-notification/templates/add/:id?",
       component: DefaultLayout,
       children: [
         {
@@ -91,7 +91,7 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
-      path: "/admin/app-engagements/templates/add",
+      path: "/admin/app-engagements/templates/add/:id?",
       component: DefaultLayout,
       children: [
         {

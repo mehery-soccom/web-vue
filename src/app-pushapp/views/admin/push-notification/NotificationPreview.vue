@@ -125,7 +125,7 @@ watch(
     </div>
 
     <!-- Clock and Date -->
-    <div :class="[template.view.platform + '-clock-block']">
+    <div :class="[template.view.platform + '-clock-block']" v-if="template.type !== 'pop-up'">
       <div class="date">{{ currentDate }}</div>
       <div class="clock">{{ currentTime }}</div>
     </div>
@@ -317,6 +317,7 @@ watch(
         </div>
       </div>
     </transition>
+    <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;z-index: 5;"> -->
     <transition name="fade-slide">
       <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;z-index: 5;"> -->
         <div v-if="showNotification && template.type === 'pop-up'"
@@ -326,7 +327,7 @@ watch(
             direction: template.style.align === 'right' ? 'rtl' : 'ltr',
           }"
         >
-          <div class="content">
+          <div class="pop-up-vertical-content">
             <div
               class="text-block"
               :style="{
@@ -352,6 +353,23 @@ watch(
                 }"
               >
                 {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+              </div>
+              <div class="media-preview" v-if="template.style.image_url || template.style.video_url">
+                <img
+                  v-if="template.style.image_url"
+                  :src="template.style.image_url"
+                  class="media-item"
+                  alt="preview"
+                />
+                <video
+                  v-else
+                  :src="template.style.video_url"
+                  class="media-item"
+                  autoplay
+                  muted
+                  playsinline
+                  loop
+                ></video>
               </div>
               <div
                 class="line2 ellipsis"
@@ -393,90 +411,23 @@ watch(
               >
                 {{ _bind(template.style.line_3) || "Your message comes here" }}
               </div>
+              <div class="cta-button-group" v-if="template.style?.btn?.length">
+                <button
+                  v-for="(btn, i) in template.style.btn"
+                  :key="i"
+                  class="cta-button"
+                >
+                  {{ btn.label }}
+                </button>
+              </div>
             </div>
           </div>
         </div>
       <!-- </div> -->
     </transition>
-    <!-- <transition name="fade-slide">
-      <div
-        v-if="showNotification && template.type === 'pop-up' && (template.subType === 'roadblock-image' || template.subType === 'roadblock-video')"
-        class="preview-wrapper pop-up-dimensions"
-        :style="{
-          background: backgroundStyle,
-          direction: template.style.align === 'right' ? 'rtl' : 'ltr',
-        }"
-      >
-        <div class="content pop-up-vertical-content">
-          <div
-            class="line1 ellipsis"
-            :style="{
-              color: template.style.line1_font_color,
-              fontSize: template.style.line1_font_size + 'px',
-              fontWeight: template.style.line1_text_styles?.includes('bold') ? 'bold' : 'normal',
-              fontStyle: template.style.line1_text_styles?.includes('italic') ? 'italic' : 'normal',
-              textDecoration: template.style.line1_text_styles?.includes('underline') ? 'underline' : 'none',
-            }"
-          >
-            {{ _bind(template.style.line_1) || 'Your title comes here' }}
-          </div>
-          <div>a {{ template.subType }}</div>
-          <div class="media-preview" v-if="template.style.image_url || template.style.video_url">
-            <img
-              v-if="template.style.image_url"
-              :src="template.style.image_url"
-              class="media-item"
-              alt="preview"
-            />
-            <video
-              v-else
-              :src="template.style.video_url"
-              class="media-item"
-              controls
-            ></video>
-          </div>
-
-          <div
-            class="line2 ellipsis"
-            :style="{
-              color: template.style.line2_font_color,
-              fontSize: template.style.line2_font_size + 'px',
-              fontWeight: template.style.line2_text_styles?.includes('bold') ? 'bold' : 'normal',
-              fontStyle: template.style.line2_text_styles?.includes('italic') ? 'italic' : 'normal',
-              textDecoration: template.style.line2_text_styles?.includes('underline') ? 'underline' : 'none',
-            }"
-          >
-            {{ _bind(template.style.line_2) || 'Your text comes here' }}
-          </div>
-
-          <div
-            class="line3 ellipsis"
-            :style="{
-              color: template.style.line3_font_color,
-              fontSize: template.style.line3_font_size + 'px',
-              fontWeight: template.style.line3_text_styles?.includes('bold') ? 'bold' : 'normal',
-              fontStyle: template.style.line3_text_styles?.includes('italic') ? 'italic' : 'normal',
-              textDecoration: template.style.line3_text_styles?.includes('underline') ? 'underline' : 'none',
-            }"
-          >
-            {{ _bind(template.style.line_3) || 'Your message comes here' }}
-          </div>
-
-          <div class="cta-button-group" v-if="template.buttonGroupFields?.length">
-            <button
-              v-for="btn in template.buttonGroupFields"
-              :key="btn.text"
-              class="cta-button"
-            >
-              {{ btn.text }}
-            </button>
-          </div>
-        </div>
-      </div> 
-    </transition> -->
 
     <!-- Bottom Icons -->
-    <div v-if="template.view.platform === 'ios'" class="bottom-icons">
+    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up'" class="bottom-icons">
       <span class="fingerprint">🔓</span>
       <span class="camera">📷</span>
     </div>
@@ -779,63 +730,88 @@ watch(
 }
 
 .pop-up-dimensions {
-  width: 100% !important;
-  height: calc(100% - 32px) !important;
-  margin-top: 16px;
-  bottom: 0 !important;
-  // padding: 0 !important;
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 9 / 16;
+  background-color: rgba(30, 30, 30, 0.94);
+  border-radius: 20px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 0;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
-// .pop-up-dimensions {
-//   width: v-bind('template.style.width?.value + "%"') !important;
-//   height: v-bind('template.style.height?.value + "%"') !important;
-// }
 .pop-up-vertical-content {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 16px;
   gap: 10px;
-  width: 100%;
+  flex: 1;
   text-align: center;
-  padding: 12px;
+  overflow-y: auto;
 }
 
 .media-preview {
   width: 100%;
+  aspect-ratio: 3 / 2;
   display: flex;
   justify-content: center;
-}
-
-.media-item {
-  width: 100%;
-  max-height: 150px;
+  align-items: center;
+  overflow: hidden;
   border-radius: 8px;
-  object-fit: cover;
+  background-color: #000;
 }
 
+.media-preview .media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+// .cta-button-group {
+//   display: flex;
+//   gap: 10px;
+//   justify-content: center;
+//   flex-wrap: wrap;
+//   width: 100%;
+// }
+
+// .cta-button {
+//   padding: 6px 12px;
+//   font-size: 13px;
+//   border: none;
+//   border-radius: 6px;
+//   background-color: rgba(255, 255, 255, 0.1);
+//   color: white;
+//   cursor: pointer;
+//   flex: 1;
+//   max-width: 48%;
+// }
 .cta-button-group {
   display: flex;
+  flex-direction: column;
   gap: 10px;
-  justify-content: center;
-  flex-wrap: wrap;
   width: 100%;
+  margin-top: auto;
 }
 
 .cta-button {
-  padding: 6px 12px;
-  font-size: 13px;
+  width: 100%;
+  padding: 10px;
+  font-size: 14px;
   border: none;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
   cursor: pointer;
-  flex: 1;
-  max-width: 48%;
 }
 </style>

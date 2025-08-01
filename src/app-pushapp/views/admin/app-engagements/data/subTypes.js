@@ -8,21 +8,27 @@ export const FONT_SIZES = [
   { title: "18px", value: 18 },
 ];
 export const WIDTH_SIZES = [
-  { label: "100 %", value: 100 },
-  { label: "95 %", value: 95 },
-  { label: "90 %", value: 90 },
-  { label: "85 %", value: 85 },
-  { label: "80 %", value: 80 },
-  { label: "75 %", value: 75 },
+  { title: "100 %", value: 100 },
+  { title: "95 %", value: 95 },
+  { title: "90 %", value: 90 },
+  { title: "85 %", value: 85 },
+  { title: "80 %", value: 80 },
+  { title: "75 %", value: 75 },
 ];
 export const GRADIENT_DIRS = ["to right", "to bottom", "to top", "to left"];
+export const GRADIENT_DIRS_2 = [
+  { title: "to right", value: "to right" },
+  { title: "to bottom", value: "to bottom" },
+  { title: "to top", value: "to top" },
+  { title: "to left", value: "to left" },
+];
 export const TEMPLATE_ALIGN = [
   { title: "left to right", value: "left" },
   { title: "right to left", value: "right" },
 ];
 export const TEMPLATE_ALIGN_2 = [
-  { label: "left to right", value: "left" },
-  { label: "right to left", value: "right" },
+  { title: "left to right", value: "left" },
+  { title: "right to left", value: "right" },
 ];
 export const TEMPLATES_CONFIG = {
   simple: {
@@ -471,7 +477,7 @@ export const SUB_TYPES = [
   //         path: "style.bg_color_gradient_dir",
   //         type: "select",
   //         label: "Color gradient direction",
-  //         optionsPath: GRADIENT_DIRS,
+  //         optionsPath: GRADIENT_DIRS_2,
   //         placeholder: "",
   //         cols: 3,
   //         required: false,
@@ -571,7 +577,7 @@ export const SUB_TYPES = [
           path: "style.bg_color_gradient_dir",
           type: "select",
           label: "Color gradient direction",
-          optionsPath: GRADIENT_DIRS,
+          optionsPath: GRADIENT_DIRS_2,
           placeholder: "",
           cols: 4,
           required: false,
@@ -701,7 +707,7 @@ export const SUB_TYPES = [
           path: "style.bg_color_gradient_dir",
           type: "select",
           label: "Color gradient direction",
-          optionsPath: GRADIENT_DIRS,
+          optionsPath: GRADIENT_DIRS_2,
           placeholder: "",
           cols: 4,
           required: false,
@@ -835,7 +841,7 @@ export const SUB_TYPES = [
           path: "style.bg_color_gradient_dir",
           type: "select",
           label: "Color gradient direction",
-          optionsPath: GRADIENT_DIRS,
+          optionsPath: GRADIENT_DIRS_2,
           placeholder: "",
           cols: 4,
           required: false,
@@ -969,7 +975,7 @@ export const SUB_TYPES = [
           path: "style.bg_color_gradient_dir",
           type: "select",
           label: "Color gradient direction",
-          optionsPath: GRADIENT_DIRS,
+          optionsPath: GRADIENT_DIRS_2,
           placeholder: "",
           cols: 4,
           required: false,
@@ -1107,7 +1113,7 @@ export const SUB_TYPES = [
           path: "style.bg_color_gradient_dir",
           type: "select",
           label: "Color gradient direction",
-          optionsPath: GRADIENT_DIRS,
+          optionsPath: GRADIENT_DIRS_2,
           placeholder: "",
           cols: 4,
           required: false,

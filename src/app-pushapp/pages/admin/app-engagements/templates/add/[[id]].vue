@@ -94,6 +94,7 @@ const formFields = computed(() => {
 });
 const formRef = ref();
 const formRefVersion = ref(1);
+const isInitialLoad = ref(true);
 
 function onFormUpdate(updated) {
   Object.assign(template, updated);
@@ -107,7 +108,8 @@ const submit = async () => {
     return;
   }
 
-  await onCreate();
+  if(PARAM_ID) await onUpdate();
+  else await onCreate();
   console.log(
     "valid form",
     formRef.value,
@@ -119,6 +121,21 @@ const createPayload = () => {
   return {
     ...template,
   };
+};
+const onUpdate = async () => {
+  try {
+    isLoading.value = true;
+    let payload = createPayload();
+    template.style.code = template.subType || template.type;
+    await AppEngagementsStore.updateTemplate(template._id, payload);
+    show({ message: "Template updated successfully", color: "success" });
+    router.push({ name: "admin-app-engagements-templates-list" });
+  } catch (error) {
+    console.error(error);
+    show({ message: "Something went wrong. try again", color: "error" });
+  } finally {
+    isLoading.value = false;
+  }
 };
 const onCreate = async () => {
   try {
@@ -164,13 +181,50 @@ const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
 
-onMounted(async () => {});
+onMounted(async () => {
+  console.log("first", PARAM_ID, QUERY_COPY)
+  if (PARAM_ID) {
+    AppEngagementsStore
+      .fetchTemplate({ id: PARAM_ID })
+      .then(async (response) => {
+        const _template = response.data.data;
+        Object.assign(template, {
+          ...template,
+          ..._template,
+        });
+        await nextTick();
+        isInitialLoad.value = false;
+      })
+      .catch((error) => {
+        console.log(error);
+        show({ message: "Something went wrong 1", color: "error" });
+      });
+  } else {
+    if (QUERY_COPY) {
+      AppEngagementsStore
+        .fetchTemplate({ id: QUERY_COPY })
+        .then(async (response) => {
+          const _template = response.data.data;
+          Object.assign(template, {
+            ...template,
+            ..._template,
+          });
+          await nextTick();
+          isInitialLoad.value = false;
+        })
+        .catch((error) => {
+          console.log(error);
+          show({ message: "Something went wrong 2", color: "error" });
+        });
+    }else isInitialLoad.value = false;
+  }
+});
 
 watch(
   () => template.type,
   (val) => {
     formRefVersion.value += 1;
-    template.subType = null;
+    if(!isInitialLoad.value) template.subType = null;
   }
 );
 
@@ -315,7 +369,7 @@ defineExpose({ isValid, _onCreate });
     <!-- Preview Column -->
     <VCol v-if="!isPreStep" cols="12" md="4">
       <!-- <VCol cols="12" md="4"> -->
-      <VRow>
+      <VRow v-if="template.type !== 'pop-up'">
         <v-col cols="5" class="px-0">
           <v-btn-toggle v-model="view.platform" mandatory density="compact">
             <v-btn color="primary" value="ios">iOS</v-btn>
@@ -329,7 +383,7 @@ defineExpose({ isValid, _onCreate });
           </v-btn-toggle>
         </v-col>
       </VRow>
-      <VRow style="height: calc(100% - 36px); max-height: 550px">
+      <VRow style="height: calc(100% - 36px);max-height: 550px;">
         <v-col cols="12" class="d-flex justify-center pt-0">
           <NotificationPreview :template="templatePreview" />
         </v-col>

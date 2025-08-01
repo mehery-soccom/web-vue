@@ -287,6 +287,27 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
     createTemplate(params) {
       return DataService.axios.post("/api/templates/in-app", params);
     },
+    async fetchTemplates() {
+      let apiRes = await DataService.axios.get("/api/templates/in-app");
+      this.templates = apiRes.data.results;
+      let res = {
+        results: apiRes.data.results,
+        data: {
+          total: apiRes.data.pagination?.total,
+          page: apiRes.data.pagination?.pageNo || 1,
+        },
+      };
+      return res;
+    },
+    fetchTemplate({ id }) {
+      return DataService.axios.get(`/api/templates/in-app/${id}`);
+    },
+    updateTemplate(id, params) {
+      return DataService.axios.put(`/api/templates/in-app/${id}`, params);
+    },
+    deleteTemplate({ id }) {
+      return DataService.axios.delete(`/api/templates/in-app/${id}`);
+    },
     createFilter(params) {
       return DataService.axios.post(
         "/api/v1/notification/in-app/filter",
