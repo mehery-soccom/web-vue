@@ -203,7 +203,7 @@ defineExpose({ isValid });
       </div>
 
       <!-- Delete -->
-      <VTooltip location="top">
+      <VTooltip location="top" v-if="index > 0">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"

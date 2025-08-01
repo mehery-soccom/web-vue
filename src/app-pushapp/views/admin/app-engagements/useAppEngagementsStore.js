@@ -294,10 +294,13 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
       );
     },
     fetchFilters(params) {
-      return DataService.axios.get(
-        "/api/v1/notification/in-app/filter",
-        params
-      );
+      let { page, itemsPerPage, sortBy, filters } = params;
+      let sort = sortBy
+        .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
+        .join(",");
+      return DataService.axios.get("/api/v1/notification/in-app/filter", {
+        params: { page, limit: itemsPerPage, sort, search: filters },
+      });
     },
     fetchFilter({ id, ...params }) {
       return DataService.axios.get(

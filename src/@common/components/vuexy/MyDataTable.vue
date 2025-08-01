@@ -141,12 +141,25 @@ const currentComponent = computed(() => {
     <template v-slot:thead>
       <tr>
         <td v-for="header in props.headers" :key="header.key" class="px-2">
-          <v-text-field
-            v-if="props.filters.hasOwnProperty(header.key)"
+          <VSelect
+            v-if="
+              props.filters.hasOwnProperty(header.key) &&
+              header.filterType === 'select'
+            "
+            :items="header.filterOptions"
             v-model="props.filters[header.key]"
             density="compact"
             variant="underlined"
             @update:modelValue="handleFiltersUpdate"
+            clearable
+          ></VSelect>
+          <v-text-field
+            v-else-if="props.filters.hasOwnProperty(header.key)"
+            v-model="props.filters[header.key]"
+            density="compact"
+            variant="underlined"
+            @update:modelValue="handleFiltersUpdate"
+            clearable
           />
         </td>
       </tr>
