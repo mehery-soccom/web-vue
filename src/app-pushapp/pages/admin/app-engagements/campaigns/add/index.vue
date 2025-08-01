@@ -166,6 +166,8 @@ const create = async () => {
       const templateRes = await templateRef.value._onCreate();
       payload.action.template.id = templateRes.data._id;
       payload.action.template.code = templateRes.data.code;
+      payload.action.template.type = templateRes.data.type;
+      payload.action.template.subType = templateRes.data.subType;
       await appEngagementsStore.createFilter(payload);
       show({ message: "Campaign saved successfully", color: "success" });
       router.push({ name: "admin-app-engagements-campaigns-list" });
