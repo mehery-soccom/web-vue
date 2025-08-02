@@ -14,7 +14,9 @@ export const usePushNotification = () => {
     { title: "14px", value: 14 },
     { title: "16px", value: 16 },
     { title: "18px", value: 18 },
+    { title: "20px", value: 20 },
     { title: "24px", value: 24 },
+    { title: "28px", value: 28 },
   ];
   const WIDTH_SIZES = [
     { title: "100 %", value: 100 },

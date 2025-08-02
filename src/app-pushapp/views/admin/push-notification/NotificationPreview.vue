@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 
 const props = defineProps({
@@ -59,7 +60,27 @@ const loadNotification = () => {
   showNotification.value = false;
   setTimeout(() => (showNotification.value = true), 100);
 };
+const currentSlide = ref(0)
 
+const imageUrls = computed(() => props.template.style.image_urls || [])
+const videoUrls = computed(() => props.template.style.video_urls || [])
+
+const activeMedia = computed(() => {
+  if (imageUrls.value.length) {
+    return { type: 'image', items: imageUrls.value }
+  } else if (videoUrls.value.length) {
+    return { type: 'video', items: videoUrls.value }
+  }
+  return { type: null, items: [] }
+})
+watch(
+  () => activeMedia.value.items.length,
+  (newLength) => {
+    if (currentSlide.value >= newLength) {
+      currentSlide.value = 0;
+    }
+  }
+);
 function getValueByPath(obj, path) {
   // console.log("obj", obj, path)
   return path
@@ -81,6 +102,7 @@ function _bind(template) {
     }
   );
 }
+const popupPreviewRef = ref(null)
 
 watch(
   props.template.view,
@@ -99,7 +121,7 @@ watch(
 
     <!-- Notch and Top Bar -->
     <div v-if="template.view.platform === 'ios'" class="notch"></div>
-    <div v-if="template.view.platform === 'ios'" class="ios-status-bar">
+    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up'" class="ios-status-bar">
       <span class="carrier">Jio</span>
       <div class="status-icons">
         <span class="icon">📶</span>
@@ -317,10 +339,8 @@ watch(
         </div>
       </div>
     </transition>
-    <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;z-index: 5;"> -->
     <transition name="fade-slide">
-      <!-- <div v-if="showNotification && template.type === 'pop-up'" style="background-color: white;width: 100%;height: 100%;z-index: 5;"> -->
-        <div v-if="showNotification && template.type === 'pop-up'"
+        <div v-if="showNotification && template.type === 'pop-up'" ref="popupPreviewRef"
           class="preview-wrapper pop-up-dimensions"
           :style="{
             background: backgroundStyle,
@@ -328,14 +348,9 @@ watch(
           }"
         >
           <div class="pop-up-vertical-content">
-            <div
-              class="text-block"
-              :style="{
-                textAlign: template.style.align === 'right' ? 'right' : 'left',
-              }"
-            >
+            <div class="text-block-road">
               <div
-                class="line1 ellipsis"
+                class="line1 ellipsis road"
                 :style="{
                   color: template.style.line1_font_color,
                   fontSize: template.style.line1_font_size + 'px',
@@ -371,8 +386,40 @@ watch(
                   loop
                 ></video>
               </div>
+              <div class="media-preview" v-if="activeMedia.items.length && (template.style.image_urls?.length || template.style.video_urls?.length)">
+                <div class="carousel-wrapper">
+                  <transition-group name="fade" tag="div" class="media-carousel" v-if="activeMedia.items[currentSlide]">
+                    <img
+                      v-if="activeMedia.type === 'image' && activeMedia.items[currentSlide]"
+                      :key="activeMedia.items[currentSlide].value"
+                      :src="activeMedia.items[currentSlide].value"
+                      class="media-item"
+                      alt="carousel-image"
+                    />
+                    <video
+                      v-else-if="activeMedia.type === 'video' && activeMedia.items[currentSlide]"
+                      :key="activeMedia.items[currentSlide].value + 'i'"
+                      :src="activeMedia.items[currentSlide].value"
+                      class="media-item"
+                      autoplay
+                      muted
+                      loop
+                      playsinline
+                    />
+                  </transition-group>
+                </div>
+              </div>
+              <div class="carousel-dots" v-if="activeMedia.items.length && (template.style.image_urls?.length || template.style.video_urls?.length)">
+                  <span
+                    v-for="(item, index) in activeMedia.items"
+                    :key="index"
+                    class="dot"
+                    :class="{ active: index === currentSlide }"
+                    @click="currentSlide = index"
+                  ></span>
+                </div>
               <div
-                class="line2 ellipsis"
+                class="line2 ellipsis road"
                 :style="{
                   color: template.style.line2_font_color,
                   fontSize: template.style.line2_font_size + 'px',
@@ -392,7 +439,7 @@ watch(
                 {{ _bind(template.style.line_2) || "Your text comes here" }}
               </div>
               <div
-                class="line3 ellipsis"
+                class="line3 ellipsis road"
                 :style="{
                   color: template.style.line3_font_color,
                   fontSize: template.style.line3_font_size + 'px',
@@ -416,6 +463,10 @@ watch(
                   v-for="(btn, i) in template.style.btn"
                   :key="i"
                   class="cta-button"
+                  :style="{
+                    backgroundColor: template.style.btn_bg_color || 'rgba(255,255,255,0.1)',
+                    color: template.style.btn_font_color || 'white',
+                  }"
                 >
                   {{ btn.label }}
                 </button>
@@ -431,6 +482,7 @@ watch(
       <span class="fingerprint">🔓</span>
       <span class="camera">📷</span>
     </div>
+    <!-- <button @click="handleExtractHtml" :disabled="!showNotification" style="z-index: 6;">Get HTML</button> -->
   </div>
 </template>
 
@@ -481,7 +533,7 @@ watch(
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  z-index: 2;
+  z-index: 6;
 }
 
 .android-notch {
@@ -737,7 +789,7 @@ watch(
   width: 100%;
   max-width: 380px;
   aspect-ratio: 9 / 16;
-  background-color: rgba(30, 30, 30, 0.94);
+  background-color: rgb(255, 255, 255);
   border-radius: 20px;
   position: relative;
   overflow: hidden;
@@ -751,17 +803,35 @@ watch(
 .pop-up-vertical-content {
   display: flex;
   flex-direction: column;
+  justify-content: center;
   align-items: center;
   padding: 16px;
+  width: 100%;
+  height: 100%;
   gap: 10px;
   flex: 1;
   text-align: center;
   overflow-y: auto;
 }
-
+.text-block-road {
+  width: v-bind('template.style?.width + "%"') !important;
+  height: v-bind('template.style?.height + "%"') !important;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 14px;
+}
+.road.line1, .road.line2, .road.line3 {
+  margin: 6px 0;
+  color: black;
+}
+.road.line1{
+  margin: 30px 0 10px 0;
+  color: black;
+}
 .media-preview {
   width: 100%;
-  aspect-ratio: 3 / 2;
+  aspect-ratio: 3 / 4;
   display: flex;
   justify-content: center;
   align-items: center;
@@ -777,28 +847,9 @@ watch(
   border-radius: 8px;
 }
 
-// .cta-button-group {
-//   display: flex;
-//   gap: 10px;
-//   justify-content: center;
-//   flex-wrap: wrap;
-//   width: 100%;
-// }
-
-// .cta-button {
-//   padding: 6px 12px;
-//   font-size: 13px;
-//   border: none;
-//   border-radius: 6px;
-//   background-color: rgba(255, 255, 255, 0.1);
-//   color: white;
-//   cursor: pointer;
-//   flex: 1;
-//   max-width: 48%;
-// }
 .cta-button-group {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   gap: 10px;
   width: 100%;
   margin-top: auto;
@@ -813,5 +864,42 @@ watch(
   background-color: rgba(255, 255, 255, 0.1);
   color: white;
   cursor: pointer;
+}
+.carousel-wrapper {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.media-carousel {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+}
+.carousel-dots {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: #888;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.dot.active {
+  background-color: rgb(59, 58, 58);
+  opacity: 1;
 }
 </style>

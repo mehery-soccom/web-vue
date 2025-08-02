@@ -383,7 +383,7 @@ defineExpose({ isValid, _onCreate });
           </v-btn-toggle>
         </v-col>
       </VRow>
-      <VRow style="height: calc(100% - 36px);max-height: 550px;">
+      <VRow style="height: 100%;max-height: 550px;">
         <v-col cols="12" class="d-flex justify-center pt-0">
           <NotificationPreview :template="templatePreview" />
         </v-col>
