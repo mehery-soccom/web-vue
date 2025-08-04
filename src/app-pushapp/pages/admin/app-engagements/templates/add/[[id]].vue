@@ -3,6 +3,8 @@ import { toRef } from "vue";
 import DynamicForm from "@/app-pushapp/views/admin/app-engagements/form/dynamicForm.vue";
 import DynamicFieldEditor from "@/app-pushapp/components/DynamicFieldEditor.vue";
 import NotificationPreview from "@/app-pushapp/views/admin/push-notification/NotificationPreview.vue";
+import TemplatePresetSelector from "@/app-pushapp/views/admin/app-engagements/TemplatePresetSelector.vue";
+import PopupStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopupStyle";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 
@@ -21,7 +23,7 @@ const QUERY_EDIT = route.query.t_edit;
 const router = useRouter();
 
 const isLoading = ref(false);
-const isPreStep = ref(false);
+const isPreStep = ref(true);
 const activeTemplateTab = ref("tab-details");
 const template = reactive({
   type: null,
@@ -122,10 +124,27 @@ const createPayload = () => {
     ...template,
   };
 };
+const notificationPreviewRef = ref(null);
+async function saveTemplateHtml() {
+  await nextTick()
+  if (template.type === 'pop-up' && notificationPreviewRef.value?.popupPreviewRef?.$el) {
+    const el = notificationPreviewRef.value.popupPreviewRef.$el;
+    const html = el.outerHTML;
+    template.style.html = `
+      <html>
+        <head>
+          <style>${PopupStyle}</style>
+        </head>
+        <body>${html}</body>
+      </html>`
+  }
+}
+
 const onUpdate = async () => {
   try {
     isLoading.value = true;
     let payload = createPayload();
+    await saveTemplateHtml();
     template.style.code = template.subType || template.type;
     await AppEngagementsStore.updateTemplate(template._id, payload);
     show({ message: "Template updated successfully", color: "success" });
@@ -141,6 +160,7 @@ const onCreate = async () => {
   try {
     isLoading.value = true;
     let payload = createPayload();
+    await saveTemplateHtml();
     template.style.code = template.subType || template.type;
     await AppEngagementsStore.createTemplate(payload);
     show({ message: "Template created successfully", color: "success" });
@@ -157,6 +177,7 @@ const _onCreate = async () => {
   try {
     isLoading.value = true;
     let payload = createPayload();
+    await saveTemplateHtml();
     let res = await AppEngagementsStore.createTemplate(payload);
     return res.data;
   } catch (error) {
@@ -194,6 +215,7 @@ onMounted(async () => {
         });
         await nextTick();
         isInitialLoad.value = false;
+        isPreStep.value = false;
       })
       .catch((error) => {
         console.log(error);
@@ -211,6 +233,7 @@ onMounted(async () => {
           });
           await nextTick();
           isInitialLoad.value = false;
+          isPreStep.value = false;
         })
         .catch((error) => {
           console.log(error);
@@ -219,6 +242,19 @@ onMounted(async () => {
     }else isInitialLoad.value = false;
   }
 });
+
+function onPresetSelect({ type, subType }) {
+  template.type = type;
+  template.subType = subType;
+  isPreStep.value = false;
+}
+async function handlePreviewTemplate(templateFromPreview) {
+  isInitialLoad.value = true;
+  Object.assign(template, structuredClone(templateFromPreview));
+  isPreStep.value = false;
+  await nextTick();
+  isInitialLoad.value = false;
+}
 
 watch(
   () => template.type,
@@ -251,7 +287,7 @@ defineExpose({ isValid, _onCreate });
   <v-row>
     <!-- Pre step -->
     <v-col v-if="isPreStep" cols="12" md="12">
-      <VCard>Pre step</VCard>
+      <TemplatePresetSelector @select="onPresetSelect" @selectTemplate="handlePreviewTemplate" />
     </v-col>
 
     <!-- Form Column -->
@@ -385,7 +421,7 @@ defineExpose({ isValid, _onCreate });
       </VRow>
       <VRow style="height: 100%;max-height: 550px;">
         <v-col cols="12" class="d-flex justify-center pt-0">
-          <NotificationPreview :template="templatePreview" />
+          <NotificationPreview :template="templatePreview" ref="notificationPreviewRef" />
         </v-col>
       </VRow>
     </VCol>
