@@ -1,6 +1,16 @@
 import axios from "axios";
 import { defineStore } from "pinia";
 
+axios.interceptors.response.use(
+  response => response,
+  error => {
+    if (error.response?.status === 401) {
+      window.location.href = `${window.location.origin}/nexus/insights360/auth/logout`;
+    }
+    return Promise.reject(error);
+  }
+);
+
 export const useProjectStore = defineStore("ProjectStore", {
   actions: {
     // 👉 Fetch all project
