@@ -2,6 +2,7 @@
 import { computed } from "vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import PopUpPreview from "./previews/PopUpPreview.vue";
+import PopOverPreview from "./previews/PopOverPreview.vue";
 
 const props = defineProps({
   template: {
@@ -95,7 +96,7 @@ defineExpose({ popupPreviewRef });
 
     <!-- Notch and Top Bar -->
     <div v-if="template.view.platform === 'ios'" class="notch-app"></div>
-    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up'" class="ios-status-bar">
+    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up' && template.type !== 'pop-over'" class="ios-status-bar">
       <span class="carrier">Jio</span>
       <div class="status-icons">
         <span class="icon">📶</span>
@@ -121,7 +122,7 @@ defineExpose({ popupPreviewRef });
     </div>
 
     <!-- Clock and Date -->
-    <div :class="[template.view.platform + '-clock-block']" v-if="template.type !== 'pop-up'">
+    <div :class="[template.view.platform + '-clock-block']" v-if="template.type !== 'pop-up' && template.type !== 'pop-over'">
       <div class="date">{{ currentDate }}</div>
       <div class="clock">{{ currentTime }}</div>
     </div>
@@ -132,9 +133,16 @@ defineExpose({ popupPreviewRef });
         ref="popupPreviewRef"
       />
     </transition>
+    <transition name="fade-slide">
+      <PopOverPreview
+        v-if="template.type === 'pop-over'"
+        :template="template"
+        ref="popoverPreviewRef"
+      />
+    </transition>
 
     <!-- Bottom Icons -->
-    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up'" class="bottom-icons">
+    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up' && template.type !== 'pop-over'" class="bottom-icons">
       <span class="fingerprint">🔓</span>
       <span class="camera">📷</span>
     </div>

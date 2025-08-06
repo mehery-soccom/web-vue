@@ -100,18 +100,74 @@ onBeforeUnmount(() => {
             justifyContent: props.template.style?.vertical_align || 'flex-start',
             flex: 1 }"
           >
-            <div class="line1 ellipsis road" :style="{ color: props.template.style.line1_font_color }">
+            <div class="line1 ellipsis road" :style="{
+                color: template.style.line1_font_color,
+                fontSize: template.style.line1_font_size + 'px',
+                fontWeight: template.style.line1_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line1_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line1_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
+              }">
             {{ _bind(props.template.style.line_1) || "Your title comes here" }}
             </div>
-            <div class="line2 ellipsis road">
+            <div class="line2 ellipsis road" :style="{
+                color: template.style.line2_font_color,
+                fontSize: template.style.line2_font_size + 'px',
+                fontWeight: template.style.line2_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line2_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line2_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
+              }">
             {{ _bind(props.template.style.line_2) || "Your text comes here" }}
             </div>
-            <div class="line3 ellipsis road">
+            <div class="line3 ellipsis road" :style="{
+                color: template.style.line3_font_color,
+                fontSize: template.style.line3_font_size + 'px',
+                fontWeight: template.style.line3_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line3_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line3_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
+              }">
             {{ _bind(props.template.style.line_3) || "Your message comes here" }}
             </div>
           </div>
 
-          <div v-else class="line1 ellipsis road" :style="{ color: props.template.style.line1_font_color }">
+          <div v-else class="line1 ellipsis road" :style="{
+                color: template.style.line1_font_color,
+                fontSize: template.style.line1_font_size + 'px',
+                fontWeight: template.style.line1_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line1_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line1_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
+              }">
             {{ _bind(props.template.style.line_1) || "Your title comes here" }}
           </div>
 
@@ -161,8 +217,36 @@ onBeforeUnmount(() => {
 
           <!-- More Text -->
           <template v-if="hasMedia">
-            <div class="line2 ellipsis road">{{ _bind(props.template.style.line_2) || "Your text comes here" }}</div>
-            <div class="line3 ellipsis road">{{ _bind(props.template.style.line_3) || "Your message comes here" }}</div>
+            <div class="line2 ellipsis road" :style="{
+                color: template.style.line2_font_color,
+                fontSize: template.style.line2_font_size + 'px',
+                fontWeight: template.style.line2_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line2_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line2_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
+              }">{{ _bind(props.template.style.line_2) || "Your text comes here" }}</div>
+            <div class="line3 ellipsis road" :style="{
+                color: template.style.line3_font_color,
+                fontSize: template.style.line3_font_size + 'px',
+                fontWeight: template.style.line3_text_styles?.includes('bold')
+                  ? 'bold'
+                  : 'normal',
+                fontStyle: template.style.line3_text_styles?.includes('italic')
+                  ? 'italic'
+                  : 'normal',
+                textDecoration: template.style.line3_text_styles?.includes(
+                  'underline'
+                )
+                  ? 'underline'
+                  : 'none',
+              }">{{ _bind(props.template.style.line_3) || "Your message comes here" }}</div>
           </template>
 
           <!-- CTA Buttons -->
