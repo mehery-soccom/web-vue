@@ -52,18 +52,21 @@ const handlePreviewClick = (template) => {
 
     <!-- Previews -->
     <v-col cols="9">
-      <v-row>
+      <v-row class="justify-space-evenly">
         <v-col
           v-for="(template, index) in previews"
           :key="index"
           cols="12"
           sm="6"
           md="4"
-          class="d-flex justify-center mb-4"
+          class="d-flex align-center flex-column mb-4"
           style="max-width: 250px"
           @click="handlePreviewClick(template)"
         >
-          <NotificationPreviewApp :template="template" />
+          <div class="d-flex flex-column align-center w-100">
+            <div class="mb-2 text-center">{{ template.title }}</div>
+            <NotificationPreviewApp :template="template" style="max-width: 250px"/>
+          </div>
         </v-col>
       </v-row>
     </v-col>

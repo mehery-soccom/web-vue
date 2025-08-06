@@ -684,10 +684,11 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Roadblock",
           view: {
-            platform: "ios",       // or "android"
-            mode: "collapse",      // or "expand"
-            appearance: "light",   // or "dark"
+            platform: "ios",
+            mode: "collapse",
+            appearance: "light",
           },
           type: "pop-up",
           subType: "roadblock",
@@ -901,10 +902,11 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Roadblock with Image",
           view: {
-            platform: "ios",       // or "android"
-            mode: "collapse",      // or "expand"
-            appearance: "light",   // or "dark"
+            platform: "ios",
+            mode: "collapse",
+            appearance: "light",
           },
           type: "pop-up",
           subType: "roadblock-image",
@@ -1119,10 +1121,11 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Roadblock with Video",
           view: {
-            platform: "ios",       // or "android"
-            mode: "collapse",      // or "expand"
-            appearance: "light",   // or "dark"
+            platform: "ios",
+            mode: "collapse",
+            appearance: "light",
           },
           type: "pop-up",
           subType: "roadblock-video",
@@ -1341,10 +1344,11 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Roadblock with Image Carousel",
           view: {
-            platform: "ios",       // or "android"
-            mode: "collapse",      // or "expand"
-            appearance: "light",   // or "dark"
+            platform: "ios",
+            mode: "collapse",
+            appearance: "light",
           },
           type: "pop-up",
           subType: "roadblock-video",
@@ -1567,10 +1571,11 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Roadblock with Video Carousel",
           view: {
-            platform: "ios",       // or "android"
-            mode: "collapse",      // or "expand"
-            appearance: "light",   // or "dark"
+            platform: "ios",
+            mode: "collapse",
+            appearance: "light",
           },
           type: "pop-up",
           subType: "roadblock-video",

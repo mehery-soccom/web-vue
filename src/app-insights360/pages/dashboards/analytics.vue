@@ -5,6 +5,7 @@ import { useProjectStore } from "@app-insights360/views/dashboards/analytics/use
 import { ref } from "vue";
 import { useTheme } from "vuetify";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
+import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
 
 const { customPlugin } = useDatePickerFilters();
 const vuetifyTheme = useTheme();
