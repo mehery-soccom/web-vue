@@ -1711,6 +1711,7 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Banner",
           view: {
             platform: "ios",
             mode: "collapse",
@@ -1844,6 +1845,7 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Banner with Image",
           view: {
             platform: "ios",
             mode: "collapse",
@@ -2002,6 +2004,7 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Banner with Buttons",
           view: {
             platform: "ios",
             mode: "collapse",
@@ -2182,6 +2185,7 @@ export const SUB_TYPES = [
     },
     preview: {
       dummy: {
+          title: "Banner with Image & Button",
           view: {
             platform: "ios",
             mode: "collapse",
