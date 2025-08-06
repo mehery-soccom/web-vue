@@ -1,7 +1,6 @@
 <script setup>
 import { computed } from "vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
-import PopUpPreview from "./previews/PopUpPreview.vue";
 
 const props = defineProps({
   template: {
@@ -61,29 +60,8 @@ const loadNotification = () => {
   showNotification.value = false;
   setTimeout(() => (showNotification.value = true), 100);
 };
-const currentSlide = ref(0)
 
-const imageUrls = computed(() => props.template.style.image_urls || [])
-const videoUrls = computed(() => props.template.style.video_urls || [])
-
-const activeMedia = computed(() => {
-  if (imageUrls.value.length) {
-    return { type: 'image', items: imageUrls.value }
-  } else if (videoUrls.value.length) {
-    return { type: 'video', items: videoUrls.value }
-  }
-  return { type: null, items: [] }
-})
-watch(
-  () => activeMedia.value.items.length,
-  (newLength) => {
-    if (currentSlide.value >= newLength) {
-      currentSlide.value = 0;
-    }
-  }
-);
 function getValueByPath(obj, path) {
-  // console.log("obj", obj, path)
   return path
     .split(".")
     .reduce(
@@ -103,27 +81,24 @@ function _bind(template) {
     }
   );
 }
-const popupPreviewRef = ref(null)
 
-// watch(
-//   props.template.view,
-//   () => {
-//     loadNotification();
-//   },
-//   { deep: true }
-// );
-defineExpose({ popupPreviewRef });
+watch(
+  props.template.view,
+  () => {
+    loadNotification();
+  },
+  { deep: true }
+);
 </script>
 
 <template>
   <div :class="['phone-frame', template.view.platform]">
     <!-- Background -->
     <div :class="[template.view.platform + '-wallpaper']"></div>
-    <div v-if="template.view.platform === 'ios' && template.type === 'pop-up'" class="ios-white-background"></div>
 
     <!-- Notch and Top Bar -->
     <div v-if="template.view.platform === 'ios'" class="notch"></div>
-    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up'" class="ios-status-bar">
+    <div v-if="template.view.platform === 'ios'" class="ios-status-bar">
       <span class="carrier">Jio</span>
       <div class="status-icons">
         <span class="icon">📶</span>
@@ -149,7 +124,7 @@ defineExpose({ popupPreviewRef });
     </div>
 
     <!-- Clock and Date -->
-    <div :class="[template.view.platform + '-clock-block']" v-if="template.type !== 'pop-up'">
+    <div :class="[template.view.platform + '-clock-block']">
       <div class="date">{{ currentDate }}</div>
       <div class="clock">{{ currentTime }}</div>
     </div>
@@ -341,154 +316,12 @@ defineExpose({ popupPreviewRef });
         </div>
       </div>
     </transition>
-    <transition name="fade-slide">
-      <PopUpPreview
-        v-if="template.type === 'pop-up'"
-        :template="template"
-        ref="popupPreviewRef"
-      />
-        <!-- <div v-if="showNotification && template.type === 'pop-up'" ref="popupPreviewRef"
-          class="preview-wrapper pop-up-dimensions"
-          :style="{
-            background: backgroundStyle,
-            direction: template.style.align === 'right' ? 'rtl' : 'ltr',
-          }"
-        >
-          <div class="pop-up-vertical-content">
-            <div class="text-block-road">
-              <div
-                class="line1 ellipsis road"
-                :style="{
-                  color: template.style.line1_font_color,
-                  fontSize: template.style.line1_font_size + 'px',
-                  fontWeight: template.style.line1_text_styles?.includes('bold')
-                    ? 'bold'
-                    : 'normal',
-                  fontStyle: template.style.line1_text_styles?.includes('italic')
-                    ? 'italic'
-                    : 'normal',
-                  textDecoration: template.style.line1_text_styles?.includes(
-                    'underline'
-                  )
-                    ? 'underline'
-                    : 'none',
-                }"
-              >
-                {{ _bind(props.template.style.line_1) || "Your title comes here" }}
-              </div>
-              <div class="media-preview" v-if="template.style.image_url || template.style.video_url">
-                <img
-                  v-if="template.style.image_url"
-                  :src="template.style.image_url"
-                  class="media-item"
-                  alt="preview"
-                />
-                <video
-                  v-else
-                  :src="template.style.video_url"
-                  class="media-item"
-                  autoplay
-                  muted
-                  playsinline
-                  loop
-                ></video>
-              </div>
-              <div class="media-preview" v-if="activeMedia.items.length && (template.style.image_urls?.length || template.style.video_urls?.length)">
-                <div class="carousel-wrapper">
-                  <transition-group name="fade" tag="div" class="media-carousel" v-if="activeMedia.items[currentSlide]">
-                    <img
-                      v-if="activeMedia.type === 'image' && activeMedia.items[currentSlide]"
-                      :key="activeMedia.items[currentSlide].value"
-                      :src="activeMedia.items[currentSlide].value"
-                      class="media-item"
-                      alt="carousel-image"
-                    />
-                    <video
-                      v-else-if="activeMedia.type === 'video' && activeMedia.items[currentSlide]"
-                      :key="activeMedia.items[currentSlide].value + 'i'"
-                      :src="activeMedia.items[currentSlide].value"
-                      class="media-item"
-                      autoplay
-                      muted
-                      loop
-                      playsinline
-                    />
-                  </transition-group>
-                </div>
-              </div>
-              <div class="carousel-dots" v-if="activeMedia.items.length && (template.style.image_urls?.length || template.style.video_urls?.length)">
-                  <span
-                    v-for="(item, index) in activeMedia.items"
-                    :key="index"
-                    class="dot"
-                    :class="{ active: index === currentSlide }"
-                    @click="currentSlide = index"
-                  ></span>
-                </div>
-              <div
-                class="line2 ellipsis road"
-                :style="{
-                  color: template.style.line2_font_color,
-                  fontSize: template.style.line2_font_size + 'px',
-                  fontWeight: template.style.line2_text_styles?.includes('bold')
-                    ? 'bold'
-                    : 'normal',
-                  fontStyle: template.style.line2_text_styles?.includes('italic')
-                    ? 'italic'
-                    : 'normal',
-                  textDecoration: template.style.line2_text_styles?.includes(
-                    'underline'
-                  )
-                    ? 'underline'
-                    : 'none',
-                }"
-              >
-                {{ _bind(template.style.line_2) || "Your text comes here" }}
-              </div>
-              <div
-                class="line3 ellipsis road"
-                :style="{
-                  color: template.style.line3_font_color,
-                  fontSize: template.style.line3_font_size + 'px',
-                  fontWeight: template.style.line3_text_styles?.includes('bold')
-                    ? 'bold'
-                    : 'normal',
-                  fontStyle: template.style.line3_text_styles?.includes('italic')
-                    ? 'italic'
-                    : 'normal',
-                  textDecoration: template.style.line3_text_styles?.includes(
-                    'underline'
-                  )
-                    ? 'underline'
-                    : 'none',
-                }"
-              >
-                {{ _bind(template.style.line_3) || "Your message comes here" }}
-              </div>
-              <div class="cta-button-group" v-if="template.style?.btn?.length">
-                <button
-                  v-for="(btn, i) in template.style.btn"
-                  :key="i"
-                  class="cta-button"
-                  :style="{
-                    backgroundColor: template.style.btn_bg_color || 'rgba(255,255,255,0.1)',
-                    color: template.style.btn_font_color || 'white',
-                  }"
-                >
-                  {{ btn.label }}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div> -->
-    </transition>
 
     <!-- Bottom Icons -->
-    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up'" class="bottom-icons">
+    <div v-if="template.view.platform === 'ios'" class="bottom-icons">
       <span class="fingerprint">🔓</span>
       <span class="camera">📷</span>
     </div>
-    <!-- <button @click="handleExtractHtml" :disabled="!showNotification" style="z-index: 6;">Get HTML</button> -->
   </div>
 </template>
 

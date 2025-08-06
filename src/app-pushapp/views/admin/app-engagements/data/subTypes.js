@@ -15,6 +15,14 @@ export const WIDTH_SIZES = [
   { title: "80 %", value: 80 },
   { title: "75 %", value: 75 },
 ];
+export const VERTICAL_PLACEMENT = [
+  { title: "Top", value: 'flex-start' },
+  { title: "Center", value: 'center' },
+  { title: "Bottom", value: 'flex-end' },
+  { title: "Space between", value: 'space-between' },
+  { title: "Space around", value: 'space-around' },
+  { title: "Space evenly", value: 'space-evenly' },
+];
 export const GRADIENT_DIRS = ["to right", "to bottom", "to top", "to left"];
 export const GRADIENT_DIRS_2 = [
   { title: "to right", value: "to right" },
@@ -529,7 +537,7 @@ export const SUB_TYPES = [
           label: "Select width",
           optionsPath: WIDTH_SIZES,
           placeholder: "",
-          cols: 6,
+          cols: 4,
           required: true,
           readonly: false,
           defaultValue: null,
@@ -542,7 +550,20 @@ export const SUB_TYPES = [
           label: "Select height",
           optionsPath: WIDTH_SIZES,
           placeholder: "",
-          cols: 6,
+          cols: 4,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-ver-align",
+          name: "",
+          path: "style.vertical_align",
+          type: "select",
+          label: "Select vertical alignment",
+          optionsPath: VERTICAL_PLACEMENT,
+          placeholder: "",
+          cols: 4,
           required: true,
           readonly: false,
           defaultValue: null,

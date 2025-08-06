@@ -2,7 +2,7 @@
 import { toRef } from "vue";
 import DynamicForm from "@/app-pushapp/views/admin/app-engagements/form/dynamicForm.vue";
 import DynamicFieldEditor from "@/app-pushapp/components/DynamicFieldEditor.vue";
-import NotificationPreview from "@/app-pushapp/views/admin/push-notification/NotificationPreview.vue";
+import NotificationPreviewApp from "@/app-pushapp/views/admin/push-notification/NotificationPreviewApp.vue";
 import TemplatePresetSelector from "@/app-pushapp/views/admin/app-engagements/TemplatePresetSelector.vue";
 import PopupStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopupStyle";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
@@ -284,148 +284,134 @@ defineExpose({ isValid, _onCreate });
 </script>
 
 <template>
-  <v-row>
-    <!-- Pre step -->
-    <v-col v-if="isPreStep" cols="12" md="12">
-      <TemplatePresetSelector @select="onPresetSelect" @selectTemplate="handlePreviewTemplate" />
+  <v-row v-if="isPreStep">
+    <v-col cols="12" md="12">
+      <TemplatePresetSelector @select="onPresetSelect" @selectTemplate="handlePreviewTemplate"/>
     </v-col>
-
-    <!-- Form Column -->
-    <v-col v-if="!isPreStep" cols="12" md="8">
-      <v-card>
-        <v-card-item class="pb-0">
-          <v-card-title>Create Template</v-card-title>
-          <v-card-subtitle
-            >This template will be used for sending Push
-            Notification</v-card-subtitle
-          >
-        </v-card-item>
-
-        <VTabs v-model="activeTemplateTab">
-          <VTab value="tab-details"> Details </VTab>
-          <VTab value="tab-variables"> Variables </VTab>
-        </VTabs>
-
-        <VCard flat>
-          <VCardText>
-            <VWindow v-model="activeTemplateTab" class="disable-tab-transition">
-              <VWindowItem value="tab-details">
-                <div>
-                  <VForm ref="formRef" :key="formRefVersion">
-                    <VRow>
-                      <VCol cols="12" md="6">
-                        <AppSelect
-                          v-model="template.type"
-                          :items="TYPES"
-                          label="Type"
-                          item-title="label"
-                          item-value="value"
-                          :rules="[required]"
-                        />
-                      </VCol>
-                      <VCol cols="12" md="6">
-                        <AppSelect
-                          v-if="
-                            availableSubTypes.length > 1 ||
-                            (availableSubTypes.length === 1 &&
-                              availableSubTypes[0].value !== template.type)
-                          "
-                          v-model="template.subType"
-                          item-title="label"
-                          item-value="value"
-                          :items="availableSubTypes"
-                          :rules="
-                            availableSubTypes.length > 1 ||
-                            (availableSubTypes.length === 1 &&
-                              availableSubTypes[0].value !== template.type)
-                              ? [required]
-                              : []
-                          "
-                          label="Subtype"
-                        />
-                      </VCol>
-                      <VCol cols="12" md="6">
-                        <AppTextField
-                          v-model="template.desc"
-                          label="Template Name"
-                          placeholder="Enter name"
-                          :rules="[required]"
-                          prepend-inner-icon="mdi-text-box"
-                        />
-                      </VCol>
-                    </VRow>
-                    <VDivider class="mt-4" v-if="formFields.length" />
-                    <DynamicForm
-                      :formData="template"
-                      :fields="formFields"
-                      @update:formData="onFormUpdate"
-                    />
-                  </VForm>
-                </div>
-              </VWindowItem>
-
-              <VWindowItem value="tab-variables">
-                <VRow>
-                  <VCol cols="12" md="12">
-                    <DynamicFieldEditor
-                      v-model="template.model"
-                      :fields="[
-                        toRef(template.style, 'title'),
-                        toRef(template.style, 'message'),
-                        toRef(template.style, 'line_1'),
-                        toRef(template.style, 'line_2'),
-                        toRef(template.style, 'line_3'),
-                      ]"
-                      :dynamic-prefixes="['data']"
-                    />
-                  </VCol>
-                </VRow>
-              </VWindowItem>
-            </VWindow>
-          </VCardText>
-          <template v-if="IS_PAGE">
-            <VDivider />
-            <VCardText class="d-flex gap-4">
-              <VBtn :disabled="isLoading" @click="submit">{{
-                isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
-              }}</VBtn>
-              <VBtn
-                variant="tonal"
-                color="secondary"
-                :to="{ name: 'admin-app-engagements-templates-list' }"
-              >
-                Cancel
-              </VBtn>
-            </VCardText>
-          </template>
-        </VCard>
-      </v-card>
-    </v-col>
-
-    <!-- Preview Column -->
-    <VCol v-if="!isPreStep" cols="12" md="4">
-      <!-- <VCol cols="12" md="4"> -->
-      <VRow v-if="template.type !== 'pop-up'">
-        <v-col cols="5" class="px-0">
-          <v-btn-toggle v-model="view.platform" mandatory density="compact">
-            <v-btn color="primary" value="ios">iOS</v-btn>
-            <v-btn color="primary" value="android">Android</v-btn>
-          </v-btn-toggle>
-        </v-col>
-        <v-col cols="7" class="pl-3">
-          <v-btn-toggle v-model="view.mode" mandatory density="compact">
-            <v-btn color="primary" value="collapse">Collapse</v-btn>
-            <v-btn color="primary" value="expand">Expand</v-btn>
-          </v-btn-toggle>
-        </v-col>
-      </VRow>
-      <VRow style="height: 100%;max-height: 550px;">
-        <v-col cols="12" class="d-flex justify-center pt-0">
-          <NotificationPreview :template="templatePreview" ref="notificationPreviewRef" />
-        </v-col>
-      </VRow>
-    </VCol>
   </v-row>
+  <div v-else style="display:flex;">
+    <v-row style="display: flex;flex:1;">
+      <v-col v-if="!isPreStep" cols="12" md="8" style="overflow-y: auto; max-height: 100%; padding-right: 16px;">
+        <v-card>
+          <v-card-item class="pb-0">
+            <v-card-title>Create Template</v-card-title>
+            <v-card-subtitle
+              >This template will be used for sending Push
+              Notification</v-card-subtitle
+            >
+          </v-card-item>
+
+          <VTabs v-model="activeTemplateTab">
+            <VTab value="tab-details"> Details </VTab>
+            <VTab value="tab-variables"> Variables </VTab>
+          </VTabs>
+
+          <VCard flat>
+            <VCardText>
+              <VWindow v-model="activeTemplateTab" class="disable-tab-transition">
+                <VWindowItem value="tab-details">
+                  <div>
+                    <VForm ref="formRef" :key="formRefVersion">
+                      <VRow>
+                        <VCol cols="12" md="6">
+                          <AppSelect
+                            v-model="template.type"
+                            :items="TYPES"
+                            label="Type" disabled
+                            item-title="label"
+                            item-value="value"
+                            :rules="[required]"
+                          />
+                        </VCol>
+                        <VCol cols="12" md="6">
+                          <AppSelect
+                            v-if="
+                              availableSubTypes.length > 1 ||
+                              (availableSubTypes.length === 1 &&
+                                availableSubTypes[0].value !== template.type)
+                            "
+                            v-model="template.subType" disabled
+                            item-title="label"
+                            item-value="value"
+                            :items="availableSubTypes"
+                            :rules="
+                              availableSubTypes.length > 1 ||
+                              (availableSubTypes.length === 1 &&
+                                availableSubTypes[0].value !== template.type)
+                                ? [required]
+                                : []
+                            "
+                            label="Subtype"
+                          />
+                        </VCol>
+                        <VCol cols="12" md="6">
+                          <AppTextField
+                            v-model="template.desc"
+                            label="Template Name"
+                            placeholder="Enter name"
+                            :rules="[required]"
+                            prepend-inner-icon="mdi-text-box"
+                          />
+                        </VCol>
+                      </VRow>
+                      <VDivider class="mt-4" v-if="formFields.length" />
+                      <DynamicForm
+                        :formData="template"
+                        :fields="formFields"
+                        @update:formData="onFormUpdate"
+                      />
+                    </VForm>
+                  </div>
+                </VWindowItem>
+
+                <VWindowItem value="tab-variables">
+                  <VRow>
+                    <VCol cols="12" md="12">
+                      <DynamicFieldEditor
+                        v-model="template.model"
+                        :fields="[
+                          toRef(template.style, 'title'),
+                          toRef(template.style, 'message'),
+                          toRef(template.style, 'line_1'),
+                          toRef(template.style, 'line_2'),
+                          toRef(template.style, 'line_3'),
+                        ]"
+                        :dynamic-prefixes="['data']"
+                      />
+                    </VCol>
+                  </VRow>
+                </VWindowItem>
+              </VWindow>
+            </VCardText>
+            <template v-if="IS_PAGE">
+              <VDivider />
+              <VCardText class="d-flex gap-4">
+                <VBtn :disabled="isLoading" @click="submit">{{
+                  isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
+                }}</VBtn>
+                <VBtn
+                  variant="tonal"
+                  color="secondary"
+                  :to="{ name: 'admin-app-engagements-templates-list' }"
+                >
+                  Cancel
+                </VBtn>
+              </VCardText>
+            </template>
+          </VCard>
+        </v-card>
+      </v-col>
+
+      <!-- Preview Column -->
+      <VCol v-if="!isPreStep" cols="12" md="4" style="position: sticky; top: 100px;align-self: flex-start;">
+        <VRow style="height: 100%;max-height: 550px;">
+          <v-col cols="12" class="d-flex justify-center pt-0">
+            <NotificationPreviewApp :template="templatePreview" ref="notificationPreviewRef" />
+          </v-col>
+        </VRow>
+      </VCol>
+    </v-row>
+  </div>
 </template>
 
 <style scoped lang="scss"></style>

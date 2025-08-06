@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref, watch } from 'vue';
+import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
   template: { type: Object, required: true },
@@ -34,6 +34,44 @@ function _bind(template) {
     return value !== undefined && value !== '' ? value : `{{${fullPath}}}`;
   });
 }
+const hasMedia = computed(() =>
+  props.template.style.image_url ||
+  props.template.style.video_url ||
+  (activeMedia.value?.items?.length || 0) > 0
+);
+let interval = null;
+const mediaCarouselRef = ref(null);
+const setVideoEndListener = async () => {
+  await nextTick();
+  const videos = mediaCarouselRef.value?.querySelectorAll('video') || [];
+  videos.forEach((video, index) => {
+    video.onended = null; 
+    if (index === currentSlide.value) {
+      video.currentTime = 0;
+      video.play?.();
+      video.onended = () => {
+        currentSlide.value = (currentSlide.value + 1) % activeMedia.value.items.length;
+      };
+    }
+  });
+};
+watch(currentSlide, () => {
+  if (activeMedia.value.type === 'video') {
+    setVideoEndListener();
+  }
+});
+onMounted(()=>{
+  if (activeMedia.value.type === 'image') {
+    interval = setInterval(() => {
+      currentSlide.value = (currentSlide.value + 1) % activeMedia.value.items.length;
+    }, 3000);
+  } else if (activeMedia.value.type === 'video') {
+    setVideoEndListener();
+  }
+})
+onBeforeUnmount(() => {
+  clearInterval(interval);
+});
 </script>
 
 <template>
@@ -52,44 +90,41 @@ function _bind(template) {
                 height: (props.template.style?.height || 100) + '%',
             }">
           <!-- Text -->
-          <div class="line1 ellipsis road" :style="{ color: props.template.style.line1_font_color }">
+          <!-- <div class="line1 ellipsis road" :style="{ color: props.template.style.line1_font_color }">
+            {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+          </div> -->
+          <div v-if="!hasMedia" class="text-flex-wrapper"
+            :style="{
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: props.template.style?.vertical_align || 'flex-start',
+            flex: 1 }"
+          >
+            <div class="line1 ellipsis road" :style="{ color: props.template.style.line1_font_color }">
+            {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+            </div>
+            <div class="line2 ellipsis road">
+            {{ _bind(props.template.style.line_2) || "Your text comes here" }}
+            </div>
+            <div class="line3 ellipsis road">
+            {{ _bind(props.template.style.line_3) || "Your message comes here" }}
+            </div>
+          </div>
+
+          <div v-else class="line1 ellipsis road" :style="{ color: props.template.style.line1_font_color }">
             {{ _bind(props.template.style.line_1) || "Your title comes here" }}
           </div>
 
           <!-- Media (image/video) -->
           <div class="media-preview" v-if="props.template.style.image_url || props.template.style.video_url">
             <img v-if="props.template.style.image_url" :src="props.template.style.image_url" class="media-item" />
-            <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline loop />
+            <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" />
           </div>
 
           <!-- Carousel -->
-          <!-- <div class="media-preview" v-if="activeMedia.items.length">
-            <div class="carousel-wrapper">
-              <transition-group name="fade" tag="div" class="media-carousel">
-                <img
-                  v-if="activeMedia.type === 'image'"
-                  :key="activeMedia.items[currentSlide].value"
-                  :src="activeMedia.items[currentSlide].value"
-                  class="media-item"
-                  :style="{ display: index === currentSlide ? 'block' : 'none' }"
-                />
-                <video
-                  v-else
-                  :key="activeMedia.items[currentSlide].value + 'i'"
-                  :src="activeMedia.items[currentSlide].value"
-                  class="media-item"
-                  autoplay
-                  muted
-                  playsinline
-                  loop
-                  :style="{ display: index === currentSlide ? 'block' : 'none' }"
-                />
-              </transition-group>
-            </div>
-          </div> -->
           <div class="media-preview" v-if="activeMedia.items.length">
             <div class="carousel-wrapper">
-                <div class="media-carousel">
+                <div class="media-carousel" ref="mediaCarouselRef">
                 <template v-for="(item, index) in activeMedia.items" :key="item.value + index">
                     <img
                     v-if="activeMedia.type === 'image'"
@@ -104,7 +139,6 @@ function _bind(template) {
                     autoplay
                     muted
                     playsinline
-                    loop
                     :style="{ display: index === currentSlide ? 'block' : 'none' }"
                     />
                 </template>
@@ -114,18 +148,22 @@ function _bind(template) {
 
           <!-- Carousel Dots -->
           <div class="carousel-dots" v-if="activeMedia.items.length">
-            <span
+            <div
               v-for="(item, index) in activeMedia.items"
               :key="index"
               class="dot"
+              tabindex="0"
               :class="{ active: index === currentSlide }"
               @click="currentSlide = index"
+              @touchstart="currentSlide = index"
             />
           </div>
 
           <!-- More Text -->
-          <div class="line2 ellipsis road">{{ _bind(props.template.style.line_2) || "Your text comes here" }}</div>
-          <div class="line3 ellipsis road">{{ _bind(props.template.style.line_3) || "Your message comes here" }}</div>
+          <template v-if="hasMedia">
+            <div class="line2 ellipsis road">{{ _bind(props.template.style.line_2) || "Your text comes here" }}</div>
+            <div class="line3 ellipsis road">{{ _bind(props.template.style.line_3) || "Your message comes here" }}</div>
+          </template>
 
           <!-- CTA Buttons -->
           <div class="cta-button-group" v-if="props.template.style?.btn?.length">
@@ -216,7 +254,7 @@ function _bind(template) {
   color: black;
 }
 .road.line1{
-  margin: 30px 0 10px 0;
+  margin: 20px 0 10px 0;
   color: black;
 }
 .media-preview {
@@ -235,6 +273,9 @@ function _bind(template) {
   height: 100%;
   object-fit: cover;
   border-radius: 8px;
+}
+video::-webkit-media-controls { 
+    display: none !important; 
 }
 
 .cta-button-group {

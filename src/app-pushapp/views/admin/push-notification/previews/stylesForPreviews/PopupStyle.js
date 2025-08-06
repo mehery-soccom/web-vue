@@ -93,7 +93,9 @@ html, body {
   object-fit: cover;
   border-radius: 8px;
 }
-
+video::-webkit-media-controls { 
+    display: none !important; 
+}
 .cta-button-group {
   display: flex;
   flex-direction: row;

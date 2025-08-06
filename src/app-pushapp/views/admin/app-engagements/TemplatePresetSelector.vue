@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import NotificationPreview from '@/app-pushapp/views/admin/push-notification/NotificationPreview.vue';
+import NotificationPreviewApp from '@/app-pushapp/views/admin/push-notification/NotificationPreviewApp.vue';
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 const { TYPES, SUB_TYPES } = useAppEngagements();
 
@@ -63,7 +63,7 @@ const handlePreviewClick = (template) => {
           style="max-width: 250px"
           @click="handlePreviewClick(template)"
         >
-          <NotificationPreview :template="template" />
+          <NotificationPreviewApp :template="template" />
         </v-col>
       </v-row>
     </v-col>
