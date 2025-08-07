@@ -10,6 +10,15 @@ const appEngagementsStore = useAppEngagementsStore();
 
 const isLoading = ref(false);
 const items = ref([]);
+const formattedItems = computed(() =>
+  items.value.map((item) => ({
+    ...item,
+    sent_percent:
+      item.stats?.total > 0
+        ? Math.round((item.stats.sent / item.stats.total) * 100)
+        : 0,
+  }))
+);
 const headers = [
   // { title: "", key: "data-table-expand" },
   {
@@ -52,7 +61,7 @@ const headers = [
   },
   {
     title: "Delivery %",
-    key: "stats.sent_percent",
+    key: "sent_percent",
   },
   {
     title: "CTA",
@@ -179,7 +188,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
     <MyDataTable
       :headers="headers"
-      :items="items"
+      :items="formattedItems"
       :loading="isLoading"
       :server-side="true"
       v-bind="pagination"
@@ -213,6 +222,23 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- created at -->
       <template #item.created.stamp="{ item }">
         {{ smartFormatDate(item.raw.created.stamp) }}
+      </template>
+
+      <!-- sent_percent -->
+      <template #item.sent_percent="{ item }">
+        <div class="d-flex align-center">
+          <VProgressLinear
+            :model-value="item.raw.sent_percent"
+            height="6"
+            color="primary"
+            class="flex-grow-1 mr-2"
+            rounded
+            style="min-width: 60px"
+          />
+          <VChip size="x-small" variant="flat" color="primary">
+            {{ item.raw.sent_percent }}%
+          </VChip>
+        </div>
       </template>
 
       <!-- Actions -->
