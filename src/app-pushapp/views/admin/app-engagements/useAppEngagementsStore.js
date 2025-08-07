@@ -329,7 +329,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
         params
       );
     },
-    updateFilters({ id, ...params }) {
+    updateFilter({ id, ...params }) {
       return DataService.axios.put(
         `/api/v1/notification/in-app/filter/${id}`,
         params

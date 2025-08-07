@@ -3,12 +3,22 @@ import debounce from "lodash/debounce";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
+const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
 const appEngagementsStore = useAppEngagementsStore();
 
 const isLoading = ref(false);
 const items = ref([]);
+const formattedItems = computed(() =>
+  items.value.map((item) => ({
+    ...item,
+    sent_percent:
+      item.stats?.total > 0
+        ? Math.round((item.stats.sent / item.stats.total) * 100)
+        : 0,
+  }))
+);
 const headers = [
   // { title: "", key: "data-table-expand" },
   {
@@ -51,7 +61,7 @@ const headers = [
   },
   {
     title: "Delivery %",
-    key: "stats.sent_percent",
+    key: "sent_percent",
   },
   {
     title: "CTA",
@@ -73,11 +83,11 @@ const headers = [
     title: "Avg time / User",
     key: "stats.avgTimePerUser",
   },
-  // {
-  //   title: "",
-  //   key: "actions",
-  //   sortable: false,
-  // },
+  {
+    title: "",
+    key: "actions",
+    sortable: false,
+  },
 ];
 const pagination = reactive({
   itemsLength: 0,
@@ -108,6 +118,24 @@ const fetchCampaigns = async (params) => {
       id: r._id,
     }));
     pagination.itemsLength = response.data.pagination.total;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const endCampaign = async (item, dialogCloseRef) => {
+  try {
+    isLoading.value = true;
+
+    await appEngagementsStore.updateFilter({
+      id: item._id,
+      status: "ENDED",
+    });
+    fetchCampaigns({ ...pagination });
+    dialogCloseRef.value = false;
+    show({ message: "Campaign ended successfully", color: "success" });
   } catch (error) {
     console.error(error);
   } finally {
@@ -160,7 +188,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
     <MyDataTable
       :headers="headers"
-      :items="items"
+      :items="formattedItems"
       :loading="isLoading"
       :server-side="true"
       v-bind="pagination"
@@ -173,13 +201,84 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </tr>
       </template>
 
+      <!-- status -->
+      <template #item.status="{ item }">
+        <VChip
+          :color="
+            item.raw.status === 'ON_GOING'
+              ? 'success'
+              : item.raw.status === 'ENDED'
+              ? 'error'
+              : 'secondary'
+          "
+          variant="tonal"
+          size="small"
+          class="text-capitalize"
+        >
+          {{ item.raw.status.replace("_", " ") }}
+        </VChip>
+      </template>
+
       <!-- created at -->
       <template #item.created.stamp="{ item }">
         {{ smartFormatDate(item.raw.created.stamp) }}
       </template>
 
+      <!-- sent_percent -->
+      <template #item.sent_percent="{ item }">
+        <div class="d-flex align-center">
+          <VProgressLinear
+            :model-value="item.raw.sent_percent"
+            height="6"
+            color="primary"
+            class="flex-grow-1 mr-2"
+            rounded
+            style="min-width: 60px"
+          />
+          <VChip size="x-small" variant="flat" color="primary">
+            {{ item.raw.sent_percent }}%
+          </VChip>
+        </div>
+      </template>
+
       <!-- Actions -->
-      <template #item.actions="{ item }"> </template>
+      <template #item.actions="{ item }">
+        <VBtn
+          v-if="item.raw.status !== 'ENDED'"
+          variant="outlined"
+          color="error"
+          size="small"
+        >
+          <VIcon icon="mdi-stop" start />
+          End
+
+          <v-dialog activator="parent" max-width="340">
+            <template v-slot:default="{ isActive }">
+              <v-card
+                class=""
+                prepend-icon="mdi-alert"
+                text="Are you certain, you want to end this campaign ?"
+                title="Confirm"
+              >
+                <template v-slot:actions>
+                  <v-btn
+                    class="ml-auto"
+                    text="Yes"
+                    @click="endCampaign(item.raw, isActive)"
+                  ></v-btn>
+                  <v-btn
+                    class="ml-auto"
+                    text="No"
+                    @click="isActive.value = false"
+                  ></v-btn>
+                </template>
+              </v-card>
+            </template>
+          </v-dialog>
+
+          <VTooltip activator="parent">End this campaign</VTooltip>
+        </VBtn>
+      </template>
     </MyDataTable>
   </VCard>
 </template>
