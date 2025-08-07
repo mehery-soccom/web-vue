@@ -46,6 +46,26 @@ const headers = [
     key: "stats.failed",
     sortable: false,
   },
+  // {
+  //   title: "Tapped",
+  //   key: "stats.opened",
+  //   sortable: false,
+  // },
+  // {
+  //   title: "Tapped %",
+  //   key: "stats.opened_percent",
+  //   sortable: false,
+  // },
+  // {
+  //   title: "CTA",
+  //   key: "stats.cta.count",
+  //   sortable: false,
+  // },
+  // {
+  //   title: "CTA %",
+  //   key: "stats.cta_percent",
+  //   sortable: false,
+  // },
   {
     title: "",
     key: "actions",

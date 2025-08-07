@@ -1,6 +1,6 @@
 <script setup>
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
-import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore"
+import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 const { show } = inject("snackbar");
 
@@ -62,8 +62,7 @@ onMounted(async () => {
 // 👉 Fetch Templates
 const fetchTemplates = () => {
   isLoading.value = true;
-  AppEngagementsStore
-    .fetchTemplates()
+  AppEngagementsStore.fetchTemplates()
     .then((response) => {
       items.value = response.results;
     })
@@ -83,8 +82,7 @@ const onDialogChange = (val) => {
 // 👉 Delete Template
 const deleteTemplate = (id, dialogCloseRef) => {
   isLoading.value = true;
-  AppEngagementsStore
-    .deleteTemplate({ id })
+  AppEngagementsStore.deleteTemplate({ id })
     .then(() => {
       fetchTemplates();
       dialogCloseRef.value = false;
@@ -298,6 +296,16 @@ const deleteTemplate = (id, dialogCloseRef) => {
               </v-card>
             </template>
           </v-dialog>
+        </IconBtn>
+
+        <IconBtn
+          :to="{
+            name: 'admin-app-engagements-campaigns-add',
+            query: { t_edit: item.raw._id },
+          }"
+        >
+          <VIcon icon="mdi-rocket-launch-outline" />
+          <VTooltip activator="parent">New Campaign</VTooltip>
         </IconBtn>
       </template>
     </MyDataTable>

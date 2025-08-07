@@ -8,7 +8,7 @@ const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
 
 const route = useRoute();
-const QUERY_COPY = route.query.c_copy;
+const QUERY_T_EDIT = route.query.t_edit;
 
 const router = useRouter();
 
@@ -20,6 +20,8 @@ const campaign = reactive({
     template: {
       id: null,
       code: null,
+      type: null,
+      subType: null,
     },
   },
   audience: {
@@ -163,7 +165,9 @@ const create = async () => {
       const payload = {
         ...campaign,
       };
-      const templateRes = await templateRef.value._onCreate();
+      const templateRes = await (QUERY_T_EDIT
+        ? templateRef.value._onUpdate()
+        : templateRef.value._onCreate());
       payload.action.template.id = templateRes.data._id;
       payload.action.template.code = templateRes.data.code;
       payload.action.template.type = templateRes.data.type;
@@ -200,6 +204,13 @@ const create = async () => {
 
       <!-- Right Section: Actions -->
       <div class="d-flex align-center gap-2 ml-auto">
+        <VBtn
+          variant="tonal"
+          color="secondary"
+          :to="{ name: 'admin-app-engagements-campaigns-list' }"
+        >
+          Exit
+        </VBtn>
         <VBtn color="primary" v-if="nextTab" @click="proceedToNextTab">
           {{ nextTab }}
           <VIcon end icon="mdi-arrow-right" />
@@ -228,7 +239,7 @@ const create = async () => {
     <VWindow v-model="activeTab" class="mt-4">
       <!-- tab-template -->
       <VWindowItem>
-        <Template ref="templateRef" v-model="campaign.action.template" />
+        <Template ref="templateRef" :edit="QUERY_T_EDIT" />
       </VWindowItem>
 
       <!-- tab-audience -->
