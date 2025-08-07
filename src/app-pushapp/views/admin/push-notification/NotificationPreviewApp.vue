@@ -62,30 +62,10 @@ const loadNotification = () => {
   showNotification.value = false;
   setTimeout(() => (showNotification.value = true), 100);
 };
-const currentSlide = ref(0)
 
-const imageUrls = computed(() => props.template.style.image_urls || [])
-const videoUrls = computed(() => props.template.style.video_urls || [])
-
-const activeMedia = computed(() => {
-  if (imageUrls.value.length) {
-    return { type: 'image', items: imageUrls.value }
-  } else if (videoUrls.value.length) {
-    return { type: 'video', items: videoUrls.value }
-  }
-  return { type: null, items: [] }
-})
-watch(
-  () => activeMedia.value.items.length,
-  (newLength) => {
-    if (currentSlide.value >= newLength) {
-      currentSlide.value = 0;
-    }
-  }
-);
-
-const popupPreviewRef = ref(null)
-defineExpose({ popupPreviewRef });
+const popupPreviewRef = ref(null);
+const popoverPreviewRef = ref(null);
+defineExpose({ popupPreviewRef, popoverPreviewRef });
 </script>
 
 <template>
@@ -146,7 +126,6 @@ defineExpose({ popupPreviewRef });
       <span class="fingerprint">🔓</span>
       <span class="camera">📷</span>
     </div>
-    <!-- <button @click="handleExtractHtml" :disabled="!showNotification" style="z-index: 6;">Get HTML</button> -->
   </div>
 </template>
 

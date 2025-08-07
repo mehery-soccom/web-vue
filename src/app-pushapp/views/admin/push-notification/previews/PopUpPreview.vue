@@ -5,6 +5,19 @@ const props = defineProps({
   template: { type: Object, required: true },
 });
 
+function getValueByPath(obj, path) {
+  return path.split('.').reduce((acc, key) => acc?.[key], obj);
+}
+
+function _bind(template) {
+  const data = props.template?.model || {};
+  return template.replace(/{{\s*([\w]+)\.([\w$.]+)\s*}}/g, (_, prefix, path) => {
+    const fullPath = `${prefix}.${path}`;
+    const value = getValueByPath(data, fullPath);
+    return value !== undefined && value !== '' ? value : `{{${fullPath}}}`;
+  });
+}
+
 const currentSlide = ref(0);
 const imageUrls = computed(() => props.template.style.image_urls || []);
 const videoUrls = computed(() => props.template.style.video_urls || []);
@@ -22,18 +35,6 @@ watch(
   }
 );
 
-function getValueByPath(obj, path) {
-  return path.split('.').reduce((acc, key) => acc?.[key], obj);
-}
-
-function _bind(template) {
-  const data = props.template?.model || {};
-  return template.replace(/{{\s*([\w]+)\.([\w$.]+)\s*}}/g, (_, prefix, path) => {
-    const fullPath = `${prefix}.${path}`;
-    const value = getValueByPath(data, fullPath);
-    return value !== undefined && value !== '' ? value : `{{${fullPath}}}`;
-  });
-}
 const hasMedia = computed(() =>
   props.template.style.image_url ||
   props.template.style.video_url ||

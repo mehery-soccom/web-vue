@@ -5,6 +5,7 @@ import DynamicFieldEditor from "@/app-pushapp/components/DynamicFieldEditor.vue"
 import NotificationPreviewApp from "@/app-pushapp/views/admin/push-notification/NotificationPreviewApp.vue";
 import TemplatePresetSelector from "@/app-pushapp/views/admin/app-engagements/TemplatePresetSelector.vue";
 import PopupStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopupStyle";
+import { popupScript } from "@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/PopupFunction";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 
@@ -120,6 +121,7 @@ const submit = async () => {
   );
 };
 const createPayload = () => {
+  if(template.view) delete template.view;
   return {
     ...template,
   };
@@ -129,13 +131,17 @@ async function saveTemplateHtml() {
   await nextTick()
   if (template.type === 'pop-up' && notificationPreviewRef.value?.popupPreviewRef?.$el) {
     const el = notificationPreviewRef.value.popupPreviewRef.$el;
-    const html = el.outerHTML;
+    let html = el.outerHTML;
+    html = html.replace(/<video/g, '<video muted autoplay playsinline webkit-playsinline preload="auto"');
     template.style.html = `
       <html>
         <head>
           <style>${PopupStyle}</style>
         </head>
-        <body>${html}</body>
+        <body>
+          ${html}
+          ${popupScript}
+        </body>
       </html>`
   }
 }
