@@ -93,7 +93,7 @@ defineExpose({ validate });
       />
       <AppSelect
         v-if="f.type === 'select'"
-        :value="get(local, f.path)"
+        :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
         :items="f.optionsPath || []"
         :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
@@ -142,7 +142,7 @@ defineExpose({ validate });
         :rules="f.required ? [required] : []"
         :max="f.max"
       />
-      <div v-if="f.type === 'textinputstyle'" class="mb-4">
+      <div v-if="f.type === 'textinputstyle'">
         <VRow no-gutters align="end">
           <VCol cols="11">
             <AppTextSuggestion
@@ -163,7 +163,7 @@ defineExpose({ validate });
         <v-row class="mt-2" dense v-show="lineOpen[f.line]">
             <v-col cols="4">
                 <AppSelect
-                    :value="get(local, f.fontSizeKey)"
+                    :model-value="get(local, f.fontSizeKey)"
                     @update:modelValue="val => set(local, f.fontSizeKey, val)"
                     :items="FONT_SIZES"
                     placeholder="Font Size"

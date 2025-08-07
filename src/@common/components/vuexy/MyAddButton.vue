@@ -1,55 +1,3 @@
-<!-- <script setup>
-import { ref, watch } from 'vue'
-import AppTextField from '@/app-pushapp/@core/components/app-form-elements/AppTextField.vue' 
-
-const props = defineProps({
-  modelValue: Array,
-  label: String,
-  placeholder: String,
-  max: Number,
-})
-
-const emit = defineEmits(['update:modelValue'])
-
-const emptyButton = () => ({ label: '', value: '', desc: '' })
-
-const local = ref([])
-
-let isSyncing = false
-
-watch(() => props.modelValue, newVal => {
-  if (!isSyncing) {
-    isSyncing = true
-    const filled = newVal?.slice(0, props.max) || []
-    local.value = Array.from({ length: props.max }, (_, i) => ({
-      label: filled[i]?.label ?? '',
-      value: filled[i]?.value ?? '',
-      desc: filled[i]?.desc ?? ''
-    }))
-    isSyncing = false
-  }
-})
-
-watch(local, newVal => {
-  if (!isSyncing) {
-    isSyncing = true
-    emit('update:modelValue', newVal)
-    isSyncing = false
-  }
-}, { deep: true })
-
-</script>
-
-<template>
-  <div>
-    <div v-for="(btn, i) in local" :key="i" class="d-flex mb-3 flex-column gap-2">
-      <AppTextField v-model="btn.label" label="Label" placeholder="Enter label" />
-      <AppTextField v-model="btn.value" label="Value" placeholder="Enter value" />
-      <AppTextField v-model="btn.desc" label="Description" placeholder="Enter description" />
-      <v-divider v-if="i < props.max - 1" />
-    </div>
-  </div>
-</template> -->
 <script setup>
 import { ref, watch, nextTick } from 'vue'
 import AppTextField from '@/app-pushapp/@core/components/app-form-elements/AppTextField.vue'
@@ -63,30 +11,8 @@ const props = defineProps({
 
 const emit = defineEmits(['update:modelValue'])
 
-// const local = ref([])
-
-// // Sync local with modelValue (only once or when modelValue changes from outside)
-// watch(
-//   () => props.modelValue,
-//   (newVal) => {
-//     const filled = newVal || []
-//     const padded = Array.from({ length: props.max }, (_, i) => ({
-//       label: filled[i]?.label ?? '',
-//       value: filled[i]?.value ?? '',
-//       desc: filled[i]?.desc ?? ''
-//     }))
-//     local.value = padded
-//   },
-//   { immediate: true, deep: false }
-// )
-
-// // Emit updated local when any field changes
-// function updateField(index, field, value) {
-//   local.value[index][field] = value
-//   emit('update:modelValue', local.value.map(b => ({ ...b }))) // shallow clone to avoid reactive sync loop
-// }
 const local = ref([])
-const visibleCount = ref(1) // Start with 1 visible block
+const visibleCount = ref(1) // Starting with 1 visible block
 let isSyncing = false
 
 function syncFromModel(newVal = []) {
@@ -142,7 +68,7 @@ function updateField(index, field, value) {
 
 <template>
   <div>
-    <div v-for="(btn, i) in local" :key="i" class="d-flex mb-6 flex-column gap-2">
+    <div v-for="(btn, i) in local" :key="i" :class="['d-flex', 'flex-column', 'gap-2', { 'mb-6': i < local.length - 1 }]">
       <div>Button > {{ i+1 }}</div>
       <AppTextField
         :model-value="btn.label"

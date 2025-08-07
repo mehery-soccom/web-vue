@@ -248,7 +248,9 @@ onMounted(async () => {
     }else isInitialLoad.value = false;
   }
 });
-
+function goToPreStep(){
+  isPreStep.value = true;
+}
 function onPresetSelect({ type, subType }) {
   template.type = type;
   template.subType = subType;
@@ -299,13 +301,26 @@ defineExpose({ isValid, _onCreate });
     <v-row style="display: flex;flex:1;">
       <v-col v-if="!isPreStep" cols="12" md="8" style="overflow-y: auto; max-height: 100%; padding-right: 16px;">
         <v-card>
-          <v-card-item class="pb-0">
+          <v-row class="align-center justify-space-between" style="margin: 16px;">
+            <v-col class="pa-0" cols="auto">
+              <div>
+                <div class="text-h6">Create Template</div>
+                <div class="text-subtitle-2">This template will be used for sending Push Notification</div>
+              </div>
+            </v-col>
+            <v-col class="pa-0" cols="auto">
+              <v-btn variant="outlined" color="primary" @click="goToPreStep">
+                ← Back to pre step
+              </v-btn>
+            </v-col>
+          </v-row>
+          <!-- <v-card-item class="pb-0">
             <v-card-title>Create Template</v-card-title>
             <v-card-subtitle
               >This template will be used for sending Push
               Notification</v-card-subtitle
             >
-          </v-card-item>
+          </v-card-item> -->
 
           <VTabs v-model="activeTemplateTab">
             <VTab value="tab-details"> Details </VTab>
@@ -360,7 +375,7 @@ defineExpose({ isValid, _onCreate });
                           />
                         </VCol>
                       </VRow>
-                      <VDivider class="mt-4" v-if="formFields.length" />
+                      <VDivider class="mt-4 mb-4" v-if="formFields.length" />
                       <DynamicForm
                         :formData="template"
                         :fields="formFields"
