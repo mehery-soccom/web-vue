@@ -166,6 +166,21 @@ const onUpdate = async () => {
     isLoading.value = false;
   }
 };
+const _onUpdate = async () => {
+  try {
+    isLoading.value = true;
+    let payload = createPayload();
+    await saveTemplateHtml();
+    template.style.code = template.subType || template.type;
+    let res = await AppEngagementsStore.updateTemplate(template._id, payload);
+    return res.data
+  } catch (error) {
+    console.error(error);
+    show({ message: "Something went wrong. try again", color: "error" });
+  } finally {
+    isLoading.value = false;
+  }
+};
 const onCreate = async () => {
   try {
     isLoading.value = true;
@@ -231,6 +246,23 @@ onMounted(async () => {
         console.log(error);
         show({ message: "Something went wrong 1", color: "error" });
       });
+  } else if(QUERY_EDIT){
+    AppEngagementsStore
+        .fetchTemplate({ id: QUERY_EDIT })
+        .then(async (response) => {
+          const _template = response.data.data;
+          Object.assign(template, {
+            ...template,
+            ..._template,
+          });
+          await nextTick();
+          isInitialLoad.value = false;
+          isPreStep.value = false;
+        })
+        .catch((error) => {
+          console.log(error);
+          show({ message: "Something went wrong 2", color: "error" });
+        });
   } else {
     if (QUERY_COPY) {
       AppEngagementsStore
@@ -292,7 +324,7 @@ watch(
   }
 );
 
-defineExpose({ isValid, _onCreate });
+defineExpose({ isValid, _onCreate, _onUpdate });
 </script>
 
 <template>
@@ -428,7 +460,7 @@ defineExpose({ isValid, _onCreate });
       </v-col>
 
       <!-- Preview Column -->
-      <VCol v-if="!isPreStep" cols="12" md="4" style="position: sticky; top: 100px;align-self: flex-start;">
+      <VCol v-if="!isPreStep" cols="12" md="4" style="position: sticky; top: 10px;align-self: flex-start;">
         <VRow style="height: 100%;max-height: 550px;">
           <v-col cols="12" class="d-flex justify-center pt-0">
             <NotificationPreviewApp :template="templatePreview" ref="notificationPreviewRef" />
