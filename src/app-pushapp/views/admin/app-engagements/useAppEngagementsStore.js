@@ -320,7 +320,12 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
       return DataService.axios.get("/api/v1/notification/in-app/filter", {
-        params: { page, limit: itemsPerPage, sort, search: filters },
+        params: {
+          page,
+          limit: itemsPerPage,
+          sort: sort || "-created.stamp",
+          search: filters,
+        },
       });
     },
     fetchFilter({ id, ...params }) {
