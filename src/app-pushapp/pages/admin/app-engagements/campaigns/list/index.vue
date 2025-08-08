@@ -17,6 +17,8 @@ const formattedItems = computed(() =>
       item.stats?.total > 0
         ? Math.round((item.stats.sent / item.stats.total) * 100)
         : 0,
+    status:
+      item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
   }))
 );
 const headers = [
@@ -107,6 +109,26 @@ const pagination = reactive({
 onMounted(async () => {
   fetchCampaigns({ ...pagination });
 });
+
+const getCampaignStatus = ({ durationType, startDate, endDate }) => {
+  if (durationType === "manual") {
+    return "ON_GOING";
+  }
+
+  if (durationType === "specific") {
+    const now = Date.now();
+
+    if (now < startDate) {
+      return "CREATED";
+    }
+    if (now >= startDate && now <= endDate) {
+      return "ON_GOING";
+    }
+    return "ENDED";
+  }
+
+  return "CREATED";
+};
 
 const fetchCampaigns = async (params) => {
   try {
