@@ -116,7 +116,7 @@ onBeforeUnmount(() => {
                   ? 'underline'
                   : 'none',
               }">
-            {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+            {{ _bind(props.template.style.line_1) }}
             </div>
             <div class="line2 ellipsis road" :style="{
                 color: template.style.line2_font_color,
@@ -133,7 +133,7 @@ onBeforeUnmount(() => {
                   ? 'underline'
                   : 'none',
               }">
-            {{ _bind(props.template.style.line_2) || "Your text comes here" }}
+            {{ _bind(props.template.style.line_2) }}
             </div>
             <div class="line3 ellipsis road" :style="{
                 color: template.style.line3_font_color,
@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
                   ? 'underline'
                   : 'none',
               }">
-            {{ _bind(props.template.style.line_3) || "Your message comes here" }}
+            {{ _bind(props.template.style.line_3) }}
             </div>
           </div>
 
@@ -169,7 +169,7 @@ onBeforeUnmount(() => {
                   ? 'underline'
                   : 'none',
               }">
-            {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+            {{ _bind(props.template.style.line_1) }}
           </div>
 
           <!-- Media (image/video) -->
@@ -232,7 +232,7 @@ onBeforeUnmount(() => {
                 )
                   ? 'underline'
                   : 'none',
-              }">{{ _bind(props.template.style.line_2) || "Your text comes here" }}</div>
+              }">{{ _bind(props.template.style.line_2) }}</div>
             <div class="line3 ellipsis road" :style="{
                 color: template.style.line3_font_color,
                 fontSize: template.style.line3_font_size + 'px',
@@ -247,7 +247,7 @@ onBeforeUnmount(() => {
                 )
                   ? 'underline'
                   : 'none',
-              }">{{ _bind(props.template.style.line_3) || "Your message comes here" }}</div>
+              }">{{ _bind(props.template.style.line_3) }}</div>
           </template>
 
           <!-- CTA Buttons -->

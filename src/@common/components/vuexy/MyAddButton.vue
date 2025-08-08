@@ -60,6 +60,12 @@ function addButton() {
     visibleCount.value++
   }
 }
+function removeButton(i) {
+  if (i < props.max) {
+    local.value.splice(i, 1);
+    visibleCount.value--
+  }
+}
 
 function updateField(index, field, value) {
   local.value[index][field] = value
@@ -69,26 +75,30 @@ function updateField(index, field, value) {
 <template>
   <div>
     <div v-for="(btn, i) in local" :key="i" :class="['d-flex', 'flex-column', 'gap-2', { 'mb-6': i < local.length - 1 }]">
-      <div>Button > {{ i+1 }}</div>
-      <AppTextField
-        :model-value="btn.label"
-        @update:modelValue="val => updateField(i, 'label', val)"
-        label="Label"
-        placeholder="Enter label"
-      />
-      <AppTextField
-        :model-value="btn.value"
-        @update:modelValue="val => updateField(i, 'value', val)"
-        label="Value"
-        placeholder="Enter value"
-      />
-      <AppTextField
-        :model-value="btn.desc"
-        @update:modelValue="val => updateField(i, 'desc', val)"
-        label="Description"
-        placeholder="Enter description"
-      />
-      <!-- <v-divider v-if="i < props.max - 1" /> -->
+      <div>
+        <div style="display: flex;width: 100%;justify-content: space-between;">
+          <div style="display: flex;align-items: center;">Button > {{ i+1 }}</div>
+          <div><VBtn icon variant="text" color="error" @click="removeButton(i)"><VIcon>mdi-trash</VIcon></VBtn></div>
+        </div>
+        <AppTextField
+          :model-value="btn.label"
+          @update:modelValue="val => updateField(i, 'label', val)"
+          label="Label"
+          placeholder="Enter label"
+        />
+        <AppTextField
+          :model-value="btn.value"
+          @update:modelValue="val => updateField(i, 'value', val)"
+          label="Value"
+          placeholder="Enter value"
+        />
+        <AppTextField
+          :model-value="btn.desc"
+          @update:modelValue="val => updateField(i, 'desc', val)"
+          label="Description"
+          placeholder="Enter description"
+        />
+      </div>
     </div>
     <div v-if="visibleCount < props.max">
       <v-btn variant="tonal" color="primary" @click="addButton">+ Add Button</v-btn>

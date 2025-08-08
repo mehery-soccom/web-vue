@@ -49,7 +49,7 @@ onMounted(()=>{})
                   ? 'underline'
                   : 'none',
               }">
-                {{ _bind(props.template.style.line_1) || "Your title comes here" }}
+                {{ _bind(props.template.style.line_1) }}
                 </div>
                 <div class="line2 ellipsis road" :style="{
                 color: template.style.line2_font_color,
@@ -66,7 +66,7 @@ onMounted(()=>{})
                   ? 'underline'
                   : 'none',
               }">
-                {{ _bind(props.template.style.line_2) || "Your text comes here" }}
+                {{ _bind(props.template.style.line_2) }}
                 </div>
             </div>
 
