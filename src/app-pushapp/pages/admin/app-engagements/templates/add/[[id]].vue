@@ -59,6 +59,10 @@ const template = reactive({
     bg_color: "",
     bg_color_gradient: "",
     bg_color_gradient_dir: null,
+    button1_bg_color: "",
+    button1_font_color: "",
+    button2_bg_color: "",
+    button2_font_color: "",
     progress_color: "",
     align: "left",
 

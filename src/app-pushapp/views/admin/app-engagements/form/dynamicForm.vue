@@ -128,6 +128,7 @@ defineExpose({ validate });
         v-if="f.type === 'addButton'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
+        :style-data="local.style"
         :label="f.label"
         :rules="f.required ? [required] : []"
         :placeholder="f.placeholder"
@@ -190,6 +191,4 @@ defineExpose({ validate });
       </div>
     </v-col>
   </v-row>
-    <!-- </div>
-  </div> -->
 </template>

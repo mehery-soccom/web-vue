@@ -257,8 +257,8 @@ onBeforeUnmount(() => {
               :key="i"
               class="cta-button"
               :style="{
-                backgroundColor: props.template.style.btn_bg_color || 'rgba(255,255,255,0.1)',
-                color: props.template.style.btn_font_color || 'white',
+                backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(25,25,25,0.6)',
+                color: props.template.style[`button${i + 1}_font_color`] || 'white',
               }"
             >
               {{ btn.label }}
