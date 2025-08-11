@@ -155,7 +155,7 @@ function updateStyle(key, value) {
         </VRow>
       </div>
     </div>
-    <div v-if="visibleCount < props.max">
+    <div v-if="visibleCount < props.max" class="mt-4">
       <v-btn variant="tonal" color="primary" @click="addButton">+ Add Button</v-btn>
     </div>
   </div>

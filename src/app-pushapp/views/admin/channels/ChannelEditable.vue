@@ -41,12 +41,12 @@ const itemsOptions = (platform) => {
 };
 
 const addColor = () => {
-  if (!props.data.logo_colors) props.data.logo_colors = [];
-  props.data.logo_colors.push("#000000");
+  if (!props.data.brand_colours) props.data.brand_colours = [];
+  props.data.brand_colours.push("#000000");
 };
 
 const removeColor = (index) => {
-  props.data.logo_colors.splice(index, 1);
+  props.data.brand_colours.splice(index, 1);
 };
 
 const addPlatform = () => {
@@ -93,9 +93,9 @@ const handleFileUpload = (file, index) => {
         </VCol>
       </VRow>
       <VRow>
-        <VCol cols="12" md="3" v-for="(color, index) in data.logo_colors" :key="'logo_color_' + index">
+        <VCol cols="12" md="3" v-for="(color, index) in data.brand_colours" :key="'brand_colour_' + index">
           <div class="d-flex align-center">
-            <MyColorPicker v-model="data.logo_colors[index]" placeholder="Select Color"/>
+            <MyColorPicker v-model="data.brand_colours[index]" placeholder="Select Color"/>
             <VBtn icon size="small" color="error" class="ml-2" @click="removeColor(index)">
               <VIcon icon="tabler-x" size="18" />
             </VBtn>
