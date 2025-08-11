@@ -84,6 +84,7 @@ onBeforeUnmount(() => {
         direction: props.template.style.align === 'right' ? 'rtl' : 'ltr',
       }"
     >
+      <div class="close-btn">&times;</div>
       <div class="pop-up-vertical-content">
         <div class="text-block-road"
             :style="{
@@ -417,5 +418,20 @@ video::-webkit-media-controls {
 .dot.active {
   background-color: rgb(59, 58, 58);
   opacity: 1;
+}
+.close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 28px;
+  height: 28px;
+  background-color: black;
+  color: white;
+  border-radius: 50%;
+  font-size: 26px;
+  line-height: 28px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 10;
 }
 </style>

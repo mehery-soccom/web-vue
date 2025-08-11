@@ -150,4 +150,5 @@ video::-webkit-media-controls {
 .dot.active {
   background-color: rgb(59, 58, 58);
   opacity: 1;
-}`
+}
+.close-btn { display: none; }`

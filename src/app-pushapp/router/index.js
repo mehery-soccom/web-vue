@@ -9,6 +9,8 @@ import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vu
 import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue';
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
+import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
+import ChannelsList from '../pages/admin/channels/list/index.vue';
 
 console.log("routes", routes)
 const baseRoutes = [
@@ -46,6 +48,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "dashboards-analytics",
           component: Dashboard,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/channels/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-channels-list",
+          component: ChannelsList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/channels/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-channels-add-id?",
+          component: ChannelsAdd,
           props: true,
           meta: { layout: "default" },
         },
