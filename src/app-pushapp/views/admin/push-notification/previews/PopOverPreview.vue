@@ -17,6 +17,13 @@ function _bind(template) {
     return value !== undefined && value !== '' ? value : `{{${fullPath}}}`;
   });
 }
+const backgroundStyle = computed(() => {
+  let r = props.template.style.bg_color;
+  if (props.template.style.bg_color_gradient) {
+    r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
+  }
+  return r;
+});
 
 onMounted(()=>{})
 
@@ -25,7 +32,7 @@ onMounted(()=>{})
 <template>
   <transition name="fade-slide">
     <div class="preview-wrapper pop-up-dimensions">
-        <div class="banner-wrapper" :style="{ background: props.template.style.bg_color }">
+        <div class="banner-wrapper" :style="{ background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
             <div class="banner-content" :style="{ flexDirection: props.template.style.horizontal_align === 'right' ? 'row-reverse' : 'row'}">
             <!-- Image -->
             <div class="banner-image" v-if="props.template.style.image_url">
@@ -77,8 +84,8 @@ onMounted(()=>{})
                 :key="i"
                 class="cta-button"
                 :style="{
-                    backgroundColor: props.template.style.btn_bg_color || 'rgba(255,255,255,0.1)',
-                    color: props.template.style.btn_font_color || 'white',
+                    backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(255,255,255,0.1)',
+                    color: props.template.style[`button${i + 1}_font_color`] || 'white',
                 }"
                 >
                 {{ btn.label }}
@@ -203,7 +210,7 @@ video::-webkit-media-controls {
 }
 .banner-wrapper {
   width: 100%;
-  height: 120px;
+  height: 100px;
   display: flex;
   justify-content: center;
   align-items: center;

@@ -34,6 +34,13 @@ watch(
     if (currentSlide.value >= newLength) currentSlide.value = 0;
   }
 );
+const backgroundStyle = computed(() => {
+  let r = props.template.style.bg_color;
+  if (props.template.style.bg_color_gradient) {
+    r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
+  }
+  return r;
+});
 
 const hasMedia = computed(() =>
   props.template.style.image_url ||
@@ -80,7 +87,7 @@ onBeforeUnmount(() => {
     <div
       class="preview-wrapper pop-up-dimensions"
       :style="{
-        background: props.template.style.bg_color,
+        background: backgroundStyle,
         direction: props.template.style.align === 'right' ? 'rtl' : 'ltr',
       }"
     >

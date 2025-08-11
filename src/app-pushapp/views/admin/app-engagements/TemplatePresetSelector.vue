@@ -60,7 +60,7 @@ const handlePreviewClick = (template) => {
           sm="6"
           md="4"
           class="d-flex align-center flex-column mb-4"
-          style="max-width: 250px"
+          style="max-width: 270px;"
           @click="handlePreviewClick(template)"
         >
           <div class="d-flex flex-column align-center w-100">
