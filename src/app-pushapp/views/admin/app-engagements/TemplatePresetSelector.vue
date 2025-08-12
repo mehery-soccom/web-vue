@@ -65,7 +65,7 @@ const handlePreviewClick = (template) => {
         >
           <div class="d-flex flex-column align-center w-100">
             <div class="mb-2 text-center">{{ template.title }}</div>
-            <NotificationPreviewApp :template="template" style="max-width: 250px"/>
+            <NotificationPreviewApp :template="template" style="max-width: 260px"/>
           </div>
         </v-col>
       </v-row>
