@@ -438,7 +438,6 @@ video::-webkit-media-controls {
   font-size: 26px;
   line-height: 28px;
   text-align: center;
-  cursor: pointer;
   z-index: 10;
 }
 </style>

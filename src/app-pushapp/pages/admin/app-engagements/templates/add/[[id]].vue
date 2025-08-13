@@ -163,8 +163,12 @@ async function saveTemplateHtml() {
     html = html.replace(/<video/g, '<video muted autoplay playsinline webkit-playsinline preload="auto"');
 
     template.style.html = `
-      <html>
+      <!DOCTYPE html>
+      <html lang="en"> 
         <head>
+          <meta charset="UTF-8"> 
+          <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
+          <title></title> 
           <style> ${popStyle}</style>
         </head>
         <body>
@@ -375,7 +379,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
               <div>
                 <div class="text-h6">Create Template</div>
                 <div class="text-subtitle-2">
-                  This template will be used for sending Push Notification
+                  This template will be used for In-App Engagements
                 </div>
               </div>
             </v-col>
