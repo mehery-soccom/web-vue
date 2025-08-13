@@ -130,7 +130,7 @@ onMounted(()=>{})
   transform: translate(-50%, -50%);
   width: 100%;
   /* max-width: 380px; */
-  aspect-ratio: 9 / 16;
+  /* aspect-ratio: 9 / 16; */
   background-color: rgb(255, 255, 255);
   border-radius: 20px;
   position: relative;
@@ -190,17 +190,8 @@ video::-webkit-media-controls {
     display: none !important; 
 }
 
-.cta-button-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  width: 100%;
-  margin-top: auto;
-}
-
 .cta-button {
-  width: 100%;
-  padding: 10px;
+  padding: 8px 10px;
   font-size: 14px;
   border: none;
   border-radius: 6px;
@@ -257,15 +248,5 @@ video::-webkit-media-controls {
   justify-content: center;
   gap: 10px;
   max-width: 25%;
-}
-
-.cta-button {
-  padding: 8px 10px;
-  font-size: 14px;
-  border: none;
-  border-radius: 6px;
-  background-color: rgba(255, 255, 255, 0.1);
-  color: white;
-  cursor: pointer;
 }
 </style>

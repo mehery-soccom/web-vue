@@ -4,8 +4,9 @@ import DynamicForm from "@/app-pushapp/views/admin/app-engagements/form/dynamicF
 import DynamicFieldEditor from "@/app-pushapp/components/DynamicFieldEditor.vue";
 import NotificationPreviewApp from "@/app-pushapp/views/admin/push-notification/NotificationPreviewApp.vue";
 import TemplatePresetSelector from "@/app-pushapp/views/admin/app-engagements/TemplatePresetSelector.vue";
-import PopupStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopupStyle";
-import { popupScript } from "@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/PopupFunction";
+// import popupStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopupStyle";
+// import popoverStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopoverStyle";
+// import popupScript from "@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/PopupFunction";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 
@@ -132,21 +133,40 @@ const createPayload = () => {
 };
 const notificationPreviewRef = ref(null);
 async function saveTemplateHtml() {
-  await nextTick()
-  if (template.type === 'pop-up' && notificationPreviewRef.value?.popupPreviewRef?.$el) {
-    const el = notificationPreviewRef.value.popupPreviewRef.$el;
+  await nextTick();
+  const baseType = template.type.replace(/-/g, "").toLowerCase().replace(/^\w/, c => c.toUpperCase());
+  const refName = `${baseType}PreviewRef`; 
+  let popStyle, popScript;
+
+  try {
+    const { default: style } = await import(`@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/${baseType}Style`);
+    popStyle = style;
+  } catch {
+    popStyle = "";
+  }
+
+  try {
+    const { popScript: script } = await import(`@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/${baseType}Function`);
+    popScript = script;
+  } catch {
+    popScript = "";
+  }
+
+  if (notificationPreviewRef.value?.[refName]?.$el) {
+    const el = notificationPreviewRef.value[refName].$el;
     let html = el.outerHTML;
     html = html.replace(/<video/g, '<video muted autoplay playsinline webkit-playsinline preload="auto"');
+
     template.style.html = `
       <html>
         <head>
-          <style>${PopupStyle}</style>
+          <style> ${popStyle}</style>
         </head>
         <body>
           ${html}
-          ${popupScript}
+          ${popScript}
         </body>
-      </html>`
+      </html>`;
   }
 }
 

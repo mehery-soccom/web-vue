@@ -40,32 +40,14 @@ onUnmounted(() => {
   clearInterval(intervalId.value);
 });
 
-const initClock = () => {
-  updateClock();
-  intervalId.value = setInterval(updateClock, 30000);
-};
-
-const updateClock = () => {
-  const now = new Date();
-  currentTime.value = now.toLocaleTimeString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-  currentDate.value = now.toLocaleDateString("en-GB", {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-  });
-};
-
 const loadNotification = () => {
   showNotification.value = false;
   setTimeout(() => (showNotification.value = true), 100);
 };
 
-const popupPreviewRef = ref(null);
-const popoverPreviewRef = ref(null);
-defineExpose({ popupPreviewRef, popoverPreviewRef });
+const PopupPreviewRef = ref(null);
+const PopoverPreviewRef = ref(null);
+defineExpose({ PopupPreviewRef, PopoverPreviewRef });
 </script>
 
 <template>
@@ -76,56 +58,21 @@ defineExpose({ popupPreviewRef, popoverPreviewRef });
 
     <!-- Notch and Top Bar -->
     <div v-if="template.view.platform === 'ios'" class="notch-app"></div>
-    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up' && template.type !== 'pop-over'" class="ios-status-bar">
-      <span class="carrier">Jio</span>
-      <div class="status-icons">
-        <span class="icon">📶</span>
-        <span class="icon">📡</span>
-        <span class="icon">🔋</span>
-      </div>
-    </div>
 
-    <!-- Pixel-style Android status bar with camera notch-app -->
-    <div
-      v-if="template.view.platform === 'android'"
-      class="android-notch-app"
-    ></div>
-    <div v-if="template.view.platform === 'android'" class="android-status-bar">
-      <div class="left-icons">
-        <span class="icon">📶</span>
-        <span class="icon">📡</span>
-      </div>
-      <div class="right-icons">
-        <span class="icon">🔋</span>
-        <span class="icon">🔔</span>
-      </div>
-    </div>
-
-    <!-- Clock and Date -->
-    <div :class="[template.view.platform + '-clock-block']" v-if="template.type !== 'pop-up' && template.type !== 'pop-over'">
-      <div class="date">{{ currentDate }}</div>
-      <div class="clock">{{ currentTime }}</div>
-    </div>
     <transition name="fade-slide">
       <PopUpPreview
         v-if="template.type === 'pop-up'"
         :template="template"
-        ref="popupPreviewRef"
+        ref="PopupPreviewRef"
       />
     </transition>
     <transition name="fade-slide">
       <PopOverPreview
         v-if="template.type === 'pop-over'"
         :template="template"
-        ref="popoverPreviewRef"
+        ref="PopoverPreviewRef"
       />
     </transition>
-
-    <!-- Bottom Icons -->
-    <div v-if="template.view.platform === 'ios' && template.type !== 'pop-up' && template.type !== 'pop-over'" class="bottom-icons">
-      <span class="fingerprint">🔓</span>
-      <span class="camera">📷</span>
-    </div>
   </div>
 </template>
 

@@ -1,4 +1,4 @@
-export const popupScript = `
+export const popScript = `
 <script>
 window.onload = function () {
   const mediaItems = document.querySelectorAll('.media-item');
