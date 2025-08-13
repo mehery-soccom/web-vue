@@ -130,7 +130,7 @@ onMounted(()=>{})
   transform: translate(-50%, -50%);
   width: 100%;
   /* max-width: 380px; */
-  /* aspect-ratio: 9 / 16; */
+  aspect-ratio: 9 / 16;
   background-color: rgb(255, 255, 255);
   border-radius: 20px;
   position: relative;
