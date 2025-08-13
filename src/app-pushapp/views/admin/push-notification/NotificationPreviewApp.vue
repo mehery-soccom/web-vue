@@ -32,7 +32,6 @@ const backgroundStyle = computed(() => {
 });
 
 onMounted(() => {
-  initClock();
   loadNotification();
 });
 
