@@ -91,11 +91,11 @@ const isValid = (silent = false) => {
   const el = props.element;
   let valid = true;
   if (!el.field) valid = false;
-  if (optionsMap[el.field].inputFieldMeta && (!el.operator || !el.value))
+  if (optionsMap[el.field]?.inputFieldMeta && (!el.operator || !el.value))
     valid = false;
   if (
     el.filterType === "event" &&
-    optionsMap[el.field].freqFieldMeta &&
+    optionsMap[el.field]?.freqFieldMeta &&
     (!el.freqOperator || !el.freqCount || !el.freqPeriod)
   )
     valid = false;
