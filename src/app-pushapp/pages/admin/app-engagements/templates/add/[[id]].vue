@@ -13,6 +13,11 @@ import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagement
 const required = (v) => !!v || "This field is required";
 
 const { show } = inject("snackbar");
+
+const props = defineProps({
+  edit: { type: String },
+});
+
 const { TYPES, SUB_TYPES } = useAppEngagements();
 const AppEngagementsStore = useAppEngagementsStore();
 
@@ -116,7 +121,7 @@ const submit = async () => {
     return;
   }
 
-  if(PARAM_ID) await onUpdate();
+  if (PARAM_ID) await onUpdate();
   else await onCreate();
   console.log(
     "valid form",
@@ -126,7 +131,7 @@ const submit = async () => {
   );
 };
 const createPayload = () => {
-  if(template.view) delete template.view;
+  if (template.view) delete template.view;
   return {
     ...template,
   };
@@ -193,7 +198,7 @@ const _onUpdate = async () => {
     await saveTemplateHtml();
     template.style.code = template.subType || template.type;
     let res = await AppEngagementsStore.updateTemplate(template._id, payload);
-    return res.data
+    return res.data;
   } catch (error) {
     console.error(error);
     show({ message: "Something went wrong. try again", color: "error" });
@@ -248,10 +253,9 @@ const sanitizeAndUnderscore = (str) => {
 };
 
 onMounted(async () => {
-  console.log("first", PARAM_ID, QUERY_COPY)
+  console.log("first", PARAM_ID, QUERY_COPY);
   if (PARAM_ID) {
-    AppEngagementsStore
-      .fetchTemplate({ id: PARAM_ID })
+    AppEngagementsStore.fetchTemplate({ id: PARAM_ID })
       .then(async (response) => {
         const _template = response.data.data;
         Object.assign(template, {
@@ -266,27 +270,25 @@ onMounted(async () => {
         console.log(error);
         show({ message: "Something went wrong 1", color: "error" });
       });
-  } else if(QUERY_EDIT){
-    AppEngagementsStore
-        .fetchTemplate({ id: QUERY_EDIT })
-        .then(async (response) => {
-          const _template = response.data.data;
-          Object.assign(template, {
-            ...template,
-            ..._template,
-          });
-          await nextTick();
-          isInitialLoad.value = false;
-          isPreStep.value = false;
-        })
-        .catch((error) => {
-          console.log(error);
-          show({ message: "Something went wrong 2", color: "error" });
+  } else if (QUERY_EDIT) {
+    AppEngagementsStore.fetchTemplate({ id: QUERY_EDIT })
+      .then(async (response) => {
+        const _template = response.data.data;
+        Object.assign(template, {
+          ...template,
+          ..._template,
         });
+        await nextTick();
+        isInitialLoad.value = false;
+        isPreStep.value = false;
+      })
+      .catch((error) => {
+        console.log(error);
+        show({ message: "Something went wrong 2", color: "error" });
+      });
   } else {
     if (QUERY_COPY) {
-      AppEngagementsStore
-        .fetchTemplate({ id: QUERY_COPY })
+      AppEngagementsStore.fetchTemplate({ id: QUERY_COPY })
         .then(async (response) => {
           const _template = response.data.data;
           Object.assign(template, {
@@ -301,10 +303,10 @@ onMounted(async () => {
           console.log(error);
           show({ message: "Something went wrong 2", color: "error" });
         });
-    }else isInitialLoad.value = false;
+    } else isInitialLoad.value = false;
   }
 });
-function goToPreStep(){
+function goToPreStep() {
   isPreStep.value = true;
 }
 function onPresetSelect({ type, subType }) {
@@ -324,7 +326,7 @@ watch(
   () => template.type,
   (val) => {
     formRefVersion.value += 1;
-    if(!isInitialLoad.value) template.subType = null;
+    if (!isInitialLoad.value) template.subType = null;
   }
 );
 
@@ -350,18 +352,31 @@ defineExpose({ isValid, _onCreate, _onUpdate });
 <template>
   <v-row v-if="isPreStep">
     <v-col cols="12" md="12">
-      <TemplatePresetSelector @select="onPresetSelect" @selectTemplate="handlePreviewTemplate"/>
+      <TemplatePresetSelector
+        @select="onPresetSelect"
+        @selectTemplate="handlePreviewTemplate"
+      />
     </v-col>
   </v-row>
-  <div v-else style="display:flex;">
-    <v-row style="display: flex;flex:1;">
-      <v-col v-if="!isPreStep" cols="12" md="8" style="overflow-y: auto; max-height: 100%; padding-right: 16px;">
+  <div v-else style="display: flex">
+    <v-row style="display: flex; flex: 1">
+      <v-col
+        v-if="!isPreStep"
+        cols="12"
+        md="8"
+        style="overflow-y: auto; max-height: 100%; padding-right: 16px"
+      >
         <v-card>
-          <v-row class="align-center justify-space-between" style="margin: 16px;">
+          <v-row
+            class="align-center justify-space-between"
+            style="margin: 16px"
+          >
             <v-col class="pa-0" cols="auto">
               <div>
                 <div class="text-h6">Create Template</div>
-                <div class="text-subtitle-2">This template will be used for sending Push Notification</div>
+                <div class="text-subtitle-2">
+                  This template will be used for sending Push Notification
+                </div>
               </div>
             </v-col>
             <v-col class="pa-0" cols="auto">
@@ -385,7 +400,10 @@ defineExpose({ isValid, _onCreate, _onUpdate });
 
           <VCard flat>
             <VCardText>
-              <VWindow v-model="activeTemplateTab" class="disable-tab-transition">
+              <VWindow
+                v-model="activeTemplateTab"
+                class="disable-tab-transition"
+              >
                 <VWindowItem value="tab-details">
                   <div>
                     <VForm ref="formRef" :key="formRefVersion">
@@ -394,7 +412,8 @@ defineExpose({ isValid, _onCreate, _onUpdate });
                           <AppSelect
                             v-model="template.type"
                             :items="TYPES"
-                            label="Type" disabled
+                            label="Type"
+                            disabled
                             item-title="label"
                             item-value="value"
                             :rules="[required]"
@@ -407,7 +426,8 @@ defineExpose({ isValid, _onCreate, _onUpdate });
                               (availableSubTypes.length === 1 &&
                                 availableSubTypes[0].value !== template.type)
                             "
-                            v-model="template.subType" disabled
+                            v-model="template.subType"
+                            disabled
                             item-title="label"
                             item-value="value"
                             :items="availableSubTypes"
@@ -480,10 +500,18 @@ defineExpose({ isValid, _onCreate, _onUpdate });
       </v-col>
 
       <!-- Preview Column -->
-      <VCol v-if="!isPreStep" cols="12" md="4" style="position: sticky; top: 10px;align-self: flex-start;">
-        <VRow style="height: 100%;max-height: 550px;">
+      <VCol
+        v-if="!isPreStep"
+        cols="12"
+        md="4"
+        style="position: sticky; top: 10px; align-self: flex-start"
+      >
+        <VRow style="height: 100%; max-height: 550px">
           <v-col cols="12" class="d-flex justify-center pt-0">
-            <NotificationPreviewApp :template="templatePreview" ref="notificationPreviewRef" />
+            <NotificationPreviewApp
+              :template="templatePreview"
+              ref="notificationPreviewRef"
+            />
           </v-col>
         </VRow>
       </VCol>
