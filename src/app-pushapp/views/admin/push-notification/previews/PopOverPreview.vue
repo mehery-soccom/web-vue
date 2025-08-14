@@ -18,11 +18,14 @@ function _bind(template) {
   });
 }
 const backgroundStyle = computed(() => {
-  let r = props.template.style.bg_color;
-  if (props.template.style.bg_color_gradient) {
-    r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
+  const style = props.template.style;
+  if (style.bg_image_url) {
+    return `url(${style.bg_image_url}) center/cover no-repeat`;
   }
-  return r;
+  if (style.bg_color_gradient) {
+    return `linear-gradient(${style.bg_color_gradient_dir}, ${style.bg_color}, ${style.bg_color_gradient})`;
+  }
+  return style.bg_color;
 });
 
 onMounted(()=>{})
@@ -32,6 +35,7 @@ onMounted(()=>{})
 <template>
   <transition name="fade-slide">
     <div class="preview-wrapper pop-up-dimensions">
+        <div class="close-btn">&times;</div>
         <div class="banner-wrapper" :style="{ background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
             <div class="banner-content" :style="{ flexDirection: props.template.style.horizontal_align === 'right' ? 'row-reverse' : 'row'}">
             <!-- Image -->
@@ -191,8 +195,8 @@ video::-webkit-media-controls {
 }
 
 .cta-button {
-  padding: 8px 10px;
-  font-size: 14px;
+  padding: 4px 8px;
+  font-size: 12px;
   border: none;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
@@ -246,7 +250,21 @@ video::-webkit-media-controls {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   max-width: 25%;
+}
+.close-btn {
+  position: absolute;
+  top: 34px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  background-color: black;
+  color: white;
+  border-radius: 50%;
+  font-size: 18px;
+  line-height: 18px;
+  text-align: center;
+  z-index: 10;
 }
 </style>

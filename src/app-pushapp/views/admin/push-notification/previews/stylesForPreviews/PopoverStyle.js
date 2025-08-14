@@ -103,8 +103,8 @@ video::-webkit-media-controls {
   margin-top: auto;
 }
 .cta-button {
-  padding: 8px 10px;
-  font-size: 14px;
+  padding: 4px 8px;
+  font-size: 12px;
   border: none;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
@@ -159,6 +159,7 @@ video::-webkit-media-controls {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 10px;
+  gap: 6px;
   max-width: 25%;
-}`
+}
+.close-btn { display: none; }`

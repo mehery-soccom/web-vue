@@ -1493,6 +1493,14 @@ export const SUB_TYPES = [
     form: {
       fields: [
         {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+        },
+        {
           id: "road-car-bg-color",
           name: "",
           path: "style.bg_color",
@@ -1578,6 +1586,7 @@ export const SUB_TYPES = [
             line_1: "Open position 2,35,76,900 ",
             line_2: "Exchange cut off at 1:30pm",
             btn: [],
+            bg_image_url: "",
             image_url: "",
             video_url: "",
             image_urls: [],
@@ -1618,6 +1627,14 @@ export const SUB_TYPES = [
     type: "pop-over",
     form: {
       fields: [
+        {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+        },
         {
           id: "road-car-bg-color",
           name: "",
@@ -1715,6 +1732,7 @@ export const SUB_TYPES = [
             btn: [],
             line_1: "NSE F&O Expiry today",
             line_2: "Square off positions by 1pm",
+            bg_image_url: "",
             image_url: "https://xyz-mehery-data-longterm-20230321170801943500000002.s3.eu-west-2.amazonaws.com/pushapp/templates/images/1754891744868-F%26O.png",
             video_url: "",
             image_urls: [],
@@ -1755,6 +1773,14 @@ export const SUB_TYPES = [
     type: "pop-over",
     form: {
       fields: [
+        {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+        },
         {
           id: "road-car-bg-color",
           name: "",
@@ -1856,6 +1882,7 @@ export const SUB_TYPES = [
             ],
             line_1: "NSE F&O Expiry today",
             line_2: "Square off positions by 1pm",
+            bg_image_url: "",
             image_url: "",
             video_url: "",
             image_urls: [],
@@ -1896,6 +1923,14 @@ export const SUB_TYPES = [
     type: "pop-over",
     form: {
       fields: [
+        {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+        },
         {
           id: "road-car-bg-color",
           name: "",
@@ -2008,6 +2043,7 @@ export const SUB_TYPES = [
             ],
             line_1: "NSE F&O Expiry today",
             line_2: "Square off positions by 1pm",
+            bg_image_url: "",
             image_url: "https://xyz-mehery-data-longterm-20230321170801943500000002.s3.eu-west-2.amazonaws.com/pushapp/templates/images/1754891744868-F%26O.png",
             video_url: "",
             image_urls: [],
