@@ -28,6 +28,7 @@ const setupMap = {
   },
 };
 const isLoading = ref(false);
+const panel = ref(0);
 const configList = ref([]);
 const configValue = (value, item) => {
   let r = Array.isArray(value)
@@ -99,7 +100,7 @@ onMounted(async () => {
 
 <template>
   <VContainer fluid>
-    <VExpansionPanels multiple>
+    <VExpansionPanels multiple v-model="panel">
       <VExpansionPanel
         v-for="(configs, groupName) in groupedConfigs"
         :key="groupName"

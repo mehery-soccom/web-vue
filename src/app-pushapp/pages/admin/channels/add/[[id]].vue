@@ -45,10 +45,6 @@ const onCreate = async () => {
 
     const formData = new FormData();
     formData.append("channel_name", channelData.value.channel_name);
-    // if(!!channelData.value.logo_url) formData.append("logo_url", channelData.value.logo_url || "");
-    // if (Array.isArray(channelData.value.brand_colours)) {
-    //   formData.append('brand_colours', JSON.stringify(channelData.value.brand_colours));
-    // }
     channelData.value.platforms.map((p) => {
       if (!p.file)
         fileError = `${fileError ? fileError + ", " : ""}${p.platform_type}`;
@@ -95,10 +91,6 @@ const onUpdate = async () => {
     const formData = new FormData();
     formData.append("user_id", "user123");
     formData.append("channel_name", channelData.value.channel_name);
-    // if(!!channelData.value.logo_url) formData.append("logo_url", channelData.value.logo_url || "");
-    // if (Array.isArray(channelData.value.brand_colours)) {
-    //   formData.append('brand_colours', JSON.stringify(channelData.value.brand_colours));
-    // }
     channelData.value.platforms.map((p) => {
       if (p.platform_id) {
         console.log("onUpdate > existing platform file", p.platform_type);
