@@ -12,6 +12,9 @@ const props = defineProps({
   label: {
     type: String,
   },
+  rules: {
+    type: Array,
+  },
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -29,7 +32,9 @@ const attrs = useAttrs();
  * usage : v-bind="_props"
  */
 const _props = computed(() => {
-  const __props = { ...props };
+  const { modelValue, label, ...rest } = props;
+
+  const __props = { ...rest };
 
   // console.log("__props", __props);
   return __props;
@@ -103,6 +108,7 @@ watch(url, (val) => {
         placeholder="Select a file"
         prepend-inner-icon="mdi-image"
         prepend-icon=""
+        v-bind="_props"
       />
       <div v-else class="d-flex align-center ga-3">
         <VTextField

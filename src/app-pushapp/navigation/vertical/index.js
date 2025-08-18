@@ -1,5 +1,6 @@
-import admin from "./admin";
 import dashboard from "./dashboard";
+import admin from "./admin";
+import config from "./config";
 // import appAndPages from "./app-and-pages";
 // import charts from "./charts";
 // import forms from "./forms";
@@ -9,6 +10,7 @@ import dashboard from "./dashboard";
 export default [
   ...dashboard,
   ...admin,
+  ...config,
   // ...appAndPages,
   // ...uiElements,
   // ...forms,

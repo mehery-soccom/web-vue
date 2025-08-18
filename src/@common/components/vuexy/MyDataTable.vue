@@ -209,6 +209,10 @@ const currentComponent = computed(() => {
     <template v-if="hasSlot('expanded-row')" #expanded-row="slotProps">
       <slot name="expanded-row" v-bind="slotProps" />
     </template>
+
+    <template v-if="hasSlot('bottom')" #bottom="slotProps">
+      <slot name="bottom" v-bind="slotProps" />
+    </template>
   </component>
 </template>
 

@@ -5,6 +5,7 @@
     :label="label"
     :placeholder="placeholder"
     prepend-inner-icon="mdi-palette"
+    v-bind="_props"
   >
     <template #append-inner>
       <v-tooltip text="Pick a color">
@@ -56,9 +57,24 @@ const props = defineProps({
   placeholder: {
     type: String,
   },
+  rules: {
+    type: Array,
+  },
 });
 
 const emit = defineEmits(["update:modelValue"]);
+
+/**
+ * usage : v-bind="_props"
+ */
+const _props = computed(() => {
+  const { modelValue, label, placeholder, ...rest } = props;
+
+  const __props = { ...rest };
+
+  // console.log("__props", __props);
+  return __props;
+});
 
 const menu = ref(false);
 const color = ref(props.modelValue);
