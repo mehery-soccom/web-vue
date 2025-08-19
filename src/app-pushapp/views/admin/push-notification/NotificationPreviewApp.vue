@@ -3,6 +3,7 @@ import { computed } from "vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import PopUpPreview from "./previews/PopUpPreview.vue";
 import PopOverPreview from "./previews/PopOverPreview.vue";
+import PopPipPreview from "./previews/PopPipPreview.vue";
 
 const props = defineProps({
   template: {
@@ -46,7 +47,8 @@ const loadNotification = () => {
 
 const PopupPreviewRef = ref(null);
 const PopoverPreviewRef = ref(null);
-defineExpose({ PopupPreviewRef, PopoverPreviewRef });
+const PoppipPreviewRef = ref(null);
+defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef });
 </script>
 
 <template>
@@ -70,6 +72,13 @@ defineExpose({ PopupPreviewRef, PopoverPreviewRef });
         v-if="template.type === 'pop-over'"
         :template="template"
         ref="PopoverPreviewRef"
+      />
+    </transition>
+    <transition name="fade-slide">
+      <PopPipPreview
+        v-if="template.type === 'pop-pip'"
+        :template="template"
+        ref="PoppipPreviewRef"
       />
     </transition>
   </div>

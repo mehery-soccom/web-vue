@@ -160,7 +160,7 @@ async function saveTemplateHtml() {
   if (notificationPreviewRef.value?.[refName]?.$el) {
     const el = notificationPreviewRef.value[refName].$el;
     let html = el.outerHTML;
-    html = html.replace(/<video/g, '<video muted autoplay playsinline webkit-playsinline preload="auto"');
+    html = html.replace(/<video/g, '<video muted=\"\" webkit-playsinline=\"\" preload=\"auto\" playsinline=\"\"');
 
     template.style.html = `
       <!DOCTYPE html>
