@@ -40,15 +40,6 @@ const itemsOptions = (platform) => {
   );
 };
 
-const addColor = () => {
-  if (!props.data.brand_colours) props.data.brand_colours = [];
-  props.data.brand_colours.push("#000000");
-};
-
-const removeColor = (index) => {
-  props.data.brand_colours.splice(index, 1);
-};
-
 const addPlatform = () => {
   props.data.platforms.push({ active: true });
 };
@@ -87,22 +78,6 @@ const handleFileUpload = (file, index) => {
         </VCol>
         <VCol cols="12" md="6" v-if="data.channel_id">
           <AppTextField v-model="data.channel_id" label="App ID" readonly />
-        </VCol>
-        <VCol cols="12" md="6">
-          <MyFileInputUpload v-model="data.logo_url" label="Upload Logo"/>
-        </VCol>
-      </VRow>
-      <VRow>
-        <VCol cols="12" md="3" v-for="(color, index) in data.brand_colours" :key="'brand_colour_' + index">
-          <div class="d-flex align-center">
-            <MyColorPicker v-model="data.brand_colours[index]" placeholder="Select Color"/>
-            <VBtn icon size="small" color="error" class="ml-2" @click="removeColor(index)">
-              <VIcon icon="tabler-x" size="18" />
-            </VBtn>
-          </div>
-        </VCol>
-        <VCol cols="12" md="3">
-          <VBtn variant="outlined" color="primary" @click="addColor"> + Add Color </VBtn>
         </VCol>
       </VRow>
     </VCardText>
