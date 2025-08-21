@@ -100,7 +100,7 @@ function updateStyle(key, value) {
 
 <template>
   <div>
-    <div v-for="(btn, i) in local" :key="i" :class="['d-flex', 'flex-column', 'gap-2', { 'mb-6': i < local.length - 1 }]">
+    <div v-for="(btn, i) in local" :key="i" :class="['d-flex', 'flex-column', 'gap-2', { 'mb-4': i < local.length - 1 }]">
       <div>
         <div style="display: flex;width: 100%;justify-content: space-between;">
           <div style="display: flex;align-items: center;">Button > {{ i+1 }}</div>
@@ -129,7 +129,7 @@ function updateStyle(key, value) {
             </VBtn>
           </VCol>
         </VRow>
-        <VRow v-show="lineOpen[i]">
+        <VRow v-show="lineOpen[i]" style="margin-top: 0 !important;">
           <v-col cols="4">
             <AppTextField
               :model-value="btn.desc"

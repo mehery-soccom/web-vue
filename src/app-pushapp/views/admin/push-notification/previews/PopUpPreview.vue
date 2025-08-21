@@ -262,7 +262,7 @@ onBeforeUnmount(() => {
           <div class="cta-button-group" v-if="props.template.style?.btn?.length">
             <button
               v-for="(btn, i) in props.template.style.btn"
-              :key="i"
+              :key="i" @click="handleClick('INAPP_CTA', props.template.style.btn.value)"
               class="cta-button"
               :style="{
                 backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(25,25,25,0.6)',
@@ -381,8 +381,8 @@ video::-webkit-media-controls {
 
 .cta-button {
   width: 100%;
-  padding: 10px;
-  font-size: 14px;
+  padding: 6px 8px;
+  font-size: 12px;
   border: none;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);

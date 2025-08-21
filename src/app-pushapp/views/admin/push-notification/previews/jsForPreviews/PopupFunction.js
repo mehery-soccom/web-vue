@@ -38,6 +38,22 @@ window.onload = function () {
     dot.addEventListener('touchstart', () => showSlide(i));
   });
 
+  function handleClick(eventType, val) {
+    console.log('Event Triggered:', eventType);
+
+    const message = JSON.stringify({
+      event: eventType,
+      timestamp: Date.now(),
+      data: { url: "", value: val }
+    });
+
+    const handlers = window.webkit?.messageHandlers;
+    const handlerName = eventType === "INAPP_CTA";
+
+    handlers?.[handlerName]?.postMessage(message) ||
+      window.parent.postMessage(message, "*");
+  }
+
   showSlide(0);
 }
 </script>

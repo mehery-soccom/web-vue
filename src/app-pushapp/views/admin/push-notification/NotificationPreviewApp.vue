@@ -1,9 +1,10 @@
 <script setup>
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import PopUpPreview from "./previews/PopUpPreview.vue";
 import PopOverPreview from "./previews/PopOverPreview.vue";
 import PopPipPreview from "./previews/PopPipPreview.vue";
+import BottomSheetPreview from "./previews/BottomSheetPreview.vue";
 
 const props = defineProps({
   template: {
@@ -48,7 +49,8 @@ const loadNotification = () => {
 const PopupPreviewRef = ref(null);
 const PopoverPreviewRef = ref(null);
 const PoppipPreviewRef = ref(null);
-defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef });
+const BottomsheetPreviewRef = ref(null)
+defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, BottomsheetPreviewRef });
 </script>
 
 <template>
@@ -79,6 +81,13 @@ defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef });
         v-if="template.type === 'pop-pip'"
         :template="template"
         ref="PoppipPreviewRef"
+      />
+    </transition>
+    <transition name="fade-slide">
+      <BottomSheetPreview
+        v-if="template.type === 'bottom-sheet'"
+        :template="template"
+        ref="BottomsheetPreviewRef"
       />
     </transition>
   </div>
