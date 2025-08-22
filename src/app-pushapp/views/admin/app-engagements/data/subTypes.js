@@ -2256,19 +2256,6 @@ export const SUB_TYPES = [
     form: {
       fields: [
         {
-          id: "road-ver-align",
-          name: "",
-          path: "style.vertical_align",
-          type: "select",
-          label: "Select vertical alignment",
-          optionsPath: VERTICAL_PLACEMENT,
-          placeholder: "",
-          cols: 4,
-          required: true,
-          readonly: false,
-          defaultValue: null,
-        },
-        {
           id: "road-bg-color",
           name: "",
           path: "style.bg_color",
@@ -2304,6 +2291,28 @@ export const SUB_TYPES = [
           required: false,
           readonly: false,
           defaultValue: null,
+        },
+        {
+          id: "road-ver-align",
+          name: "",
+          path: "style.vertical_align",
+          type: "select",
+          label: "Select vertical alignment",
+          optionsPath: VERTICAL_PLACEMENT,
+          placeholder: "",
+          cols: 4,
+          required: true,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+          cols: 8
         },
         {
           id: "road-line1",
@@ -2463,6 +2472,14 @@ export const SUB_TYPES = [
           defaultValue: null,
         },
         {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+        },
+        {
           id: "road-img-line1",
           name: "",
           path: "style.line_1",
@@ -2620,6 +2637,14 @@ export const SUB_TYPES = [
           required: false,
           readonly: false,
           defaultValue: null,
+        },
+        {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
         },
         {
           id: "road-vid-line1",

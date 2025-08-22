@@ -103,7 +103,7 @@ onBeforeUnmount(() => {
             <div class="banner-buttons" v-if="props.template.style?.btn?.length">
                 <button
                 v-for="(btn, i) in props.template.style.btn"
-                :key="i"
+                :key="i" @click="handleClick('INAPP_CTA', props.template.style.btn.value)"
                 class="cta-button"
                 :style="{
                     fontSize: (12 * scale) + 'px',

@@ -68,6 +68,16 @@ watch(currentSlide, () => {
     setVideoEndListener();
   }
 });
+
+const scale = ref(1);
+const wrapperRef = ref(null);
+
+function updateScale() {
+  if (!wrapperRef.value) return;
+  const width = wrapperRef.value.offsetWidth;
+  scale.value = width > 270 ? 1 : width / 350;
+}
+
 onMounted(()=>{
   if (activeMedia.value.type === 'image') {
     interval = setInterval(() => {
@@ -76,16 +86,19 @@ onMounted(()=>{
   } else if (activeMedia.value.type === 'video') {
     setVideoEndListener();
   }
+  updateScale();
+  window.addEventListener("resize", updateScale);
 })
 onBeforeUnmount(() => {
   clearInterval(interval);
+  window.removeEventListener("resize", updateScale);
 });
 </script>
 
 <template>
   <transition name="fade-slide">
     <div
-      class="preview-wrapper pop-up-dimensions"
+      class="preview-wrapper pop-up-dimensions" ref="wrapperRef"
       :style="{
         background: backgroundStyle,
         direction: props.template.style.align === 'right' ? 'rtl' : 'ltr',
@@ -111,7 +124,7 @@ onBeforeUnmount(() => {
           >
             <div class="line1 ellipsis road" :style="{
                 color: template.style.line1_font_color,
-                fontSize: template.style.line1_font_size + 'px',
+                fontSize: (template.style.line1_font_size * scale) + 'px',
                 fontWeight: template.style.line1_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -128,7 +141,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="line2 ellipsis road" :style="{
                 color: template.style.line2_font_color,
-                fontSize: template.style.line2_font_size + 'px',
+                fontSize: (template.style.line2_font_size * scale) + 'px',
                 fontWeight: template.style.line2_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -145,7 +158,7 @@ onBeforeUnmount(() => {
             </div>
             <div class="line3 ellipsis road" :style="{
                 color: template.style.line3_font_color,
-                fontSize: template.style.line3_font_size + 'px',
+                fontSize: (template.style.line3_font_size * scale) + 'px',
                 fontWeight: template.style.line3_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -164,7 +177,7 @@ onBeforeUnmount(() => {
 
           <div v-else class="line1 ellipsis road" :style="{
                 color: template.style.line1_font_color,
-                fontSize: template.style.line1_font_size + 'px',
+                fontSize: (template.style.line1_font_size * scale) + 'px',
                 fontWeight: template.style.line1_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -228,7 +241,7 @@ onBeforeUnmount(() => {
           <template v-if="hasMedia">
             <div class="line2 ellipsis road" :style="{
                 color: template.style.line2_font_color,
-                fontSize: template.style.line2_font_size + 'px',
+                fontSize: (template.style.line2_font_size * scale) + 'px',
                 fontWeight: template.style.line2_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -243,7 +256,7 @@ onBeforeUnmount(() => {
               }">{{ _bind(props.template.style.line_2) }}</div>
             <div class="line3 ellipsis road" :style="{
                 color: template.style.line3_font_color,
-                fontSize: template.style.line3_font_size + 'px',
+                fontSize: (template.style.line3_font_size * scale) + 'px',
                 fontWeight: template.style.line3_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -265,6 +278,8 @@ onBeforeUnmount(() => {
               :key="i" @click="handleClick('INAPP_CTA', props.template.style.btn.value)"
               class="cta-button"
               :style="{
+                fontSize: (12 * scale) + 'px',
+                padding: (6 * scale) + 'px ' + (8 * scale) + 'px',
                 backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(25,25,25,0.6)',
                 color: props.template.style[`button${i + 1}_font_color`] || 'white',
               }"

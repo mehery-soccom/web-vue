@@ -19,22 +19,40 @@ function _bind(template) {
 }
 
 const backgroundStyle = computed(() => {
-  let r = props.template.style.bg_color;
-  if (props.template.style.bg_color_gradient) {
-    r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
+  const style = props.template.style;
+  if (style.bg_image_url) {
+    return `url(${style.bg_image_url}) center/cover no-repeat`;
   }
-  return r;
+  if (style.bg_color_gradient) {
+    return `linear-gradient(${style.bg_color_gradient_dir}, ${style.bg_color}, ${style.bg_color_gradient})`;
+  }
+  return style.bg_color;
 });
 
 const hasMedia = computed(() => props.template.style.image_url || props.template.style.video_url );
+const scale = ref(1);
+const wrapperRef = ref(null);
 
-onMounted(()=>{})
+function updateScale() {
+  if (!wrapperRef.value) return;
+  const width = wrapperRef.value.offsetWidth;
+  scale.value = width > 270 ? 1 : width / 350;
+}
+
+onMounted(() => {
+  updateScale();
+  window.addEventListener("resize", updateScale);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", updateScale);
+});
 </script>
 
 <template>
   <transition name="fade-slide">
-    <div class="preview-wrapper pop-up-dimensions">
-      <div style="width: 100%;height:51%;position: absolute;bottom: 0;" :style="{
+    <div class="preview-wrapper pop-up-dimensions" ref="wrapperRef">
+      <div class="bottomsheet-block" :style="{
         background: backgroundStyle,
         direction: props.template.style.align === 'right' ? 'rtl' : 'ltr',
       }">
@@ -51,7 +69,7 @@ onMounted(()=>{})
                 <div class="line1 ellipsis road" :style="{
                     marginTop: '10px',
                     color: template.style.line1_font_color,
-                    fontSize: template.style.line1_font_size + 'px',
+                    fontSize: (template.style.line1_font_size * scale) + 'px',
                     fontWeight: template.style.line1_text_styles?.includes('bold')
                     ? 'bold'
                     : 'normal',
@@ -66,7 +84,7 @@ onMounted(()=>{})
                 </div>
                 <div class="line2 ellipsis road" :style="{
                     color: template.style.line2_font_color,
-                    fontSize: template.style.line2_font_size + 'px',
+                    fontSize: (template.style.line2_font_size * scale) + 'px',
                     fontWeight: template.style.line2_text_styles?.includes('bold')
                     ? 'bold'
                     : 'normal',
@@ -81,7 +99,7 @@ onMounted(()=>{})
                 </div>
                 <div class="line3 ellipsis road" :style="{
                     color: template.style.line3_font_color,
-                    fontSize: template.style.line3_font_size + 'px',
+                    fontSize: (template.style.line3_font_size * scale) + 'px',
                     fontWeight: template.style.line3_text_styles?.includes('bold')
                     ? 'bold'
                     : 'normal',
@@ -98,7 +116,7 @@ onMounted(()=>{})
 
             <div v-else class="line1 ellipsis road" :style="{
                     color: template.style.line1_font_color,
-                    fontSize: template.style.line1_font_size + 'px',
+                    fontSize: (template.style.line1_font_size * scale) + 'px',
                     fontWeight: template.style.line1_text_styles?.includes('bold')
                     ? 'bold'
                     : 'normal',
@@ -122,7 +140,7 @@ onMounted(()=>{})
             <template v-if="hasMedia">
                 <div class="line2 ellipsis road" :style="{
                     color: template.style.line2_font_color,
-                    fontSize: template.style.line2_font_size + 'px',
+                    fontSize: (template.style.line2_font_size * scale) + 'px',
                     fontWeight: template.style.line2_text_styles?.includes('bold')
                     ? 'bold'
                     : 'normal',
@@ -136,7 +154,7 @@ onMounted(()=>{})
                 <div class="line3 ellipsis road" :style="{
                     marginTop: !!template.style.line2 ? '0px' : '4px',
                     color: template.style.line3_font_color,
-                    fontSize: template.style.line3_font_size + 'px',
+                    fontSize: (template.style.line3_font_size * scale) + 'px',
                     fontWeight: template.style.line3_text_styles?.includes('bold')
                     ? 'bold'
                     : 'normal',
@@ -153,9 +171,11 @@ onMounted(()=>{})
             <div class="cta-button-group" v-if="props.template.style?.btn?.length">
                 <button
                 v-for="(btn, i) in props.template.style.btn"
-                :key="i"
+                :key="i" @click="handleClick('INAPP_CTA', props.template.style.btn.value)"
                 class="cta-button"
                 :style="{
+                    fontSize: (12 * scale) + 'px',
+                    padding: (4 * scale) + 'px ' + (8 * scale) + 'px',
                     backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(25,25,25,0.6)',
                     color: props.template.style[`button${i + 1}_font_color`] || 'white',
                 }">
@@ -208,6 +228,12 @@ onMounted(()=>{})
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
+}
+.bottomsheet-block{
+  width: 100%;
+  height:55%;
+  position: absolute;
+  bottom: 0;
 }
 
 .pop-up-vertical-content {
@@ -263,13 +289,13 @@ video::-webkit-media-controls {
   flex-direction: row;
   gap: 10px;
   width: 100%;
-  margin-top: auto;
+  margin-top: 2px;
 }
 
 .cta-button {
   width: 100%;
   padding: 6px 8px;
-  font-size: 10px;
+  font-size: 12px;
   border: none;
   border-radius: 6px;
   background-color: rgba(255, 255, 255, 0.1);
@@ -278,15 +304,15 @@ video::-webkit-media-controls {
 }
 .close-btn {
   position: absolute;
-  top: 10px;
-  right: 10px;
-  width: 28px;
-  height: 28px;
+  top: 6px;
+  right: 6px;
+  width: 23px;
+  height: 23px;
   background-color: black;
   color: white;
   border-radius: 50%;
-  font-size: 26px;
-  line-height: 28px;
+  font-size: 22px;
+  line-height: 23px;
   text-align: center;
   z-index: 10;
 }

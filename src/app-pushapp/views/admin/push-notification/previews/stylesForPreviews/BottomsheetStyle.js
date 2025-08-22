@@ -15,7 +15,7 @@ html, body {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   background-color: rgba(30, 30, 30, 0.94);
   color: white;
-  padding: 14px 16px;
+  /* padding: 14px 16px; */
   position: absolute;
   bottom: 80px;
 }
@@ -46,12 +46,16 @@ html, body {
   justify-content: flex-start;
 }
 
+.bottomsheet-block{
+  width: 100%;
+  height: 100%;
+}
 .pop-up-vertical-content {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 16px;
+  padding: 6px 14px 10px 14px;
   width: 100%;
   height: 100%;
   gap: 10px;
