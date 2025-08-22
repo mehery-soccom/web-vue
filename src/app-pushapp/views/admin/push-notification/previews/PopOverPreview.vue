@@ -27,16 +27,30 @@ const backgroundStyle = computed(() => {
   }
   return style.bg_color;
 });
+const scale = ref(1);
+const wrapperRef = ref(null);
 
-onMounted(()=>{})
+function updateScale() {
+  if (!wrapperRef.value) return;
+  const width = wrapperRef.value.offsetWidth;
+  scale.value = width > 270 ? 1 : width / 350;
+}
 
+onMounted(() => {
+  updateScale();
+  window.addEventListener("resize", updateScale);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", updateScale);
+});
 </script>
 
 <template>
   <transition name="fade-slide">
-    <div class="preview-wrapper pop-up-dimensions">
+    <div class="preview-wrapper pop-up-dimensions" ref="wrapperRef">
         <div class="close-btn">&times;</div>
-        <div class="banner-wrapper" :style="{ background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
+        <div class="banner-wrapper" :style="{ height: (100 * scale) + 'px', background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
             <div class="banner-content" :style="{ flexDirection: props.template.style.horizontal_align === 'right' ? 'row-reverse' : 'row'}">
             <!-- Image -->
             <div class="banner-image" v-if="props.template.style.image_url">
@@ -47,7 +61,7 @@ onMounted(()=>{})
             <div class="banner-text">
                 <div class="line1-ban ellipsis road" :style="{
                 color: template.style.line1_font_color,
-                fontSize: template.style.line1_font_size + 'px',
+                fontSize: (template.style.line1_font_size * scale) + 'px',
                 fontWeight: template.style.line1_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -59,12 +73,14 @@ onMounted(()=>{})
                 )
                   ? 'underline'
                   : 'none',
+                marginBottom: (4 * scale) + 'px',
+                marginTop: (4 * scale) + 'px',
               }">
                 {{ _bind(props.template.style.line_1) }}
                 </div>
                 <div class="line2 ellipsis road" :style="{
                 color: template.style.line2_font_color,
-                fontSize: template.style.line2_font_size + 'px',
+                fontSize: (template.style.line2_font_size * scale) + 'px',
                 fontWeight: template.style.line2_text_styles?.includes('bold')
                   ? 'bold'
                   : 'normal',
@@ -76,6 +92,8 @@ onMounted(()=>{})
                 )
                   ? 'underline'
                   : 'none',
+                marginBottom: (4 * scale) + 'px', 
+                marginTop: (4 * scale) + 'px',
               }">
                 {{ _bind(props.template.style.line_2) }}
                 </div>
@@ -88,6 +106,8 @@ onMounted(()=>{})
                 :key="i"
                 class="cta-button"
                 :style="{
+                    fontSize: (12 * scale) + 'px',
+                    padding: (4 * scale) + 'px ' + (8 * scale) + 'px',
                     backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(255,255,255,0.1)',
                     color: props.template.style[`button${i + 1}_font_color`] || 'white',
                 }"

@@ -342,50 +342,5 @@ defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, Bottomsheet
   }
 }
 
-.preview-wrapper {
-  z-index: 2;
-  border-radius: 18px;
-  width: 92%;
-  border-radius: 20px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  background-color: rgba(30, 30, 30, 0.94);
-  color: white;
-  padding: 14px 16px;
-  position: absolute;
-  bottom: 80px;
 
-  .content {
-    display: flex;
-    gap: 12px;
-    width: 100%;
-  }
-  .notification-image {
-    width: 30%;
-    aspect-ratio: 1;
-    border-radius: 8px;
-    object-fit: cover;
-  }
-  .text-block {
-    width: 70%;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    font-size: 14px;
-  }
-  .line1,
-  .line2,
-  .line3 {
-    margin-bottom: 2px;
-  }
-  .ellipsis {
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
 </style>
