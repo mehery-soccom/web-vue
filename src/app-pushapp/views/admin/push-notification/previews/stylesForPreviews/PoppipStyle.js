@@ -7,9 +7,7 @@ html, body {
 }
 .preview-wrapper {
   z-index: 2;
-  border-radius: 18px;
   width: 92%;
-  border-radius: 20px;
   overflow: hidden;
   display: flex;
   align-items: center;
@@ -28,7 +26,6 @@ html, body {
   width: 100%;
   height: 100%;
   background-color: rgb(255, 255, 255);
-  border-radius: 20px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);

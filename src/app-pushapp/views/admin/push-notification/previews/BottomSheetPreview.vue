@@ -63,7 +63,7 @@ onBeforeUnmount(() => {
                 :style="{
                 display: 'flex',
                 flexDirection: 'column',
-                justifyContent: props.template.style?.vertical_align || 'flex-start',
+                justifyContent: props.template.style?.vertical_align || 'center',
                 flex: 1 }"
             >
                 <div class="line1 ellipsis road" :style="{
@@ -241,7 +241,7 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 6px 14px 10px 14px;
+  padding: 6px 14px 14px 14px;
   width: 100%;
   height: 100%;
   gap: 10px;

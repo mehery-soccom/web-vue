@@ -7,15 +7,14 @@ html, body {
 }
 .preview-wrapper {
   z-index: 2;
-  border-radius: 18px;
-  width: 92%;
+  width: 100%;
   overflow: hidden;
   display: flex;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   background-color: rgba(30, 30, 30, 0.94);
   color: white;
-  /* padding: 14px 16px; */
+  padding: 14px 16px;
   position: absolute;
   bottom: 80px;
 }
@@ -36,7 +35,6 @@ html, body {
   /* aspect-ratio: 9 / 16; */
   height: 100%;
   background-color: rgb(255, 255, 255);
-  border-radius: 20px;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -55,9 +53,9 @@ html, body {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 6px 14px 10px 14px;
-  width: 100%;
-  height: 100%;
+  padding: 6px 14px 14px 14px;
+  width: 92%;
+  height: 92%;
   gap: 10px;
   flex: 1;
   text-align: center;
@@ -72,9 +70,9 @@ html, body {
 .road.line1, .road.line2, .road.line3 {
   margin: 4px 0 2px 0;
   color: black;
-  display: flex;
+  /* display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: center; */
 }
 .media-preview {
   max-height: 100%;
@@ -102,7 +100,7 @@ video::-webkit-media-controls {
   flex-direction: row;
   gap: 10px;
   width: 100%;
-  margin-top: auto;
+  margin-top: 3px;
 }
 
 .cta-button {
