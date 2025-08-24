@@ -146,6 +146,10 @@ export const useProjectStore = defineStore("ProjectStore", {
         url += `&${agentType}=${agent}`;
       return axios.get(url);
     },
+    fetchMetaTemplateDatas(start, end, timezone) {
+      let url = `/api/v1/dashboard/template-analytics/meta?start=${start}&end=${end}&timezone=${timezone}`;
+      return axios.get(url);
+    },
     fetchAgentDatas(start, end) {
       let url = `/api/v1/dashboard/agent-data?dateRange1=${start}&dateRange2=${end}`;
       return axios.get(url);

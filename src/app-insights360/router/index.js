@@ -2,6 +2,7 @@ import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@/@common/constants";
 import Dashboard from "@/app-insights360/pages/dashboards/analytics.vue";
 import Agent from "@/app-insights360/pages/views/agent/index.vue";
+import Meta from "@/app-insights360/pages/views/meta/index.vue";
 import Campaign from "@/app-insights360/pages/views/campaign/index.vue";
 import Outbound from "@/app-insights360/pages/views/outbound/[id].vue";
 import Cta from "@/app-insights360/pages/views/cta/[id].vue";
@@ -51,6 +52,19 @@ export default BootRouter.route({
           path: "",
           name: "views-agent",
           component: Agent,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/views/meta",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "views-meta",
+          component: Meta,
           props: true,
           meta: { layout: "default" },
         },

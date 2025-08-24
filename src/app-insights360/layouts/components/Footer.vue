@@ -29,7 +29,7 @@
         target="noopener noreferrer"
       >More Themes</a> -->
       <a
-        href="#"
+        href="https://docs.mehery.com/guide/insights-360/"
         target="noopener noreferrer"
       >Documentation</a>
     </span>

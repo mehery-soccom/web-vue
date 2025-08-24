@@ -6,6 +6,7 @@ export default [
     children: [
       { title: "Agent", to: "views-agent" },
       { title: "Campaign", to: "views-campaign" },
+      { title: "Meta", to: "views-meta" },
     ],
   },
 ];

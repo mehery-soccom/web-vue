@@ -1,6 +1,6 @@
 <script setup>
 import { VDataTable } from 'vuetify/labs/VDataTable';
-import { ref, toRaw } from 'vue';
+import { ref, toRaw, useSlots } from 'vue';
 const props = defineProps({
   productList: {
     type: Array,
@@ -12,13 +12,24 @@ const props = defineProps({
   }, 
   title: {
     type: String,
-  }
+  },
+  fixedColumn: {
+    type: Boolean,
+    default: false
+  },
+  itemValue: {
+    type: String,
+    default: 'templateId'
+  },
 });
 const search = ref('')
 const columnSearch = reactive({})
 const sortBy = ref([])
 const currentSortKey = ref(null)
 const currentSortOrder = ref('asc')
+const expanded = ref([])
+const slots = useSlots();
+const hasExpand = !!slots['expanded-row'];
 
 const toggleSort = (key) => {
   if (currentSortKey.value === key) {
@@ -116,6 +127,10 @@ const filteredItems = computed(() => {
       v-model:sort-by="sortBy"
       :items-per-page="10"
       class="text-no-wrap"
+      :item-value="itemValue"    
+      v-model:expanded="expanded"
+      :show-expand="$slots['expanded-row']"
+      :class="{ 'fixed-column': props.fixedColumn, 'has-expand': hasExpand }"
     >
       <template #headers="{ columns }">
         <tr>
@@ -142,17 +157,40 @@ const filteredItems = computed(() => {
           </th>
         </tr>
       </template>
-      <template #item="{ item }">
+
+      <template #item="{ item, isExpanded, toggleExpand }">
         <tr>
-          <td v-for="header in props.headers" :key="header.key">
-            <slot :name="`item.${header.key}`"
-              :item="item" v-if="$slots[`item.${header.key}`]"
-            />
+          <td
+            v-for="header in props.headers"
+            :key="header.key"
+            style="vertical-align: middle;"
+          >
+            <template v-if="header.key === 'data-table-expand'">
+              <button
+                v-if="$slots['expanded-row']"
+                type="button"
+                @click="toggleExpand(item)"
+                style="border:none;background:transparent;cursor:pointer;padding:4px"
+                :aria-expanded="isExpanded(item) ? 'true' : 'false'"
+              >
+                <VIcon small>
+                  {{ isExpanded(item) ? 'mdi-chevron-up' : 'mdi-chevron-down' }}
+                </VIcon>
+              </button>
+            </template>
+
             <template v-else>
-              <span>{{ item.raw[header.key] }}</span>
+              <slot :name="`item.${header.key}`"
+                :item="item" v-if="$slots[`item.${header.key}`]"
+              />
+              <span v-else>{{ item.raw?.[header.key] ?? item[header.key] }}</span>
             </template>
           </td>
         </tr>
+      </template>
+
+      <template #expanded-row="slotProps">
+        <slot name="expanded-row" v-bind="slotProps" />
       </template>
     </VDataTable>
   </div>
@@ -174,6 +212,7 @@ input.form-control-sm {
   border-radius: 4px;
   background-color: #f9f9f9;
   transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  color: #000;
 }
 input.form-control-sm:focus {
   outline: none;
@@ -187,5 +226,43 @@ input.form-control-sm:focus {
 }
 .sortable-th:hover .sort-icon {
   visibility: visible;
+}
+
+.v-data-table-column--data-table-expand {
+  width: 48px !important;
+  min-width: 48px !important;
+}
+
+.fixed-column.has-expand th:nth-child(1),
+.fixed-column.has-expand td:nth-child(1) {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 3 !important;
+}
+
+.fixed-column.has-expand th:nth-child(2),
+.fixed-column.has-expand td:nth-child(2) {
+  position: sticky !important;
+  left: 48px !important;
+  z-index: 2 !important;
+}
+
+.fixed-column.has-expand th:nth-child(1) {
+  z-index: 4 !important;
+}
+
+.fixed-column.has-expand th:nth-child(2) {
+  z-index: 3 !important;
+}
+
+.fixed-column:not(.has-expand) th:nth-child(1),
+.fixed-column:not(.has-expand) td:nth-child(1) {
+  position: sticky !important;
+  left: 0 !important;
+  z-index: 2 !important;
+}
+
+.fixed-column:not(.has-expand) th:nth-child(1) {
+  z-index: 3 !important;
 }
 </style>
