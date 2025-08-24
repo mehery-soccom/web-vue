@@ -127,9 +127,9 @@ const filteredItems = computed(() => {
       v-model:sort-by="sortBy"
       :items-per-page="10"
       class="text-no-wrap"
-      :item-value="itemValue"    
+      :item-value="$attrs['item-value'] ?? props.itemValue"    
       v-model:expanded="expanded"
-      :show-expand="$slots['expanded-row']"
+      :show-expand="hasExpand"
       :class="{ 'fixed-column': props.fixedColumn, 'has-expand': hasExpand }"
     >
       <template #headers="{ columns }">
