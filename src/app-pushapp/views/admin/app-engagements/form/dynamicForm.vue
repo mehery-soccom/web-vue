@@ -10,9 +10,9 @@ import MyColorPicker from '@/@common/components/vuexy/MyColorPicker.vue'
 import MyAddButton from '@/@common/components/vuexy/MyAddButton.vue'
 import MyMultipleFilesUpload from '@/@common/components/vuexy/MyMultipleFilesUpload.vue'
 import MySelectExtended from '@/@common/components/vuexy/MySelectExtended.vue'
+import MyTextInputStyle from '@/@common/components/vuexy/MyTextInputStyle.vue'
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
-
-const { FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } = usePushNotification();
+import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } from '../data/subTypes'
 
 // Props & emits
 const props = defineProps({
@@ -59,13 +59,6 @@ function validate() {
     if (isRequired && !get(local, f.path)) {
       errors.push(`${f.label} is required`)
     }
-    // if (f.type === 'extendedSelect' && f.children && get(local, f.path)) {
-    //   f.children.forEach(child => {
-    //     if (child.required && !get(local, child.path)) {
-    //       errors.push(`${child.label} is required`)
-    //     }
-    //   })
-    // }
   })
   console.log("called after", props.formData, props.fields, errors)
   return { valid: errors.length === 0, errors }
@@ -143,7 +136,28 @@ defineExpose({ validate });
         :rules="f.required ? [required] : []"
         :max="f.max"
       />
-      <div v-if="f.type === 'textinputstyle'">
+      <MyTextInputStyle
+        v-if="f.type === 'textinputstyle'"
+        :model-value="get(local, f.path)"
+        @update:modelValue="val => set(local, f.path, val)"
+        :font-size="get(local, f.fontSizeKey)"
+        @update:fontSize="val => set(local, f.fontSizeKey, val)"
+        :font-color="get(local, f.fontColorKey)"
+        @update:fontColor="val => set(local, f.fontColorKey, val)"
+        :text-styles="get(local, f.textStylesKey)"
+        @update:textStyles="val => set(local, f.textStylesKey, val)"
+        :icon-placement="get(local, f.iconPlacement)"
+        @update:icon-placement="val => set(local, f.iconPlacement, val)"
+        :icon="get(local, f.iconKey)"
+        @update:icon="val => set(local, f.iconKey, val)"
+        :font-sizes-list="FONT_SIZES"
+        :icons-list="ICONS_LIST"
+        :label="f.label"
+        :placeholder="f.placeholder"
+        :rules="f.required ? [required] : []"
+        :suggestions="get(local, 'model.' + f.textinputstylesKey)"
+      />
+      <!-- <div v-if="f.type === 'textinputstyle'">
         <VRow no-gutters align="end">
           <VCol cols="11">
             <AppTextSuggestion
@@ -188,7 +202,7 @@ defineExpose({ validate });
                 </VBtnToggle>
             </v-col>
         </v-row>
-      </div>
+      </div> -->
     </v-col>
   </v-row>
 </template>

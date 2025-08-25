@@ -23,9 +23,9 @@ html, body {
 .line1, .line2, .line3 {
   margin-bottom: 2px;
 }
-.ellipsis {
+.ellipsisi {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

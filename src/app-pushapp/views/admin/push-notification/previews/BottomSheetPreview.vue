@@ -66,7 +66,7 @@ onBeforeUnmount(() => {
                 justifyContent: props.template.style?.vertical_align || 'center',
                 flex: 1 }"
             >
-                <div class="line1 ellipsis road" :style="{
+                <div class="line1 ellipsisi road" :style="{
                     marginTop: '10px',
                     color: template.style.line1_font_color,
                     fontSize: (template.style.line1_font_size * scale) + 'px',
@@ -82,7 +82,7 @@ onBeforeUnmount(() => {
                 }">
                 {{ _bind(props.template.style.line_1) }}
                 </div>
-                <div class="line2 ellipsis road" :style="{
+                <div class="line2 ellipsisi road" :style="{
                     color: template.style.line2_font_color,
                     fontSize: (template.style.line2_font_size * scale) + 'px',
                     fontWeight: template.style.line2_text_styles?.includes('bold')
@@ -97,7 +97,7 @@ onBeforeUnmount(() => {
                 }">
                 {{ _bind(props.template.style.line_2) }}
                 </div>
-                <div class="line3 ellipsis road" :style="{
+                <div class="line3 ellipsisi road" :style="{
                     color: template.style.line3_font_color,
                     fontSize: (template.style.line3_font_size * scale) + 'px',
                     fontWeight: template.style.line3_text_styles?.includes('bold')
@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
                 </div>
             </div>
 
-            <div v-else class="line1 ellipsis road" :style="{
+            <div v-else class="line1 ellipsisi road" :style="{
                     color: template.style.line1_font_color,
                     fontSize: (template.style.line1_font_size * scale) + 'px',
                     fontWeight: template.style.line1_text_styles?.includes('bold')
@@ -138,7 +138,7 @@ onBeforeUnmount(() => {
 
             <!-- More Text -->
             <template v-if="hasMedia">
-                <div class="line2 ellipsis road" :style="{
+                <div class="line2 ellipsisi road" :style="{
                     color: template.style.line2_font_color,
                     fontSize: (template.style.line2_font_size * scale) + 'px',
                     fontWeight: template.style.line2_text_styles?.includes('bold')
@@ -151,7 +151,7 @@ onBeforeUnmount(() => {
                     ? 'underline'
                     : 'none',
                 }">{{ _bind(props.template.style.line_2) }}</div>
-                <div class="line3 ellipsis road" :style="{
+                <div class="line3 ellipsisi road" :style="{
                     marginTop: !!template.style.line2 ? '0px' : '4px',
                     color: template.style.line3_font_color,
                     fontSize: (template.style.line3_font_size * scale) + 'px',
@@ -204,9 +204,9 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 80px;
 }
-.ellipsis {
+.ellipsisi {
   display: -webkit-box;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;

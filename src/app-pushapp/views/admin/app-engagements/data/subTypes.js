@@ -6,6 +6,9 @@ export const FONT_SIZES = [
   { title: "14px", value: 14 },
   { title: "16px", value: 16 },
   { title: "18px", value: 18 },
+  { title: "20px", value: 20 },
+  { title: "24px", value: 24 },
+  { title: "28px", value: 28 },
 ];
 export const WIDTH_SIZES = [
   { title: "100 %", value: 100 },
@@ -47,6 +50,28 @@ export const TEMPLATE_ALIGN = [
 export const TEMPLATE_ALIGN_2 = [
   { title: "left to right", value: "left" },
   { title: "right to left", value: "right" },
+];
+export const ICONS_LIST = [
+  { icon: "❤️", title: "Heart", value: "&#10084;" },
+  { icon: "⭐", title: "Star", value: "&#11088;" },
+  { icon: "✅", title: "Check", value: "&#9989;" },
+  { icon: "❌", title: "Cross", value: "&#10060;" },
+  { icon: "⚠️", title: "Warning", value: "&#9888;" },
+  { icon: "ℹ️", title: "Info", value: "&#8505;" },
+  { icon: "🔔", title: "Bell", value: "&#128276;" },
+  { icon: "🏠", title: "Home", value: "&#127968;" },
+  { icon: "📧", title: "Email", value: "&#128231;" },
+  { icon: "📞", title: "Phone", value: "&#128222;" },
+  { icon: "🔒", title: "Lock", value: "&#128274;" },
+  { icon: "🔓", title: "Unlock", value: "&#128275;" },
+  { icon: "🛒", title: "Cart", value: "&#128722;" },
+  { icon: "🔍", title: "Search", value: "&#128269;" },
+  { icon: "✏️", title: "Edit", value: "&#9999;" },
+  { icon: "🗑️", title: "Trash", value: "&#128465;" },
+  { icon: "📅", title: "Calendar", value: "&#128197;" },
+  { icon: "💬", title: "Chat", value: "&#128172;" },
+  { icon: "📎", title: "Attachment", value: "&#128206;" },
+  { icon: "⏰", title: "Alarm", value: "&#9200;" }
 ];
 export const TEMPLATES_CONFIG = {
   simple: {
@@ -2326,6 +2351,8 @@ export const SUB_TYPES = [
           fontSizeKey: "style.line1_font_size",
           fontColorKey: "style.line1_font_color",
           textStylesKey: "style.line1_text_styles",
+          // iconKey: "style.icon1",
+          // iconPlacement: "style.icon1_position",
         },
         {
           id: "road-line2",
@@ -2403,6 +2430,8 @@ export const SUB_TYPES = [
             line1_font_size: 16,
             line1_font_text_styles: [],
             line1_text_styles: ["bold"],
+            // line1_icon: "",
+            // line1_icon_position: "append",
             line2_font_color: "#FFFFFF",
             line2_font_size: 14,
             line2_font_text_styles: [],

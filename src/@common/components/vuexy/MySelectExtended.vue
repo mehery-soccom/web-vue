@@ -73,22 +73,6 @@ function onChildUpdate(index, val) {
     val: [...localButtons.value] // trigger reactivity
   })
 }
-// function onChildUpdate(fieldIndex, val) {
-//   const currentGroup = activeOption.value
-//   const currentButtons = currentGroup.children || []
-
-//   const updated = currentButtons.map((child, i) => {
-//     const existing = get(props.formData.options, `buttons[${i}]`) || {}
-//     return {
-//       button_id: child.id,
-//       button_text: child.label,
-//       button_url: i === fieldIndex ? val : existing.button_url || ''
-//     }
-//   })
-
-//   emit('updateChild', { key: 'options.buttons', val: updated })
-//   console.log("emiting onChild")
-// }
 </script>
 
 <template>
