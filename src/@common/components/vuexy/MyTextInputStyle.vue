@@ -62,7 +62,7 @@ watch(() => props.modelValue, (val) => {
     </VRow>
 
     <VRow v-show="open" class="mt-2" dense>
-      <VCol :cols="!icon ? 4 : 2">
+      <VCol :cols="!iconPlacement ? 4 : 2">
         <AppSelect
           :model-value="fontSize"
           @update:modelValue="val => emit('update:fontSize', val)"
@@ -70,14 +70,14 @@ watch(() => props.modelValue, (val) => {
           placeholder="Font Size"
         />
       </VCol>
-      <VCol :cols="!icon ? 4 : 3">
+      <VCol :cols="!iconPlacement ? 4 : 3">
         <MyColorPicker
           :model-value="fontColor || ''"
           @update:modelValue="val => emit('update:fontColor', val)"
           placeholder="Font Color"
         />
       </VCol>
-      <VCol :cols="!icon ? 4 : 3">
+      <VCol :cols="!iconPlacement ? 4 : 3">
         <VBtnToggle
           :model-value="textStyles"
           @update:modelValue="val => emit('update:textStyles', val)"
