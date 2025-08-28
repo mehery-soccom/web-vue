@@ -179,6 +179,13 @@ const currentComponent = computed(() => {
       <slot :name="slotName" v-bind="slotProps" />
     </template>
 
+    <template
+      v-if="!itemScopedSlots.length && hasSlot('item')"
+      #item="slotProps"
+    >
+      <slot name="item" v-bind="slotProps" />
+    </template>
+
     <!-- Forward no-data slot ( only if provided ) -->
     <template v-if="hasSlot('no-data')" #no-data="slotProps">
       <slot name="no-data" v-bind="slotProps" />
@@ -219,7 +226,7 @@ const currentComponent = computed(() => {
 <style lang="scss">
 .my-data-table {
   .v-table__wrapper {
-    min-height: 100px;
+    min-height: 300px !important;
   }
 }
 </style>
