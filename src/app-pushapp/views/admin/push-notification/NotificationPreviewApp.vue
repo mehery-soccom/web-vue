@@ -1,10 +1,10 @@
 <script setup>
-import { computed, ref } from "vue";
-import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
+import { ref } from "vue";
 import PopUpPreview from "./previews/PopUpPreview.vue";
 import PopOverPreview from "./previews/PopOverPreview.vue";
 import PopPipPreview from "./previews/PopPipPreview.vue";
 import BottomSheetPreview from "./previews/BottomSheetPreview.vue";
+import TooltipPreview from "./previews/TooltipPreview.vue";
 
 const props = defineProps({
   template: {
@@ -14,24 +14,7 @@ const props = defineProps({
 });
 
 const showNotification = ref(false);
-const currentTime = ref("");
-const currentDate = ref("");
 const intervalId = ref(null);
-const { TEMPLATES_CONFIG } = usePushNotification();
-const templateConfig = computed(() => {
-  let r =
-    TEMPLATES_CONFIG[props.template.type][
-      props.template.subType || "default"
-    ] || {};
-  return r;
-});
-const backgroundStyle = computed(() => {
-  let r = props.template.style.bg_color;
-  if (props.template.style.bg_color_gradient) {
-    r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
-  }
-  return r;
-});
 
 onMounted(() => {
   loadNotification();
@@ -49,8 +32,9 @@ const loadNotification = () => {
 const PopupPreviewRef = ref(null);
 const PopoverPreviewRef = ref(null);
 const PoppipPreviewRef = ref(null);
-const BottomsheetPreviewRef = ref(null)
-defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, BottomsheetPreviewRef });
+const BottomsheetPreviewRef = ref(null);
+const TooltipPreviewRef = ref(null);
+defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, BottomsheetPreviewRef, TooltipPreviewRef });
 </script>
 
 <template>
@@ -88,6 +72,13 @@ defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, Bottomsheet
         v-if="template.type === 'bottom-sheet'"
         :template="template"
         ref="BottomsheetPreviewRef"
+      />
+    </transition>
+    <transition name="fade-slide">
+      <TooltipPreview
+        v-if="template.type === 'tooltip'"
+        :template="template"
+        ref="TooltipPreviewRef"
       />
     </transition>
   </div>

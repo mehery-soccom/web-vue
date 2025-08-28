@@ -12,9 +12,10 @@ const types = computed(() => {
   const uniqueTypes = new Map();
   for (const subtype of SUB_TYPES) {
     if (!uniqueTypes.has(subtype.type)) {
+      const matchedType = TYPES.find(t => t.value === subtype.type);
       uniqueTypes.set(subtype.type, {
         type: subtype.type,
-        label: subtype.type.charAt(0).toUpperCase() + subtype.type.slice(1),
+        label: matchedType ? matchedType.label : subtype.type.charAt(0).toUpperCase() + subtype.type.slice(1),
         count: 1,
       });
     } else {
