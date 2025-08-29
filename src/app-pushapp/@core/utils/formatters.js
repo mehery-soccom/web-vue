@@ -52,7 +52,14 @@ import { differenceInDays, format, isYesterday, parseISO } from "date-fns";
 
 export const smartFormatDate = (dateStr, showTime = true) => {
   if (!dateStr) return "";
-  const date = parseISO(dateStr);
+  let date;
+  if (typeof dateStr === "number") {
+    date = new Date(dateStr);
+  } else if (!isNaN(dateStr) && !isNaN(Number(dateStr))) {
+    date = new Date(Number(dateStr));
+  } else {
+    date = parseISO(dateStr);
+  }
   const timeFormat = showTime ? " p" : ""; // e.g., ' 10:45 AM'
 
   if (isToday(date)) {

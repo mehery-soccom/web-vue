@@ -1,6 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
-import EditFormRenderer from "@/app-pushapp/views/config/setup/EditFormRenderer.vue";
+import FormRenderer from "@/app-pushapp/views/config/setup/FormRenderer.vue";
 import { useConfigStore } from "@/app-pushapp/views/config/useConfigStore";
 
 const { show } = inject("snackbar");
@@ -147,7 +146,7 @@ onMounted(async () => {
           selectedConfig.desc
         }}</VCardSubtitle>
         <VCardText>
-          <EditFormRenderer
+          <FormRenderer
             :config="selectedConfig"
             @save="saveEdit"
             @cancel="editDialog = false"
