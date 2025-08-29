@@ -1,10 +1,11 @@
 <script setup>
 import { ref } from "vue";
-import PopUpPreview from "./previews/PopUpPreview.vue";
-import PopOverPreview from "./previews/PopOverPreview.vue";
-import PopPipPreview from "./previews/PopPipPreview.vue";
+import RoadblockPreview from "./previews/RoadblockPreview.vue";
+import BannerPreview from "./previews/BannerPreview.vue";
+import PipPreview from "./previews/PipPreview.vue";
 import BottomSheetPreview from "./previews/BottomSheetPreview.vue";
 import TooltipPreview from "./previews/TooltipPreview.vue";
+import FloaterPreview from "./previews/FloaterPreview.vue";
 
 const props = defineProps({
   template: {
@@ -29,12 +30,13 @@ const loadNotification = () => {
   setTimeout(() => (showNotification.value = true), 100);
 };
 
-const PopupPreviewRef = ref(null);
-const PopoverPreviewRef = ref(null);
-const PoppipPreviewRef = ref(null);
+const RoadblockPreviewRef = ref(null);
+const BannerPreviewRef = ref(null);
+const PipPreviewRef = ref(null);
 const BottomsheetPreviewRef = ref(null);
 const TooltipPreviewRef = ref(null);
-defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, BottomsheetPreviewRef, TooltipPreviewRef });
+const FloaterPreviewRef = ref(null);
+defineExpose({ RoadblockPreviewRef, BannerPreviewRef, PipPreviewRef, BottomsheetPreviewRef, TooltipPreviewRef, FloaterPreviewRef });
 </script>
 
 <template>
@@ -47,24 +49,24 @@ defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, Bottomsheet
     <div v-if="template.view.platform === 'ios'" class="notch-app"></div>
 
     <transition name="fade-slide">
-      <PopUpPreview
-        v-if="template.type === 'pop-up'"
+      <RoadblockPreview
+        v-if="template.type === 'roadblock'"
         :template="template"
-        ref="PopupPreviewRef"
+        ref="RoadblockPreviewRef"
       />
     </transition>
     <transition name="fade-slide">
-      <PopOverPreview
-        v-if="template.type === 'pop-over'"
+      <BannerPreview
+        v-if="template.type === 'banner'"
         :template="template"
-        ref="PopoverPreviewRef"
+        ref="BannerPreviewRef"
       />
     </transition>
     <transition name="fade-slide">
-      <PopPipPreview
-        v-if="template.type === 'pop-pip'"
+      <PipPreview
+        v-if="template.type === 'pip'"
         :template="template"
-        ref="PoppipPreviewRef"
+        ref="PipPreviewRef"
       />
     </transition>
     <transition name="fade-slide">
@@ -79,6 +81,13 @@ defineExpose({ PopupPreviewRef, PopoverPreviewRef, PoppipPreviewRef, Bottomsheet
         v-if="template.type === 'tooltip'"
         :template="template"
         ref="TooltipPreviewRef"
+      />
+    </transition>
+    <transition name="fade-slide">
+      <FloaterPreview
+        v-if="template.type === 'floater'"
+        :template="template"
+        ref="FloaterPreviewRef"
       />
     </transition>
   </div>

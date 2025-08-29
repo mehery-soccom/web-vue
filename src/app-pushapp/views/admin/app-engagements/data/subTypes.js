@@ -560,7 +560,7 @@ export const SUB_TYPES = [
     title: "Roadblock",
     value: "roadblock",
     desc: "",
-    type: "pop-up",
+    type: "roadblock",
     form: {
       fields: [
         // { id: "road-title", name: "", path: "style.title", type: "text", label: "Title", placeholder: "Enter title", required: true, readonly: false, defaultValue: null },
@@ -702,7 +702,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-up",
+          type: "roadblock",
           subType: "roadblock",
           desc: "",
           code: "roadblock",
@@ -757,7 +757,7 @@ export const SUB_TYPES = [
     title: "Roadblock with Image",
     value: "roadblock-image",
     desc: "",
-    type: "pop-up",
+    type: "roadblock",
     form: {
       fields: [
         {
@@ -893,7 +893,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-up",
+          type: "roadblock",
           subType: "roadblock-image",
           desc: "",
           code: "roadblock-image",
@@ -942,7 +942,7 @@ export const SUB_TYPES = [
     title: "Roadblock with Video",
     value: "roadblock-video",
     desc: "",
-    type: "pop-up",
+    type: "roadblock",
     form: {
       fields: [
         {
@@ -1078,7 +1078,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-up",
+          type: "roadblock",
           subType: "roadblock-video",
           desc: "",
           code: "roadblock-video",
@@ -1127,7 +1127,7 @@ export const SUB_TYPES = [
     title: "Roadblock with Image Carousel",
     value: "roadblock-image-carousel",
     desc: "",
-    type: "pop-up",
+    type: "roadblock",
     form: {
       fields: [
         {
@@ -1267,7 +1267,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-up",
+          type: "roadblock",
           subType: "roadblock-image-carousel",
           desc: "",
           code: "roadblock-image-carousel",
@@ -1324,7 +1324,7 @@ export const SUB_TYPES = [
     title: "Roadblock with Video Carousel",
     value: "roadblock-video-carousel",
     desc: "",
-    type: "pop-up",
+    type: "roadblock",
     form: {
       fields: [
         {
@@ -1464,7 +1464,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-up",
+          type: "roadblock",
           subType: "roadblock-video-carousel",
           desc: "",
           code: "roadblock-video-carousel",
@@ -1521,7 +1521,7 @@ export const SUB_TYPES = [
     title: "Banner",
     value: "banner",
     desc: "",
-    type: "pop-over",
+    type: "banner",
     form: {
       fields: [
         {
@@ -1606,7 +1606,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-over",
+          type: "banner",
           subType: "banner",
           desc: "",
           code: "banner",
@@ -1656,7 +1656,7 @@ export const SUB_TYPES = [
     title: "Banner with Image",
     value: "banner-image",
     desc: "",
-    type: "pop-over",
+    type: "banner",
     form: {
       fields: [
         {
@@ -1752,7 +1752,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-over",
+          type: "banner",
           subType: "banner-image",
           desc: "",
           code: "banner-image",
@@ -1802,7 +1802,7 @@ export const SUB_TYPES = [
     title: "Banner with Buttons",
     value: "banner-button",
     desc: "",
-    type: "pop-over",
+    type: "banner",
     form: {
       fields: [
         {
@@ -1899,7 +1899,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-over",
+          type: "banner",
           subType: "banner-button",
           desc: "",
           code: "banner-button",
@@ -1952,7 +1952,7 @@ export const SUB_TYPES = [
     title: "Banner with Image & Buttons",
     value: "banner-image-button",
     desc: "",
-    type: "pop-over",
+    type: "banner",
     form: {
       fields: [
         {
@@ -2060,7 +2060,7 @@ export const SUB_TYPES = [
             mode: "collapse",
             appearance: "light",
           },
-          type: "pop-over",
+          type: "banner",
           subType: "banner-image-button",
           desc: "",
           code: "banner-image-button",
@@ -2113,7 +2113,7 @@ export const SUB_TYPES = [
     title: "Picture in picture Image",
     value: "picture-in-picture-image",
     desc: "",
-    type: "pop-pip",
+    type: "pip",
     form: {
       fields: [
         {
@@ -2164,7 +2164,7 @@ export const SUB_TYPES = [
             mode: "collapse",      // or "expand"
             appearance: "light",   // or "dark"
           },
-          type: "pop-pip",
+          type: "pip",
           subType: "picture-in-picture-image",
           desc: "",
           code: "picture-in-picture-image",
@@ -2195,7 +2195,7 @@ export const SUB_TYPES = [
     title: "Picture in picture Video",
     value: "picture-in-picture-video",
     desc: "",
-    type: "pop-pip",
+    type: "pip",
     form: {
       fields: [
         {
@@ -2246,7 +2246,7 @@ export const SUB_TYPES = [
             mode: "collapse",      // or "expand"
             appearance: "light",   // or "dark"
           },
-          type: "pop-pip",
+          type: "pip",
           subType: "picture-in-picture-video",
           desc: "",
           code: "picture-in-picture-video",
@@ -2906,6 +2906,144 @@ export const SUB_TYPES = [
             bg_color_gradient_dir: null,
             bg_image_url: "",
             code: "tooltip",
+            line1_font_color: "",
+            line1_font_size: 12,
+            line1_font_text_styles: [],
+            line1_text_styles: ["bold"],
+            line1_icon: "&#9888;",
+            line1_icon_position: "prepend",
+            line2_font_color: "",
+            line2_font_size: 10,
+            line2_font_text_styles: [],
+            line2_text_styles: ["bold"],
+            line_1: "F&O Expiry today",
+            line_2: "All Open F&O positions will be expiring today",
+            logo_url: "",
+            message: "",
+            title: "",
+            width: 60
+          },
+      },
+      live: {},
+    },
+  },
+  {
+    class: "in-app",
+    label: "Floater",
+    title: "Floater",
+    value: "floater",
+    desc: "",
+    type: "floater",
+    form: {
+      fields: [
+        {
+          id: "road-vid-bg-color",
+          name: "",
+          path: "style.width",
+          type: "text",
+          label: "Width (in %)",
+          placeholder: "From 30-100",
+          cols: 3,
+          required: true,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-bg-color",
+          name: "",
+          path: "style.bg_color",
+          type: "color",
+          label: "Background Color",
+          placeholder: "Enter color",
+          cols: 3,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-bg-gradient",
+          name: "",
+          path: "style.bg_color_gradient",
+          type: "color",
+          label: "Color gradient",
+          placeholder: "Enter color",
+          cols: 3,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-bg-gradient-dir",
+          name: "",
+          path: "style.bg_color_gradient_dir",
+          type: "select",
+          label: "Color gradient direction",
+          optionsPath: GRADIENT_DIRS_2,
+          placeholder: "",
+          cols: 3,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-img-image",
+          name: "",
+          path: "style.bg_image_url",
+          type: "file",
+          label: "Background Image",
+          required: false,
+        },
+        {
+          id: "road-line1",
+          name: "",
+          path: "style.line_1",
+          type: "textinputstyle",
+          label: "Line 1 Text",
+          placeholder: "Enter text for line 1",
+          line: 1,
+          textinputstylesKey: "data",
+          fontSizeKey: "style.line1_font_size",
+          fontColorKey: "style.line1_font_color",
+          textStylesKey: "style.line1_text_styles",
+          iconKey: "style.line1_icon",
+          iconPlacement: "style.line1_icon_position",
+        },
+        {
+          id: "road-line2",
+          name: "",
+          path: "style.line_2",
+          type: "textinputstyle",
+          label: "Line 2 Text",
+          placeholder: "Enter text for line 2",
+          line: 2,
+          textinputstylesKey: "data",
+          fontSizeKey: "style.line2_font_size",
+          fontColorKey: "style.line2_font_color",
+          textStylesKey: "style.line2_text_styles",
+        },
+      ],
+    },
+    preview: {
+      dummy: {
+          title: "Floater",
+          view: {
+            platform: "ios",
+            layout: "bottom",
+            mode: "collapse",
+            appearance: "light",
+          },
+          type: "floater",
+          subType: "floater",
+          desc: "",
+          code: "floater",
+          model: { data: [] },
+          style: {
+            align: "center",
+            bg_color: "",
+            bg_color_gradient: "",
+            bg_color_gradient_dir: null,
+            bg_image_url: "",
+            code: "floater",
             line1_font_color: "",
             line1_font_size: 12,
             line1_font_text_styles: [],
