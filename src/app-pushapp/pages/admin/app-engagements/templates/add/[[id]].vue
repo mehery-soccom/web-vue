@@ -252,59 +252,31 @@ const isValid = async () => {
 const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
+const fetchDetails = async (val) => {
+  AppEngagementsStore.fetchTemplate({ id: val })
+    .then(async (response) => {
+      const _template = response.data.data;
+      Object.assign(template, {
+        ...template,
+        ..._template,
+      });
+      await nextTick();
+      isInitialLoad.value = false;
+      isPreStep.value = false;
+    })
+    .catch((error) => {
+      console.log(error);
+      show({ message: "Something went wrong 1", color: "error" });
+    });
+}
 
 onMounted(async () => {
   console.log("first", PARAM_ID, QUERY_COPY);
-  if (PARAM_ID) {
-    AppEngagementsStore.fetchTemplate({ id: PARAM_ID })
-      .then(async (response) => {
-        const _template = response.data.data;
-        Object.assign(template, {
-          ...template,
-          ..._template,
-        });
-        await nextTick();
-        isInitialLoad.value = false;
-        isPreStep.value = false;
-      })
-      .catch((error) => {
-        console.log(error);
-        show({ message: "Something went wrong 1", color: "error" });
-      });
-  } else if (QUERY_EDIT) {
-    AppEngagementsStore.fetchTemplate({ id: QUERY_EDIT })
-      .then(async (response) => {
-        const _template = response.data.data;
-        Object.assign(template, {
-          ...template,
-          ..._template,
-        });
-        await nextTick();
-        isInitialLoad.value = false;
-        isPreStep.value = false;
-      })
-      .catch((error) => {
-        console.log(error);
-        show({ message: "Something went wrong 2", color: "error" });
-      });
-  } else {
-    if (QUERY_COPY) {
-      AppEngagementsStore.fetchTemplate({ id: QUERY_COPY })
-        .then(async (response) => {
-          const _template = response.data.data;
-          Object.assign(template, {
-            ...template,
-            ..._template,
-          });
-          await nextTick();
-          isInitialLoad.value = false;
-          isPreStep.value = false;
-        })
-        .catch((error) => {
-          console.log(error);
-          show({ message: "Something went wrong 2", color: "error" });
-        });
-    } else isInitialLoad.value = false;
+  if (PARAM_ID) await fetchDetails(PARAM_ID);
+  else if (QUERY_EDIT) await fetchDetails(QUERY_EDIT);
+  else {
+    if (QUERY_COPY) await fetchDetails(QUERY_COPY);
+    else isInitialLoad.value = false;
   }
 });
 function goToPreStep() {
@@ -380,7 +352,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
                 </div>
               </div>
             </v-col>
-            <v-col class="pa-0" cols="auto">
+            <v-col class="pa-0" cols="auto" v-if="!(PARAM_ID || QUERY_COPY || QUERY_EDIT)">
               <v-btn variant="outlined" color="primary" @click="goToPreStep">
                 ← Back to pre step
               </v-btn>
@@ -447,7 +419,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
                             v-model="template.desc"
                             label="Template Name"
                             placeholder="Enter name"
-                            :rules="[required]"
+                            :rules="[required]" :disabled="!!(PARAM_ID || QUERY_EDIT)"
                             prepend-inner-icon="mdi-text-box"
                           />
                         </VCol>
@@ -505,7 +477,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
         v-if="!isPreStep"
         cols="12"
         md="4"
-        style="position: sticky; top: 10px; align-self: flex-start"
+        style="margin-top: 13px;"
       >
         <VRow style="height: 100%; max-height: 550px">
           <v-col cols="12" class="d-flex justify-center pt-0">

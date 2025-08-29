@@ -60,7 +60,7 @@ onBeforeUnmount(() => {
         }"
       >
         <div class="tooltip-content">
-          <div class="line1 ellipsisi road"
+          <div class="line1 road"
             :style="{
               color: template.style.line1_font_color,
               fontSize: (template.style.line1_font_size * scale) + 'px',
@@ -73,7 +73,7 @@ onBeforeUnmount(() => {
             {{ _bind(props.template.style.line_1) }}
             <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'append'" v-html="template.style.line1_icon" />
           </div>
-          <div class="line2 ellipsisi road"
+          <div class="line2 road"
             :style="{
               color: template.style.line2_font_color,
               fontSize: (template.style.line2_font_size * scale) + 'px',
@@ -109,13 +109,6 @@ onBeforeUnmount(() => {
 }
 .line1, .line2, .line3 {
   margin-bottom: 2px;
-}
-.ellipsisi {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 .pop-up-dimensions {
   position: absolute;

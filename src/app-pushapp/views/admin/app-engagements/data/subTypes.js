@@ -52,6 +52,7 @@ export const TEMPLATE_ALIGN_2 = [
   { title: "right to left", value: "right" },
 ];
 export const ICONS_LIST = [
+  { icon:"", title:"None", value:"" },
   { icon: "❤️", title: "Heart", value: "&#10084;" },
   { icon: "⭐", title: "Star", value: "&#11088;" },
   { icon: "✅", title: "Check", value: "&#9989;" },
