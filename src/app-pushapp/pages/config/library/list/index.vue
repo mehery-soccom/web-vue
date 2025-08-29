@@ -9,7 +9,7 @@ const items = ref([]);
 const headers = [
   { title: "Name", key: "label" },
   { title: "Key", key: "key" },
-  { title: "Default Version", key: "defaultVersion" },
+  { title: "Active Version", key: "defaultVersion" },
   { title: "Actions", key: "actions", sortable: false },
 ];
 
