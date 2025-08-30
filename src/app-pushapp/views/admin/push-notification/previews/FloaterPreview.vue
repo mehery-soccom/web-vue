@@ -5,87 +5,47 @@ const props = defineProps({
   template: { type: Object, required: true },
 });
 
-function getValueByPath(obj, path) {
-  return path.split('.').reduce((acc, key) => acc?.[key], obj);
-}
-
-function _bind(template) {
-  const data = props.template?.model || {};
-  return template.replace(/{{\s*([\w]+)\.([\w$.]+)\s*}}/g, (_, prefix, path) => {
-    const fullPath = `${prefix}.${path}`;
-    const value = getValueByPath(data, fullPath);
-    return value !== undefined && value !== '' ? value : `{{${fullPath}}}`;
-  });
-}
-
+const isVideo = computed(() => !!props.template.style.video_url);
 const backgroundStyle = computed(() => {
-  const style = props.template.style;
-  if (style.bg_image_url) {
-    return `url(${style.bg_image_url}) center/cover no-repeat`;
+  if(!isVideo.value){
+    const url = props.template.style.image_url;
+    return `url(${url}) center/cover no-repeat`;
   }
-  if (style.bg_color_gradient) {
-    return `linear-gradient(${style.bg_color_gradient_dir}, ${style.bg_color}, ${style.bg_color_gradient})`;
-  }
-  return style.bg_color;
 });
+const isMinimized = ref(true);
 
-const scale = ref(1);
-const wrapperRef = ref(null);
+const containerStyle = computed(() => ({
+  display: "flex",
+  justifyContent: props.template.style.horizontal_align,
+  alignItems: props.template.style.vertical_align,
+  width: "100%",
+  height: "100%",
+}));
 
-function updateScale() {
-  if (!wrapperRef.value) return;
-  const width = wrapperRef.value.offsetWidth;
-  scale.value = width > 270 ? 1 : width / 350;
-}
+const toggleMinimize = () => {
+  isMinimized.value = !isMinimized.value;
+};
 
-onMounted(()=>{
-  updateScale();
-  window.addEventListener("resize", updateScale);
-})
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", updateScale);
-});
+onMounted(()=>{ })
 </script>
 
 <template>
   <transition name="fade-slide">
-    <div class="preview-wrapper pop-up-dimensions" ref="wrapperRef">
-      <div 
-        class="tooltip-block"
-        :style="{
-          width: template.style.width + '%',
-          left: '20px',
-          bottom: '62%',
-          background: backgroundStyle
-        }"
-      >
-        <div class="tooltip-content">
-          <div class="line1 ellipsisi road"
-            :style="{
-              color: template.style.line1_font_color,
-              fontSize: (template.style.line1_font_size * scale) + 'px',
-              fontWeight: template.style.line1_text_styles?.includes('bold') ? 'bold' : 'normal',
-              fontStyle: template.style.line1_text_styles?.includes('italic') ? 'italic' : 'normal',
-              textDecoration: template.style.line1_text_styles?.includes('underline') ? 'underline' : 'none',
-            }"
-          >
-            <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'prepend'" v-html="template.style.line1_icon" />
-            {{ _bind(props.template.style.line_1) }}
-            <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'append'" v-html="template.style.line1_icon" />
-          </div>
-          <div class="line2 ellipsisi road"
-            :style="{
-              color: template.style.line2_font_color,
-              fontSize: (template.style.line2_font_size * scale) + 'px',
-              fontWeight: template.style.line2_text_styles?.includes('bold') ? 'bold' : 'normal',
-              fontStyle: template.style.line2_text_styles?.includes('italic') ? 'italic' : 'normal',
-              textDecoration: template.style.line2_text_styles?.includes('underline') ? 'underline' : 'none',
-            }"
-          >
-            {{ _bind(props.template.style.line_2) }}
-          </div>
+    <div class="preview-wrapper pop-up-dimensions">
+      <div :style="containerStyle">
+        <div :style="[{ background: backgroundStyle }]" class="export-content">
+            <video
+            v-if="props.template.style.video_url"
+            :src="props.template.style.video_url"
+            autoplay
+            muted
+            loop
+            playsinline
+            style="width: 100%; height: 100%; object-fit: cover;"
+            ></video>
+            <!-- <div v-if="isMinimized" class="close-btn mini" @click="toggleMinimize"><img src="./../../../../assets/images/icons/previews/maximize.png" alt="Max" style="color: white;"></img></div>
+            <div v-else class="close-btn">&times;</div> -->
         </div>
-        <div class="tooltip-arrow"></div>
       </div>
     </div>
   </transition>
@@ -107,26 +67,14 @@ onBeforeUnmount(() => {
   position: absolute;
   bottom: 80px;
 }
-.line1, .line2, .line3 {
-  margin-bottom: 2px;
-}
-.ellipsisi {
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .pop-up-dimensions {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
   width: 100%;
-  /* max-width: 380px; */
   aspect-ratio: 9 / 16;
-  background-image: url("@app-pushapp/assets/images/icons/previews/tooltipbg.png");
-  background-size: cover;
+  background-color: rgb(255, 255, 255);
   border-radius: 20px;
   position: relative;
   overflow: hidden;
@@ -136,34 +84,14 @@ onBeforeUnmount(() => {
   flex-direction: column;
   justify-content: flex-start;
 }
-.tooltip-block {
-  position: absolute;
-  background: white;
-  border-radius: 10px;
-  padding: 6px 8px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  text-align: left;
-  max-width: 90%;
-}
 
-.tooltip-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+.export-content {
+  width: 33%;
+  height: 33%;
+  margin: 13px;
+  position: relative;
 }
-
-.tooltip-arrow {
-  position: absolute;
-  bottom: -8px;
-  left: 30px;
-  width: 0;
-  height: 0;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-top: 8px solid white;
-}
-
-.road.line1, .road.line2{
-  color: black;
+video::-webkit-media-controls { 
+    display: none !important; 
 }
 </style>
