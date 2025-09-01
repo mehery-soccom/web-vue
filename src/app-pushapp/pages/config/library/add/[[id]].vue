@@ -64,9 +64,9 @@ const disableSave = computed(() => {
   return JSON.stringify(item) === JSON.stringify(itemCopy);
 });
 const disablePublish = computed(() => {
-  return (
+  return !!(
     JSON.stringify(item.options) === JSON.stringify(itemCopy.options) &&
-    !!item.defaultVersion
+    !item.options.length
   );
 });
 const formRef = ref();
@@ -395,6 +395,15 @@ onMounted(() => {
         >
           Exit
         </VBtn>
+
+        <VBtn
+          v-if="tab === 'versions'"
+          prepend-icon="tabler-plus"
+          color="primary"
+          @click="tab = 'details'"
+        >
+          New Version</VBtn
+        >
 
         <VBtn
           v-if="tab === 'details'"

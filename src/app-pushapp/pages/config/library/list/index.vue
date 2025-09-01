@@ -10,6 +10,7 @@ const headers = [
   { title: "Name", key: "label" },
   { title: "Key", key: "key" },
   { title: "Active Version", key: "defaultVersion" },
+  { title: "Created by", key: "created.byUser" },
   { title: "Actions", key: "actions", sortable: false },
 ];
 

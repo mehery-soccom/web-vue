@@ -23,7 +23,7 @@ export const useLibraryStore = defineStore("LibraryStore", {
       });
     },
     read({ id, ...params }) {
-      return DataService.axios.get(`/api/v1/catalog/${id}`, params);
+      return DataService.axios.get(`/api/v1/catalog/${id}`, { params });
     },
     update({ id, ...params }) {
       return DataService.axios.patch(`/api/v1/catalog/${id}`, params);
@@ -33,6 +33,9 @@ export const useLibraryStore = defineStore("LibraryStore", {
     },
     publish({ id, ...params }) {
       return DataService.axios.post(`/api/v1/catalog/${id}/publish`, params);
+    },
+    readOptions({ id, ...params }) {
+      return DataService.axios.get(`/api/v1/catalog/${id}/options`, { params });
     },
   },
 });

@@ -1,6 +1,7 @@
 <script setup>
 import { ref } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
+import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 
 const props = defineProps({
   element: { type: Object, required: true },
@@ -12,73 +13,15 @@ const emit = defineEmits(["remove", "update"]);
 const hasError = ref(false);
 
 // === Constants ===
-const optionsMap = {
-  /* Events */
-  app_open: {
-    type: "event",
-    title: "App open",
-    value: "app_open",
-    freqFieldMeta: true,
-  },
-  page_open: {
-    type: "event",
-    title: "Page open",
-    value: "page_open",
-    inputFieldMeta: {
-      type: "select",
-      options: [{ title: "Login", value: "login" }],
-    },
-  },
-  page_close: { type: "event", title: "Page close", value: "page_close" },
-  widget_open: {
-    type: "event",
-    title: "widget open",
-    value: "widget_open",
-    inputFieldMeta: {
-      type: "text",
-    },
-  },
-  widget_close: { type: "event", title: "Widget close", value: "widget_close" },
-
-  /* Attributes */
-  platform: {
-    type: "attribute",
-    title: "Platform",
-    value: "platform",
-    inputFieldMeta: {
-      type: "select",
-      options: [
-        { title: "iOS", value: "ios" },
-        { title: "Android", value: "android" },
-      ],
-    },
-  },
-};
-const options = Object.values(optionsMap);
-
-const eventOptions = options.filter((o) => o.type === "event");
-const attributeOptions = options.filter((o) => o.type === "attribute");
-
-const eventOperators = [
-  { title: "Is", value: "is" },
-  { title: "Is not", value: "is_not" },
-];
-const attributeOperators = [
-  { title: "Equals", value: "equals" },
-  { title: "Not equals", value: "not_equals" },
-];
-const freqOperators = [
-  { title: "Exactly", value: "exactly" },
-  { title: "Less than", value: "less_than" },
-  { title: "More than", value: "more_than" },
-];
-
-const freqPeriods = [
-  { title: "Today", value: "today" },
-  { title: "Yesterday", value: "yesterday" },
-  { title: "In last 7 days", value: "last_7_days" },
-  { title: "In last 30 days", value: "last_30_days" },
-];
+const {
+  FILTER_OPTIONS_MAP,
+  FILTER_EVENT_OPTIONS,
+  FILTER_ATTRIBUTE_OPTIONS,
+  eventOperators,
+  attributeOperators,
+  freqOperators,
+  freqPeriods,
+} = useAppEngagements();
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
@@ -91,11 +34,14 @@ const isValid = (silent = false) => {
   const el = props.element;
   let valid = true;
   if (!el.field) valid = false;
-  if (optionsMap[el.field]?.inputFieldMeta && (!el.operator || !el.value))
+  if (
+    FILTER_OPTIONS_MAP[el.field]?.inputFieldMeta &&
+    (!el.operator || !el.value)
+  )
     valid = false;
   if (
     el.filterType === "event" &&
-    optionsMap[el.field]?.freqFieldMeta &&
+    FILTER_OPTIONS_MAP[el.field]?.freqFieldMeta &&
     (!el.freqOperator || !el.freqCount || !el.freqPeriod)
   )
     valid = false;
@@ -143,7 +89,7 @@ defineExpose({ isValid });
       <AppSelect
         v-if="element.filterType === 'event'"
         v-model="element.field"
-        :items="eventOptions"
+        :items="FILTER_EVENT_OPTIONS"
         placeholder="Select Event"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
@@ -151,7 +97,7 @@ defineExpose({ isValid });
       <AppSelect
         v-else
         v-model="element.field"
-        :items="attributeOptions"
+        :items="FILTER_ATTRIBUTE_OPTIONS"
         placeholder="Select Attribute"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
@@ -159,7 +105,7 @@ defineExpose({ isValid });
 
       <!-- Operator -->
       <AppSelect
-        v-if="optionsMap[element.field]?.inputFieldMeta"
+        v-if="FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta"
         v-model="element.operator"
         :items="
           element.filterType === 'event'
@@ -174,11 +120,15 @@ defineExpose({ isValid });
       />
 
       <!-- Value -->
-      <template v-if="optionsMap[element.field]?.inputFieldMeta">
+      <template v-if="FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta">
         <AppSelect
-          v-if="optionsMap[element.field]?.inputFieldMeta?.type === 'select'"
+          v-if="
+            FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta?.type === 'select'
+          "
           v-model="element.value"
-          :items="optionsMap[element.field]?.inputFieldMeta?.options || []"
+          :items="
+            FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta?.options || []
+          "
           placeholder="Select Value"
           class="filter-entity value"
           :disabled="!element.field"
@@ -198,7 +148,7 @@ defineExpose({ isValid });
       <div
         v-if="
           element.filterType === 'event' &&
-          optionsMap[element.field]?.freqFieldMeta
+          FILTER_OPTIONS_MAP[element.field]?.freqFieldMeta
         "
         class="d-flex align-center gap-2"
       >
