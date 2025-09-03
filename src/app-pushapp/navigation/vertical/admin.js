@@ -13,18 +13,18 @@ export default [
         title: "Templates",
         to: "admin-push-notification-templates-list",
       },
-      {
-        title: "Blast",
-        to: "admin-push-notification-campaigns-add",
-      },
       // {
-      //   title: "Trigger Rules",
-      //   to: "admin-push-notification-trigger-rules-list",
+      //   title: "Blast",
+      //   to: "admin-push-notification-campaigns-add",
       // },
-      {
-        title: "Campaigns",
-        to: "admin-push-notification-campaigns-list",
-      },
+      // // {
+      // //   title: "Trigger Rules",
+      // //   to: "admin-push-notification-trigger-rules-list",
+      // // },
+      // {
+      //   title: "Campaigns",
+      //   to: "admin-push-notification-campaigns-list",
+      // },
     ],
   },
   {

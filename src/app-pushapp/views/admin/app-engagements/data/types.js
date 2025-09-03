@@ -53,4 +53,11 @@ export default [
     value: "floater",
     desc: "",
   },
+  {
+    class: "in-app",
+    label: "Inline",
+    category: "pop-in",
+    value: "inline",
+    desc: "",
+  },
 ];

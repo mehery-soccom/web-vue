@@ -10,7 +10,7 @@ import config from "./config";
 export default [
   ...dashboard,
   ...admin,
-  ...config,
+  // ...config,
   // ...appAndPages,
   // ...uiElements,
   // ...forms,

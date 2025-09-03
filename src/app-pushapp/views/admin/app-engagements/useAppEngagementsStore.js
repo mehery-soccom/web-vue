@@ -346,5 +346,8 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
         params
       );
     },
+    fetchPlaceholders() {
+      return DataService.axios.get(`/api/v1/catalog/placeholders/options`);
+    },
   },
 });

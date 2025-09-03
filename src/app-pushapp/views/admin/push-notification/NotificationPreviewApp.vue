@@ -6,6 +6,7 @@ import PipPreview from "./previews/PipPreview.vue";
 import BottomSheetPreview from "./previews/BottomSheetPreview.vue";
 import TooltipPreview from "./previews/TooltipPreview.vue";
 import FloaterPreview from "./previews/FloaterPreview.vue";
+import InlinePreview from "./previews/InlinePreview.vue";
 
 const props = defineProps({
   template: {
@@ -36,7 +37,8 @@ const PipPreviewRef = ref(null);
 const BottomsheetPreviewRef = ref(null);
 const TooltipPreviewRef = ref(null);
 const FloaterPreviewRef = ref(null);
-defineExpose({ RoadblockPreviewRef, BannerPreviewRef, PipPreviewRef, BottomsheetPreviewRef, TooltipPreviewRef, FloaterPreviewRef });
+const InlinePreviewRef = ref(null);
+defineExpose({ RoadblockPreviewRef, BannerPreviewRef, PipPreviewRef, BottomsheetPreviewRef, TooltipPreviewRef, FloaterPreviewRef, InlinePreviewRef });
 </script>
 
 <template>
@@ -88,6 +90,13 @@ defineExpose({ RoadblockPreviewRef, BannerPreviewRef, PipPreviewRef, Bottomsheet
         v-if="template.type === 'floater'"
         :template="template"
         ref="FloaterPreviewRef"
+      />
+    </transition>
+    <transition name="fade-slide">
+      <InlinePreview
+        v-if="template.type === 'inline'"
+        :template="template"
+        ref="InlinePreviewRef"
       />
     </transition>
   </div>

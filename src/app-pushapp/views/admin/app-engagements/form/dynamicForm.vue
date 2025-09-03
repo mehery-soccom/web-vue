@@ -12,8 +12,10 @@ import MyMultipleFilesUpload from '@/@common/components/vuexy/MyMultipleFilesUpl
 import MySelectExtended from '@/@common/components/vuexy/MySelectExtended.vue'
 import MyTextInputStyle from '@/@common/components/vuexy/MyTextInputStyle.vue'
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
+import { useAppEngagementsStore } from '../useAppEngagementsStore'
 import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } from '../data/subTypes'
 
+const AppEngagementsStore = useAppEngagementsStore()
 // Props & emits
 const props = defineProps({
   formData: { type: Object, required: true },
@@ -25,13 +27,21 @@ const emit = defineEmits(['update:formData'])
 // Local data mirror
 const local = reactive(JSON.parse(JSON.stringify(props.formData)))
 let isUpdating = false;
-const lineOpen = reactive({ 1: false, 2: false, 3: false });
-function toggleLine(line) {
-    lineOpen[line] = !lineOpen[line];
-}
 const required = (v) => !!v || "This field is required";
-const extendedVisible = reactive({})
+const placeholders = ref([]);
 
+watch(() => get(local, 'style.placeholder_id'), 
+  (newVal) => {
+    if (!newVal) return;
+    const selected = placeholders.value.find(p => p.code === newVal);
+    if (selected) {
+      local.style.height = selected.height;
+      local.style.width = selected.width;
+      emit('update:formData', JSON.parse(JSON.stringify(local)));
+    }
+    console.log("abc", selected, placeholders.value)
+  }
+);
 // Sync back on change
 watch(() => props.formData, newVal => {
   if (!isUpdating) {
@@ -50,7 +60,6 @@ watch(local, () => {
   }
 }, { deep: true })
 
-
 // Validation
 function validate() {
   const errors = []
@@ -63,6 +72,11 @@ function validate() {
   console.log("called after", props.formData, props.fields, errors)
   return { valid: errors.length === 0, errors }
 }
+onMounted(async () => {
+  const res = await AppEngagementsStore.fetchPlaceholders()
+  placeholders.value = res.data.results;
+  console.log("ress", res.data.results, placeholders, placeholders.value)
+})
 
 defineExpose({ validate });
 </script>
@@ -92,6 +106,15 @@ defineExpose({ validate });
         :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
         item-title="title"
         item-value="value"
+      />
+      <AppSelect
+        v-if="f.type === 'selectPlaceholder'"
+        :model-value="get(local, f.path)"
+        @update:modelValue="val => set(local, f.path, val)"
+        :items="placeholders || []"
+        :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
+        item-title="label"
+        item-value="code"
       />
       <MyFileInputUpload
         v-if="f.type === 'file'"
