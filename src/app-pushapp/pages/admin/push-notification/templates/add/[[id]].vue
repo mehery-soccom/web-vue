@@ -3,6 +3,7 @@ import { toRef } from "vue";
 import NotificationPreview from "@app-pushapp/views/admin/push-notification/NotificationPreview.vue";
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
+import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
 const { show } = inject("snackbar");
 
 const required = (v) => !!v || "This field is required";
@@ -22,7 +23,7 @@ const PARAM_ID = route.params.id;
 const QUERY_COPY = route.query.copy;
 
 const router = useRouter();
-
+const fromMetaStore = useMetaStore();
 const pushNotificationStore = usePushNotificationStore();
 const { FONT_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATES_CONFIG } =
   usePushNotification();
@@ -153,6 +154,7 @@ onMounted(async () => {
         });
     }
   }
+  if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
 });
 
 const onCreate = async () => {
@@ -303,6 +305,7 @@ watch(
     if (val === "simple") {
       template.subType = null;
     }
+    if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
   }
 );
 
@@ -311,6 +314,7 @@ watch(
   (val) => {
     if (val) template.style.code = val;
     else template.style.code = "simple";
+    if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
   }
 );
 </script>
@@ -406,6 +410,12 @@ watch(
                         />
                       </VCol>
 
+                      <VCol cols="12">
+                        <MyFileInputUpload
+                          v-model="template.style.logo_url"
+                          label="Upload Logo"
+                        />
+                      </VCol>
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
