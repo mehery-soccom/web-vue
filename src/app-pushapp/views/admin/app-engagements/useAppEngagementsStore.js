@@ -287,17 +287,14 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
     createTemplate(params) {
       return DataService.axios.post("/api/templates/in-app", params);
     },
-    async fetchTemplates() {
-      let apiRes = await DataService.axios.get("/api/templates/in-app");
-      this.templates = apiRes.data.results;
-      let res = {
-        results: apiRes.data.results,
-        data: {
-          total: apiRes.data.pagination?.total,
-          page: apiRes.data.pagination?.pageNo || 1,
-        },
-      };
-      return res;
+    async fetchTemplates(params){
+      let { page, itemsPerPage, sortBy, filters } = params;
+      let sort = sortBy
+        .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
+        .join(",");
+      return DataService.axios.get(`/api/templates/in-app`, {
+        params: { page, limit: itemsPerPage, sort: sort || "-createdAt", search: filters },
+      });
     },
     fetchTemplate({ id }) {
       return DataService.axios.get(`/api/templates/in-app/${id}`);

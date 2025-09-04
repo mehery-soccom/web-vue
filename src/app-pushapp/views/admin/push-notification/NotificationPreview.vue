@@ -342,18 +342,20 @@ watch(
 .ios-wallpaper {
   position: absolute;
   inset: 0;
-  background-image: url("@app-pushapp/assets/images/pages/wallpaper_ios_1.png");
-  background-size: cover;
-  background-position: center;
+  background-color: #000;
+  // background-image: url("@app-pushapp/assets/images/pages/wallpaper_ios_1.png");
+  // background-size: cover;
+  // background-position: center;
   z-index: 0;
 }
 
 .android-wallpaper {
   position: absolute;
   inset: 0;
-  background-image: url("@app-pushapp/assets/images/pages/wallpaper_android_1.png");
-  background-size: cover;
-  background-position: center;
+  background-color: black;
+  // background-image: url("@app-pushapp/assets/images/pages/wallpaper_android_1.png");
+  // background-size: cover;
+  // background-position: center;
   z-index: 0;
 }
 .ios-white-background {
