@@ -11,6 +11,7 @@ const props = defineProps({
   label: String,
   placeholder: String,
   max: Number,
+  swatches: Array,
 })
 
 const emit = defineEmits(['update:modelValue', 'update:styleData'])
@@ -142,14 +143,14 @@ function updateStyle(key, value) {
               <MyColorPicker
                 :model-value="props.styleData[`button${i + 1}_bg_color`]"
                 @update:modelValue="val => updateStyle(`button${i + 1}_bg_color`, val)"
-                label="Button Background Color"
+                label="Button Background Color" :showSwatch="true" :swatches="props.swatches"
               />
           </v-col>
           <v-col cols="4">
               <MyColorPicker
                 :model-value="props.styleData[`button${i + 1}_font_color`]"
                 @update:modelValue="val => updateStyle(`button${i + 1}_font_color`, val)"
-                label="Button Font Color"
+                label="Button Font Color" :showSwatch="true" :swatches="props.swatches"
               />
           </v-col>
         </VRow>
