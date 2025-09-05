@@ -21,6 +21,7 @@ const props = defineProps({
   icon: { type: [String, Number, Boolean], default: null },
   iconPlacement: { type: String, default: null },
   suggestions: { type: Array, default: () => [] },
+  swatches: Array,
 })
 
 const emit = defineEmits([
@@ -72,9 +73,9 @@ watch(() => props.modelValue, (val) => {
       </VCol>
       <VCol :cols="!iconPlacement ? 4 : 3">
         <MyColorPicker
-          :model-value="fontColor || ''"
+          :model-value="fontColor || '#000001'"
           @update:modelValue="val => emit('update:fontColor', val)"
-          placeholder="Font Color"
+          placeholder="Font Color" :showSwatch="true" :swatches="props.swatches"
         />
       </VCol>
       <VCol :cols="!iconPlacement ? 4 : 3">

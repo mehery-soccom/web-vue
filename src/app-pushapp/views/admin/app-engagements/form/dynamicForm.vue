@@ -18,7 +18,7 @@ import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN,
 
 const AppEngagementsStore = useAppEngagementsStore()
 const fromMetaStore = useMetaStore();
-let swatch = [];
+const swatch = ref([]);
 // Props & emits
 const props = defineProps({
   formData: { type: Object, required: true },
@@ -77,7 +77,7 @@ function validate() {
 }
 onMounted(async () => {
   const saved = fromMetaStore?.$state?.meta?.prefs?.pa_app_colorlist_saved;
-  if (Array.isArray(saved)) swatch = saved.map(c => [c.value]);
+  if (Array.isArray(saved)) swatch.value = saved.map(c => [c.value]);
   const res = await AppEngagementsStore.fetchPlaceholders()
   placeholders.value = res.data.results;
   console.log("ress", res.data.results, placeholders, placeholders.value)
@@ -130,7 +130,7 @@ defineExpose({ validate });
       />
       <MyColorPicker
         v-if="f.type === 'color'"
-        :model-value="get(local, f.path) || ''"
+        :model-value="get(local, f.path) || '#000001'"
         @update:modelValue="val => set(local, f.path, val)"
         :label="f.label" :placeholder="f.placeholder" 
         :showSwatch="f.showSwatch" :swatches="swatch"
@@ -151,7 +151,7 @@ defineExpose({ validate });
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
         :style-data="local.style"
-        :label="f.label"
+        :label="f.label" :swatches="swatch"
         :rules="f.required ? [required] : []"
         :placeholder="f.placeholder"
         :max="f.max"
@@ -181,57 +181,11 @@ defineExpose({ validate });
         @update:icon="val => set(local, f.iconKey, val)"
         :font-sizes-list="FONT_SIZES"
         :icons-list="ICONS_LIST"
-        :label="f.label"
+        :label="f.label" :swatches="swatch"
         :placeholder="f.placeholder"
         :rules="f.required ? [required] : []"
         :suggestions="get(local, 'model.' + f.textinputstylesKey)"
       />
-      <!-- <div v-if="f.type === 'textinputstyle'">
-        <VRow no-gutters align="end">
-          <VCol cols="11">
-            <AppTextSuggestion
-              :model-value="get(local, f.path)"
-              @update:modelValue="val => set(local, f.path, val)"
-              :label="f.label"
-              :placeholder="f.placeholder"
-              :rules="f.required ? [required] : []"
-              :suggestions="get(local, 'model.' + f.textinputstylesKey)"
-            />
-          </VCol>
-          <VCol cols="1" class="d-flex align-center justify-end">
-            <VBtn icon variant="text" @click="toggleLine(f.line)">
-              <VIcon>{{ lineOpen[f.line] ? 'mdi-chevron-up' : 'mdi-pencil' }}</VIcon>
-            </VBtn>
-          </VCol>
-        </VRow>
-        <v-row class="mt-2" dense v-show="lineOpen[f.line]">
-            <v-col cols="4">
-                <AppSelect
-                    :model-value="get(local, f.fontSizeKey)"
-                    @update:modelValue="val => set(local, f.fontSizeKey, val)"
-                    :items="FONT_SIZES"
-                    placeholder="Font Size"
-                />
-            </v-col>
-            <v-col cols="4">
-                <MyColorPicker
-                    :model-value="get(local, f.fontColorKey) || ''"
-                    @update:modelValue="val => set(local, f.fontColorKey, val)"
-                    placeholder="Font Color"
-                />
-            </v-col>
-            <v-col cols="4">
-                <VBtnToggle
-                    :model-value="get(local, f.textStylesKey)"
-                    @update:modelValue="val => set(local, f.textStylesKey, val)"
-                    multiple outlined>
-                    <VBtn value="bold" icon><VIcon>mdi-format-bold</VIcon></VBtn>
-                    <VBtn value="italic" icon><VIcon>mdi-format-italic</VIcon></VBtn>
-                    <VBtn value="underline" icon><VIcon>mdi-format-underline</VIcon></VBtn>
-                </VBtnToggle>
-            </v-col>
-        </v-row>
-      </div> -->
     </v-col>
   </v-row>
 </template>

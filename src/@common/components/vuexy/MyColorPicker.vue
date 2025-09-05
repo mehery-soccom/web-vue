@@ -37,6 +37,7 @@
         elevation="0"
         :swatches="swatches"
         :show-swatches="showSwatch"
+        show-preview
       />
       <v-card-actions class="justify-end">
         <v-btn text @click="menu = false">Close</v-btn>
@@ -86,7 +87,7 @@ const _props = computed(() => {
 });
 
 const menu = ref(false);
-const color = ref(props.modelValue);
+const color = ref(props.modelValue || "#000001");
 
 watch(
   () => props.modelValue,
