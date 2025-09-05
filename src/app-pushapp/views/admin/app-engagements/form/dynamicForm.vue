@@ -12,10 +12,13 @@ import MyMultipleFilesUpload from '@/@common/components/vuexy/MyMultipleFilesUpl
 import MySelectExtended from '@/@common/components/vuexy/MySelectExtended.vue'
 import MyTextInputStyle from '@/@common/components/vuexy/MyTextInputStyle.vue'
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
+import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
 import { useAppEngagementsStore } from '../useAppEngagementsStore'
 import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } from '../data/subTypes'
 
 const AppEngagementsStore = useAppEngagementsStore()
+const fromMetaStore = useMetaStore();
+let swatch = [];
 // Props & emits
 const props = defineProps({
   formData: { type: Object, required: true },
@@ -73,6 +76,8 @@ function validate() {
   return { valid: errors.length === 0, errors }
 }
 onMounted(async () => {
+  const saved = fromMetaStore?.$state?.meta?.prefs?.pa_app_colorlist_saved;
+  if (Array.isArray(saved)) swatch = saved.map(c => [c.value]);
   const res = await AppEngagementsStore.fetchPlaceholders()
   placeholders.value = res.data.results;
   console.log("ress", res.data.results, placeholders, placeholders.value)
@@ -127,7 +132,8 @@ defineExpose({ validate });
         v-if="f.type === 'color'"
         :model-value="get(local, f.path) || ''"
         @update:modelValue="val => set(local, f.path, val)"
-        :label="f.label" :placeholder="f.placeholder"
+        :label="f.label" :placeholder="f.placeholder" 
+        :showSwatch="f.showSwatch" :swatches="swatch"
       />
       <MySelectExtended
         v-if="f.type === 'extendedSelect'"

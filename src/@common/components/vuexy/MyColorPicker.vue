@@ -35,6 +35,8 @@
         hide-mode-switch
         flat
         elevation="0"
+        :swatches="swatches"
+        :show-swatches="showSwatch"
       />
       <v-card-actions class="justify-end">
         <v-btn text @click="menu = false">Close</v-btn>
@@ -59,6 +61,13 @@ const props = defineProps({
   },
   rules: {
     type: Array,
+  },
+  swatches: {
+    type: Array,
+  },
+  showSwatch: {
+    type: Boolean,
+    default: false
   },
 });
 

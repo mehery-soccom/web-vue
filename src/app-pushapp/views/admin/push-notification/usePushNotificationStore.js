@@ -223,6 +223,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     //   return res;
     // },
     fetchTemplates(params){
+      if (!params) return DataService.axios.get(`/api/templates/push`);
       let { page, itemsPerPage, sortBy, filters } = params;
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)

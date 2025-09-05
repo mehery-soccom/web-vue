@@ -26,10 +26,10 @@ onMounted(async () => {
   if (channelsRes.results) ChannelList.value = channelsRes.results;
 
   let templatesRes = await pushNotificationStore
-    .fetchTemplates()
+    .fetchTemplates({ page: 1, itemsPerPage: 200, sortBy: []})
     .catch((error) => error);
-  if (templatesRes.results)
-    TemplateListSimple.value = templatesRes.results.filter(
+  if (templatesRes.data.results)
+    TemplateListSimple.value = templatesRes.data.results.filter(
       (t) => t.type === "simple"
     );
 
