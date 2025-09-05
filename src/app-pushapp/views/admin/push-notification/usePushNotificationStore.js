@@ -138,7 +138,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     // 👉 Fetch all Templates
     // async fetchTemplates() {
-    //   let apiRes = await DataService.axios.get("/api/templates");
+    //   let apiRes = await DataService.axios.get("/api/templates/push");
     //   this.templates = apiRes.data.results;
     //   let res = {
     //     results: apiRes.data.results || [
@@ -234,22 +234,22 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     // 👉 Fetch single Template
     fetchTemplate({ id }) {
-      return DataService.axios.get(`/api/templates/${id}`);
+      return DataService.axios.get(`/api/templates/push/${id}`);
     },
 
     // 👉 Create Template
     createTemplate(params) {
-      return DataService.axios.post("/api/templates", params);
+      return DataService.axios.post("/api/templates/push", params);
     },
 
     // 👉 Update Template
     updateTemplate(id, params) {
-      return DataService.axios.put(`/api/templates/${id}`, params);
+      return DataService.axios.put(`/api/templates/push/${id}`, params);
     },
 
     // 👉 Delete Template
     deleteTemplate({ id }) {
-      return DataService.axios.delete(`/api/templates/${id}`);
+      return DataService.axios.delete(`/api/templates/push/${id}`);
     },
 
     // 👉 Upload doc
