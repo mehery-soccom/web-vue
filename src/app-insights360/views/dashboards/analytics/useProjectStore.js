@@ -68,6 +68,14 @@ export const useProjectStore = defineStore("ProjectStore", {
         url += `&contactType=${contact}`;
       return axios.get(url);
     },
+    fetchActiveUsers(start, end, metric, contact) {
+      const startDate = new Date(start).toISOString().split('T')[0];
+      const endDate = new Date(end).toISOString().split('T')[0];
+      let url = `/api/v1/dashboard/active-users/daily?startDate=${startDate}&endDate=${endDate}&tnt=crforex&metric=${metric}`;
+      if (contact && contact != "All Channels")
+        url += `&contactType=${contact}`;
+      return axios.get(url);
+    },
     fetchBotSatScores(start, end, contact) {
       let url = `/api/v1/dashboard/satisfaction-score?dateRange1=${start}&dateRange2=${end}&agent=BOT`;
       if (contact && contact != "All Channels")

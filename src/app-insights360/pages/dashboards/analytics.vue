@@ -155,6 +155,12 @@ const convoStats = ref([
     stats: "0",
     icon: "tabler-list-numbers",
   },
+  {
+    title: "Daily Active Users",
+    color: "primary",
+    stats: "0",
+    icon: "tabler-users"
+  }
 ]);
 
 const chartJsCustomColors = {
@@ -459,6 +465,21 @@ const fetchUniqueConv = async (start, end, chan, agent, type) => {
     console.error("analytics error", error);
   }
 };
+const fetchActiveUserStats = async (start, end, chan) => {
+  try {
+    const response = await projectStore.fetchActiveUsers(start, end, 'DAU', chan);
+    const results = response?.data?.results || [];
+    let total = 0;
+    results.forEach(day => {
+      Object.values(day.channels || {}).forEach(ch => {
+        total += ch.valueLocal || 0;
+      });
+    });
+    convoStats.value[2].stats = String(total);
+  } catch (error) {
+    console.error("analytics error", error);
+  }
+};
 const fetchCampaignData = async (start, end, chan, agent, type) => {
   try {
     const response = await projectStore.fetchCampaignDatas(
@@ -683,6 +704,7 @@ const allAnalytics = (start, end, chan, agent, type) => {
   fetchUniqueConv(start, end, chan, agent, type);
   fetchCampaignData(start, end, chan, agent, type);
   fetchChartData(start, end, chan, agent, type);
+  fetchActiveUserStats(start, end, chan);
 };
 
 onBeforeMount(() => {
@@ -826,7 +848,7 @@ onMounted(async () => {
       <CardStatisticsHorizontal v-bind="statistics" />
     </VCol>
 
-    <VCol cols="12" md="8">
+    <VCol cols="12" md="6">
       <CardStatisticsTransactions
         :statistics="statsCamp"
         :title="'Campaign Statistics'"
