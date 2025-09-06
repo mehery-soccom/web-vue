@@ -6,6 +6,8 @@ import { ref } from "vue";
 import { useTheme } from "vuetify";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import * as XLSX from "xlsx";
+import { toRaw } from "vue";
 
 const { customPlugin } = useDatePickerFilters();
 const vuetifyTheme = useTheme();
@@ -616,6 +618,37 @@ const fetchChartData = async (start, end, chan, agent, type) => {
   }
 };
 
+const exportToExcel = () => {
+  const data = [];
+
+  statsAgent.value.forEach(stat => {
+    data.push({ Group: 'Agent', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsBot.value.forEach(stat => {
+    data.push({ Group: 'Bot', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsLead.value.forEach(stat => {
+    data.push({ Group: 'Lead', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsCamp.value.forEach(stat => {
+    data.push({ Group: 'Campaign', Title: stat.title, Stats: stat.stats });
+  });
+
+  convoStats.value.forEach(stat => {
+      const group = stat.title === 'Daily Active Users' ? 'Users' : 'Conversations';
+      data.push({ Group: group, Title: stat.title, Stats: stat.stats });
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Stats");
+  const fileName = `Analytics-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+  XLSX.writeFile(workbook, fileName);
+};
+
 const formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return "0 second";
   seconds = seconds / 1000;
@@ -802,8 +835,17 @@ onMounted(async () => {
           </VList>
         </VMenu>
       </div>
+      <VBtn
+          @click="exportToExcel"
+          color="primary"
+          style="width: 40px; height: 40px; min-width: 40px"
+          class="pa-0"
+          variant="flat"
+      >
+          <VIcon>mdi-download</VIcon>
+      </VBtn> 
       <AppDateTimePicker
-        style="width: 250px; margin-left: auto; margin-right: 12px"
+        style="width: 250px; margin: 0 12px"
         v-model="dateRange"
         prepend-inner-icon="tabler-calendar"
         :config="{
