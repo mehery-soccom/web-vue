@@ -25,8 +25,6 @@ const containerStyle = computed(() => ({
 const toggleMinimize = () => {
   isMinimized.value = !isMinimized.value;
 };
-
-onMounted(()=>{ })
 </script>
 
 <template>
@@ -93,6 +91,7 @@ onMounted(()=>{ })
 .export-content.minimized {
   width: 33%;
   height: 33%;
+  margin: 12px;
 }
 video::-webkit-media-controls { 
     display: none !important; 
