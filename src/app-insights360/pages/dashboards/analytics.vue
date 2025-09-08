@@ -6,6 +6,8 @@ import { ref } from "vue";
 import { useTheme } from "vuetify";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import * as XLSX from "xlsx";
+import { toRaw } from "vue";
 
 const { customPlugin } = useDatePickerFilters();
 const vuetifyTheme = useTheme();
@@ -155,6 +157,12 @@ const convoStats = ref([
     stats: "0",
     icon: "tabler-list-numbers",
   },
+  {
+    title: "Daily Active Users",
+    color: "primary",
+    stats: "0",
+    icon: "tabler-users"
+  }
 ]);
 
 const chartJsCustomColors = {
@@ -459,6 +467,21 @@ const fetchUniqueConv = async (start, end, chan, agent, type) => {
     console.error("analytics error", error);
   }
 };
+const fetchActiveUserStats = async (start, end, chan) => {
+  try {
+    const response = await projectStore.fetchActiveUsers(start, end, 'DAU', chan);
+    const results = response?.data?.results || [];
+    let total = 0;
+    results.forEach(day => {
+      Object.values(day.channels || {}).forEach(ch => {
+        total += ch.valueLocal || 0;
+      });
+    });
+    convoStats.value[2].stats = String(total);
+  } catch (error) {
+    console.error("analytics error", error);
+  }
+};
 const fetchCampaignData = async (start, end, chan, agent, type) => {
   try {
     const response = await projectStore.fetchCampaignDatas(
@@ -595,6 +618,37 @@ const fetchChartData = async (start, end, chan, agent, type) => {
   }
 };
 
+const exportToExcel = () => {
+  const data = [];
+
+  statsAgent.value.forEach(stat => {
+    data.push({ Group: 'Agent', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsBot.value.forEach(stat => {
+    data.push({ Group: 'Bot', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsLead.value.forEach(stat => {
+    data.push({ Group: 'Lead', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsCamp.value.forEach(stat => {
+    data.push({ Group: 'Campaign', Title: stat.title, Stats: stat.stats });
+  });
+
+  convoStats.value.forEach(stat => {
+      const group = stat.title === 'Daily Active Users' ? 'Users' : 'Conversations';
+      data.push({ Group: group, Title: stat.title, Stats: stat.stats });
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Stats");
+  const fileName = `Analytics-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+  XLSX.writeFile(workbook, fileName);
+};
+
 const formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds)) return "0 second";
   seconds = seconds / 1000;
@@ -683,6 +737,7 @@ const allAnalytics = (start, end, chan, agent, type) => {
   fetchUniqueConv(start, end, chan, agent, type);
   fetchCampaignData(start, end, chan, agent, type);
   fetchChartData(start, end, chan, agent, type);
+  fetchActiveUserStats(start, end, chan);
 };
 
 onBeforeMount(() => {
@@ -780,8 +835,17 @@ onMounted(async () => {
           </VList>
         </VMenu>
       </div>
+      <VBtn
+          @click="exportToExcel"
+          color="primary"
+          style="width: 40px; height: 40px; min-width: 40px"
+          class="pa-0"
+          variant="flat"
+      >
+          <VIcon>mdi-download</VIcon>
+      </VBtn> 
       <AppDateTimePicker
-        style="width: 250px; margin-left: auto; margin-right: 12px"
+        style="width: 250px; margin: 0 12px"
         v-model="dateRange"
         prepend-inner-icon="tabler-calendar"
         :config="{
@@ -826,7 +890,7 @@ onMounted(async () => {
       <CardStatisticsHorizontal v-bind="statistics" />
     </VCol>
 
-    <VCol cols="12" md="8">
+    <VCol cols="12" md="6">
       <CardStatisticsTransactions
         :statistics="statsCamp"
         :title="'Campaign Statistics'"
