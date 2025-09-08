@@ -1,9 +1,12 @@
 <script setup>
 import debounce from "lodash/debounce";
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
+import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 const { show } = inject("snackbar");
+const { TYPES, SUB_TYPES } = useAppEngagements();
+const TYPES2 = TYPES.map(c => c.value);
 
 const DEFAULT_TEST_NOTIFICATION = {
   data: `{
@@ -37,6 +40,8 @@ const headers = [
   {
     title: "Type",
     key: "type",
+    filterType: "select",
+    filterOptions: TYPES2,
   },
   {
     title: "Created",
@@ -47,7 +52,7 @@ const headers = [
     key: "updatedAt",
   },
   {
-    title: "",
+    title: "Actions",
     key: "actions",
     sortable: false,
   },
@@ -61,7 +66,7 @@ const pagination = reactive({
   filters: {
     desc: null,
     code: null,
-    // type: null,
+    type: null,
   },
 });
 

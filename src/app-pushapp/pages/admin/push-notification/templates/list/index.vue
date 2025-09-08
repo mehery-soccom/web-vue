@@ -37,6 +37,8 @@ const headers = [
   {
     title: "Type",
     key: "type",
+    filterType: "select",
+    filterOptions: ['simple','styled'],
   },
   {
     title: "Created",
@@ -47,7 +49,7 @@ const headers = [
     key: "updatedAt",
   },
   {
-    title: "",
+    title: "Actions",
     key: "actions",
     sortable: false,
   },
@@ -61,7 +63,7 @@ const pagination = reactive({
   filters: {
     desc: null,
     code: null,
-    // type: null,
+    type: null,
   },
 });
 

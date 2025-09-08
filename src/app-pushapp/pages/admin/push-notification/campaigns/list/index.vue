@@ -67,7 +67,7 @@ const headers = [
   //   sortable: false,
   // },
   {
-    title: "",
+    title: "Actions",
     key: "actions",
     sortable: false,
   },

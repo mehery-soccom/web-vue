@@ -7,7 +7,7 @@ const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
 const appEngagementsStore = useAppEngagementsStore();
-
+const TYPES2 = TYPES.map(c => c.value);
 const isLoading = ref(false);
 const items = ref([]);
 const formattedItems = computed(() =>
@@ -35,7 +35,7 @@ const headers = [
     title: "Type",
     key: "action.template.type",
     filterType: "select",
-    filterOptions: TYPES,
+    filterOptions: TYPES2,
   },
   {
     title: "SubType",
