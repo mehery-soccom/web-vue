@@ -187,7 +187,7 @@ const onUpdate = async () => {
     router.push({ name: "admin-app-engagements-templates-list" });
   } catch (error) {
     console.error(error);
-    show({ message: "Something went wrong. try again", color: "error" });
+    show({ message: error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -202,7 +202,7 @@ const _onUpdate = async () => {
     return res.data;
   } catch (error) {
     console.error(error);
-    show({ message: "Something went wrong. try again", color: "error" });
+    show({ message: error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -218,7 +218,7 @@ const onCreate = async () => {
     router.push({ name: "admin-app-engagements-templates-list" });
   } catch (error) {
     console.error(error);
-    show({ message: "Something went wrong. try again", color: "error" });
+    show({ message: error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -460,7 +460,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
                   isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
                 }}</VBtn>
                 <VBtn
-                  variant="tonal"
+                  variant="outlined"
                   color="secondary"
                   :to="{ name: 'admin-app-engagements-templates-list' }"
                 >

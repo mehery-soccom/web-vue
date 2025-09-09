@@ -412,12 +412,6 @@ watch(
 
                       <VCol cols="12">
                         <MyFileInputUpload
-                          v-model="template.style.logo_url"
-                          label="Upload Logo"
-                        />
-                      </VCol>
-                      <VCol cols="12">
-                        <MyFileInputUpload
                           v-model="template.style.image_url"
                           label="Upload Image"
                         />
@@ -539,13 +533,6 @@ watch(
 
                       <VCol cols="12">
                         <MyFileInputUpload
-                          v-model="template.style.logo_url"
-                          label="Upload Logo"
-                        />
-                      </VCol>
-
-                      <VCol cols="12">
-                        <MyFileInputUpload
                           v-model="template.style.image_url"
                           label="Upload Image"
                         />
@@ -642,7 +629,7 @@ watch(
               }}</VBtn
             >
             <VBtn
-              variant="tonal"
+              variant="outlined"
               color="secondary"
               :to="{ name: 'admin-push-notification-templates-list' }"
             >
