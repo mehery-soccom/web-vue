@@ -6,9 +6,9 @@ const { show } = inject("snackbar");
 const configStore = useConfigStore();
 
 const headers = [
-  { title: "Label", key: "label", sortable: false, width: 250 },
+  { title: "Label", key: "label", sortable: false, width: 200 },
   { title: "Value", key: "value", sortable: false, width: 400 },
-  { title: "Actions", key: "actions", sortable: false, width: 50 },
+  { title: "Actions", key: "actions", sortable: false, width: 100 },
 ];
 const setupMap = {
   pa_app_logo: {
@@ -116,14 +116,12 @@ onMounted(async () => {
             :page="1"
           >
             <template #item.value="{ item }">
-              <VTooltip location="top">
-                <template #activator="{ props }">
-                  <span v-bind="props">
-                    {{ configValue(item.raw.value) }}
-                  </span>
-                </template>
-                <span>{{ configValue(item.raw.value) }}</span>
-              </VTooltip>
+              <div class="text-ellipsis">
+                {{ configValue(item.raw.value) }}
+              </div>
+              <VTooltip activator="parent" location="top">{{
+                configValue(item.raw.value)
+              }}</VTooltip>
             </template>
             <template #item.actions="{ item }">
               <VIcon
@@ -157,4 +155,12 @@ onMounted(async () => {
   </VContainer>
 </template>
 
-<style scoped></style>
+<style scoped>
+.text-ellipsis {
+  width: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+</style>
