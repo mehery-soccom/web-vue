@@ -29,7 +29,7 @@ watch(() => [props.template.style.image_url, props.template.style.video_url],
             width: mediaEl.value.videoWidth,
             height: mediaEl.value.videoHeight,
           };
-          rejectMedia.value = mediaSize.value.width > 120 || mediaSize.value.height > 120;
+          rejectMedia.value = mediaSize.value.width > 150 || mediaSize.value.height > 150;
         };
       } else {
         mediaEl.value.onload = () => {
@@ -37,7 +37,7 @@ watch(() => [props.template.style.image_url, props.template.style.video_url],
             width: mediaEl.value.naturalWidth,
             height: mediaEl.value.naturalHeight,
           };
-          rejectMedia.value = mediaSize.value.width > 120 || mediaSize.value.height > 120;
+          rejectMedia.value = mediaSize.value.width > 150 || mediaSize.value.height > 150;
         };
       }
     });
@@ -46,7 +46,7 @@ watch(() => [props.template.style.image_url, props.template.style.video_url],
 );
 watch(rejectMedia, (val) => {
   if (val) {
-    toast.error("File dimensions exceeded 120px.");
+    toast.error("File dimensions exceeded 150px.");
   }
 });
 
@@ -54,8 +54,8 @@ const blockStyle = computed(() => {
   if (!isMinimized.value) return {};
 
   return {
-    width: "120px",
-    height: "120px",
+    width: "150px",
+    height: "150px",
     position: "relative",
     overflow: "hidden",
     display: "flex",
@@ -68,9 +68,9 @@ const mediaStyle = computed(() => {
   const { width, height } = mediaSize.value;
 
   if (rejectMedia.value) return { display: "none" };
-  if (width === 120 && height === 120) return { width: "120px", height: "120px" };
-  if (width < 120 || height < 120) return { width: width + "px", height: height + "px",};
-  return { maxWidth: '120px', maxHeight: '120px', objectFit: 'contain' };
+  if (width === 150 && height === 150) return { width: "150px", height: "150px" };
+  if (width < 150 || height < 150) return { width: width + "px", height: height + "px",};
+  return { maxWidth: '150px', maxHeight: '150px', objectFit: 'contain' };
 });
 
 const containerStyle = computed(() => ({
@@ -143,8 +143,8 @@ const containerStyle = computed(() => ({
 }
 
 .export-content {
-  width: 120px;
-  height: 120px;
+  width: 150px;
+  height: 150px;
   margin: 13px;
   position: relative;
 }
