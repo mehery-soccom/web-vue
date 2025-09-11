@@ -50,55 +50,41 @@ defineExpose({ RoadblockPreviewRef, BannerPreviewRef, PipPreviewRef, Bottomsheet
     <!-- Notch and Top Bar -->
     <div v-if="template.view.platform === 'ios'" class="notch-app"></div>
 
-    <transition name="fade-slide">
-      <RoadblockPreview
-        v-if="template.type === 'roadblock'"
-        :template="template"
-        ref="RoadblockPreviewRef"
-      />
-    </transition>
-    <transition name="fade-slide">
-      <BannerPreview
-        v-if="template.type === 'banner'"
-        :template="template"
-        ref="BannerPreviewRef"
-      />
-    </transition>
-    <transition name="fade-slide">
-      <PipPreview
-        v-if="template.type === 'pip'"
-        :template="template"
-        ref="PipPreviewRef"
-      />
-    </transition>
-    <transition name="fade-slide">
-      <BottomSheetPreview
-        v-if="template.type === 'bottom-sheet'"
-        :template="template"
-        ref="BottomsheetPreviewRef"
-      />
-    </transition>
-    <transition name="fade-slide">
-      <TooltipPreview
-        v-if="template.type === 'tooltip'"
-        :template="template"
-        ref="TooltipPreviewRef"
-      />
-    </transition>
-    <transition name="fade-slide">
-      <FloaterPreview
-        v-if="template.type === 'floater'"
-        :template="template"
-        ref="FloaterPreviewRef"
-      />
-    </transition>
-    <transition name="fade-slide">
-      <InlinePreview
-        v-if="template.type === 'inline'"
-        :template="template"
-        ref="InlinePreviewRef"
-      />
-    </transition>
+    <RoadblockPreview
+      v-if="template.type === 'roadblock'"
+      :template="template"
+      ref="RoadblockPreviewRef"
+    />
+    <BannerPreview
+      v-if="template.type === 'banner'"
+      :template="template"
+      ref="BannerPreviewRef"
+    />
+    <PipPreview
+      v-if="template.type === 'pip'"
+      :template="template"
+      ref="PipPreviewRef"
+    />
+    <BottomSheetPreview
+      v-if="template.type === 'bottom-sheet'"
+      :template="template"
+      ref="BottomsheetPreviewRef"
+    />
+    <TooltipPreview
+      v-if="template.type === 'tooltip'"
+      :template="template"
+      ref="TooltipPreviewRef"
+    />
+    <FloaterPreview
+      v-if="template.type === 'floater'"
+      :template="template"
+      ref="FloaterPreviewRef"
+    />
+    <InlinePreview
+      v-if="template.type === 'inline'"
+      :template="template"
+      ref="InlinePreviewRef"
+    />
   </div>
 </template>
 
