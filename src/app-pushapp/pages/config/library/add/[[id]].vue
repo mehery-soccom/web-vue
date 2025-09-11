@@ -483,7 +483,7 @@ onMounted(() => {
                   class="me-2"
                 />
                 <span class="text-h6 font-weight-medium me-2">
-                  Options - Draft Version
+                  Draft Version
                 </span>
                 <VChip color="primary">
                   {{ nextVersion }}
@@ -498,7 +498,7 @@ onMounted(() => {
                 prepend-icon="tabler-plus"
                 @click="openOptionDialog()"
                 width="160px"
-                >New Option</VBtn
+                >New</VBtn
               >
             </VCol>
           </VRow>
