@@ -12,19 +12,24 @@ export const optionsMap = {
     value: "page_open",
     inputFieldMeta: {
       type: "select",
-      options: [{ title: "Login", value: "login" }],
+      options: "/api/v1/catalog/pages/options",
     },
   },
   page_close: { type: "event", title: "Page close", value: "page_close" },
   widget_open: {
     type: "event",
-    title: "widget open",
+    title: "Placeholder open",
     value: "widget_open",
     inputFieldMeta: {
-      type: "text",
+      type: "select",
+      options: "/api/v1/catalog/placeholders/options",
     },
   },
-  widget_close: { type: "event", title: "Widget close", value: "widget_close" },
+  widget_close: {
+    type: "event",
+    title: "Placeholder close",
+    value: "widget_close",
+  },
 
   /* Attributes */
   platform: {

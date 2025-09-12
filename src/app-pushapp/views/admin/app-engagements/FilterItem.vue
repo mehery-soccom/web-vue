@@ -133,7 +133,23 @@ defineExpose({ isValid });
           class="filter-entity value"
           :disabled="!element.field"
           @update:modelValue="clearErrorAndUpdate"
-        />
+        >
+          <template #item="{ props, item }">
+            <VListItem v-bind="props">
+              <VListItemSubtitle class="ml-auto text-xs text-gray-500">
+                <span v-if="item.raw.meta?.type">
+                  Type : {{ item.raw.meta?.type }}
+                </span>
+                <span v-if="item.raw.meta?.type && item.raw.meta?.page">
+                  |
+                </span>
+                <span v-if="item.raw.meta?.page">
+                  Page : {{ item.raw.meta?.page }}
+                </span>
+              </VListItemSubtitle>
+            </VListItem>
+          </template>
+        </AppSelect>
         <AppTextField
           v-else
           v-model="element.value"

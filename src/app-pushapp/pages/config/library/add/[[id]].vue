@@ -492,7 +492,8 @@ onMounted(() => {
             </VCol>
             <VCol cols="5" class="pt-0 d-flex justify-end gap-4">
               <VBtn variant="tonal" @click="schemaDrawer = true" class="mr-2">
-                Configure Schema
+                <VIcon>mdi-cog</VIcon>
+                <VTooltip activator="parent">Configure schema</VTooltip>
               </VBtn>
               <VBtn
                 prepend-icon="tabler-plus"
