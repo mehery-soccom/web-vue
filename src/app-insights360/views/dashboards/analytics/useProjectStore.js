@@ -69,7 +69,7 @@ export const useProjectStore = defineStore("ProjectStore", {
       return axios.get(url);
     },
     fetchActiveUsers(start, end, metric, contact) {
-      let url = `/api/v1/dashboard/active-users/daily?startDate=${start}&endDate=${end}&tnt=crforex&metric=${metric}`;
+      let url = `/api/v1/dashboard/active-users/daily?dateRange1=${start}&dateRange2=${end}&metric=${metric}`;
       if (contact && contact != "All Channels")
         url += `&contactType=${contact}`;
       return axios.get(url);
