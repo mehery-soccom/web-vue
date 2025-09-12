@@ -127,6 +127,12 @@ const submit = async () => {
     JSON.stringify(template, null, 2)
   );
 };
+const deleteFromPayload = (template) => {
+  delete template.createdAt;
+  delete template.updatedAt;
+  delete template._id;
+  delete template.__v;
+};
 const createPayload = () => {
   if (template.view) delete template.view;
   return {
@@ -187,7 +193,7 @@ const onUpdate = async () => {
     router.push({ name: "admin-app-engagements-templates-list" });
   } catch (error) {
     console.error(error);
-    show({ message: error, color: "error" });
+    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -202,7 +208,7 @@ const _onUpdate = async () => {
     return res.data;
   } catch (error) {
     console.error(error);
-    show({ message: error, color: "error" });
+    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -211,6 +217,7 @@ const onCreate = async () => {
   try {
     isLoading.value = true;
     let payload = createPayload();
+    deleteFromPayload(payload);
     await saveTemplateHtml();
     template.style.code = template.subType || template.type;
     await AppEngagementsStore.createTemplate(payload);
@@ -218,7 +225,7 @@ const onCreate = async () => {
     router.push({ name: "admin-app-engagements-templates-list" });
   } catch (error) {
     console.error(error);
-    show({ message: error, color: "error" });
+    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -228,6 +235,7 @@ const _onCreate = async () => {
   try {
     isLoading.value = true;
     let payload = createPayload();
+    deleteFromPayload(payload);
     await saveTemplateHtml();
     let res = await AppEngagementsStore.createTemplate(payload);
     return res.data;
@@ -266,7 +274,7 @@ const fetchDetails = async (val) => {
     })
     .catch((error) => {
       console.log(error);
-      show({ message: "Something went wrong 1", color: "error" });
+      show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
     });
 }
 

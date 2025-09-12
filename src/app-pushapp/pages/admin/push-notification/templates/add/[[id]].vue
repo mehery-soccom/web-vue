@@ -126,7 +126,7 @@ onMounted(async () => {
       })
       .catch((error) => {
         console.log(error);
-        show({ message: "Something went wrong", color: "error" });
+        show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
       });
   } else {
     if (QUERY_COPY) {
@@ -150,7 +150,7 @@ onMounted(async () => {
         })
         .catch((error) => {
           console.log(error);
-          show({ message: "Something went wrong", color: "error" });
+          show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
         });
     }
   }
@@ -160,7 +160,7 @@ onMounted(async () => {
 const onCreate = async () => {
   let validationResult = await formRef.value.validate();
 
-  console.log("onCreate", validationResult.errors);
+  console.log("onCreate", validationResult.errors, template);
 
   if (!validationResult.valid) {
     return;
@@ -177,6 +177,10 @@ const onCreate = async () => {
     // }
 
     let payload = {};
+    delete template.createdAt;
+    delete template.updatedAt;
+    delete template._id;
+    delete template.__v;
     if (template.type === "simple") {
       payload = {
         ...template,
@@ -212,7 +216,7 @@ const onCreate = async () => {
   } catch (error) {
     console.error(error);
 
-    show({ message: "Something went wrong. try again", color: "error" });
+    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -273,7 +277,7 @@ const onUpdate = async () => {
   } catch (error) {
     console.error(error);
 
-    show({ message: "Something went wrong. try again", color: "error" });
+    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
   } finally {
     isLoading.value = false;
   }
