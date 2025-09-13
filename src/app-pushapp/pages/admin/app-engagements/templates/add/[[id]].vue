@@ -260,7 +260,7 @@ const isValid = async () => {
 const sanitizeAndUnderscore = (str) => {
   return str.replace(/[^\w\s]/g, "").replace(/\s+/g, "_");
 };
-const fetchDetails = async (val) => {
+const fetchDetails = async (val, isCopy = false) => {
   AppEngagementsStore.fetchTemplate({ id: val })
     .then(async (response) => {
       const _template = response.data.data;
@@ -269,6 +269,7 @@ const fetchDetails = async (val) => {
         ..._template,
       });
       await nextTick();
+      if (isCopy) template.desc = '';
       isInitialLoad.value = false;
       isPreStep.value = false;
     })
@@ -283,7 +284,7 @@ onMounted(async () => {
   if (PARAM_ID) await fetchDetails(PARAM_ID);
   else if (QUERY_EDIT) await fetchDetails(QUERY_EDIT);
   else {
-    if (QUERY_COPY) await fetchDetails(QUERY_COPY);
+    if (QUERY_COPY) await fetchDetails(QUERY_COPY, true);
     else isInitialLoad.value = false;
   }
 });

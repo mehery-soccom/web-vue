@@ -12,7 +12,7 @@ html, body {
   display: flex;
   align-items: center;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  background-color: rgba(30, 30, 30, 0.94);
+  background-color: transparent !important;
   color: white;
   padding: 14px 16px;
   position: absolute;
@@ -25,7 +25,7 @@ html, body {
   transform: translate(-50%, -50%);
   width: 100%;
   height: 100%;
-  background-color: rgb(255, 255, 255);
+  background-color: transparent !important;
   position: relative;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
