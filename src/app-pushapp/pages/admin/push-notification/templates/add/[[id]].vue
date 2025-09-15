@@ -7,6 +7,8 @@ import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
 const { show } = inject("snackbar");
 
 const required = (v) => !!v || "This field is required";
+const max50 = (v) => !v || v.length <= 50 || "Title must be 50 characters or less";
+const max120 = (v) => !v || v.length <= 120 || "Message must be 120 characters or less";
 const urlRule = (v) =>
   !v || /^https?:\/\/\S+$/.test(v) || "Must be a valid URL";
 const lineOpen = reactive({ 1: false, 2: false, 3: false });
@@ -396,7 +398,7 @@ watch(
                           v-model="template.style.title"
                           label="Title"
                           placeholder="Enter Notification Title"
-                          :rules="[required]"
+                          :rules="[required, max50]"
                           prepend-inner-icon="mdi-format-title"
                           :suggestions="template.model"
                         />
@@ -407,7 +409,7 @@ watch(
                           v-model="template.style.message"
                           label="Message"
                           placeholder="Enter Message"
-                          :rules="[required]"
+                          :rules="[required, max120]"
                           prepend-inner-icon="mdi-message-text"
                           type="textarea"
                           :suggestions="template.model"

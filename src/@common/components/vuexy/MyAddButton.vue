@@ -4,6 +4,7 @@ import set from 'lodash/set'
 import get from 'lodash/get'
 import AppTextField from '@/app-pushapp/@core/components/app-form-elements/AppTextField.vue'
 import MyColorPicker from './MyColorPicker.vue'
+import AppSelect from '@/app-pushapp/@core/components/app-form-elements/AppSelect.vue'
 
 const props = defineProps({
   modelValue: Array,
@@ -12,6 +13,7 @@ const props = defineProps({
   placeholder: String,
   max: Number,
   swatches: Array,
+  buttonSize: Boolean,
 })
 
 const emit = defineEmits(['update:modelValue', 'update:styleData'])
@@ -131,7 +133,7 @@ function updateStyle(key, value) {
           </VCol>
         </VRow>
         <VRow v-show="lineOpen[i]" style="margin-top: 0 !important;">
-          <v-col cols="4">
+          <v-col :cols="props.buttonSize ? 3 : 4">
             <AppTextField
               :model-value="btn.desc"
               @update:modelValue="val => updateField(i, 'desc', val)"
@@ -139,14 +141,26 @@ function updateStyle(key, value) {
               placeholder="Enter description"
             />
           </v-col>
-          <v-col cols="4">
+          <v-col v-if="props.buttonSize" cols="3">
+            <AppSelect
+              :model-value="props.styleData[`button${i + 1}_font_size`]"
+              @update:modelValue="val => updateStyle(`button${i + 1}_font_size`, val)"
+              label="Button Font Size" item-title="title" item-value="value"
+              :items="[
+                { title: '14px', value: 14 },
+                { title: '12px', value: 12 },
+                { title: '10px', value: 10 }
+              ]"
+            />
+          </v-col>
+          <v-col :cols="props.buttonSize ? 3 : 4">
               <MyColorPicker
                 :model-value="props.styleData[`button${i + 1}_bg_color`]"
                 @update:modelValue="val => updateStyle(`button${i + 1}_bg_color`, val)"
                 label="Button Background Color" :showSwatch="true" :swatches="props.swatches"
               />
           </v-col>
-          <v-col cols="4">
+          <v-col :cols="props.buttonSize ? 3 : 4">
               <MyColorPicker
                 :model-value="props.styleData[`button${i + 1}_font_color`]"
                 @update:modelValue="val => updateStyle(`button${i + 1}_font_color`, val)"

@@ -278,7 +278,7 @@ onBeforeUnmount(() => {
               :key="i" @click="handleClick('INAPP_CTA', props.template.style.btn.value)"
               class="cta-button"
               :style="{
-                fontSize: (12 * scale) + 'px',
+                fontSize: ((props.template.style[`button${i + 1}_font_size`] || 12) * scale) + 'px',
                 padding: (6 * scale) + 'px ' + (8 * scale) + 'px',
                 backgroundColor: props.template.style[`button${i + 1}_bg_color`] || 'rgba(25,25,25,0.6)',
                 color: props.template.style[`button${i + 1}_font_color`] || 'white',

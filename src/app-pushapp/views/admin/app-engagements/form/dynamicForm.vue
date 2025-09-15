@@ -80,7 +80,7 @@ onMounted(async () => {
   if (Array.isArray(saved)) swatch.value = saved.map(c => [c.value]);
   const res = await AppEngagementsStore.fetchPlaceholders()
   placeholders.value = res.data.results;
-  console.log("ress", res.data.results, placeholders, placeholders.value)
+  // console.log("ress", res.data.results, placeholders, placeholders.value)
 })
 
 defineExpose({ validate });
@@ -154,7 +154,7 @@ defineExpose({ validate });
         :label="f.label" :swatches="swatch"
         :rules="f.required ? [required] : []"
         :placeholder="f.placeholder"
-        :max="f.max"
+        :max="f.max" :button-size="f.buttonSize"
       />
       <MyMultipleFilesUpload
         v-if="f.type === 'addFiles'"
