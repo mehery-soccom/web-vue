@@ -7,16 +7,23 @@ const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
 const appEngagementsStore = useAppEngagementsStore();
-const TYPES2 = TYPES.map(c => c.value);
+const TYPES2 = TYPES.map((c) => c.value);
 const isLoading = ref(false);
 const items = ref([]);
 const formattedItems = computed(() =>
   items.value.map((item) => ({
     ...item,
-    sent_percent:
-      item.stats?.total > 0
-        ? Math.round((item.stats.sent / item.stats.total) * 100)
-        : 0,
+    stats: {
+      ...item.stats,
+      sent_percent:
+        item.stats?.total > 0
+          ? Math.round((item.stats.sent / item.stats.total) * 100)
+          : 0,
+      cta_percent:
+        item.stats?.sent > 0
+          ? Math.round(((item.stats.cta?.count || 0) / item.stats.sent) * 100)
+          : 0,
+    },
     status:
       item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
   }))
@@ -56,35 +63,45 @@ const headers = [
   {
     title: "Count",
     key: "stats.total",
+    sortable: false,
+    align: "center",
   },
   {
     title: "Delivered",
     key: "stats.sent",
+    sortable: false,
+    align: "center",
   },
   {
     title: "Delivery %",
-    key: "sent_percent",
+    key: "stats.sent_percent",
+    sortable: false,
+    align: "center",
   },
   {
     title: "CTA",
     key: "stats.cta.count",
+    sortable: false,
+    align: "center",
   },
   {
     title: "CTA %",
     key: "stats.cta_percent",
+    sortable: false,
+    align: "center",
   },
-  {
-    title: "View time (sec)",
-    key: "stats.viewTime",
-  },
-  {
-    title: "Avg time / view",
-    key: "stats.avgTimePerView",
-  },
-  {
-    title: "Avg time / User",
-    key: "stats.avgTimePerUser",
-  },
+  // {
+  //   title: "View time (sec)",
+  //   key: "stats.viewTime",
+  // },
+  // {
+  //   title: "Avg time / view",
+  //   key: "stats.avgTimePerView",
+  // },
+  // {
+  //   title: "Avg time / User",
+  //   key: "stats.avgTimePerUser",
+  // },
   {
     title: "",
     key: "actions",
@@ -247,10 +264,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template>
 
       <!-- sent_percent -->
-      <template #item.sent_percent="{ item }">
+      <template #item.stats.sent_percent="{ item }">
         <div class="d-flex align-center">
           <VProgressLinear
-            :model-value="item.raw.sent_percent"
+            :model-value="item.raw.stats.sent_percent"
             height="6"
             color="primary"
             class="flex-grow-1 mr-2"
@@ -258,7 +275,24 @@ const onUpdateOptionsDebounced = debounce((options) => {
             style="min-width: 60px"
           />
           <VChip size="x-small" variant="flat" color="primary">
-            {{ item.raw.sent_percent }}%
+            {{ item.raw.stats.sent_percent }}%
+          </VChip>
+        </div>
+      </template>
+
+      <!-- cta_percent -->
+      <template #item.stats.cta_percent="{ item }">
+        <div class="d-flex align-center">
+          <VProgressLinear
+            :model-value="item.raw.stats.cta_percent"
+            height="6"
+            color="primary"
+            class="flex-grow-1 mr-2"
+            rounded
+            style="min-width: 60px"
+          />
+          <VChip size="x-small" variant="flat" color="primary">
+            {{ item.raw.stats.cta_percent }}%
           </VChip>
         </div>
       </template>

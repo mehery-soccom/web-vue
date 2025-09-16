@@ -8,6 +8,32 @@ import debounce from "lodash/debounce";
 const pushNotificationStore = usePushNotificationStore();
 const isLoading = ref(false);
 const notifications = ref([]);
+const formattedNotifications = computed(() =>
+  notifications.value.map((item) => ({
+    ...item,
+    stats: {
+      ...item.stats,
+      cta: {
+        count: 0,
+        ...item.stats.cta,
+      },
+      sent_percent:
+        item.messageCount > 0
+          ? Math.round((item.stats.sent / item.messageCount) * 100)
+          : 0,
+      opened_percent:
+        item.stats?.sent > 0
+          ? Math.round((item.stats.opened / item.stats.sent) * 100)
+          : 0,
+      cta_percent:
+        item.stats?.sent > 0
+          ? Math.round(((item.stats.cta?.count || 0) / item.stats.sent) * 100)
+          : 0,
+    },
+    status:
+      item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
+  }))
+);
 const headers = [
   { title: "", key: "data-table-expand" },
   {
@@ -22,11 +48,6 @@ const headers = [
     title: "Status",
     key: "status",
   },
-  // {
-  //   title: "Platform(s)",
-  //   key: "filters.platform",
-  //   sortable: false,
-  // },
   {
     title: "Start",
     key: "createdStamp",
@@ -35,41 +56,49 @@ const headers = [
     title: "Total",
     key: "messageCount",
     sortable: false,
+    align: "center",
   },
   {
     title: "Sent",
     key: "stats.sent",
     sortable: false,
+    align: "center",
   },
   {
-    title: "Failed",
-    key: "stats.failed",
+    title: "Sent %",
+    key: "stats.sent_percent",
     sortable: false,
+    align: "center",
   },
-  // {
-  //   title: "Tapped",
-  //   key: "stats.opened",
-  //   sortable: false,
-  // },
-  // {
-  //   title: "Tapped %",
-  //   key: "stats.opened_percent",
-  //   sortable: false,
-  // },
-  // {
-  //   title: "CTA",
-  //   key: "stats.cta.count",
-  //   sortable: false,
-  // },
-  // {
-  //   title: "CTA %",
-  //   key: "stats.cta_percent",
-  //   sortable: false,
-  // },
+  {
+    title: "Opened",
+    key: "stats.opened",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "Opened %",
+    key: "stats.opened_percent",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "CTA",
+    key: "stats.cta.count",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "CTA %",
+    key: "stats.cta_percent",
+    sortable: false,
+    align: "center",
+  },
   {
     title: "Actions",
     key: "actions",
     sortable: false,
+    align: "center",
   },
 ];
 const pagination = reactive({
@@ -128,7 +157,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 </script>
 
 <template>
-  <VCard v-if="notifications" id="invoice-list">
+  <VCard id="invoice-list">
     <VCardText class="d-flex align-center flex-wrap gap-4">
       <div class="me-3 d-flex gap-3"></div>
 
@@ -157,7 +186,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
     <MyDataTable
       :headers="headers"
-      :items="notifications"
+      :items="formattedNotifications"
       :loading="isLoading"
       :server-side="true"
       v-bind="pagination"
@@ -193,6 +222,57 @@ const onUpdateOptionsDebounced = debounce((options) => {
             class="font-weight-medium"
           >
             {{ PLATFORM_COLORS[p]?.text }}
+          </VChip>
+        </div>
+      </template>
+
+      <!-- sent_percent -->
+      <template #item.stats.sent_percent="{ item }">
+        <div class="d-flex align-center">
+          <VProgressLinear
+            :model-value="item.raw.stats.sent_percent"
+            height="6"
+            color="primary"
+            class="flex-grow-1 mr-2"
+            rounded
+            style="min-width: 60px"
+          />
+          <VChip size="x-small" variant="flat" color="primary">
+            {{ item.raw.stats.sent_percent }}%
+          </VChip>
+        </div>
+      </template>
+
+      <!-- opened_percent -->
+      <template #item.stats.opened_percent="{ item }">
+        <div class="d-flex align-center">
+          <VProgressLinear
+            :model-value="item.raw.stats.opened_percent"
+            height="6"
+            color="primary"
+            class="flex-grow-1 mr-2"
+            rounded
+            style="min-width: 60px"
+          />
+          <VChip size="x-small" variant="flat" color="primary">
+            {{ item.raw.stats.opened_percent }}%
+          </VChip>
+        </div>
+      </template>
+
+      <!-- cta_percent -->
+      <template #item.stats.cta_percent="{ item }">
+        <div class="d-flex align-center">
+          <VProgressLinear
+            :model-value="item.raw.stats.cta_percent"
+            height="6"
+            color="primary"
+            class="flex-grow-1 mr-2"
+            rounded
+            style="min-width: 60px"
+          />
+          <VChip size="x-small" variant="flat" color="primary">
+            {{ item.raw.stats.cta_percent }}%
           </VChip>
         </div>
       </template>
