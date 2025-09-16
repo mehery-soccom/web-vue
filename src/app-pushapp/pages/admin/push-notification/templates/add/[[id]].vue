@@ -396,7 +396,7 @@ watch(
                       <VCol cols="12" md="12">
                         <AppTextSuggestion
                           v-model="template.style.title"
-                          label="Title"
+                          :label="`Title (${template.style.title.length}/50 Characters)`"
                           placeholder="Enter Notification Title"
                           :rules="[required, max50]"
                           prepend-inner-icon="mdi-format-title"
@@ -407,7 +407,7 @@ watch(
                       <VCol cols="12">
                         <AppTextSuggestion
                           v-model="template.style.message"
-                          label="Message"
+                          :label="`Message (${template.style.message.length}/120 Characters)`"
                           placeholder="Enter Message"
                           :rules="[required, max120]"
                           prepend-inner-icon="mdi-message-text"
