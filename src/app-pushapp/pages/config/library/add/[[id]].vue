@@ -65,8 +65,8 @@ const disableSave = computed(() => {
 });
 const disablePublish = computed(() => {
   return !!(
-    JSON.stringify(item.options) === JSON.stringify(itemCopy.options) &&
-    !item.options.length
+    (JSON.stringify(item.options) === JSON.stringify(itemCopy.options))
+    // && !item.options.length
   );
 });
 const formRef = ref();
@@ -219,7 +219,7 @@ const schemaErrors = computed(() => {
       seen.add(p.code);
     }
     if (!p.type) errs.push(`Property[${i}] missing "type".`);
-    else if (!["string", "number", "boolean"].includes(p.type))
+    else if (!["string", "number", "boolean", "select"].includes(p.type))
       errs.push(
         `Property[${i}] type must be one of: string | number | boolean.`
       );
@@ -645,6 +645,17 @@ onMounted(() => {
                       <VBtn :value="false">No</VBtn>
                     </VBtnToggle>
                   </div>
+                </VCol>
+
+                <!-- Select Input -->
+                <VCol v-else-if="field.type === 'select'" cols="12" md="12">
+                  <AppSelect
+                    v-model="optionEditing[field.code]"
+                    :label="field.label"
+                    :items="field.options"
+                    :rules="[field.required ? requiredValidator : null]"
+                    clearable
+                  />
                 </VCol>
 
                 <!-- Number Input -->

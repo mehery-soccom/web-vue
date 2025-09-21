@@ -39,7 +39,7 @@ onMounted(() => {
       <VSpacer />
 
       <div class="d-flex align-center flex-wrap gap-4">
-        <VBtn
+        <!-- <VBtn
           icon
           @click="() => fetchItems()"
           :loading="loading"
@@ -47,13 +47,12 @@ onMounted(() => {
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
-        <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
           :to="{ name: 'config-library-add-id?' }"
         >
           New Item
-        </VBtn>
+        </VBtn> -->
       </div>
     </VCardText>
 
