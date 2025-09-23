@@ -22,7 +22,7 @@ const backgroundStyle = computed(() => {
   if (style.bg_image_url) {
     return `url(${style.bg_image_url}) center/cover no-repeat`;
   }
-  if (style.bg_color_gradient) {
+  if (style.bg_color_gradient_dir) {
     return `linear-gradient(${style.bg_color_gradient_dir}, ${style.bg_color}, ${style.bg_color_gradient})`;
   }
   return style.bg_color;

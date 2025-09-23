@@ -36,7 +36,7 @@ watch(
 );
 const backgroundStyle = computed(() => {
   let r = props.template.style.bg_color;
-  if (props.template.style.bg_color_gradient) {
+  if (props.template.style.bg_color_gradient_dir) {
     r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
   }
   return r;

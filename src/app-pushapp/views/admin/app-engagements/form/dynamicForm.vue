@@ -107,7 +107,7 @@ defineExpose({ validate });
         v-if="f.type === 'select'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
-        :items="f.optionsPath || []"
+        :items="f.optionsPath || []" :clearable="f.clearable"
         :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
         item-title="title"
         item-value="value"

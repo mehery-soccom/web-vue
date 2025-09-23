@@ -355,7 +355,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
           >
             <v-col class="pa-0" cols="auto">
               <div>
-                <div class="text-h6">Create Template</div>
+                <div class="text-h6">{{ PARAM_ID ? "Edit" : QUERY_EDIT ? "" : "Create"}} Template</div>
                 <div class="text-subtitle-2">
                   This template will be used for In-App Engagements
                 </div>

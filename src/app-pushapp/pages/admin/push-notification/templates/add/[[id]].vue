@@ -331,7 +331,7 @@ watch(
     <v-col cols="12" md="8" class="template-form">
       <v-card>
         <v-card-item class="pb-0">
-          <v-card-title>Create Template</v-card-title>
+          <v-card-title>{{PARAM_ID ? "Edit" : "Create"}} Template</v-card-title>
           <v-card-subtitle
             >This template will be used for sending Push
             Notification</v-card-subtitle
@@ -560,7 +560,7 @@ watch(
                       <VCol cols="12" md="3">
                         <AppSelect
                           v-model="template.style.bg_color_gradient_dir"
-                          :items="GRADIENT_DIRS"
+                          :items="GRADIENT_DIRS" clearable
                           label="Gradient Direction"
                           prepend-inner-icon="mdi-arrow-expand-all"
                         />
