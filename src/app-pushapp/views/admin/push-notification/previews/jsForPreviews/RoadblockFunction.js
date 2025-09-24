@@ -38,13 +38,13 @@ window.onload = function () {
     dot.addEventListener('touchstart', () => showSlide(i));
   });
 
-  function handleClick(eventType, val) {
-    console.log('Event Triggered:', eventType);
+  function handleClick(eventType, lab, val) {
+    console.log("Event Triggered:", eventType);
 
     const message = JSON.stringify({
       event: eventType,
       timestamp: Date.now(),
-      data: { url: "", value: val }
+      data: { label: lab, value: val }
     });
 
     const handlers = window.webkit?.messageHandlers;

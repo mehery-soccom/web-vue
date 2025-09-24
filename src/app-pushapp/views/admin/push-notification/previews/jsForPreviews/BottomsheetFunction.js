@@ -1,13 +1,13 @@
 export const popScript = `
 <script>
 window.onload = function () {
-  function handleClick(eventType, val) {
+  function handleClick(eventType, lab, val) {
     console.log("Event Triggered:", eventType);
 
     const message = JSON.stringify({
       event: eventType,
       timestamp: Date.now(),
-      data: { url: "", value: val }
+      data: { label: lab, value: val }
     });
 
     const handlers = window.webkit?.messageHandlers;
