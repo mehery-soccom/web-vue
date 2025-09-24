@@ -545,13 +545,13 @@ watch(
                       </VCol>
 
                       <!-- Background -->
-                      <VCol cols="12" md="3">
+                      <VCol cols="12" md="4">
                         <MyColorPicker
                           v-model="template.style.bg_color"
                           label="Background Color"
                         />
                       </VCol>
-                      <VCol cols="12" md="3">
+                      <!-- <VCol cols="12" md="3">
                         <MyColorPicker
                           v-model="template.style.bg_color_gradient"
                           label="Gradient Color"
@@ -564,10 +564,10 @@ watch(
                           label="Gradient Direction"
                           prepend-inner-icon="mdi-arrow-expand-all"
                         />
-                      </VCol>
+                      </VCol> -->
 
                       <!-- Progress -->
-                      <VCol cols="12" md="3">
+                      <VCol cols="12" md="4">
                         <MyColorPicker
                           v-model="template.style.progress_color"
                           label="Progress Color"
