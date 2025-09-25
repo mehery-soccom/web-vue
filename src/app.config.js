@@ -41,5 +41,11 @@ module.exports = AppConfig.extend({
       entry: "./src/main.js",
       plugins: () => import("@/app-pushapp/plugins"),
     },
+    phone: {
+      component: () => import("@/app-phone/AppPhone.vue"),
+      context: "/phone",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-phone/plugins"),
+    },
   },
 });
