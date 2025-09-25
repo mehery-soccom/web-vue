@@ -8,21 +8,6 @@ module.exports = AppConfig.extend({
       context: "/",
       entry: "./src/main.js",
     },
-    // chat: {
-    //   component: () => import("@/app-chat/AppChat.vue"),
-    //   context: "/chat",
-    //   entry: "./src/main.js",
-    // },
-    // scriptus: {
-    //   component: () => import("@/app-scriptus/AppScriptus.vue"),
-    //   context: "/scriptus",
-    //   entry: "./src/main.js",
-    // },
-    // tuber: {
-    //   component: () => import("@/app-tuber/AppTuber.vue"),
-    //   context: "/tuber",
-    //   entry: "./src/main.js",
-    // },
     insights360: {
       component: () => import("@/app-insights360/AppInsights360.vue"),
       context: "/nexus/insights360",
@@ -46,6 +31,12 @@ module.exports = AppConfig.extend({
       context: "/phone",
       entry: "./src/main.js",
       plugins: () => import("@/app-phone/plugins"),
+    },
+    lead: {
+      component: () => import("@/app-lead/AppLead.vue"),
+      context: "/lead",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-lead/plugins"),
     },
   },
 });
