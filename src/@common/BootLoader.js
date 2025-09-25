@@ -68,11 +68,23 @@ export default function Bootloader(appConfig) {
     /* import router */
     let routerMod;
     if (appConfig.getApp()?.router) {
-      routerMod = await appConfig.getApp()?.router();
+      try {
+        routerMod = await appConfig.getApp()?.router();
+      } catch (error) {
+        console.log("Failed to load router module");
+      }
     } else {
-      routerMod = await import(`@/${appPath}${site}/router`);
+      try {
+        routerMod = await import(`@/${appPath}${site}/router`);
+      } catch (error) {
+        console.log("Failed to load router module");
+      }
     }
-    const router = BootRouter.router(routerMod.default);
+
+    let router;
+    if (routerMod) {
+      router = BootRouter.router(routerMod.default);
+    }
 
     /* import app > sync way */
     // const appComponent = await appConfig.getApp()?.component();
@@ -100,7 +112,7 @@ export default function Bootloader(appConfig) {
       app.use(plugin);
     });
 
-    app.use(router);
+    if (router) app.use(router);
     app.mount("#app");
   };
 
