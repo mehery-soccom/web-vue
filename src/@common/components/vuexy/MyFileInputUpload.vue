@@ -15,6 +15,10 @@ const props = defineProps({
   rules: {
     type: Array,
   },
+  maxSize: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["update:modelValue"]);
@@ -56,11 +60,27 @@ const uploading = ref(false);
 const file = ref(null);
 const url = ref(props.modelValue);
 
+function formatSize(bytes) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  } else {
+    return `${(bytes / 1024 / 1024)} MB`;
+  }
+}
 const handleFileUpload = async (event) => {
   document.activeElement?.blur();
   try {
-    uploading.value = true;
     const file = event.target.files[0];
+    if (!file) return;
+
+    if (props.maxSize && file.size > props.maxSize) {
+      show({
+        message: `File size exceeds ${formatSize(props.maxSize)} limit.`,
+        color: "error",
+      });
+      return;
+    }
+    uploading.value = true;
     const formData = new FormData();
     formData.append("docs", file);
     let res = await pushNotificationStore.uploadDoc(formData);

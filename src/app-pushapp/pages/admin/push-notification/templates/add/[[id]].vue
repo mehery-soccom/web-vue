@@ -419,7 +419,7 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Upload Image"
+                          label="Upload Image" :max-size="10240"
                         />
                       </VCol>
 
@@ -540,7 +540,7 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Upload Image"
+                          label="Upload Image" :max-size="10240"
                         />
                       </VCol>
 

@@ -126,7 +126,7 @@ defineExpose({ validate });
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
         :rules="f.required ? [required] : []"
-        :label="f.label"
+        :label="f.label" :max-size="f.maxSize"
       />
       <MyColorPicker
         v-if="f.type === 'color'"
@@ -163,7 +163,7 @@ defineExpose({ validate });
         :label="f.label"
         :placeholder="f.placeholder"
         :rules="f.required ? [required] : []"
-        :max="f.max"
+        :max="f.max" :max-size="f.maxSize"
       />
       <MyTextInputStyle
         v-if="f.type === 'textinputstyle'"

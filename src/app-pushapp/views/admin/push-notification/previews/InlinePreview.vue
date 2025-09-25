@@ -33,7 +33,7 @@ const wrapperRef = ref(null);
 function updateScale() {
   if (!wrapperRef.value) return;
   const width = wrapperRef.value.offsetWidth;
-  scale.value = width > 310 ? 1 : width / 350;
+  scale.value = width > 330 ? 1 : width / 350;
 }
 
 onMounted(() => {

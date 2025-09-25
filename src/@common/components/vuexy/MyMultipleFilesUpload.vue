@@ -7,6 +7,10 @@ const props = defineProps({
   label: String,
   placeholder: String,
   max: Number,
+  maxSize: {
+    type: Number,
+    default: null
+  }
 })
 
 const emit = defineEmits(['update:modelValue'])
@@ -68,7 +72,7 @@ function addFileInput() {
       <MyFileInputUpload
         v-model="fileObj.value"
         :label="`${label || 'File'} ${index + 1}`"
-        :placeholder="placeholder"
+        :placeholder="placeholder" :max-size="props.maxSize"
       />
     </div>
     <div v-if="visibleCount < props.max">
