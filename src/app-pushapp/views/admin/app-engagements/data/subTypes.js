@@ -3128,6 +3128,7 @@ export const SUB_TYPES = [
             progress_color: "",
             align: "center",
             draggable: true,
+
           },
       },
       live: {},
