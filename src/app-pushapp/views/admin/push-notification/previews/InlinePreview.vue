@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
 <template>
   <transition name="fade-slide">
     <div class="preview-wrapper pop-up-dimensions" ref="wrapperRef">
-        <div class="banner-wrapper" :style="{ height: (props.template.style.height * scale) + 'px', width: (props.template.style.width * scale) + 'px', background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
+        <div class="banner-wrapper" :style="{ height: (props.template.style.height * scale) + 'px', width: (props.template.style.width * scale) + 'px', marginTop: (220 * scale) + 'px', background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
             <div class="banner-content" :class="{ vertical: props.template.style.align === 'vertical' }"
              :style="{ flexDirection: props.template.style.align === 'vertical' ? 'column' : 'row'}">
                 <div class="banner-text" v-if="props.template.style.align === 'vertical' && !!props.template.style.image_url">
@@ -110,7 +110,7 @@ onBeforeUnmount(() => {
                 <div class="banner-buttons" v-if="props.template.style?.btn?.length">
                     <button
                     v-for="(btn, i) in props.template.style.btn"
-                    :key="i" @click="handleClick('INAPP_CTA', btn.label, btn.value)"
+                    :key="i" :onclick="`handleClick('INAPP_CTA', '${btn.label}', '${btn.value}')`"
                     class="cta-button"
                     :style="{
                         fontSize: ((props.template.style[`button${i + 1}_font_size`] || 12) * scale) + 'px',
