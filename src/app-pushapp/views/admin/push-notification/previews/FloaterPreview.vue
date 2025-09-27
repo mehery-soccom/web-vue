@@ -95,12 +95,12 @@ const containerStyle = computed(() => ({
             muted
             loop
             playsinline
-            :style="mediaStyle" ref="mediaEl"
+            :style="mediaStyle" ref="mediaEl" class="bord"
           ></video>
           <img
             v-else-if="props.template.style.image_url"
             :src="props.template.style.image_url"
-            :style="mediaStyle" ref="mediaEl"
+            :style="mediaStyle" ref="mediaEl" class="bord"
           />
         </div>
       </div>
@@ -150,5 +150,8 @@ const containerStyle = computed(() => ({
 }
 video::-webkit-media-controls { 
     display: none !important; 
+}
+.bord{
+  border-radius: 14px;
 }
 </style>

@@ -42,4 +42,7 @@ html, body {
 video::-webkit-media-controls { 
     display: none !important; 
 }
-.close-btn { display: none; }`
+.close-btn { display: none; }
+.bord{
+  border-radius: 0px;
+}`

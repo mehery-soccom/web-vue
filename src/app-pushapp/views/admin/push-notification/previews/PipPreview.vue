@@ -39,9 +39,9 @@ const toggleMinimize = () => {
             muted
             loop
             playsinline
-            style="width: 100%; height: 100%; object-fit: cover;"
+            style="width: 100%; height: 100%; object-fit: cover;" class="bord"
             ></video>
-            <div v-if="isMinimized" class="close-btn mini" @click="toggleMinimize"><img src="./../../../../assets/images/icons/previews/maximize.png" alt="Max" style="color: white;"></img></div>
+            <div v-if="isMinimized" class="close-btn mini" @click="toggleMinimize"><img src="./../../../../assets/images/icons/previews/maximize.png" alt="Max" style="color: white;" class="bord"></img></div>
             <div v-else class="close-btn">&times;</div>
         </div>
       </div>
@@ -120,5 +120,8 @@ video::-webkit-media-controls {
   height: 100%;
   object-fit: contain;
   filter: brightness(0) invert(1);
+}
+.bord{
+  border-radius: 14px;
 }
 </style>

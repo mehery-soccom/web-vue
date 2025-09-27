@@ -42,4 +42,7 @@ html, body {
 
 video::-webkit-media-controls { 
     display: none !important; 
+}
+.bord{
+  border-radius: 0px;
 }`

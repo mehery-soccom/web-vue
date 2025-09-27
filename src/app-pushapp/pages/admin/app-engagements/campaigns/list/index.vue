@@ -29,7 +29,7 @@ const formattedItems = computed(() =>
   }))
 );
 const headers = [
-  // { title: "", key: "data-table-expand" },
+  { title: "", key: "data-table-expand" },
   {
     title: "Name",
     key: "title",
@@ -181,6 +181,15 @@ const endCampaign = async (item, dialogCloseRef) => {
     isLoading.value = false;
   }
 };
+function formatDate(timestamp) {
+  if (!timestamp) return 'N/A';
+  return new Date(timestamp).toLocaleString();
+}
+function formatFieldName(field) {
+  if (!field) return "";
+  const withSpaces = field.replace(/_/g, " ");
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}
 
 const onUpdateOptions = (options) => {
   pagination.itemsLength = options.itemsLength;
@@ -236,7 +245,49 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- Expanded Row Data [ show-expand ] -->
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
-          <td :colspan="headers.length"></td>
+          <td :colspan="headers.length">
+            <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
+            <div class="detail-row">
+              <section class="detail-block">
+                <h5>Audience</h5>
+                <div>
+                  <div><strong>User Set:</strong> {{ slotProps.item.raw.audience?.userSet }}</div>
+                  <!-- <div><strong>Segment Condition:</strong> {{ slotProps.item.raw.audience?.segmentCondition || 'N/A' }}</div>
+                  <div><strong>Segment:</strong> {{ slotProps.item.raw.audience?.segment || 'N/A' }}</div> -->
+                </div>
+              </section>
+              <section v-if="slotProps.item.raw.filter" class="detail-block">
+                <h5>Filter <span v-if="!!slotProps.item.raw.filter.conjuction">{{ formatFieldName(slotProps.item.raw.filter.conjuction) }}</span></h5>
+                <div v-if="slotProps.item.raw.filter.children?.length">
+                    <div v-for="(child, idx) in slotProps.item.raw.filter.children" :key="idx">
+                      <div style="margin: 4px 10px;"><strong>{{ formatFieldName(child.filterType) }}</strong></div>
+                      <section class="detail-block" style="max-width: 100%;">
+                        <div><span>{{ formatFieldName(child.filterType) }}:</span> {{ formatFieldName(child.field) }}</div>
+                        <div>Operator: {{ formatFieldName(child.operator) }}</div>
+                        <div>Frequency: {{ formatFieldName(child.freqOperator) }}</div>
+                        <div>Value: {{ formatFieldName(child.freqCount || 'N/A') }}</div>
+                        <div v-if="child.freqPeriod">Duration: ({{ formatFieldName(child.freqPeriod) }})</div>
+                      </section>
+                    </div>
+                </div>
+                <div v-else>
+                  <div>No filters defined</div>
+                </div>
+              </section>
+              <section v-if="slotProps.item.raw.schedule" class="detail-block">
+                <h5>Schedule</h5>
+                <div v-if="slotProps.item.raw.schedule.durationType === 'manual'">
+                  <p><strong>Duration Type:</strong> Manual</p>
+                </div>
+                <div v-else>
+                  <p><strong>Duration Type:</strong> {{ formatFieldName(slotProps.item.raw.schedule.durationType) }}</p>
+                  <p><strong>Start Date:</strong> {{ formatDate(slotProps.item.raw.schedule.startDate) }}</p>
+                  <p><strong>End Date:</strong> {{ formatDate(slotProps.item.raw.schedule.endDate) }}</p>
+                  <p><strong>Repeat Type:</strong> {{ formatFieldName(slotProps.item.raw.schedule.repeatType || 'N/A') }}</p>
+                </div>
+              </section>
+            </div>
+          </td>
         </tr>
       </template>
 
@@ -354,4 +405,34 @@ const onUpdateOptionsDebounced = debounce((options) => {
     min-height: 100px;
   }
 }
+.campaign-details {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.detail-row {
+  display: flex;
+  flex-wrap: wrap; /* allows wrapping if not enough space */
+  gap: 20px;       /* spacing between blocks */
+  margin: 12px 0px;
+  // max-width: calc(100vw - 100px);
+}
+
+.detail-block {
+  // flex: 0 0 auto; /* fit to content width */
+  padding: 10px 20px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background: #fafafa;
+  width: 29vw;
+  min-width: 250px; 
+}
+.detail-block h5 {
+  margin-bottom: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  border-bottom: 0.5px solid grey;
+  text-align: center;
+  padding-bottom: 4px;
+}
+
 </style>
