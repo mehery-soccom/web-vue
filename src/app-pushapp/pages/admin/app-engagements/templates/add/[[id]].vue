@@ -271,7 +271,7 @@ const fetchDetails = async (val, isCopy = false) => {
       await nextTick();
       if (isCopy) template.desc = '';
       isInitialLoad.value = false;
-      isPreStep.value = false;
+      // isPreStep.value = false;
     })
     .catch((error) => {
       console.log(error);
@@ -281,6 +281,7 @@ const fetchDetails = async (val, isCopy = false) => {
 
 onMounted(async () => {
   console.log("first", PARAM_ID, QUERY_COPY);
+  if(PARAM_ID || QUERY_COPY || QUERY_EDIT) isPreStep.value = false;
   if (PARAM_ID) await fetchDetails(PARAM_ID);
   else if (QUERY_EDIT) await fetchDetails(QUERY_EDIT);
   else {

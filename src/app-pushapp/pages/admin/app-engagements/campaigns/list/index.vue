@@ -264,8 +264,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
                       <section class="detail-block" style="max-width: 100%;">
                         <div><span>{{ formatFieldName(child.filterType) }}:</span> {{ formatFieldName(child.field) }}</div>
                         <div>Operator: {{ formatFieldName(child.operator) }}</div>
-                        <div>Frequency: {{ formatFieldName(child.freqOperator) }}</div>
-                        <div>Value: {{ formatFieldName(child.freqCount || 'N/A') }}</div>
+                        <div v-if="child.freqOperator">Frequency: {{ formatFieldName(child.freqOperator) }}</div>
+                        <div>Value: {{ formatFieldName(child.freqCount || child.value || 'N/A') }}</div>
                         <div v-if="child.freqPeriod">Duration: ({{ formatFieldName(child.freqPeriod) }})</div>
                       </section>
                     </div>
