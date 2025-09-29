@@ -5,6 +5,8 @@ import BootRouter from "./BootRouter";
 import BootPlugins from "./BootPlugins";
 import AppWrapper from "./AppWrapper.vue";
 
+import { REMOTE_SERVER_URL } from "@/@common/constants";
+
 export default function Bootloader(appConfig) {
   console.log("[v3] [Bootloader] appConfig", appConfig);
 
@@ -31,6 +33,8 @@ export default function Bootloader(appConfig) {
   this.setup = async function () {
     axios.defaults.withCredentials = true;
     axios.defaults.baseURL = (() => {
+      return REMOTE_SERVER_URL;
+
       const origin = window.location.origin;
       const context = appConfig.getApp()?.context;
       return context ? origin + context : origin;
