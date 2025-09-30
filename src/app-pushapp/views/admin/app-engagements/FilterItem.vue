@@ -41,7 +41,7 @@ const isValid = (silent = false) => {
     valid = false;
   if (
     el.filterType === "event" &&
-    FILTER_OPTIONS_MAP[el.field]?.freqFieldMeta &&
+    FILTER_OPTIONS_MAP[el.field]?.freqFieldMeta?.required &&
     (!el.freqOperator || !el.freqCount || !el.freqPeriod)
   )
     valid = false;
@@ -164,7 +164,7 @@ defineExpose({ isValid });
       <div
         v-if="
           element.filterType === 'event' &&
-          FILTER_OPTIONS_MAP[element.field]?.freqFieldMeta
+          !!FILTER_OPTIONS_MAP[element.field]?.freqFieldMeta
         "
         class="d-flex align-center gap-2"
       >

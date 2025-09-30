@@ -4,7 +4,9 @@ export const optionsMap = {
     type: "event",
     title: "App open",
     value: "app_open",
-    freqFieldMeta: true,
+    freqFieldMeta: {
+      required: false,
+    },
   },
   page_open: {
     type: "event",
