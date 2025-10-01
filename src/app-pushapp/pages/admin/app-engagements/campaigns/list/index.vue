@@ -51,6 +51,10 @@ const headers = [
     filterOptions: SUB_TYPES,
   },
   {
+    title: "A/B",
+    key: "abTesting.enabled",
+  },
+  {
     title: "Status",
     key: "status",
     filterType: "select",
@@ -130,7 +134,6 @@ onMounted(async () => {
 const logDialog = ref(false);
 const selectedLogs = ref([]);
 const openLogDialog = (logs) => {
-  console.log("data rec", logs)
   selectedLogs.value = logs || [];
   logDialog.value = true;
 };
@@ -190,7 +193,7 @@ const endCampaign = async (item, dialogCloseRef) => {
   }
 };
 function formatDate(timestamp) {
-  if (!timestamp) return 'N/A';
+  if (!timestamp) return "N/A";
   return new Date(timestamp).toLocaleString();
 }
 function formatFieldName(field) {
@@ -320,6 +323,48 @@ const onUpdateOptionsDebounced = debounce((options) => {
         {{ smartFormatDate(item.raw.created.stamp) }}
       </template>
 
+      <!-- A/B enabled -->
+      <template #item.abTesting.enabled="{ item }">
+        <VIcon
+          v-if="item.raw.abTesting?.enabled"
+          size="16"
+          color="primary"
+          start
+        >
+          mdi-flask
+        </VIcon>
+      </template>
+
+      <!-- Template codes -->
+      <template #item.action.template.code="{ item }">
+        {{ item.raw.action.template.code }}
+        {{
+          item.raw.action.templateB?.code
+            ? "| " + item.raw.action.templateB?.code
+            : ""
+        }}
+      </template>
+
+      <!-- Template types -->
+      <template #item.action.template.type="{ item }">
+        {{ item.raw.action.template.type }}
+        {{
+          item.raw.action.templateB?.type
+            ? "| " + item.raw.action.templateB?.type
+            : ""
+        }}
+      </template>
+
+      <!-- Template sub types -->
+      <template #item.action.template.subType="{ item }">
+        {{ item.raw.action.template.subType }}
+        {{
+          item.raw.action.templateB?.subType
+            ? "| " + item.raw.action.templateB?.subType
+            : ""
+        }}
+      </template>
+
       <!-- sent_percent -->
       <template #item.stats.sent_percent="{ item }">
         <div class="d-flex align-center">
@@ -400,15 +445,18 @@ const onUpdateOptionsDebounced = debounce((options) => {
     <VDialog v-model="logDialog" max-width="500">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
-          <VCardText>
-            <div class="campaign-details">
+        <VCardText>
+          <div class="campaign-details">
             <div><strong>Campaign ID:</strong> {{ selectedLogs.raw._id }}</div>
 
             <!-- Audience -->
             <section class="detail-block">
               <h5>Audience</h5>
               <div>
-                <div><strong>User Set:</strong> {{ selectedLogs.raw.audience?.userSet }}</div>
+                <div>
+                  <strong>User Set:</strong>
+                  {{ selectedLogs.raw.audience?.userSet }}
+                </div>
               </div>
             </section>
 
@@ -422,20 +470,51 @@ const onUpdateOptionsDebounced = debounce((options) => {
               </h5>
 
               <div v-if="selectedLogs.raw.filter.children?.length">
-                <div v-for="(child, idx) in selectedLogs.raw.filter.children" :key="idx" class="filter-child">
-                  <div style="margin: 4px 0;"><strong>{{ formatFieldName(child.filterType) }}: </strong></div>
-                  <template v-if="child.freqOperator && child.freqPeriod && (child.freqCount || child.value)">
+                <div
+                  v-for="(child, idx) in selectedLogs.raw.filter.children"
+                  :key="idx"
+                  class="filter-child"
+                >
+                  <div style="margin: 4px 0">
+                    <strong>{{ formatFieldName(child.filterType) }}: </strong>
+                  </div>
+                  <template
+                    v-if="
+                      child.freqOperator &&
+                      child.freqPeriod &&
+                      (child.freqCount || child.value)
+                    "
+                  >
                     <strong>"{{ formatFieldName(child.field) }}"</strong>
-                    {{ 
-                    ' has' + (child.operator === 'is_not' ? ' not' : '') + 
-                    ' happened ' + formatFieldName(child.freqOperator).toLowerCase() + 
-                    ' ' + (child.freqCount || child.value) + 
-                    ' time' + ((child.freqCount || child.value) > 1 ? 's' : '') + 
-                    (child.freqPeriod ? ' ' + formatFieldName(child.freqPeriod).toLowerCase() : '') + '.'
+                    {{
+                      " has" +
+                      (child.operator === "is_not" ? " not" : "") +
+                      " happened " +
+                      formatFieldName(child.freqOperator).toLowerCase() +
+                      " " +
+                      (child.freqCount || child.value) +
+                      " time" +
+                      ((child.freqCount || child.value) > 1 ? "s" : "") +
+                      (child.freqPeriod
+                        ? " " + formatFieldName(child.freqPeriod).toLowerCase()
+                        : "") +
+                      "."
                     }}
                   </template>
-                  <template v-else-if="child.field && child.operator && (child.freqCount || child.value)">
-                    <strong>"{{ formatFieldName(child.field) }}"</strong> {{ formatFieldName(child.operator) }} <strong>"{{ formatFieldName(child.freqCount || child.value) }}"</strong>
+                  <template
+                    v-else-if="
+                      child.field &&
+                      child.operator &&
+                      (child.freqCount || child.value)
+                    "
+                  >
+                    <strong>"{{ formatFieldName(child.field) }}"</strong>
+                    {{ formatFieldName(child.operator) }}
+                    <strong
+                      >"{{
+                        formatFieldName(child.freqCount || child.value)
+                      }}"</strong
+                    >
                   </template>
                 </div>
               </div>
@@ -451,10 +530,26 @@ const onUpdateOptionsDebounced = debounce((options) => {
                 <p><strong>Duration Type:</strong> Manual</p>
               </div>
               <div v-else>
-                <p><strong>Duration Type:</strong> {{ formatFieldName(selectedLogs.raw.schedule.durationType) }}</p>
-                <p><strong>Start Date:</strong> {{ formatDate(selectedLogs.raw.schedule.startDate) }}</p>
-                <p><strong>End Date:</strong> {{ formatDate(selectedLogs.raw.schedule.endDate) }}</p>
-                <p><strong>Repeat Type:</strong> {{ formatFieldName(selectedLogs.raw.schedule.repeatType || 'N/A') }}</p>
+                <p>
+                  <strong>Duration Type:</strong>
+                  {{ formatFieldName(selectedLogs.raw.schedule.durationType) }}
+                </p>
+                <p>
+                  <strong>Start Date:</strong>
+                  {{ formatDate(selectedLogs.raw.schedule.startDate) }}
+                </p>
+                <p>
+                  <strong>End Date:</strong>
+                  {{ formatDate(selectedLogs.raw.schedule.endDate) }}
+                </p>
+                <p>
+                  <strong>Repeat Type:</strong>
+                  {{
+                    formatFieldName(
+                      selectedLogs.raw.schedule.repeatType || "N/A"
+                    )
+                  }}
+                </p>
               </div>
             </section>
           </div>
@@ -490,7 +585,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 .detail-row {
   display: block;
   flex-wrap: wrap; /* allows wrapping if not enough space */
-  gap: 0px;       /* spacing between blocks */
+  gap: 0px; /* spacing between blocks */
   margin: 12px 0px;
   // max-width: calc(100vw - 100px);
 }
@@ -501,7 +596,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;
-  width: 450px; 
+  width: 450px;
   margin-top: 10px;
 }
 .detail-block h5 {
@@ -512,5 +607,4 @@ const onUpdateOptionsDebounced = debounce((options) => {
   text-align: center;
   padding-bottom: 4px;
 }
-
 </style>
