@@ -1,22 +1,48 @@
 <script setup>
 import { reactive, ref } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
+import AbTestingDetails from "./AbTestingDetails.vue";
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
   filter: { type: Object, required: true },
+  abTesting: { type: Object, required: false },
 });
-const emit = defineEmits(["update:modelValue", "update:filter"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "update:filter",
+  "update:abTesting",
+]);
 
 // Clone object for internal form usage
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 const filterLocal = reactive(JSON.parse(JSON.stringify(props.filter)));
+const abTestingLocal = reactive(JSON.parse(JSON.stringify(props.abTesting)));
+
+// Watch & sync
+watch(
+  () => props.modelValue,
+  (val) => Object.assign(form, val),
+  { deep: true }
+);
+watch(
+  () => props.filter,
+  (val) => Object.assign(filterLocal, val),
+  { deep: true }
+);
+watch(
+  () => props.abTesting,
+  (val) => Object.assign(abTestingLocal, val),
+  { deep: true }
+);
 
 // Watch & sync
 watch(form, (val) => emit("update:modelValue", val), { deep: true });
 watch(filterLocal, (val) => emit("update:filter", val), { deep: true });
+watch(abTestingLocal, (val) => emit("update:abTesting", val), { deep: true });
 
 const filterRef = ref(null);
+const abTestingRef = ref(null);
 
 const userSetOptions = [
   { title: "All Users", value: "All Users" },
@@ -31,7 +57,14 @@ const segmentsOptions = [
   { title: "Segment 2", value: "2" },
 ];
 
-const isValid = async () => filterRef.value?.isValid();
+const isValid = async () => {
+  let sections = await Promise.allSettled([
+    filterRef.value?.isValid(),
+    abTestingRef.value?.isValid(),
+  ]);
+  let sectionsValid = sections.every((r) => !!r.value);
+  return sectionsValid;
+};
 
 defineExpose({ isValid });
 </script>
@@ -92,6 +125,18 @@ defineExpose({ isValid });
     </p>
 
     <FilterBuilder v-model="filterLocal" ref="filterRef" />
+
+    <template v-if="abTestingLocal?.enabled">
+      <VDivider class="my-6" />
+
+      <h3 class="mb-2">A/B Testing</h3>
+      <p class="text-caption mb-4">
+        Test multiple versions of your template with a percentage of your
+        audience
+      </p>
+
+      <AbTestingDetails v-model="abTestingLocal" ref="abTestingRef" />
+    </template>
   </VCard>
 </template>
 

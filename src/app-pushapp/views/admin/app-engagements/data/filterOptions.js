@@ -40,6 +40,7 @@ export const optionsMap = {
     value: "platform",
     inputFieldMeta: {
       type: "select",
+      multiple: true,
       options: [
         { title: "iOS", value: "ios" },
         { title: "Android", value: "android" },

@@ -23,6 +23,12 @@ const campaign = reactive({
       type: null,
       subType: null,
     },
+    templateB: {
+      id: null,
+      code: null,
+      type: null,
+      subType: null,
+    },
   },
   audience: {
     userSet: "All Users",
@@ -44,6 +50,13 @@ const campaign = reactive({
         freqPeriod: null,
       },
     ],
+  },
+  abTesting: {
+    enabled: false,
+    sampleSize: 5,
+    evaluationWindow: 15,
+    distributionParameter: null, // e.g., "contact.platform"
+    distributionParameterValues: null,
   },
   schedule: {
     durationType: "manual",
@@ -81,6 +94,7 @@ const tabs = [
   },
   */
 ];
+const activeTemplateVariant = ref("A");
 const activeTab = ref(0);
 const nextTab = computed(() => {
   const next = tabs[activeTab.value + 1];
@@ -92,6 +106,7 @@ const tabErrors = ref({
   2: false,
 });
 const templateRef = ref();
+const templateBRef = ref();
 const audienceRef = ref();
 const scheduleRef = ref();
 const errors = ref({});
@@ -114,7 +129,10 @@ const isValidTab = async (tab, silent = false) => {
   switch (tab) {
     case 0:
       let templateValid = await templateRef.value?.isValid(silent);
-      if (!templateValid) {
+      let templateBValid = campaign.abTesting.enabled
+        ? await templateBRef.value?.isValid(silent)
+        : true;
+      if (!templateValid || !templateBValid) {
         valid = false;
       }
       break;
@@ -172,6 +190,13 @@ const create = async () => {
       payload.action.template.code = templateRes.data.code;
       payload.action.template.type = templateRes.data.type;
       payload.action.template.subType = templateRes.data.subType;
+      if (campaign.abTesting.enabled) {
+        const templateBRes = await templateBRef.value._onCreate();
+        payload.action.templateB.id = templateBRes.data._id;
+        payload.action.templateB.code = templateBRes.data.code;
+        payload.action.templateB.type = templateBRes.data.type;
+        payload.action.templateB.subType = templateBRes.data.subType;
+      }
       await appEngagementsStore.createFilter(payload);
       show({ message: "Campaign saved successfully", color: "success" });
       router.push({ name: "admin-app-engagements-campaigns-list" });
@@ -221,25 +246,78 @@ const create = async () => {
       </div>
     </VToolbar>
 
-    <VTabs v-model="activeTab" class="v-tabs-pill">
-      <VTab
-        v-for="(item, index) in tabs"
-        :key="item.icon"
-        :value="index"
-        :class="{ 'error-tab': tabErrors[index] }"
-      >
-        <VIcon size="20" start :icon="item.icon" />
-        {{ item.title }}
-        <VIcon v-if="tabErrors[index]" color="error" size="16" class="ml-1">
-          mdi-exclamation-thick
-        </VIcon>
-      </VTab>
-    </VTabs>
+    <!-- Tabs + Switch Row -->
+    <div class="d-flex align-center justify-space-between">
+      <!-- Tabs -->
+      <VTabs v-model="activeTab" class="v-tabs-pill flex-grow-1">
+        <VTab
+          v-for="(item, index) in tabs"
+          :key="item.icon"
+          :value="index"
+          :class="{ 'error-tab': tabErrors[index] }"
+        >
+          <VIcon size="20" start :icon="item.icon" />
+          {{ item.title }}
+          <VIcon v-if="tabErrors[index]" color="error" size="16" class="ml-1">
+            mdi-exclamation-thick
+          </VIcon>
+        </VTab>
+      </VTabs>
+
+      <!-- Switch on Right -->
+      <div class="d-flex align-center ml-4">
+        <!-- <VChip variant="tonal" size="large" color="secondary"> -->
+        <div class="d-flex align-center">
+          <VIcon size="16" color="primary" start>mdi-flask</VIcon>
+          <span class="text-body-1 text-primary font-medium">
+            Enable A/B Testing
+          </span>
+          <VSwitch
+            v-model="campaign.abTesting.enabled"
+            hide-details
+            inset
+            color="primary"
+            class="ml-2"
+          />
+          <VTooltip activator="parent" location="bottom">
+            Test different variants of your template
+          </VTooltip>
+        </div>
+        <!-- </VChip> -->
+      </div>
+    </div>
 
     <VWindow v-model="activeTab" class="mt-4">
       <!-- tab-template -->
       <VWindowItem>
-        <Template ref="templateRef" :edit="QUERY_T_EDIT" />
+        <div
+          v-if="campaign.abTesting.enabled"
+          class="mb-4 d-flex justify-center"
+        >
+          <VBtnToggle
+            v-model="activeTemplateVariant"
+            variant="tonal"
+            color="primary"
+            mandatory
+            density="compact"
+            class="rounded-pill"
+          >
+            <VBtn value="A" density="compact" class="px-4">Variant A</VBtn>
+            <VBtn value="B" density="compact" class="px-4">Variant B</VBtn>
+          </VBtnToggle>
+        </div>
+
+        <!-- Render the template editor based on selected variant -->
+        <div
+          v-show="!campaign.abTesting.enabled || activeTemplateVariant === 'A'"
+        >
+          <Template ref="templateRef" :edit="QUERY_T_EDIT" />
+        </div>
+        <div
+          v-show="campaign.abTesting.enabled && activeTemplateVariant === 'B'"
+        >
+          <Template ref="templateBRef" />
+        </div>
       </VWindowItem>
 
       <!-- tab-audience -->
@@ -248,6 +326,7 @@ const create = async () => {
           ref="audienceRef"
           v-model="campaign.audience"
           v-model:filter="campaign.filter"
+          v-model:abTesting="campaign.abTesting"
         />
       </VWindowItem>
 

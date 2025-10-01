@@ -33,18 +33,23 @@ const clearErrorAndUpdate = () => {
 const isValid = (silent = false) => {
   const el = props.element;
   let valid = true;
-  if (!el.field) valid = false;
-  if (
-    FILTER_OPTIONS_MAP[el.field]?.inputFieldMeta &&
-    (!el.operator || !el.value)
-  )
-    valid = false;
-  if (
-    el.filterType === "event" &&
-    FILTER_OPTIONS_MAP[el.field]?.freqFieldMeta?.required &&
-    (!el.freqOperator || !el.freqCount || !el.freqPeriod)
-  )
-    valid = false;
+
+  if (el.type === "group") {
+    //TODO
+  } else {
+    if (!el.field) valid = false;
+    if (
+      FILTER_OPTIONS_MAP[el.field]?.inputFieldMeta &&
+      (!el.operator || !el.value)
+    )
+      valid = false;
+    if (
+      el.filterType === "event" &&
+      FILTER_OPTIONS_MAP[el.field]?.freqFieldMeta?.required &&
+      (!el.freqOperator || !el.freqCount || !el.freqPeriod)
+    )
+      valid = false;
+  }
 
   if (!valid && !silent) hasError.value = true;
   return valid;
@@ -131,6 +136,9 @@ defineExpose({ isValid });
           "
           placeholder="Select Value"
           class="filter-entity value"
+          :multiple="
+            !!FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta?.multiple
+          "
           :disabled="!element.field"
           @update:modelValue="clearErrorAndUpdate"
         >

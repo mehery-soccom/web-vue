@@ -1,6 +1,7 @@
 <script setup>
 import { ref, nextTick } from "vue";
 import FilterItem from "./FilterItem.vue";
+const { show } = inject("snackbar");
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -28,7 +29,18 @@ const addGroup = () => {
   props.modelValue.children.push({
     type: "group",
     conjunction: "and",
-    children: [],
+    children: [
+      {
+        type: "filter",
+        filterType: "event",
+        field: null,
+        operator: null,
+        value: null,
+        freqOperator: null,
+        freqCount: null,
+        freqPeriod: null,
+      },
+    ],
   });
   emit("update:modelValue", props.modelValue);
 };
@@ -52,8 +64,70 @@ const isValid = async (silent = false) => {
     await nextTick();
     firstInvalid.$el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
-  return allValid;
+
+  let structureValid = true;
+  try {
+    validateFilterStructure(props.modelValue);
+  } catch (error) {
+    structureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+
+  return allValid && structureValid;
 };
+
+function validateFilterStructure(
+  node,
+  parentConjunction = null,
+  isRoot = true
+) {
+  if (!node) throw new Error("Empty filter node");
+
+  if (node.type === "group") {
+    const { conjunction, children } = node;
+    if (!Array.isArray(children) || children.length === 0) {
+      throw new Error("Group must have children");
+    }
+
+    // Check: If group has multiple event filters as direct children, it must be OR
+    const directEventChildren = children.filter(
+      (c) => c.type === "filter" && c.filterType === "event"
+    );
+    if (directEventChildren.length > 1 && conjunction !== "or") {
+      throw new Error(
+        "Groups containing multiple event filters must use 'or' conjunction"
+      );
+    }
+
+    // If root AND: cannot directly contain more than one event filter
+    if (isRoot && conjunction === "and" && directEventChildren.length > 1) {
+      throw new Error(
+        "Root AND group cannot contain multiple event filters directly"
+      );
+    }
+
+    // Root must contain one event filter atleast
+    if (isRoot && directEventChildren.length == 0) {
+      throw new Error("Root group must have an event filter");
+    }
+
+    // Recurse into children
+    children.forEach((child) =>
+      validateFilterStructure(child, conjunction, false)
+    );
+    return true;
+  }
+
+  if (node.type === "filter") {
+    // No special checks here — but could enforce supported filterTypes
+    if (!["event", "attribute"].includes(node.filterType)) {
+      throw new Error(`Unsupported filterType: ${node.filterType}`);
+    }
+    return true;
+  }
+
+  throw new Error(`Unsupported node type: ${node.type}`);
+}
 
 defineExpose({ isValid });
 </script>

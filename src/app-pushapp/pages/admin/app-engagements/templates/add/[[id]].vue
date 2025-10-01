@@ -142,19 +142,26 @@ const createPayload = () => {
 const notificationPreviewRef = ref(null);
 async function saveTemplateHtml() {
   await nextTick();
-  const baseType = template.type.replace(/-/g, "").toLowerCase().replace(/^\w/, c => c.toUpperCase());
-  const refName = `${baseType}PreviewRef`; 
+  const baseType = template.type
+    .replace(/-/g, "")
+    .toLowerCase()
+    .replace(/^\w/, (c) => c.toUpperCase());
+  const refName = `${baseType}PreviewRef`;
   let popStyle, popScript;
 
   try {
-    const { default: style } = await import(`@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/${baseType}Style`);
+    const { default: style } = await import(
+      `@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/${baseType}Style`
+    );
     popStyle = style;
   } catch {
     popStyle = "";
   }
 
   try {
-    const { popScript: script } = await import(`@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/${baseType}Function`);
+    const { popScript: script } = await import(
+      `@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/${baseType}Function`
+    );
     popScript = script;
   } catch {
     popScript = "";
@@ -163,7 +170,10 @@ async function saveTemplateHtml() {
   if (notificationPreviewRef.value?.[refName]?.$el) {
     const el = notificationPreviewRef.value[refName].$el;
     let html = el.outerHTML;
-    html = html.replace(/<video/g, '<video muted=\"\" webkit-playsinline=\"\" preload=\"auto\" playsinline=\"\"');
+    html = html.replace(
+      /<video/g,
+      '<video muted="" webkit-playsinline="" preload="auto" playsinline=""'
+    );
 
     template.style.html = `
       <!DOCTYPE html>
@@ -193,7 +203,12 @@ const onUpdate = async () => {
     router.push({ name: "admin-app-engagements-templates-list" });
   } catch (error) {
     console.error(error);
-    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
+    show({
+      message: error?.response?.data?.errorMsg
+        ? error.response.data.errorMsg
+        : error,
+      color: "error",
+    });
   } finally {
     isLoading.value = false;
   }
@@ -208,7 +223,12 @@ const _onUpdate = async () => {
     return res.data;
   } catch (error) {
     console.error(error);
-    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
+    show({
+      message: error?.response?.data?.errorMsg
+        ? error.response.data.errorMsg
+        : error,
+      color: "error",
+    });
   } finally {
     isLoading.value = false;
   }
@@ -225,7 +245,12 @@ const onCreate = async () => {
     router.push({ name: "admin-app-engagements-templates-list" });
   } catch (error) {
     console.error(error);
-    show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
+    show({
+      message: error?.response?.data?.errorMsg
+        ? error.response.data.errorMsg
+        : error,
+      color: "error",
+    });
   } finally {
     isLoading.value = false;
   }
@@ -269,19 +294,23 @@ const fetchDetails = async (val, isCopy = false) => {
         ..._template,
       });
       await nextTick();
-      if (isCopy) template.desc = '';
+      if (isCopy) template.desc = "";
       isInitialLoad.value = false;
       // isPreStep.value = false;
     })
     .catch((error) => {
       console.log(error);
-      show({ message: error?.response?.data?.errorMsg ? error.response.data.errorMsg : error, color: "error" });
+      show({
+        message: error?.response?.data?.errorMsg
+          ? error.response.data.errorMsg
+          : error,
+        color: "error",
+      });
     });
-}
+};
 
 onMounted(async () => {
-  console.log("first", PARAM_ID, QUERY_COPY);
-  if(PARAM_ID || QUERY_COPY || QUERY_EDIT) isPreStep.value = false;
+  if (PARAM_ID || QUERY_COPY || QUERY_EDIT) isPreStep.value = false;
   if (PARAM_ID) await fetchDetails(PARAM_ID);
   else if (QUERY_EDIT) await fetchDetails(QUERY_EDIT);
   else {
@@ -356,13 +385,19 @@ defineExpose({ isValid, _onCreate, _onUpdate });
           >
             <v-col class="pa-0" cols="auto">
               <div>
-                <div class="text-h6">{{ PARAM_ID ? "Edit" : QUERY_EDIT ? "" : "Create"}} Template</div>
+                <div class="text-h6">
+                  {{ PARAM_ID ? "Edit" : QUERY_EDIT ? "" : "Create" }} Template
+                </div>
                 <div class="text-subtitle-2">
                   This template will be used for In-App Engagements
                 </div>
               </div>
             </v-col>
-            <v-col class="pa-0" cols="auto" v-if="!(PARAM_ID || QUERY_COPY || QUERY_EDIT)">
+            <v-col
+              class="pa-0"
+              cols="auto"
+              v-if="!(PARAM_ID || QUERY_COPY || QUERY_EDIT)"
+            >
               <v-btn variant="outlined" color="primary" @click="goToPreStep">
                 ← Back to pre step
               </v-btn>
@@ -429,7 +464,8 @@ defineExpose({ isValid, _onCreate, _onUpdate });
                             v-model="template.desc"
                             label="Template Name"
                             placeholder="Enter name"
-                            :rules="[required]" :disabled="!!(PARAM_ID || QUERY_EDIT)"
+                            :rules="[required]"
+                            :disabled="!!(PARAM_ID || QUERY_EDIT)"
                             prepend-inner-icon="mdi-text-box"
                           />
                         </VCol>
@@ -483,12 +519,7 @@ defineExpose({ isValid, _onCreate, _onUpdate });
       </v-col>
 
       <!-- Preview Column -->
-      <VCol
-        v-if="!isPreStep"
-        cols="12"
-        md="4"
-        style="margin-top: 13px;"
-      >
+      <VCol v-if="!isPreStep" cols="12" md="4" style="margin-top: 13px">
         <VRow style="height: 100%; max-height: 550px">
           <v-col cols="12" class="d-flex justify-center pt-0">
             <NotificationPreviewApp
