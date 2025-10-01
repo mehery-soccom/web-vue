@@ -127,6 +127,14 @@ onMounted(async () => {
   fetchCampaigns({ ...pagination });
 });
 
+const logDialog = ref(false);
+const selectedLogs = ref([]);
+const openLogDialog = (logs) => {
+  console.log("data rec", logs)
+  selectedLogs.value = logs || [];
+  logDialog.value = true;
+};
+
 const getCampaignStatus = ({ durationType, startDate, endDate }) => {
   if (durationType === "manual") {
     return "ON_GOING";
@@ -246,14 +254,12 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
           <td :colspan="headers.length">
-            <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
+            <!-- <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
             <div class="detail-row">
               <section class="detail-block">
                 <h5>Audience</h5>
                 <div>
                   <div><strong>User Set:</strong> {{ slotProps.item.raw.audience?.userSet }}</div>
-                  <!-- <div><strong>Segment Condition:</strong> {{ slotProps.item.raw.audience?.segmentCondition || 'N/A' }}</div>
-                  <div><strong>Segment:</strong> {{ slotProps.item.raw.audience?.segment || 'N/A' }}</div> -->
                 </div>
               </section>
               <section v-if="slotProps.item.raw.filter" class="detail-block">
@@ -286,7 +292,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
                   <p><strong>Repeat Type:</strong> {{ formatFieldName(slotProps.item.raw.schedule.repeatType || 'N/A') }}</p>
                 </div>
               </section>
-            </div>
+            </div> -->
           </td>
         </tr>
       </template>
@@ -385,8 +391,80 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
           <VTooltip activator="parent">End this campaign</VTooltip>
         </VBtn>
+        <IconBtn @click="openLogDialog(item)">
+          <VIcon>mdi-eye</VIcon>
+          <VTooltip activator="parent">Logs</VTooltip>
+        </IconBtn>
       </template>
     </MyDataTable>
+    <VDialog v-model="logDialog" max-width="500">
+      <VCard>
+        <VCardTitle class="text-h6">Campaign Details</VCardTitle>
+          <VCardText>
+            <div class="campaign-details">
+            <div><strong>Campaign ID:</strong> {{ selectedLogs.raw._id }}</div>
+
+            <!-- Audience -->
+            <section class="detail-block">
+              <h5>Audience</h5>
+              <div>
+                <div><strong>User Set:</strong> {{ selectedLogs.raw.audience?.userSet }}</div>
+              </div>
+            </section>
+
+            <!-- Filter -->
+            <section v-if="selectedLogs.raw.filter" class="detail-block">
+              <h5>
+                Filter
+                <span v-if="!!selectedLogs.raw.filter.conjuction">
+                  {{ formatFieldName(selectedLogs.raw.filter.conjuction) }}
+                </span>
+              </h5>
+
+              <div v-if="selectedLogs.raw.filter.children?.length">
+                <div v-for="(child, idx) in selectedLogs.raw.filter.children" :key="idx" class="filter-child">
+                  <div style="margin: 4px 0;"><strong>{{ formatFieldName(child.filterType) }}: </strong></div>
+                  <template v-if="child.freqOperator && child.freqPeriod && (child.freqCount || child.value)">
+                    <strong>"{{ formatFieldName(child.field) }}"</strong>
+                    {{ 
+                    ' has' + (child.operator === 'is_not' ? ' not' : '') + 
+                    ' happened ' + formatFieldName(child.freqOperator).toLowerCase() + 
+                    ' ' + (child.freqCount || child.value) + 
+                    ' time' + ((child.freqCount || child.value) > 1 ? 's' : '') + 
+                    (child.freqPeriod ? ' ' + formatFieldName(child.freqPeriod).toLowerCase() : '') + '.'
+                    }}
+                  </template>
+                  <template v-else-if="child.field && child.operator && (child.freqCount || child.value)">
+                    <strong>"{{ formatFieldName(child.field) }}"</strong> {{ formatFieldName(child.operator) }} <strong>"{{ formatFieldName(child.freqCount || child.value) }}"</strong>
+                  </template>
+                </div>
+              </div>
+              <div v-else>
+                <div>No filters defined</div>
+              </div>
+            </section>
+
+            <!-- Schedule -->
+            <section v-if="selectedLogs.raw.schedule" class="detail-block">
+              <h5>Schedule</h5>
+              <div v-if="selectedLogs.raw.schedule.durationType === 'manual'">
+                <p><strong>Duration Type:</strong> Manual</p>
+              </div>
+              <div v-else>
+                <p><strong>Duration Type:</strong> {{ formatFieldName(selectedLogs.raw.schedule.durationType) }}</p>
+                <p><strong>Start Date:</strong> {{ formatDate(selectedLogs.raw.schedule.startDate) }}</p>
+                <p><strong>End Date:</strong> {{ formatDate(selectedLogs.raw.schedule.endDate) }}</p>
+                <p><strong>Repeat Type:</strong> {{ formatFieldName(selectedLogs.raw.schedule.repeatType || 'N/A') }}</p>
+              </div>
+            </section>
+          </div>
+        </VCardText>
+        <VCardActions class="sticky-footer">
+          <VSpacer />
+          <VBtn text @click="logDialog = false">Close</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
   </VCard>
 </template>
 
@@ -410,9 +488,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
   line-height: 1.6;
 }
 .detail-row {
-  display: flex;
+  display: block;
   flex-wrap: wrap; /* allows wrapping if not enough space */
-  gap: 20px;       /* spacing between blocks */
+  gap: 0px;       /* spacing between blocks */
   margin: 12px 0px;
   // max-width: calc(100vw - 100px);
 }
@@ -423,8 +501,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;
-  width: 29vw;
-  min-width: 250px; 
+  width: 450px; 
+  margin-top: 10px;
 }
 .detail-block h5 {
   margin-bottom: 6px;
