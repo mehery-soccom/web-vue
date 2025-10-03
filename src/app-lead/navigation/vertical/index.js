@@ -1,3 +1,7 @@
 import dashboard from "./dashboard";
+import admin from "./admin";
 
-export default [...dashboard];
+export default [
+  ...dashboard,
+  ...admin,
+];

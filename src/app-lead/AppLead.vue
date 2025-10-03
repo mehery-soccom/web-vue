@@ -6,6 +6,7 @@ import { loadFonts } from "@app-lead/plugins/webfontloader";
 loadFonts();
 
 import { useTheme } from "vuetify";
+import { RouterView } from "vue-router";
 
 import ScrollToTop from "@app-lead/@core/components/ScrollToTop.vue";
 import { useThemeConfig } from "@app-lead/@core/composable/useThemeConfig";

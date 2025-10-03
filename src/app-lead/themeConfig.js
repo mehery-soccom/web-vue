@@ -16,10 +16,10 @@ import logo from "@app-lead/assets/images/logo.svg?raw";
 export const { themeConfig, layoutConfig } = defineThemeConfig({
   app: {
     title: "Lead Management",
-    logo: h("div", {
-      innerHTML: logo,
-      style: "line-height:0; color: rgb(var(--v-global-theme-primary))",
-    }),
+    // logo: h("div", {
+    //   innerHTML: logo,
+    //   style: "line-height:0; color: rgb(var(--v-global-theme-primary))",
+    // }),
     contentWidth: ContentWidth.Boxed,
     contentLayoutNav: AppContentLayoutNav.Vertical,
     overlayNavFromBreakpoint: breakpointsVuetify.md + 16,
