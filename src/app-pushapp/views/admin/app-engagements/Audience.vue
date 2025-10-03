@@ -60,7 +60,7 @@ const segmentsOptions = [
 const isValid = async () => {
   let sections = await Promise.allSettled([
     filterRef.value?.isValid(),
-    abTestingRef.value?.isValid(),
+    abTestingRef.value?.isValid() || true,
   ]);
   let sectionsValid = sections.every((r) => !!r.value);
   return sectionsValid;
