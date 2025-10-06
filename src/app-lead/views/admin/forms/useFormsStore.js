@@ -11,14 +11,23 @@ export const useFormsStore = defineStore("FormsStore", {
             const response = await DataService.axios.get("/form/get", { params });
             return response.data;
         },
-        createForm(params) {
-            return DataService.axios.post("/form/create", params);
+        async fetchForm(id) {
+            const response = await DataService.axios.get(`/form/get`, { params: { formId: id } });
+            return response.data.results[0];
         },
-        updateForm({ id }, params) {
-            return DataService.axios.post(`/form/update/${id}`, params);
+        async fetchFieldsForDropdown() {
+            const response = await DataService.axios.get('/field/get', { params: { dropdown: true } });
+            this.customerFields = response.data.results;
+            return this.customerFields;
         },
-        deleteForm({ id }) {
-            return DataService.axios.delete(`/form/delete/${id}`, {
+        async createForm(payload) {
+            return await DataService.axios.post("/form/create", payload);
+        },
+        async updateForm({ id, data }) {
+            return await DataService.axios.post(`/form/update/${id}`, data);
+        },
+        async deleteForm({ id }) {
+            return await DataService.axios.delete(`/form/delete/${id}`, {
                 toast: false,
             });
         },

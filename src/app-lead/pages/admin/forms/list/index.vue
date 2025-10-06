@@ -24,58 +24,78 @@ const headers = [
   { title: "Title", key: "title" },
   { title: "Code", key: "code" },
   { title: "Description", key: "desc" },
-  { title: "Actions", key: "actions", sortable: false, align: 'end' },
+  { title: "Actions", key: "actions", sortable: false },
 ];
 
-const fetchForms = (options = pagination) => {
+const fetchForms = async (options = pagination) => {
   isLoading.value = true;
-
-  const activeFilters = {};
-  for (const key in options.filters) {
-    if (options.filters[key]) {
-      activeFilters[key] = options.filters[key];
-    }
-  }
-
-  const apiParams = {
-    pageNo: options.page,
-    pageSize: options.itemsPerPage,
-    search: activeFilters,
-  };
-
-  formsStore
-    .fetchForms(apiParams)
-    .then((response) => {
-      forms.value = response.results;
-      pagination.itemsLength = response.pagination?.total || 0;
-    })
-    .catch((error) => {
-      if (error.response?.data?.error !== "No forms found") {
-        show({ message: "Something went wrong while fetching forms.", color: "error" });
+  try {
+    const activeFilters = {};
+    for (const key in options.filters) {
+      if (options.filters[key]) {
+        activeFilters[key] = options.filters[key];
       }
-      forms.value = [];
-      pagination.itemsLength = 0;
-    })
-    .finally(() => {
-      isLoading.value = false;
-    });
+    }
+    const apiParams = {
+      pageNo: options.page,
+      pageSize: options.itemsPerPage,
+      search: activeFilters,
+    };
+    const response = await formsStore.fetchForms(apiParams);
+    forms.value = response.results;
+    pagination.itemsLength = response.pagination?.total || 0;
+  } catch (error) {
+    if (error.response?.data?.error !== "No forms found") {
+      show({ message: "Something went wrong while fetching forms.", color: "error" });
+    }
+    forms.value = [];
+    pagination.itemsLength = 0;
+  } finally {
+    isLoading.value = false;
+  }
 };
 
-const deleteForm = (id, dialogCloseRef) => {
+const deleteForm = async (id, dialogCloseRef) => {
   isLoading.value = true;
-  formsStore.deleteForm({ id })
-    .then(() => {
-      fetchForms(); // Refresh the data
-      if (dialogCloseRef) dialogCloseRef.value = false;
-      show({ message: "Form deleted successfully", color: "success" });
-    })
-    .catch((error) => {
-      console.error("Delete failed:", error);
-      show({ message: "Failed to delete form", color: "error" });
-    })
-    .finally(() => {
-      isLoading.value = false;
-    });
+  try {
+    await formsStore.deleteForm({ id });
+    await fetchForms();
+    if (dialogCloseRef) dialogCloseRef.value = false;
+    show({ message: "Form deleted successfully", color: "success" });
+  } catch (error) {
+    console.error("Delete failed:", error);
+    show({ message: "Failed to delete form", color: "error" });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const cloneForm = async (formId) => {
+  isLoading.value = true;
+  try {
+    const formToClone = await formsStore.fetchForm(formId);
+
+    const payload = {
+      title: `${formToClone.title} - Copy`,
+      code: `${formToClone.code}_copy`,
+      desc: formToClone.desc,
+      fields: formToClone.formFields.map(field => ({
+        id: field.field_id,
+        access: field.access,
+      })),
+    };
+
+    await formsStore.createForm(payload);
+    show({ message: `Form '${formToClone.title}' cloned successfully!`, color: 'success' });
+
+    await fetchForms();
+
+  } catch (error) {
+    console.error("Clone failed:", error);
+    show({ message: "Failed to clone form", color: "error" });
+  } finally {
+    isLoading.value = false;
+  }
 };
 
 const onUpdateOptions = (options) => {
@@ -109,12 +129,12 @@ fetchForms();
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
-        <!-- <VBtn 
+        <VBtn 
           prepend-icon="tabler-plus" 
-          :to="{ name: 'admin-forms-add' }"  
+          :to="{ name: 'admin-forms-add-id?' }"  
         >
           Create Form
-        </VBtn> -->
+        </VBtn>
       </div>
     </VCardText>
     <VDivider />
@@ -128,14 +148,22 @@ fetchForms();
       @update:options="onUpdateOptionsDebounced"
     >
       <template #item.actions="{ item }">
-        <!-- <IconBtn
+        <VTooltip location="top">
+          <template #activator="{ props }">
+            <IconBtn v-bind="props" @click="cloneForm(item.raw._id)">
+              <VIcon icon="tabler-copy" />
+            </IconBtn>
+          </template>
+          <span>Clone Form</span>
+        </VTooltip>
+        <IconBtn
           :to="{
-            name: 'admin-forms-edit-id',
+            name: 'admin-forms-add-id?',
             params: { id: item.raw._id }
           }"
         >
           <VIcon icon="tabler-edit" />
-        </IconBtn> -->
+        </IconBtn>
 
         <IconBtn>
           <VIcon icon="tabler-trash" />

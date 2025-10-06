@@ -6,6 +6,7 @@ import Dashboard from "@/app-lead/pages/dashboards/analytics.vue";
 import FieldsList from "@/app-lead/pages/admin/fields/list/index.vue";
 import FieldsAdd from "@/app-lead/pages/admin/fields/add/[[id]].vue";
 import FormsList from "@/app-lead/pages/admin/forms/list/index.vue";
+import FormsAdd from "@/app-lead/pages/admin/forms/add/[[id]].vue";
 
 const baseRoutes = [
   {
@@ -68,6 +69,19 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "admin-forms-list",
           component: FormsList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/forms/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-forms-add-id?",
+          component: FormsAdd,
           props: true,
           meta: { layout: "default" },
         },
