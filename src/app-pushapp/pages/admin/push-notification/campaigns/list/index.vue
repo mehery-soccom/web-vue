@@ -197,6 +197,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <tr class="v-data-table__tr">
           <td :colspan="headers.length">
             <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
+            <div v-if="slotProps.item.raw.stats && slotProps.item.raw.stats.cta && Object.keys(slotProps.item.raw.stats.cta).length > 0">
+              <div style="font-size: 14px; font-weight: 600;margin-top: 10px;">CTA stats: </div>
+              <div style="margin: 5px 10px;">
+                <div v-for="(value, key) in slotProps.item.raw.stats.cta" :key="key">
+                  <div>{{ key }} : {{ value }}</div>
+                </div>
+              </div>
+            </div>
           </td>
         </tr>
       </template>

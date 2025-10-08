@@ -32,6 +32,10 @@ const local = reactive(JSON.parse(JSON.stringify(props.formData)))
 let isUpdating = false;
 const required = (v) => !!v || "This field is required";
 const placeholders = ref([]);
+const filteredPlaceholders = computed(() => {
+  if (!props.formData.type) return placeholders.value
+  return placeholders.value.filter(p => p.type === props.formData.type)
+})
 
 watch(() => get(local, 'style.placeholder_id'), 
   (newVal) => {
@@ -116,7 +120,7 @@ defineExpose({ validate });
         v-if="f.type === 'selectPlaceholder'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
-        :items="placeholders || []"
+        :items="filteredPlaceholders || []"
         :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
         item-title="label"
         item-value="code"
