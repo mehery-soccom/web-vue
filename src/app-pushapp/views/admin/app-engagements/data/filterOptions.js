@@ -17,20 +17,14 @@ export const optionsMap = {
       options: "/api/v1/catalog/pages/options",
     },
   },
-  page_close: { type: "event", title: "Page close", value: "page_close" },
   widget_open: {
     type: "event",
-    title: "Placeholder open",
+    title: "Placeholder",
     value: "widget_open",
     inputFieldMeta: {
       type: "select",
       options: "/api/v1/catalog/placeholders/options",
     },
-  },
-  widget_close: {
-    type: "event",
-    title: "Placeholder close",
-    value: "widget_close",
   },
 
   /* Attributes */
