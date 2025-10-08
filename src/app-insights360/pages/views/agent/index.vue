@@ -12,7 +12,7 @@ const tempTable = ref([]);
 const headers = [
   { title: "Agent", key: "agent", searchable: true, sortable: true },
   { title: "Team", key: "deptName", searchable: true },
-  { title: "Status", key: "status", sortable: false },
+  { title: "Status", key: "activity", sortable: false, filterable: true, filterOptions: ["","online", "away", "offline"]},
   { title: "No. of Conv", key: "totalConversations", information: "Number of Conversations" },
   { title: "Av Start Lag", key: "averageStartLag" },
   { title: "Av Response Time", key: "averageResponseTime" },
@@ -255,7 +255,7 @@ onMounted(async () => {
           }}</span>
           <span v-else>0</span>
         </template>
-        <template #item.status="{ item }">
+        <template #item.activity="{ item }">
           <span style="width: 100%; display: inline-block; text-align: center">
             <span
               v-if="item.raw.activity === 'online'"

@@ -49,29 +49,33 @@ watchEffect(() => {
 })
 
 const filteredItems = computed(() => {
-  const searchableKeys = props.headers
-    ?.filter(header => header.searchable)
-    .map(header => header.key) || []
+  const filterableHeaders = props.headers
+    ?.filter(header => header.searchable || header.filterable) || []
 
-  let items = props.productList?.filter(item =>
-    searchableKeys.every(key => {
-      const searchValue = columnSearch[key]?.toLowerCase?.() || ''
-      const itemValue = String(item[key] ?? '').toLowerCase()
-      return itemValue.includes(searchValue)
-    })
-  ) || []
+  let items = props.productList?.filter(item =>
+    filterableHeaders.every(header => {
+      const searchValue = String(columnSearch[header.key] ?? '').toLowerCase()
+      if (!searchValue) return true
 
-  if (currentSortKey.value) {
-    items = [...items].sort((a, b) => {
-      const valA = a[currentSortKey.value] ?? ''
-      const valB = b[currentSortKey.value] ?? ''
-      return currentSortOrder.value === 'asc'
-        ? String(valA).localeCompare(String(valB))
-        : String(valB).localeCompare(String(valA))
-    })
-  }
+      const itemValue = String(item[header.key] ?? '').toLowerCase()
 
-  return items
+      return header.filterOptions
+        ? itemValue === searchValue
+        : itemValue.includes(searchValue)
+    })
+  ) || []
+
+  if (currentSortKey.value) {
+    items = [...items].sort((a, b) => {
+      const valA = a[currentSortKey.value] ?? ''
+      const valB = b[currentSortKey.value] ?? ''
+      return currentSortOrder.value === 'asc'
+        ? String(valA).localeCompare(String(valB))
+        : String(valB).localeCompare(String(valA))
+    })
+  }
+
+  return items
 })
 // const filteredItems = computed(() => {
 //   const searchableKeys = props.headers
@@ -147,8 +151,22 @@ const filteredItems = computed(() => {
         </tr>
         <tr>
           <th v-for="column in columns" :key="column.key">
+            <select
+              v-if="column.filterable && column.filterOptions"
+              v-model="columnSearch[column.key]"
+              class="form-control form-control-sm"
+            >
+              <option
+                v-for="option in column.filterOptions"
+                :key="option"
+                :value="option"
+              >
+                {{ option === '' ? '--' : option.charAt(0).toUpperCase() + option.slice(1) }}
+              </option>
+            </select>
+
             <input
-              v-if="column.searchable"
+              v-else-if="column.searchable"
               v-model="columnSearch[column.key]"
               type="text"
               class="form-control form-control-sm"
@@ -265,4 +283,35 @@ input.form-control-sm:focus {
 .fixed-column:not(.has-expand) th:nth-child(1) {
   z-index: 3 !important;
 }
+
+.form-control-sm {
+  min-width: 120px;
+  width: 100%;
+  font-size: 0.8rem;
+  padding: 6px 10px;
+  border-radius: 4px;
+  transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  color: #000;
+  background-color: #f9f9f9; 
+  border: 1px solid rgba(var(--v-theme-on-surface), 0.22);
+}
+
+.form-control-sm:focus {
+  outline: none;
+  border-color: rgb(var(--v-theme-primary));
+  box-shadow: 0 0 3px rgba(var(--v-theme-primary), 0.4);
+  background-color: #fff;
+}
+
+select.form-control-sm {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 16px 12px;
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='rgba(var(--v-theme-on-surface), 0.7)' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+}
+
+
 </style>
