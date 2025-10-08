@@ -19,8 +19,13 @@ watch(() => props.data.title, (newTitle) => {
   }
 })
 
-const inputTypeOptions = ['TEXT', 'OPTIONS', 'DOCUMENT', 'BOOLEAN', 'DATE']
-
+const inputTypeOptions = [
+  { title: 'TEXT', value: 'TEXT' },
+  { title: 'DROPDOWN', value: 'OPTIONS' },
+  { title: 'DOCUMENT', value: 'DOCUMENT' },
+  { title: 'BOOLEAN', value: 'BOOLEAN' },
+  { title: 'DATE', value: 'DATE' },
+]
 const newOptionLabel = ref('')
 const newOptionCode = ref('')
 
@@ -90,6 +95,8 @@ const removeOption = index => {
             label="Input Type"
             placeholder="Select Input Type"
             :items="inputTypeOptions"
+            item-title="title"
+            item-value="value"
             :rules="[requiredValidator]"
           />
         </VCol>

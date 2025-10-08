@@ -132,6 +132,19 @@ const handleSubmit = async () => {
     isLoading.value = false;
   }
 };
+
+const openPreview = () => {
+  const previewData = {
+    title: formData.value.title,
+    desc: formData.value.desc,
+    fields: formFields.value,
+  };
+
+  sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
+
+  const routeData = router.resolve({ name: 'admin-forms-preview' });
+  window.open(routeData.href, '_blank');
+};
 </script>
 
 <template>
@@ -140,6 +153,21 @@ const handleSubmit = async () => {
       <VCard :loading="isFetching" class="mb-4">
         <VCardItem>
           <VCardTitle>{{ formId ? 'Edit Form' : 'Create Form' }}</VCardTitle>
+
+          <template #append>
+            <VTooltip location="top">
+              <template #activator="{ props }">
+                <VBtn
+                  v-bind="props"
+                  icon="tabler-eye"
+                  variant="text"
+                  color="default"
+                  @click="openPreview"
+                />
+              </template>
+              <span>Preview</span>
+            </VTooltip>
+          </template>
         </VCardItem>
       </VCard>
 
@@ -186,10 +214,12 @@ const handleSubmit = async () => {
                             <VListItemTitle>{{ item.raw.title }}</VListItemTitle>
                             <template #append>
                                 <VChip
-                                size="small"
-                                variant="tonal"
-                                color="primary"
-                                >{{ item.raw.inputType  }}</VChip>
+                                  size="small"
+                                  variant="tonal"
+                                  color="primary"
+                                >
+                                  {{ item.raw.inputType === 'OPTIONS' ? 'DROPDOWN' : item.raw.inputType }}
+                                </VChip>
                             </template>
                           </VListItem>
                       </template>
@@ -265,7 +295,7 @@ const handleSubmit = async () => {
                     dense
                   >
                     <VCol cols="2" class="py-0">
-                      <strong>{{ role }}</strong>
+                      <strong>{{ role === 'Contact' ? 'External' : role }}</strong>
                     </VCol>
 
                     <VCol cols="10" class="py-0">
@@ -295,6 +325,13 @@ const handleSubmit = async () => {
           <VCol cols="12" class="d-flex gap-4">
             <VBtn @click="addFieldCard" prepend-icon="tabler-plus">Add Field</VBtn>
             <VSpacer />
+            <VBtn
+              color="secondary"
+              variant="tonal"
+              :to="{ name: 'admin-forms-list' }"
+            >
+              Cancel
+            </VBtn>
             <VBtn type="submit" :loading="isLoading">{{ formId ? 'Update Form' : 'Create Form' }}</VBtn>
           </VCol>
         </VRow>

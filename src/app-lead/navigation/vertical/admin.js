@@ -6,7 +6,7 @@ export default [
     to: "admin-fields-list",
   },
   {
-    title: "Forms",
+    title: "Campaigns",
     icon: { icon: "tabler-clipboard-text" },
     to: "admin-forms-list",
   },

@@ -45,7 +45,7 @@ const headers = [
   { title: "Actions", key: "actions", sortable: false },
 ];
 
-const fetchFields = async (options) => {
+const fetchFields = async (options = pagination) => {
   isLoading.value = true;
   try {
     const activeFilters = {};
@@ -65,10 +65,8 @@ const fetchFields = async (options) => {
     fields.value = response.results;
     pagination.itemsLength = response.pagination.total || 0;
   } catch (error) {
-    if (error.response?.data?.error !== "No fields found") {
-      show({ message: "Something went wrong while fetching fields.", color: "error" });
-    }
-    fields.value = [];
+      show({ message: error.message || "Something went wrong while fetching fields.", color: "error" });
+      fields.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -152,7 +150,7 @@ const handleImport = async () => {
   }
   catch (error) {
     console.error('Import failed:', error)
-    show({ message: 'An error occurred during import.', color: 'error' })
+    show({ message: error.message || 'An error occurred during import.', color: 'error' })
   }
   finally {
     isImporting.value = false
@@ -197,7 +195,10 @@ const handleImport = async () => {
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
     >
-      
+      <template #item.inputType="{ item }">
+        {{ item.raw.inputType === 'OPTIONS' ? 'DROPDOWN' : item.raw.inputType }}
+      </template>
+
       <template #item.optional="{ item }">
         <VChip :color="item.raw.optional ? 'secondary' : 'success'" size="small" label>
           {{ item.raw.optional ? 'No' : 'Yes' }}
