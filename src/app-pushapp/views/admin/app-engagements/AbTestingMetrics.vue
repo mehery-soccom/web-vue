@@ -1,8 +1,56 @@
 <template>
   <VCard flat class="pa-4 ab-metrics">
+    <!-- <VRow>
+        <VCol cols="12" md="4">
+          <strong>Total Audience:</strong> {{ stats.total ?? "—" }}
+        </VCol>
+        <VCol cols="12" md="4">
+          <strong>Sent:</strong> {{ stats.sent ?? "—" }}
+        </VCol>
+        <VCol cols="12" md="4">
+          <strong>Dismissed:</strong> {{ stats.dismissed ?? "—" }}
+        </VCol>
+      </VRow> -->
+
+    <VRow v-if="filteredCta.length">
+      <VCol cols="12">
+        <h4 class="mb-2">CTA Stats</h4>
+        <MyDataTable
+          :headers="filteredCtaHeaders"
+          :items="filteredCta"
+          :items-per-page="filteredCta.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow>
+
+    <!-- <VRow v-if="ctaByHourEntries.length" class="mt-3">
+      <VCol cols="12">
+        <h4 class="mb-2">CTA by Hour</h4>
+        <MyDataTable
+          :headers="ctaHeaders"
+          :items="ctaByHourEntries"
+          :items-per-page="ctaByHourEntries.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #item.timestamp="{ item }">
+            {{ formatDate(item.raw.timestamp) }}
+          </template>
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow> -->
+
     <!-- A/B Testing Enabled -->
     <template v-if="abTesting?.enabled">
       <!-- Summary -->
+      <h4 class="mt-3 mb-3">A/B Testing Stats</h4>
       <VRow>
         <VCol cols="12" md="4">
           <strong>State:</strong> {{ abTesting.state || "—" }}
@@ -44,8 +92,17 @@
       <!-- Decision Info -->
       <VRow class="mt-3">
         <VCol cols="12">
+          <!-- :type="abTesting.winner ? 'success' : 'info'" -->
           <VAlert
-            :type="abTesting.winner ? 'success' : 'info'"
+            :type="
+              {
+                CREATED: 'info',
+                TESTING: 'info',
+                AWAITING_RESULT: 'info',
+                CONCLUDED: 'success',
+                ABORTED: 'error',
+              }[abTesting.state]
+            "
             variant="outlined"
             class="text-body-2"
           >
@@ -70,7 +127,6 @@
             :headers="metricHeaders"
             :items="metricRows"
             density="compact"
-            hide-default-footer
             class="elevation-1"
           >
             <template #item.variant="{ item }">
@@ -92,54 +148,6 @@
               </div>
             </template>
 
-            <template #bottom></template>
-          </MyDataTable>
-        </VCol>
-      </VRow>
-    </template>
-    <!-- A/B Testing Disabled -->
-    <template v-else>
-      <!-- <VRow>
-        <VCol cols="12" md="4">
-          <strong>Total Audience:</strong> {{ stats.total ?? "—" }}
-        </VCol>
-        <VCol cols="12" md="4">
-          <strong>Sent:</strong> {{ stats.sent ?? "—" }}
-        </VCol>
-        <VCol cols="12" md="4">
-          <strong>Dismissed:</strong> {{ stats.dismissed ?? "—" }}
-        </VCol>
-      </VRow> -->
-
-      <VRow v-if="filteredCta.length" class="mt-3">
-        <VCol cols="12">
-          <h4 class="mb-2">CTA Stats</h4>
-          <MyDataTable
-            :headers="filteredCtaHeaders"
-            :items="filteredCta"
-            :items-per-page="filteredCta.length"
-            :page="1"
-            density="compact"
-            class="custom"
-          >
-            <template #bottom></template>
-          </MyDataTable>
-        </VCol>
-      </VRow>
-
-      <VRow v-if="ctaByHourEntries.length" class="mt-3">
-        <VCol cols="12">
-          <h4 class="mb-2">CTA by Hour</h4>
-          <MyDataTable
-            :headers="ctaHeaders"
-            :items="ctaByHourEntries"
-            :items-per-page="ctaByHourEntries.length"
-            :page="1"
-            density="compact"
-          >
-            <template #item.timestamp="{ item }">
-              {{ formatDate(item.raw.timestamp) }}
-            </template>
             <template #bottom></template>
           </MyDataTable>
         </VCol>
@@ -206,7 +214,6 @@ const metricRows = computed(() => {
     });
   }
 
-  console.log("metricRows", rows);
   return rows;
 });
 

@@ -14,7 +14,7 @@ const formattedNotifications = computed(() =>
     stats: {
       ...item.stats,
       cta: {
-        count: 0,
+        __count: 0,
         ...item.stats.cta,
       },
       sent_percent:
@@ -27,7 +27,7 @@ const formattedNotifications = computed(() =>
           : 0,
       cta_percent:
         item.stats?.sent > 0
-          ? Math.round(((item.stats.cta?.count || 0) / item.stats.sent) * 100)
+          ? Math.round(((item.stats.cta?.__count || 0) / item.stats.sent) * 100)
           : 0,
     },
     status:
@@ -84,7 +84,7 @@ const headers = [
   },
   {
     title: "CTA",
-    key: "stats.cta.count",
+    key: "stats.cta.__count",
     sortable: false,
     align: "center",
   },
@@ -197,10 +197,21 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <tr class="v-data-table__tr">
           <td :colspan="headers.length">
             <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
-            <div v-if="slotProps.item.raw.stats && slotProps.item.raw.stats.cta && Object.keys(slotProps.item.raw.stats.cta).length > 0">
-              <div style="font-size: 14px; font-weight: 600;margin-top: 10px;">CTA stats: </div>
-              <div style="margin: 5px 10px;">
-                <div v-for="(value, key) in slotProps.item.raw.stats.cta" :key="key">
+            <div
+              v-if="
+                slotProps.item.raw.stats &&
+                slotProps.item.raw.stats.cta &&
+                Object.keys(slotProps.item.raw.stats.cta).length > 0
+              "
+            >
+              <div style="font-size: 14px; font-weight: 600; margin-top: 10px">
+                CTA stats:
+              </div>
+              <div style="margin: 5px 10px">
+                <div
+                  v-for="(value, key) in slotProps.item.raw.stats.cta"
+                  :key="key"
+                >
                   <div>{{ key }} : {{ value }}</div>
                 </div>
               </div>

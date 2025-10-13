@@ -22,7 +22,7 @@ const formattedItems = computed(() =>
           : 0,
       cta_percent:
         item.stats?.sent > 0
-          ? Math.round(((item.stats.cta?.count || 0) / item.stats.sent) * 100)
+          ? Math.round(((item.stats.cta?.__count || 0) / item.stats.sent) * 100)
           : 0,
     },
     status:
@@ -87,7 +87,7 @@ const headers = [
   },
   {
     title: "CTA",
-    key: "stats.cta.count",
+    key: "stats.cta.__count",
     sortable: false,
     align: "center",
   },
@@ -387,7 +387,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- Actions -->
       <template #item.actions="{ item }">
         <VBtn
-          v-if="item.raw.status !== 'ENDED'"
+          v-if="item.raw.status !== 'ENDED' && item.raw.status !== 'ABORTED'"
           variant="outlined"
           color="error"
           size="small"
