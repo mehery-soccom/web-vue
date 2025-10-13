@@ -15,6 +15,10 @@ export const useFormsStore = defineStore("FormsStore", {
             const response = await DataService.axios.get(`/form/get`, { params: { formId: id } });
             return response.data.results[0];
         },
+        async fetchFormsForDropdown() {
+            const response = await DataService.axios.get('/form/get', { params: { dropdown: true } });
+            return response.data;
+        },
         async fetchFieldsForDropdown() {
             const response = await DataService.axios.get('/field/get', { params: { dropdown: true } });
             this.customerFields = response.data.results;

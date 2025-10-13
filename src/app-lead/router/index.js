@@ -8,6 +8,8 @@ import FieldsAdd from "@/app-lead/pages/admin/fields/add/[[id]].vue";
 import FormsList from "@/app-lead/pages/admin/forms/list/index.vue";
 import FormsAdd from "@/app-lead/pages/admin/forms/add/[[id]].vue";
 import FormsPreview from "@/app-lead/pages/admin/forms/preview/index.vue";
+import LeadsList from "@/app-lead/pages/admin/leads/list/index.vue";
+import LeadsAdd from "@/app-lead/pages/admin/leads/add/[[id]].vue";
 
 const baseRoutes = [
   {
@@ -96,6 +98,32 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "admin-forms-preview",
           component: FormsPreview,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/leads/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-leads-list",
+          component: LeadsList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/leads/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-leads-add-id?",
+          component: LeadsAdd,
           props: true,
           meta: { layout: "default" },
         },

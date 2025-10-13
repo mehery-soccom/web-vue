@@ -1,4 +1,6 @@
 <script setup>
+import ThemeSwitcher from "@app-lead/@core/components/ThemeSwitcher.vue";
+
 const themes = [
   {
     name: 'system',
