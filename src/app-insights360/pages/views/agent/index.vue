@@ -9,6 +9,7 @@ import AppDateTimePicker from "@/app-insights360/@core/components/app-form-eleme
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
 const tempTable = ref([]);
+const isLoading = ref(false);
 const headers = [
   { title: "Agent", key: "agent", searchable: true, sortable: true },
   { title: "Team", key: "deptName", searchable: true },
@@ -24,6 +25,7 @@ const headers = [
 ];
 
 const fetchAgentData = async (start, end) => {
+  isLoading.value = true;
   try {
     const response = await projectStore.fetchAgentDatas(start, end);
     if (response?.data?.results != null) {
@@ -36,13 +38,15 @@ const fetchAgentData = async (start, end) => {
     }
   } catch (error) {
     console.error("analytics error", error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
 const oldDates = ref([]);
 const today = new Date();
 var oneWeekAgo = new Date();
-oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
+// oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 const formattedStart = oneWeekAgo
   .toLocaleDateString("en-GB")
   .split("/")
@@ -158,7 +162,7 @@ const allAnalytics = () => {
 onMounted(async () => {
   const now = new Date();
   const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
+  // oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
   oneWeekAgo.setHours(0, 0, 0, 0);
   fetchAgentData(oneWeekAgo.getTime(), now.getTime());
 });
@@ -191,7 +195,7 @@ onMounted(async () => {
     </div>
     <VCol cols="12">
       <DemoDataTableKitchenSink
-        :headers="headers"
+        :headers="headers" :loading="isLoading"
         :productList="tempTable"
         :title="'Agent Data'"
       >

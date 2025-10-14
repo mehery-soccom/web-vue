@@ -21,6 +21,10 @@ const props = defineProps({
     type: String,
     default: 'templateId'
   },
+  loading: {
+    type: Boolean,
+    default: false,
+  },
 });
 const search = ref('')
 const columnSearch = reactive({})
@@ -135,6 +139,7 @@ const filteredItems = computed(() => {
       v-model:expanded="expanded"
       :show-expand="hasExpand"
       :class="{ 'fixed-column': props.fixedColumn, 'has-expand': hasExpand }"
+      :loading="props.loading"
     >
       <template #headers="{ columns }">
         <tr>
@@ -206,7 +211,19 @@ const filteredItems = computed(() => {
           </td>
         </tr>
       </template>
-
+      <template #no-data>
+        <div v-if="loading" class="d-flex flex-column align-center justify-center pa-6" style="min-height: 200px">
+          <v-progress-circular indeterminate color="primary" size="48" />
+          <div class="mt-2">Loading...</div>
+        </div>
+        <div v-else class="d-flex flex-column align-center justify-center pa-8" style="min-height: 300px">
+          <v-icon size="64" color="grey lighten-1">mdi-folder-open</v-icon>
+          <div class="text-h6 mt-4 mb-2">No records found</div>
+          <div class="text-body-2 text-medium-emphasis mb-4">
+            Looks like there's nothing here yet. Start by adding a new item.
+          </div>
+        </div>
+      </template>
       <template #expanded-row="slotProps">
         <slot name="expanded-row" v-bind="slotProps" />
       </template>

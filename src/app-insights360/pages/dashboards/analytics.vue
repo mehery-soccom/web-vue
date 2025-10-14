@@ -301,6 +301,7 @@ const fetchTeam = async () => {
 };
 
 const fetchOpenChat = async (start, end, chan, agent, type) => {
+  isLoading.value = true;
   try {
     const response = await projectStore.fetchOpenChats(
       start,
@@ -313,6 +314,8 @@ const fetchOpenChat = async (start, end, chan, agent, type) => {
     if (total != null) statsAgent.value[0].stats = String(total);
   } catch (error) {
     console.error("analytics error", error);
+  } finally {
+    isLoading.value = false;
   }
 };
 const fetchResolvedChat = async (start, end, chan, agent, type) => {
@@ -514,7 +517,6 @@ const fetchCampaignData = async (start, end, chan, agent, type) => {
 };
 
 const fetchChartData = async (start, end, chan, agent, type) => {
-  isLoading.value = true;
   try {
     const response = await projectStore.fetchChartDatas(
       start,
@@ -617,8 +619,6 @@ const fetchChartData = async (start, end, chan, agent, type) => {
     };
   } catch (error) {
     console.error("fetchChartData error:", error);
-  } finally {
-    isLoading.value = false;
   }
 };
 
