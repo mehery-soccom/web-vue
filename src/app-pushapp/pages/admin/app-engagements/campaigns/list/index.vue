@@ -3,6 +3,7 @@ import debounce from "lodash/debounce";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
+import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
 const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -21,11 +22,13 @@ const formattedItems = computed(() =>
           : 0,
       cta_percent:
         item.stats?.sent > 0
-          ? Math.round(((item.stats.cta?.count || 0) / item.stats.sent) * 100)
+          ? Math.round(((item.stats.cta?.__count || 0) / item.stats.sent) * 100)
           : 0,
     },
     status:
-      item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
+      item.status === "DERIVE"
+        ? getCampaignStatus(item.schedule, item.abTesting?.enabled)
+        : item.status,
   }))
 );
 const headers = [
@@ -84,7 +87,7 @@ const headers = [
   },
   {
     title: "CTA",
-    key: "stats.cta.count",
+    key: "stats.cta.__count",
     sortable: false,
     align: "center",
   },
@@ -138,8 +141,12 @@ const openLogDialog = (logs) => {
   logDialog.value = true;
 };
 
-const getCampaignStatus = ({ durationType, startDate, endDate }) => {
+const getCampaignStatus = (
+  { durationType, startDate, endDate },
+  isAbTesting
+) => {
   if (durationType === "manual") {
+    if (isAbTesting) return "TESTING";
     return "ON_GOING";
   }
 
@@ -150,6 +157,7 @@ const getCampaignStatus = ({ durationType, startDate, endDate }) => {
       return "CREATED";
     }
     if (now >= startDate && now <= endDate) {
+      if (isAbTesting) return "TESTING";
       return "ON_GOING";
     }
     return "ENDED";
@@ -256,55 +264,12 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- Expanded Row Data [ show-expand ] -->
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
-          <td :colspan="headers.length">
-            <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
-            <div v-if="slotProps.item.raw.stats && slotProps.item.raw.stats.cta && Object.keys(slotProps.item.raw.stats.cta).length > 0">
-              <div style="font-size: 14px; font-weight: 600;margin-top: 10px;">CTA stats: </div>
-              <div style="margin: 5px 10px;">
-                <div v-for="(value, key) in slotProps.item.raw.stats.cta" :key="key">
-                  <div v-if="key !== '__count'">{{ key }} : {{ value }}</div>
-                </div>
-              </div>
-            </div>
-            <!-- <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
-            <div class="detail-row">
-              <section class="detail-block">
-                <h5>Audience</h5>
-                <div>
-                  <div><strong>User Set:</strong> {{ slotProps.item.raw.audience?.userSet }}</div>
-                </div>
-              </section>
-              <section v-if="slotProps.item.raw.filter" class="detail-block">
-                <h5>Filter <span v-if="!!slotProps.item.raw.filter.conjuction">{{ formatFieldName(slotProps.item.raw.filter.conjuction) }}</span></h5>
-                <div v-if="slotProps.item.raw.filter.children?.length">
-                    <div v-for="(child, idx) in slotProps.item.raw.filter.children" :key="idx">
-                      <div style="margin: 4px 10px;"><strong>{{ formatFieldName(child.filterType) }}</strong></div>
-                      <section class="detail-block" style="max-width: 100%;">
-                        <div><span>{{ formatFieldName(child.filterType) }}:</span> {{ formatFieldName(child.field) }}</div>
-                        <div>Operator: {{ formatFieldName(child.operator) }}</div>
-                        <div v-if="child.freqOperator">Frequency: {{ formatFieldName(child.freqOperator) }}</div>
-                        <div>Value: {{ formatFieldName(child.freqCount || child.value || 'N/A') }}</div>
-                        <div v-if="child.freqPeriod">Duration: ({{ formatFieldName(child.freqPeriod) }})</div>
-                      </section>
-                    </div>
-                </div>
-                <div v-else>
-                  <div>No filters defined</div>
-                </div>
-              </section>
-              <section v-if="slotProps.item.raw.schedule" class="detail-block">
-                <h5>Schedule</h5>
-                <div v-if="slotProps.item.raw.schedule.durationType === 'manual'">
-                  <p><strong>Duration Type:</strong> Manual</p>
-                </div>
-                <div v-else>
-                  <p><strong>Duration Type:</strong> {{ formatFieldName(slotProps.item.raw.schedule.durationType) }}</p>
-                  <p><strong>Start Date:</strong> {{ formatDate(slotProps.item.raw.schedule.startDate) }}</p>
-                  <p><strong>End Date:</strong> {{ formatDate(slotProps.item.raw.schedule.endDate) }}</p>
-                  <p><strong>Repeat Type:</strong> {{ formatFieldName(slotProps.item.raw.schedule.repeatType || 'N/A') }}</p>
-                </div>
-              </section>
-            </div> -->
+          <!-- <td :colspan="headers.length"> -->
+          <td :colspan="5">
+            <AbTestingMetrics
+              :abTesting="slotProps.item.raw.abTesting"
+              :stats="slotProps.item.raw.stats"
+            />
           </td>
         </tr>
       </template>
@@ -313,11 +278,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <template #item.status="{ item }">
         <VChip
           :color="
-            item.raw.status === 'ON_GOING'
-              ? 'success'
-              : item.raw.status === 'ENDED'
-              ? 'error'
-              : 'secondary'
+            {
+              CREATED: 'primary',
+              TESTING: 'info',
+              AWAITING_RESULT: 'info',
+              ABORTED: 'error',
+              ON_GOING: 'success',
+              ENDED: 'error',
+            }[item.raw.status]
           "
           variant="tonal"
           size="small"
@@ -337,7 +305,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <VIcon
           v-if="item.raw.abTesting?.enabled"
           size="16"
-          color="primary"
+          :color="
+            {
+              CREATED: 'info',
+              TESTING: 'info',
+              AWAITING_RESULT: 'info',
+              CONCLUDED: 'success',
+              ABORTED: 'error',
+            }[item.raw.abTesting?.state]
+          "
           start
         >
           mdi-flask
@@ -411,7 +387,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- Actions -->
       <template #item.actions="{ item }">
         <VBtn
-          v-if="item.raw.status !== 'ENDED'"
+          v-if="item.raw.status !== 'ENDED' && item.raw.status !== 'ABORTED'"
           variant="outlined"
           color="error"
           size="small"

@@ -10,4 +10,9 @@ export default [
     icon: { icon: "tabler-clipboard-text" },
     to: "admin-forms-list",
   },
+  {
+    title: "Leads",
+    icon: { icon: "tabler-user-scan" },
+    to: "admin-leads-list",
+  },
 ]
