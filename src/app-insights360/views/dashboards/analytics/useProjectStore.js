@@ -134,14 +134,22 @@ export const useProjectStore = defineStore("ProjectStore", {
         url += `&${agentType}=${agent}`;
       return axios.get(url);
     },
-    fetchCampaignPageDatas(start, end, contact, statuses) {
-      let url = `/api/v1/dashboard/campaign-data?dateRange1=${start}&dateRange2=${end}`;
+    fetchCampaignNewDatas(start, end, contact, agent, agentType) {
+      let url = `/api/v1/dashboard/campaign-summary?dateRange1=${start}&dateRange2=${end}`;
       if (contact && contact != "All Channels")
         url += `&contactType=${contact}`;
-      if (statuses && statuses.length > 0)
-        statuses.forEach((e) => {
-          url += `&status=${e}`;
-        });
+      if (agent && agentType && agent != "all_teams")
+        url += `&${agentType}=${agent}`;
+      return axios.get(url);
+    },
+    fetchCampaignPageDatas(start, end, contact, bool, statuses, pagi) {
+      let url = `/api/v1/dashboard/campaign-data?dateRange1=${start}&dateRange2=${end}`;
+      if (contact && contact != "All Channels") url += `&contactType=${contact}`;
+      if (statuses && statuses.length > 0) statuses.forEach((e) => { url += `&status=${e}`; });
+      if (pagi) {
+        if (pagi.page) url += `&page=${pagi.page}`;
+        if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+      }
       return axios.get(url);
     },
     fetchTemplateDatas(start, end, contact, agent, agentType) {
@@ -168,12 +176,20 @@ export const useProjectStore = defineStore("ProjectStore", {
         url += `&${agentType}=${agent}`;
       return axios.get(url);
     },
-    fetchOneCampaignData(id) {
-      let url = `/api/v1/dashboard/campaign/cta/${id}`;
+    fetchOneCampaignData(id, pagi) {
+      let url = `/api/v1/dashboard/campaign/cta/${id}?`;
+      if (pagi) {
+        if (pagi.page) url += `page=${pagi.page}`;
+        if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+      }
       return axios.get(url);
     },
-    fetchOneCampaignOutboundData(id) {
-      let url = `/api/v1/dashboard/campaign/outbound/${id}`;
+    fetchOneCampaignOutboundData(id, pagi) {
+      let url = `/api/v1/dashboard/campaign/outbound/${id}?`;
+      if (pagi) {
+        if (pagi.page) url += `page=${pagi.page}`;
+        if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+      }
       return axios.get(url);
     },
   },

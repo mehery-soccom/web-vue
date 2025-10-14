@@ -13,11 +13,12 @@ const { customPlugin } = useDatePickerFilters();
 const vuetifyTheme = useTheme();
 const currentTheme = vuetifyTheme.current.value.colors;
 const projectStore = useProjectStore();
+const isLoading = ref(false);
 
 const oldDates = ref([]);
 const today = new Date();
 var oneWeekAgo = new Date();
-oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
+// oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 const formattedStart = oneWeekAgo
   .toLocaleDateString("en-GB")
   .split("/")
@@ -513,6 +514,7 @@ const fetchCampaignData = async (start, end, chan, agent, type) => {
 };
 
 const fetchChartData = async (start, end, chan, agent, type) => {
+  isLoading.value = true;
   try {
     const response = await projectStore.fetchChartDatas(
       start,
@@ -615,6 +617,8 @@ const fetchChartData = async (start, end, chan, agent, type) => {
     };
   } catch (error) {
     console.error("fetchChartData error:", error);
+  } finally {
+    isLoading.value = false;
   }
 };
 
@@ -760,19 +764,20 @@ onMounted(async () => {
   console.log("All data", agentTeamItems, channelItems, listAgents, listTeams);
 
   const now = new Date();
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
-  oneWeekAgo.setHours(0, 0, 0, 0);
+  now.setHours(0, 0, 0, 0);
+  // const oneWeekAgo = new Date();
+  // oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
+  // oneWeekAgo.setHours(0, 0, 0, 0);
 
-  const formattedStart = oneWeekAgo
+  const formattedStart = now
     .toLocaleDateString("en-GB")
     .split("/")
     .join("-");
   const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
   dateRange.value = `${formattedStart} to ${formattedEnd}`;
-  console.log("before mount", oneWeekAgo.getTime(), today.getTime());
+  console.log("before mount", now.getTime(), today.getTime());
   allAnalytics(
-    oneWeekAgo.getTime(),
+    now.getTime(),
     today.getTime(),
     selectedChannelItem.value,
     selectedAgentTeamItem.value.dept_id
@@ -786,6 +791,10 @@ onMounted(async () => {
 <template>
   <VRow class="match-height">
     <div style="width: 100%; display: flex; justify-content: flex-end">
+      <div v-if="isLoading" class="loading-overlay">
+        <v-progress-circular indeterminate color="primary" size="48" />
+        <div class="mt-2">Loading...</div>
+      </div>
       <VMenu transition="scale-transition" style="min-width: 200px !important">
         <template #activator="{ props }">
           <VBtn v-bind="props">
@@ -939,5 +948,19 @@ onMounted(async () => {
 }
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
+}
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  background-color: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(2px);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
 }
 </style>
