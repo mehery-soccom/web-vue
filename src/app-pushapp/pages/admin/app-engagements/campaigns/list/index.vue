@@ -262,7 +262,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
               <div style="font-size: 14px; font-weight: 600;margin-top: 10px;">CTA stats: </div>
               <div style="margin: 5px 10px;">
                 <div v-for="(value, key) in slotProps.item.raw.stats.cta" :key="key">
-                  <div>{{ key }} : {{ value }}</div>
+                  <div v-if="key !== '__count'">{{ key }} : {{ value }}</div>
                 </div>
               </div>
             </div>
