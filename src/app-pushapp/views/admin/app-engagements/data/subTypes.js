@@ -2956,14 +2956,14 @@ export const SUB_TYPES = [
           readonly: false,
           defaultValue: null,
         },
-        {
-          id: "road-img-image",
-          name: "",
-          path: "style.bg_image_url",
-          type: "file",
-          label: "Background Image",
-          required: false,
-        },
+        // {
+        //   id: "road-img-image",
+        //   name: "",
+        //   path: "style.bg_image_url",
+        //   type: "file",
+        //   label: "Background Image",
+        //   required: false,
+        // },
         {
           id: "road-line1",
           name: "",
@@ -3010,7 +3010,7 @@ export const SUB_TYPES = [
           model: { data: [] },
           style: {
             align: "center",
-            bg_color: "",
+            bg_color: "#fffffe",
             bg_color_gradient: "",
             bg_color_gradient_dir: null,
             bg_image_url: "",
