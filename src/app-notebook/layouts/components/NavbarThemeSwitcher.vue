@@ -1,4 +1,5 @@
 <script setup>
+import ThemeSwitcher from '@/app-notebook/@core/components/ThemeSwitcher.vue';
 const themes = [
   {
     name: 'system',
