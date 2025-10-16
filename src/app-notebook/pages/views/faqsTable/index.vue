@@ -1746,19 +1746,17 @@ const previewPageCount = computed(() => {
                     @click="save"
                   ></v-icon>
                 </div>
-                <div v-else>
+                <div v-else style="display: flex; align-items: center;">
                   <v-icon
                     icon="mdi-pencil"
                     @click="editItem(item.raw)"
                   ></v-icon>
-                  <td class="checkbox-col">
-                    <v-checkbox
-                      :id="`item-${item.raw._id}`"
-                      :value="item.raw._id"
-                      v-model="selectedIdsByPage[currentPage]"
-                      hide-details
-                    ></v-checkbox>
-                  </td>
+                  <v-checkbox
+                    :id="`item-${item.raw._id}`"
+                    :value="item.raw._id"
+                    v-model="selectedIdsByPage[currentPage]"
+                    hide-details
+                  ></v-checkbox>
                 </div>
               </template>
               <template #bottom>
