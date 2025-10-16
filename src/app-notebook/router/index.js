@@ -1,8 +1,8 @@
 import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@/@common/constants";
 import { routes } from "vue-router/auto-routes";
-import Articles from "@/app-notebook/pages/views/Articles/index.vue";
-import FaqsTable from "@/app-notebook/pages/views/faqsTable/index.vue";
+import Articles from "@/app-notebook/pages/views/articles/index.vue";
+import FaqsTable from "@/app-notebook/pages/views/faqstable/index.vue";
 import Dashboard from "@/app-notebook/pages/dashboards/analytics.vue";
 import DefaultLayout from "@/app-notebook/layouts/default.vue";
 
@@ -34,12 +34,12 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
-      path: "/views/Articles",
+      path: "/views/articles",
       component: DefaultLayout,
       children: [
         {
           path: "",
-          name: "views-Articles",
+          name: "views-articles",
           component: Articles,
           props: true,
           meta: { layout: "default" },
@@ -47,12 +47,12 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
-      path: "/views/faqsTable", 
+      path: "/views/faqstable", 
       component: DefaultLayout,
       children: [
         {
           path: "",
-          name: "views-faqsTable", 
+          name: "views-faqstable", 
           component: FaqsTable,
           props: true,
           meta: { layout: "default" },
