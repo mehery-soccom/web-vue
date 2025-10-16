@@ -1,8 +1,8 @@
 import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@/@common/constants";
 import { routes } from "vue-router/auto-routes";
-// import Articles from "@/app-notebook/pages/views/Articles/index.vue";
-// import FaqsTable from "@/app-notebook/pages/views/faqsTable/index.vue";
+import Articles from "@/app-notebook/pages/views/Articles/index.vue";
+import FaqsTable from "@/app-notebook/pages/views/faqsTable/index.vue";
 import Dashboard from "@/app-notebook/pages/dashboards/analytics.vue";
 import DefaultLayout from "@/app-notebook/layouts/default.vue";
 
@@ -33,32 +33,32 @@ if (!routes || routes?.length < 3) {
         },
       ],
     },
-    // {
-    //   path: "/views/Articles",
-    //   component: DefaultLayout,
-    //   children: [
-    //     {
-    //       path: "",
-    //       name: "views-Articles",
-    //       component: Articles,
-    //       props: true,
-    //       meta: { layout: "default" },
-    //     },
-    //   ],
-    // },
-    // {
-    //   path: "/views/faqsTable", 
-    //   component: DefaultLayout,
-    //   children: [
-    //     {
-    //       path: "",
-    //       name: "views-faqsTable", 
-    //       component: FaqsTable,
-    //       props: true,
-    //       meta: { layout: "default" },
-    //     },
-    //   ],
-    // },
+    {
+      path: "/views/Articles",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "views-Articles",
+          component: Articles,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/views/faqsTable", 
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "views-faqsTable", 
+          component: FaqsTable,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
   );
 }
 
