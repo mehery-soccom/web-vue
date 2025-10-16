@@ -265,7 +265,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
           <!-- <td :colspan="headers.length"> -->
-          <td :colspan="5">
+          <td :colspan="6">
             <AbTestingMetrics
               :abTesting="slotProps.item.raw.abTesting"
               :stats="slotProps.item.raw.stats"

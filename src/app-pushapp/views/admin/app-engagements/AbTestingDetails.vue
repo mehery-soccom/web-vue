@@ -9,9 +9,9 @@ const emit = defineEmits(["update:modelValue"]);
 
 const formRef = ref();
 const showDistribution = ref(false);
-const distributionFields = ["user.platform"];
+const distributionFields = ["platform"];
 const distributionValues = {
-  "contact.platform": [
+  platform: [
     { title: "iOS", value: "ios" },
     { title: "Android", value: "android" },
   ],
