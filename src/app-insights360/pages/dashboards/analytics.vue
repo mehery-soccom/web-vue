@@ -301,7 +301,7 @@ const fetchTeam = async () => {
 };
 
 const fetchOpenChat = async (start, end, chan, agent, type) => {
-  isLoading.value = true;
+  // isLoading.value = true;
   try {
     const response = await projectStore.fetchOpenChats(
       start,
@@ -314,8 +314,6 @@ const fetchOpenChat = async (start, end, chan, agent, type) => {
     if (total != null) statsAgent.value[0].stats = String(total);
   } catch (error) {
     console.error("analytics error", error);
-  } finally {
-    isLoading.value = false;
   }
 };
 const fetchResolvedChat = async (start, end, chan, agent, type) => {
@@ -437,6 +435,25 @@ const fetchAvgDuration = async (start, end, chan, agent, type) => {
     );
     const total = response?.data?.data?.averageAssignedDuration;
     if (total != null) statsLead.value[3].stats = String(formatDuration(total));
+  } catch (error) {
+    console.error("analytics error", error);
+  }
+};
+const fetchAvgDurationResponse = async (start, end, chan, agent, type) => {
+  try {
+    const response = await projectStore.fetchAvgDurationsResponses(
+      start,
+      end,
+      chan,
+      agent,
+      type
+    );
+    const total1 = response?.data?.data?.averageStartLag;
+    const total2 = response?.data?.data?.averageResponseTime;
+    const total3 = response?.data?.data?.averageAssignedDuration;
+    if (total1 != null) statsLead.value[1].stats = String(formatDuration(total1));
+    if (total2 != null) statsLead.value[2].stats = String(formatDuration(total2));
+    if (total3 != null) statsLead.value[3].stats = String(formatDuration(total3));
   } catch (error) {
     console.error("analytics error", error);
   }
@@ -725,23 +742,46 @@ const allAnalyticsWithoutDate = () => {
     selectedAgentTeamItem.value.dept_id ? "agent" : "team"
   );
 };
-const allAnalytics = (start, end, chan, agent, type) => {
+const allAnalytics = async (start, end, chan, agent, type) => {
   console.log("all an", start, end);
-  fetchOpenChat(start, end, chan, agent, type);
-  fetchResolvedChat(start, end, chan, agent, type);
-  fetchSatScore(start, end, chan, agent, type);
-  fetchBotOpenChat(start, end, chan);
-  fetchBotResolvedChat(start, end, chan);
-  fetchBotSatScore(start, end, chan);
-  fetchLeadMsg(start, end, agent, type);
-  fetchStartLag(start, end, chan, agent, type);
-  fetchAvgResponse(start, end, chan, agent, type);
-  fetchAvgDuration(start, end, chan, agent, type);
-  fetchTotalConv(start, end, chan, agent, type);
-  fetchUniqueConv(start, end, chan, agent, type);
-  fetchCampaignData(start, end, chan, agent, type);
-  fetchChartData(start, end, chan, agent, type);
-  fetchActiveUserStats(start, end, chan);
+  isLoading.value = true;
+  try {
+    fetchChartData(start, end, chan, agent, type);
+    await Promise.all([
+      fetchOpenChat(start, end, chan, agent, type),
+      fetchResolvedChat(start, end, chan, agent, type),
+      fetchSatScore(start, end, chan, agent, type),
+      fetchBotOpenChat(start, end, chan),
+      fetchBotResolvedChat(start, end, chan),
+      fetchBotSatScore(start, end, chan),
+      fetchLeadMsg(start, end, agent, type),
+      fetchAvgDurationResponse(start, end, chan, agent, type),
+      fetchTotalConv(start, end, chan, agent, type),
+      fetchUniqueConv(start, end, chan, agent, type),
+      fetchCampaignData(start, end, chan, agent, type),
+      fetchActiveUserStats(start, end, chan),
+    ]);
+    isLoading.value = false;
+  } catch (error) {
+    console.error("allAnalytics error", error);
+    isLoading.value = false;
+  }
+  // fetchOpenChat(start, end, chan, agent, type);
+  // fetchResolvedChat(start, end, chan, agent, type);
+  // fetchSatScore(start, end, chan, agent, type);
+  // fetchBotOpenChat(start, end, chan);
+  // fetchBotResolvedChat(start, end, chan);
+  // fetchBotSatScore(start, end, chan);
+  // fetchLeadMsg(start, end, agent, type);
+  // // fetchStartLag(start, end, chan, agent, type);
+  // // fetchAvgResponse(start, end, chan, agent, type);
+  // // fetchAvgDuration(start, end, chan, agent, type);
+  // fetchAvgDurationResponse(start, end, chan, agent, type);
+  // fetchTotalConv(start, end, chan, agent, type);
+  // fetchUniqueConv(start, end, chan, agent, type);
+  // fetchCampaignData(start, end, chan, agent, type);
+  // fetchChartData(start, end, chan, agent, type);
+  // fetchActiveUserStats(start, end, chan);
 };
 
 onBeforeMount(() => {

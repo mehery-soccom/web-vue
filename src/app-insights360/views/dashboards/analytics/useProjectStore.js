@@ -110,6 +110,14 @@ export const useProjectStore = defineStore("ProjectStore", {
         url += `&${agentType}=${agent}`;
       return axios.get(url);
     },
+    fetchAvgDurationsResponses(start, end, contact, agent, agentType) {
+      let url = `/api/v1/dashboard/performance-metrics?dateRange1=${start}&dateRange2=${end}`;
+      if (contact && contact != "All Channels")
+        url += `&contactType=${contact}`;
+      if (agent && agentType && agent != "all_teams")
+        url += `&${agentType}=${agent}`;
+      return axios.get(url);
+    },
     fetchTotalConvs(start, end, contact, agent, agentType) {
       let url = `/api/v1/dashboard/all-conversations?dateRange1=${start}&dateRange2=${end}`;
       if (contact && contact != "All Channels")
