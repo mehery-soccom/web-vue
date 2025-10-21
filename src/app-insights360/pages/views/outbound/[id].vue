@@ -4,41 +4,134 @@ import { useProjectStore } from "@app-insights360/views/dashboards/analytics/use
 import { ref } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
+import debounce from "lodash/debounce";
+import CardStatisticsTransactions from "@app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
+import errorList from '@app-insights360/views/dashboards/analytics/MetaErrorCode.json' 
 
 const route = useRoute();
-const router = useRouter();
-const { customPlugin } = useDatePickerFilters();
+const isLoading = ref(false);
 const projectStore = useProjectStore();
 const campTable = ref([]);
 const headers = [
-  { title: "Agent", key: "agent", searchable: true },
-  { title: "Sender", key: "contact.lane", searchable: true },
-  { title: "Contact", key: "contact.phone", searchable: true },
+  { title: "Contact", key: "contact", searchable: true },
+  { title: "By", key: "agent", searchable: true },
+  // { title: "Created", key: "stamps.CRTD", sortable: true },
   { title: "Status", key: "status", searchable: true },
-  { title: "Created", key: "stamps.CRTD", sortable: true },
+  { title: "Error", key: "error" },
   { title: "Sent", key: "stamps.SENT", sortable: true },
   { title: "Delivered", key: "stamps.DLVRD", sortable: true },
   { title: "Read", key: "stamps.READ", sortable: true },
 ];
+const statsCamp = ref([
+  { title: "Total", stats: "0", icon: "tabler-send", color: "info" },
+  { title: "Sent", stats: "0", icon: "tabler-send", color: "primary" },
+  { title: "Delivered", stats: "0", icon: "tabler-mailbox", color: "info" },
+  { title: "Read", stats: "0", icon: "tabler-book", color: "error" },
+  { title: "Replied", stats: "0", icon: "tabler-message-reply", color: "success"},
+  { title: "Failed", stats: "0", icon: "tabler-exclamation-circle", color: "error" },
+  { title: "Bounced", stats: "0", icon: "tabler-message-reply", color: "warning" },
+]);
+const hovering = ref(null);
+let hideTooltipTimer = null;
 
-const fetchCampaignData = async (id) => {
-  try {
-    const response = await projectStore.fetchOneCampaignOutboundData(id);
-    if (response?.data?.data != null) {
-      campTable.value = response?.data?.results;
-    }
-  } catch (error) {
-    console.error("analytics error", error);
+const startHideTooltipTimer = () => { hideTooltipTimer = setTimeout(() => { hovering.value = null; }, 200); };
+const clearHideTooltipTimer = () => {
+  if (hideTooltipTimer) {
+    clearTimeout(hideTooltipTimer);
+    hideTooltipTimer = null;
+  }
+};
+const showTooltip = async (code, event) => {
+  const rect = event.target.getBoundingClientRect();
+  hovering.value = { code, top: rect.top + window.scrollY, left: rect.left + window.scrollX, event };
+
+  await nextTick();
+  const tooltipEl = document.querySelector('.tooltip-block');
+  if (tooltipEl) {
+    hovering.value.top = rect.top + window.scrollY - tooltipEl.offsetHeight; 
   }
 };
 
+const updatePosition = () => {
+  if (!hovering.value || !hovering.value.event) return;
+  const rect = hovering.value.event.target.getBoundingClientRect();
+  const tooltipEl = document.querySelector('.tooltip-block');
+  const tooltipHeight = tooltipEl ? tooltipEl.offsetHeight : 80;
+  hovering.value.top = rect.top + window.scrollY - tooltipHeight;
+  hovering.value.left = rect.left + window.scrollX;
+};
+
+onMounted(() => {
+  window.addEventListener('scroll', updatePosition, true);
+});
+onUnmounted(() => {
+  window.removeEventListener('scroll', updatePosition, true);
+});
+
+const pagination = reactive({
+  itemsLength: 0,
+  page: 1,
+  itemsPerPage: 10,
+  sortBy: [],
+  multiSort: true,
+  filters: {
+    contact: null,
+    agent: null,
+    status: null,
+    error: null,
+  },
+});
+const onUpdateOptions = (options) => {
+  pagination.itemsLength = options.itemsLength;
+  pagination.page = options.page;
+  pagination.itemsPerPage = options.itemsPerPage;
+  pagination.sortBy = options.sortBy;
+  pagination.filters = options.filters;
+
+  fetchCampaignData(route.params.id, pagination );
+};
+const onUpdateOptionsDebounced = debounce((options) => {
+  onUpdateOptions(options);
+}, 300);
+const fetchBlockData = (result, contactType) => {
+  if(result){
+    statsCamp.value[0].stats = String(result.SENT || 0);
+    statsCamp.value[1].stats = String(result.SENT || 0);
+    if(contactType == 'EMAIL') statsCamp.value[2].stats = String(result.READ || 0);
+    else statsCamp.value[2].stats = String(result.DLVRD || 0);
+    statsCamp.value[3].stats = String(result.READ || 0);
+    statsCamp.value[4].stats = String(result.RSPND || 0);
+    statsCamp.value[5].stats = String(result.FAILD || 0);
+    statsCamp.value[6].stats = String(result.BNCD || 0);
+  }
+}
+const fetchCampaignData = async (id, pagination) => {
+  isLoading.value = true;
+  try {
+    const response = await projectStore.fetchOneCampaignOutboundData(id, pagination);
+    if(response?.data?.pagination) pagination.itemsLength = response.data.pagination.total;
+    console.log("sa", pagination.itemsLength, response.data.pagination.total)
+    if (response?.data?.data != null) {
+      campTable.value = response?.data?.results;
+      if(response?.data?.data && response?.data?.data?.stats) fetchBlockData(response.data.data.stats, response.data.data.contactType)
+    }
+  } catch (error) {
+    console.error("analytics error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
+const getErrorInfo = (code) => {
+  return errorList.find(e => e.Code === Number(code))
+}
+
 const exportToExcel = () => {
   const formattedData = campTable.value.map((item) => ({
-    Agent: item.agent,
-    Sender: item.contact.lane,
     Contact: item.contact.phone || item.contact.email,
+    By: item.agent,
+    // Created: formatTimestamp(item.stamps.CRTD),
     Status: item.status,
-    Created: formatTimestamp(item.stamps.CRTD),
+    Error: item.logs[0],
     Sent: formatTimestamp(item.stamps.SENT),
     Delivered: formatTimestamp(item.stamps.DLVRD),
     Read: formatTimestamp(item.stamps.READ),
@@ -63,11 +156,11 @@ function formatTimestamp(ts) {
   if (!ts) return "-";
   return `${hh}:${mm} ${dd}-${mo}-${yy}`;
 }
-onMounted(async () => {
-  const id = route.params.id;
-  console.log("id hai", id);
-  fetchCampaignData(id);
-});
+// onMounted(async () => {
+//   const id = route.params.id;
+//   console.log("id hai", id);
+//   fetchCampaignData(id);
+// });
 </script>
 
 <template>
@@ -98,29 +191,34 @@ onMounted(async () => {
       </VBtn>
     </div>
     <VCol cols="12">
-      <DemoDataTableKitchenSink
+      <CardStatisticsTransactions :statistics="statsCamp" :title="'Campaign Statistics'"/>
+    </VCol>
+    <VCol cols="12">
+      <!-- <DemoDataTableKitchenSink
         :headers="headers"
         :productList="campTable"
         :title="'Campaign Statistics'"
-      >
+      > -->
+      <MyDataTable :headers="headers" :items="campTable" :loading="isLoading" 
+        :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <template #item.contact.lane="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
             >{{ item.raw.contact.lane }}</span
           >
         </template>
-        <template #item.contact.phone="{ item }">
+        <template #item.contact="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.raw.contact.phone || item.raw.contact.email }}</span
+            >{{ item.raw.contact.phone || item.raw.contact.email || item.raw.contact.name }}</span
           >
         </template>
-        <template #item.stamps.CRTD="{ item }">
+        <!-- <template #item.stamps.CRTD="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
             >{{ formatTimestamp(item.raw.stamps.CRTD) }}</span
           >
-        </template>
+        </template> -->
         <template #item.stamps.SENT="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
@@ -139,7 +237,31 @@ onMounted(async () => {
             >{{ formatTimestamp(item.raw.stamps.READ) }}</span
           >
         </template>
-      </DemoDataTableKitchenSink>
+        <template #item.error="{ item }">
+          <span v-if="item.raw.logs && item.raw.logs[0]"
+            style="width: 100%; display: inline-block; text-align: center"
+            >{{ item.raw.logs[0] }} 
+            <span style="position: relative; display: inline-block; margin-left: 5px; cursor: pointer;"
+                  @mouseenter="showTooltip(item.raw.logs[0], $event)" @mouseleave="startHideTooltipTimer">
+              <v-icon size="16" color="primary">mdi-information-outline</v-icon>
+
+              <teleport to="body" v-if="hovering && hovering.code === item.raw.logs[0]">
+                <div class="tooltip-block" :style="{ top: hovering.top + 'px', left: (hovering.left - 200) + 'px' }"
+                  @mouseenter="clearHideTooltipTimer" @mouseleave="startHideTooltipTimer">
+                  <div v-if="getErrorInfo(item.raw.logs[0].split(':')[1])">
+                    <strong>Code:</strong> {{ getErrorInfo(item.raw.logs[0].split(':')[1]).Code }}<br>
+                    <strong>Details:</strong> {{ getErrorInfo(item.raw.logs[0].split(':')[1]).Details }}<br>
+                    <strong>Solution:</strong>
+                    <span v-html="getErrorInfo(item.raw.logs[0].split(':')[1]).solutions"></span>
+                  </div>
+                  <div v-else> No details available for this code.</div>
+                </div>
+              </teleport>
+            </span>
+          </span>
+        </template>
+      </MyDataTable>
+      <!-- </DemoDataTableKitchenSink> -->
     </VCol>
   </VRow>
 </template>
@@ -195,5 +317,17 @@ onMounted(async () => {
   border-bottom: 2px solid rgb(84, 70, 245);
   color: rgb(115, 103, 240);
   background-color: #ddd;
+}
+.tooltip-block {
+  position: absolute;
+  background: white;
+  color: black;
+  padding: 10px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  width: 250px;
+  z-index: 99999;
+  font-size: 12px;
+  white-space: normal;
 }
 </style>

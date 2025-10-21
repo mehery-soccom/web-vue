@@ -157,6 +157,15 @@ export const useProjectStore = defineStore("ProjectStore", {
       if (pagi) {
         if (pagi.page) url += `&page=${pagi.page}`;
         if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+        if (pagi.sortBy) {
+          let sort = pagi.sortBy.map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`).join(",");
+          if(!!sort) url += `&sort=${sort}`;
+        }
+        if(pagi.filters) { 
+          const filterParams = Object.entries(pagi.filters).filter(([key, value]) => value !== null && value !== undefined)
+            .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`).join('&');
+          if(!!filterParams) url += `&${filterParams}`; 
+        }
       }
       return axios.get(url);
     },
@@ -189,6 +198,15 @@ export const useProjectStore = defineStore("ProjectStore", {
       if (pagi) {
         if (pagi.page) url += `page=${pagi.page}`;
         if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+        if (pagi.sortBy) {
+          let sort = pagi.sortBy.map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`).join(",");
+          if(!!sort) url += `&sort=${sort}`;
+        }
+        if(pagi.filters) { 
+          const filterParams = Object.entries(pagi.filters).filter(([key, value]) => value !== null && value !== undefined)
+            .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`).join('&');
+          if(!!filterParams) url += `&${filterParams}`; 
+        }
       }
       return axios.get(url);
     },
@@ -197,6 +215,15 @@ export const useProjectStore = defineStore("ProjectStore", {
       if (pagi) {
         if (pagi.page) url += `page=${pagi.page}`;
         if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+        if (pagi.sortBy) {
+          let sort = pagi.sortBy.map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`).join(",");
+          if(!!sort) url += `&sort=${sort}`;
+        }
+        if(pagi.filters) { 
+          const filterParams = Object.entries(pagi.filters).filter(([key, value]) => value !== null && value !== undefined)
+            .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`).join('&');
+          if(!!filterParams) url += `&${filterParams}`; 
+        }
       }
       return axios.get(url);
     },

@@ -4,10 +4,11 @@ import { useProjectStore } from "@app-insights360/views/dashboards/analytics/use
 import { ref } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
+import debounce from "lodash/debounce";
+import CardStatisticsTransactions from "@app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
 
 const route = useRoute();
-const router = useRouter();
-const { customPlugin } = useDatePickerFilters();
+const isLoading = ref(false);
 const projectStore = useProjectStore();
 const campTable = ref([]);
 const headers = [
@@ -16,15 +17,64 @@ const headers = [
   { title: "Button Code", key: "buttonCode", searchable: true },
   { title: "Recieved at", key: "timestamp", searchable: true },
 ];
+const statsCamp = ref([
+  { title: "Total", stats: "0", icon: "tabler-send", color: "info" },
+  { title: "Sent", stats: "0", icon: "tabler-send", color: "primary" },
+  { title: "Delivered", stats: "0", icon: "tabler-mailbox", color: "info" },
+  { title: "Read", stats: "0", icon: "tabler-book", color: "error" },
+  { title: "Replied", stats: "0", icon: "tabler-message-reply", color: "success"},
+  { title: "Failed", stats: "0", icon: "tabler-exclamation-circle", color: "error" },
+  { title: "Bounced", stats: "0", icon: "tabler-message-reply", color: "warning" },
+]);
+const pagination = reactive({
+  itemsLength: 0,
+  page: 1,
+  itemsPerPage: 10,
+  sortBy: [],
+  multiSort: true,
+  filters: {
+    buttonName: null,
+    buttonCode: null,
+  },
+});
+const onUpdateOptions = (options) => {
+  pagination.itemsLength = options.itemsLength;
+  pagination.page = options.page;
+  pagination.itemsPerPage = options.itemsPerPage;
+  pagination.sortBy = options.sortBy;
+  pagination.filters = options.filters;
 
-const fetchCampaignData = async (id) => {
+  fetchCampaignData(route.params.id, pagination );
+};
+const onUpdateOptionsDebounced = debounce((options) => {
+  onUpdateOptions(options);
+}, 300);
+const fetchBlockData = (result, contactType) => {
+  if(result){
+    statsCamp.value[0].stats = String(result.SENT || 0);
+    statsCamp.value[1].stats = String(result.SENT || 0);
+    if(contactType == 'EMAIL') statsCamp.value[2].stats = String(result.READ || 0);
+    else statsCamp.value[2].stats = String(result.DLVRD || 0);
+    statsCamp.value[3].stats = String(result.READ || 0);
+    statsCamp.value[4].stats = String(result.RSPND || 0);
+    statsCamp.value[5].stats = String(result.FAILD || 0);
+    statsCamp.value[6].stats = String(result.BNCD || 0);
+  }
+}
+const fetchCampaignData = async (id, pagination) => {
+  isLoading.value = true;
   try {
-    const response = await projectStore.fetchOneCampaignData(id);
+    const response = await projectStore.fetchOneCampaignData(id, pagination);
+    if(response?.data?.pagination) pagination.itemsLength = response.data.pagination.total;
+    console.log("sa", pagination.itemsLength, response.data.pagination.total)
     if (response?.data?.data != null) {
       campTable.value = response?.data?.results;
+      if(response?.data?.data && response?.data?.data?.stats) fetchBlockData(response.data.data.stats, response.data.data.contactType)
     }
   } catch (error) {
     console.error("analytics error", error);
+  }finally{
+    isLoading.value = false;
   }
 };
 
@@ -55,11 +105,11 @@ function formatTimestamp(ts) {
   return `${hh}:${mm} ${dd}-${mo}-${yy}`;
 }
 
-onMounted(async () => {
-  const id = route.params.id;
-  console.log("id cta hai", id);
-  fetchCampaignData(id);
-});
+// onMounted(async () => {
+//   const id = route.params.id;
+//   console.log("id cta hai", id);
+//   fetchCampaignData(id, pagination);
+// });
 </script>
 
 <template>
@@ -90,13 +140,18 @@ onMounted(async () => {
       </VBtn>
     </div>
     <VCol cols="12">
-      <DemoDataTableKitchenSink
+      <CardStatisticsTransactions :statistics="statsCamp" :title="'Campaign Statistics'"/>
+    </VCol>
+    <VCol cols="12">
+      <!-- <DemoDataTableKitchenSink
         :headers="headers"
         :productList="campTable"
         :title="'Campaign CTA'"
-      >
+      > -->
+      <MyDataTable :headers="headers" :items="campTable" :loading="isLoading" 
+        :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <template #item.contact.phone="{ item }">
-          <span>{{ item.raw.contact.phone }}</span>
+          <span>{{ item.raw.contact.phone || item.raw.contact.email || item.raw.contact.name }}</span>
         </template>
         <template #item.timestamp="{ item }">
           <span
@@ -104,7 +159,8 @@ onMounted(async () => {
             >{{ formatTimestamp(item.raw.timestamp) }}</span
           >
         </template>
-      </DemoDataTableKitchenSink>
+      </MyDataTable>
+      <!-- </DemoDataTableKitchenSink> -->
     </VCol>
   </VRow>
 </template>

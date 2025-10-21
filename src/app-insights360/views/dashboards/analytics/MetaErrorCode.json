@@ -1,0 +1,227 @@
+[
+    {
+     "Code": 368,
+     "Details": "The WhatsApp Business Account associated with the app has been restricted or disabled for violating a platform policy.",
+     "solutions": "See the <a href=\"https://developers.facebook.com/docs/whatsapp/overview/policy-enforcement/\" target=\"_blank\">Policy Enforcement</a> document to learn about policy violations and how to resolve them."
+    },
+    {
+     "Code": 130497,
+     "Details": "The WhatsApp Business Account is restricted from messaging to users in certain countries.",
+     "solutions": "See <a href=\"https://business.whatsapp.com/policy?fbclid=IwZXh0bgNhZW0CMTEAYnJpZBExcldIaG5qM1E1TGNxZFozdwEeFlE42ChqOERz9T1VvVPxuBgjope015GdqoJmt9yEHTZR1YwtGZvMsDIcoew_aem_YGRVm9_XmTEapvq_QlPf0w\" target=\"_blank\">WhatsApp Business Messaging Policy</a> for details on allowed countries for messaging in your business category."
+    },
+    {
+     "Code": 131031,
+     "Details": "The WhatsApp Business Account associated with the app has been restricted or disabled for violating a platform policy, or we were unable to verify data included in the request against data set on the WhatsApp Business Account (e.g, the two-step pin included in the request is incorrect).",
+     "solutions": "See the <a href=\"https://developers.facebook.com/docs/whatsapp/overview/policy-enforcement/\" target=\"_blank\">Policy Enforcement</a> document to learn about policy violations and how to resolve them."
+    },
+    {
+     "Code": 33,
+     "Details": "The business phone number has been deleted.",
+     "solutions": "Verify that the business phone number is correct."
+    },
+    {
+     "Code": 130472,
+     "Details": "Message was not sent as part of an <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/guides/experiments\" target=\"_blank\">experiment</a>.",
+     "solutions": "See <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/guides/experiments#marketing-message-experiment\" target=\"_blank\">Marketing Message Experiment</a>."
+    },
+    {
+     "Code": 131000,
+     "Details": "Message failed to send due to an unknown error.\n\nWhen <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/whatsapp-business-encryption#set-business-public-key\" target=\"_blank\">setting a business public key</a>, it either failed to calculate the signature, call the GraphQL endpoint, or the GraphQL endpoint returned an error.",
+     "solutions": "Try again. If the error persists, open a <a href=\"https://business.facebook.com/direct-support\" target=\"_blank\">Direct Support</a> ticket."
+    },
+    {
+     "Code": 131005,
+     "Details": "Permission is either not granted or has been removed.",
+     "solutions": "Use the <a href=\"https://business.facebook.com/business/loginpage/?next=https%3A%2F%2Fdevelopers.facebook.com%2Ftools%2Fdebug%2Faccesstoken#\" target=\"_blank\">access token debugger</a> to verify that your app has been granted the permissions required by the endpoint. See <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/support#authentication-authorization\" target=\"_blank\">Troubleshooting</a>."
+    },
+    {
+     "Code": 131008,
+     "Details": "The request is missing a required parameter.",
+     "solutions": "See the endpoint's <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference\" target=\"_blank\">reference</a> to determine which parameters are required."
+    },
+    {
+     "Code": 131009,
+     "Details": "One or more parameter values are invalid.",
+     "solutions": "See the endpoint's <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference\" target=\"_blank\">reference</a> to determine which values are supported for each parameter, and see <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/phone-numbers\" target=\"_blank\">Phone Numbers</a> to learn how to add a phone number to a WhatsApp Business Account."
+    },
+    {
+     "Code": 131016,
+     "Details": "A service is temporarily unavailable.",
+     "solutions": "Check the <a href=\"https://metastatus.com/whatsapp-business-api?fbclid=IwZXh0bgNhZW0CMTEAYnJpZBExbWdoa09PVUYxRVNSQU1oegEei6e2hWdRqNySHt7Bad4Y58bKOT1zFkWLtFz65Q8XqZ48dlcWHxxrq0niOuw_aem_HoWb695U-tK_T5pIhRWAdw\" target=\"_blank\">WhatsApp Business Platform Status</a> page to see API status information before trying again."
+    },
+    {
+     "Code": 131021,
+     "Details": "Sender and recipient phone number is the same.",
+     "solutions": "Send a message to a phone number different from the sender."
+    },
+    {
+     "Code": 131026,
+     "Details": "Unable to deliver message. Reasons can include:\n\nThe recipient phone number is not a WhatsApp phone number.\nRecipient has not accepted our new Terms of Service and Privacy Policy.\nRecipient using an old WhatsApp version; must use the following WhatsApp version or greater:\nAndroid: 2.21.15.15\nSMBA: 2.21.15.15\niOS: 2.21.170.4\nSMBI: 2.21.170.4\nKaiOS: 2.2130.10\nWeb: 2.2132.6",
+     "solutions": "Using a non-WhatsApp communication method, ask the WhatsApp user to:\n\nConfirm that they can actually send a message to your WhatsApp business phone number.\nConfirm that they have accepted our latest Terms of Service (Settings > Help, or Settings > Application information will prompt them to accept the latest terms\/policies if they haven't done so already)\nUpdate to the latest version of the WhatsApp client."
+    },
+    {
+     "Code": 131037,
+     "Details": "The <a href=\"https://developers.facebook.com/docs/whatsapp/embedded-signup#555-business-phone-numbers\" target=\"_blank\">555 business phone number</a> used to send the request does not have an approved <a href=\"https://www.facebook.com/business/help/338047025165344\" target=\"_blank\">display name</a>.",
+     "solutions": "Change the 555 business phone number's display name. See our <a href=\"https://www.facebook.com/business/help/378834799515077\" target=\"_blank\">How to change your WhatsApp Business display name</a> Help Center article to learn how."
+    },
+    {
+     "Code": 131042,
+     "Details": "There was an error related to your payment method.",
+     "solutions": "See <a href=\"https://www.facebook.com/business/help/2225184664363779?id=2129163877102343\" target=\"_blank\">About Billing For Your WhatsApp Business Account</a> and verify that you have set up billing correctly.\n\nCommon problems:\n\nPayment account is not attached to a WhatsApp Business Account\nCredit line is over the limit\nCredit line (Payment Account) not set or active\nWhatsApp Business Account is deleted\nWhatsApp Business Account is suspended\nTimezone not set\nCurrency not set\nMessagingFor request (On Behalf Of) is pending or declined\nExceeded conversation free tier threshold without a valid payment method"
+    },
+    {
+     "Code": 131045,
+     "Details": "Message failed to send due to a phone number registration error.",
+     "solutions": "<a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration\" target=\"_blank\">Register the phone number</a> before trying again."
+    },
+    {
+     "Code": 131047,
+     "Details": "More than 24 hours have passed since the recipient last replied to the sender number.",
+     "solutions": "Send the recipient a business-initiated message using a <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-message-templates\" target=\"_blank\">message template</a> instead."
+    },
+    {
+     "Code": 131049,
+     "Details": "This message was not delivered to maintain healthy ecosystem engagement.",
+     "solutions": "Do not retry immediately if you do receive this error code and suspect it is due to the limit. Instead, retry in increasing larger time increments until the message is delivered, since the limit may be in effect for differing periods of time.\n\nSee <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/guides/send-message-templates#per-user-marketing-template-message-limits\" target=\"_blank\">Per-User Marketing Template Message Limits</a> for additional information."
+    },
+    {
+     "Code": 131050,
+     "Details": "Unable to deliver the message. This recipient has chosen to stop receiving marketing messages on WhatsApp from your business.",
+     "solutions": "Do not retry sending messages to this user as they will not be received.\n\nTo be notified whenever a WhatsApp user stops or resumes delivery of marketing template messages from your business, subscribe to the <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/webhooks/user_preferences\" target=\"_blank\">user_preferences webhook</a>."
+    },
+    {
+     "Code": 131051,
+     "Details": "Unsupported message type.",
+     "solutions": "See <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages\" target=\"_blank\">Messages</a> for supported message types before trying again with a supported message type."
+    },
+    {
+     "Code": 131052,
+     "Details": "Unable to download the media sent by the user.",
+     "solutions": " \nWe were unable to download media included in the WhatsApp user's message. For more information, refer to the error.error_data.details value in any messages webhooks triggered when this message was received.\n\nAsk the WhatsApp user to send you the media file using a non-WhatsApp method."
+    },
+    {
+     "Code": 131053,
+     "Details": "Unable to upload the media used in the message.",
+     "solutions": "We were unable to upload the media for one or more reasons, such as an unsupported media type.\n\nFor more information, refer to the error.error_data.details value in any messages webhooks triggered when this message fails to send.\n\nWe recommend that you inspect any media files that are causing errors and confirm that they are in fact supported. For example, in UNIX you can use file inspection via the command line to determine its MIME type:\n\nfile -I rejected-file.mov\n\nYou can then confirm if its MIME type is supported. See <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/media#supported-media-types\" target=\"_blank\">Supported Media Types</a>."
+    },
+    {
+     "Code": 131057,
+     "Details": "Buiness Account is in maintenance mode",
+     "solutions": "The WhatsApp Business Account is in maintenance mode. One reason for this could be that the account is undergoing a <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/overview#throughput\" target=\"_blank\">throughput</a> upgrade."
+    },
+    {
+     "Code": 132000,
+     "Details": "The number of variable parameter values included in the request did not match the number of variable parameters defined in the template.",
+     "solutions": "See <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/\" target=\"_blank\">Message Template Guidelines</a> and make sure the request includes all of the variable parameter values that have been defined in the template."
+    },
+    {
+     "Code": 132001,
+     "Details": "The template does not exist in the specified language or the template has not been approved.",
+     "solutions": "Make sure your template has been approved and the template name and language locale are correct. Please ensure you follow <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/\" target=\"_blank\">message template guidelines</a>."
+    },
+    {
+     "Code": 132005,
+     "Details": "Translated text is too long.",
+     "solutions": "Check the WhatsApp Manager to verify that your template has been translated. See <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/#quality-rating-and-template-status\" target=\"_blank\">Quality Rating and Template Status</a>."
+    },
+    {
+     "Code": 132007,
+     "Details": "Template content violates a WhatsApp policy.",
+     "solutions": "See <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/#rejection-reasons\" target=\"_blank\">Rejection Reasons</a> to determine possible reasons for violation."
+    },
+    {
+     "Code": 132012,
+     "Details": "Variable parameter values formatted incorrectly.",
+     "solutions": "The variable parameter values included in the request are not using the format specified in the template. See <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines/\" target=\"_blank\">Message Template Guidelines</a>."
+    },
+    {
+     "Code": 132015,
+     "Details": "Template is paused due to <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines#quality-rating\" target=\"_blank\">low quality</a> so it cannot be sent in a template message.",
+     "solutions": "<a href=\"https://developers.facebook.com/docs/whatsapp/business-management-api/message-templates#edit-a-message-template\" target=\"_blank\">Edit the template</a> to improve its quality and try again once it is approved."
+    },
+    {
+     "Code": 132016,
+     "Details": "Template has been paused too many times due to <a href=\"https://developers.facebook.com/docs/whatsapp/message-templates/guidelines#quality-rating\" target=\"_blank\">low quality</a> and is now permanently disabled.",
+     "solutions": "Create a new template with different content."
+    },
+    {
+     "Code": 132068,
+     "Details": "Flow is in blocked state.",
+     "solutions": "Correct the Flow"
+    },
+    {
+     "Code": 133000,
+     "Details": "A previous deregistration attempt failed.",
+     "solutions": "<a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration#deregister-phone\" target=\"_blank\">Deregister</a> the number again before <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration\" target=\"_blank\">registering</a>."
+    },
+    {
+     "Code": 133004,
+     "Details": "Server is temporarily unavailable.",
+     "solutions": " \nCheck the <a href=\"https://metastatus.com/whatsapp-business-api\" target=\"_blank\">WhatsApp Business Platform Status</a> page to see API status information and check the response details value before trying again."
+    },
+    {
+     "Code": 133005,
+     "Details": "Two-step verification PIN incorrect.",
+     "solutions": "Verify that the two-step verification PIN included in the request is correct.\n\n\nTo reset the two-step verification PIN:\n\n\n<a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/phone-numbers#resetting-two-step-verification-pin-in-whatsapp-manager\" target=\"_blank\">Disable two-step verification.</a>\nSend a POST request that includes the new PIN to the <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/two-step-verification\" target=\"_blank\">Phone Number</a> endpoint."
+    },
+    {
+     "Code": 133006,
+     "Details": "Phone number needs to be verified before registering.",
+     "solutions": "<a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/phone-numbers#verify\" target=\"_blank\">Verify the phone number</a> before registering it."
+    },
+    {
+     "Code": 133008,
+     "Details": "Too many two-step verification PIN guesses for this phone number.",
+     "solutions": "Try again after the amount of time specified in the details response value."
+    },
+    {
+     "Code": 133009,
+     "Details": "Two-step verification PIN was entered too quickly.",
+     "solutions": "Check the details response value before trying again."
+    },
+    {
+     "Code": 133010,
+     "Details": "Phone number not registered on the WhatsApp Business Platform.",
+     "solutions": "<a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration\" target=\"_blank\">Register the phone number</a> before trying again."
+    },
+    {
+     "Code": 133015,
+     "Details": "The phone number you are attempting to register was recently deleted, and deletion has not yet completed.",
+     "solutions": "Wait 5 minutes before re-trying the request."
+    },
+    {
+     "Code": 135000,
+     "Details": "Message failed to send because of an unknown error with your request parameters.",
+     "solutions": "See the endpoint's <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/\" target=\"_blank\">reference</a> to determine if you are querying the endpoint using the correct syntax. Contact <a href=\"https://developers.facebook.com/support/\" target=\"_blank\">customer support</a> if you continue receiving this error code in response."
+    },
+    {
+     "Code": 4,
+     "Details": "The app has reached its API call rate limit.",
+     "solutions": "Load the app in the <a href=\"https://developers.facebook.com/docs/development\" target=\"_blank\">App Dashboard</a> and view the Application Rate Limit section to verify that the app has reached its rate limit. If it has, try again later or reduce the frequency or amount of API queries the app is making."
+    },
+    {
+     "Code": 8007,
+     "Details": "The WhatsApp Business Account has reached its rate limit.",
+     "solutions": "See <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/overview/#rate-limits\" target=\"_blank\">WhatsApp Business Account Rate Limits</a>. Try again later or reduce the frequency or amount of API queries the app is making."
+    },
+    {
+     "Code": 130429,
+     "Details": "Cloud API message throughput has been reached.",
+     "solutions": "The app has reached the API's throughput limit. See <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/overview/#throughput\" target=\"_blank\">Throughput</a>. Try again later or reduce the frequency with which the app sends messages."
+    },
+    {
+     "Code": 131048,
+     "Details": "Message failed to send because there are restrictions on how many messages can be sent from this phone number. This may be because too many previous messages were blocked or flagged as spam.",
+     "solutions": "Check your quality status in the WhatsApp Manager and see the <a href=\"https://developers.facebook.com/docs/whatsapp/messaging-limits#quality-rating-and-messaging-limits\" target=\"_blank\">Quality-Based Rate Limits</a> documentation for more information."
+    },
+    {
+     "Code": 131056,
+     "Details": "Too many messages sent from the sender phone number to the same recipient phone number in a short period of time.",
+     "solutions": "Wait and retry the operation, if you intend to send messages to the same phone number. You can still send messages to a different phone number without waiting"
+    },
+    {
+     "Code": 133016,
+     "Details": "Registration or Deregistration failed because there were too many attempts for this phone number in a short period of time",
+     "solutions": "The business phone number is being blocked because it has reached its registration\/deregistration attempt limit. Try again once the number is unblocked. See \"Limitations\" in the <a href=\"https://developers.facebook.com/docs/whatsapp/cloud-api/reference/registration/\" target=\"_blank\">Registration</a> document."
+    }
+   ]

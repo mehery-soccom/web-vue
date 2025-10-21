@@ -6,6 +6,7 @@ import { useProjectStore } from "@app-insights360/views/dashboards/analytics/use
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import debounce from "lodash/debounce";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -13,17 +14,32 @@ const channelItems = ref();
 const selectedChannelItem = ref("All Channels");
 const campCharts = ref([]);
 const campTable = ref([]);
+const isLoading = ref(false);
+const pagination = reactive({
+  itemsLength: 0,
+  page: 1,
+  itemsPerPage: 10,
+  sortBy: [],
+  multiSort: true,
+  filters: {
+    name: null,
+    channelId: null,
+    templateName: null,
+    status: null,
+  },
+});
 const headers = [
-  { title: "Campaign", key: "name", searchable: true },
-  { title: "Channel", key: "channelId", searchable: true },
-  { title: "Template", key: "templateName", searchable: true },
-  { title: "Status", key: "status", searchable: true },
+  { title: "Campaign", key: "name" },
+  { title: "Channel", key: "channelId" },
+  { title: "Template", key: "templateName" },
+  { title: "Status", key: "status" },
   { title: "Total", key: "total", sortable: true },
   { title: "Sent", key: "sent", sortable: true },
   { title: "Delivered", key: "delivered", sortable: true },
   { title: "Read", key: "read", sortable: true },
   { title: "Replied", key: "responded", sortable: true },
   { title: "Failed", key: "failed", sortable: true },
+  { title: "Bounced", key: "bounced", sortable: true },
 ];
 const statsCamp = ref([
   {
@@ -78,19 +94,52 @@ const onDateClosed = (selectedDates, dateStr) => {
       endDate.getTime(),
       selectedChannelItem.value,
       false,
-      selectedStatuses.value
+      selectedStatuses.value,
+      pagination
     );
+    fetchCampaignBlock(start.getTime(), endDate.getTime(), "All Channels", false, selectedStatuses.value);
   }
 };
+const onUpdateOptions = (options) => {
+  pagination.itemsLength = options.itemsLength;
+  pagination.page = options.page;
+  pagination.itemsPerPage = options.itemsPerPage;
+  pagination.sortBy = options.sortBy;
+  pagination.filters = options.filters;
 
-const fetchCampaignData = async (start, end, chan, bool, stats) => {
+  // const startDate = new Date(dateRange.value.slice(0, 10)).getTime();
+  // const endDate = new Date(dateRange.value.slice(-10)).getTime();
+  const startStr = dateRange.value.slice(0, 10);
+  const endStr = dateRange.value.slice(-10);
+
+  const [startDay, startMonth, startYear] = startStr.split("-");
+  const [endDay, endMonth, endYear] = endStr.split("-");
+
+  const startDate = new Date(`${startMonth}-${startDay}-${startYear}`).getTime();
+  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999).getTime();
+  console.log("daa", startStr, endStr, startDate, endDate)
+  fetchCampaignData(startDate, endDate, selectedChannelItem.value, false, selectedStatuses.value, pagination );
+};
+const onUpdateOptionsDebounced = debounce((options) => {
+  onUpdateOptions(options);
+}, 300);
+const fetchCampaignData = async (start, end, chan, bool, stats, pagination) => {
+  isLoading.value = true;
   try {
-    const response = await projectStore.fetchCampaignPageDatas(
-      start,
-      end,
-      chan,
-      stats
-    );
+    const response = await projectStore.fetchCampaignPageDatas(start, end, chan, bool, stats, pagination);
+    if(response?.data?.pagination) pagination.itemsLength = response.data.pagination.total;
+    console.log("sa", pagination.itemsLength, response.data.pagination.total)
+    campTable.value = response?.data?.results;
+    if (!bool) channelItems.value = [ "All Channels", ...Object.keys(response?.data?.data || {}) ];
+  } catch (error) {
+    console.error("analytics error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
+const fetchCampaignBlock = async (start, end, chan, bool, stats) => {
+  try {
+    const response = await projectStore.fetchCampaignNewDatas(start, end, chan, bool, stats);
     if (response?.data?.data != null) {
       campCharts.value = Object.entries(response?.data?.data).map(
         ([channel, data]) => ({ title: channel, ...data })
@@ -102,15 +151,9 @@ const fetchCampaignData = async (start, end, chan, bool, stats) => {
         response?.data?.data?.EMAIL?.total || 0
       );
       statsCamp.value[2].stats = String(response?.data?.data?.SMS?.total || 0);
-      campTable.value = response?.data?.results;
-      if (!bool)
-        channelItems.value = [
-          "All Channels",
-          ...Object.keys(response?.data?.data || {}),
-        ];
     }
   } catch (error) {
-    console.error("analytics error", error);
+    console.error("analytics error b", error);
   }
 };
 
@@ -126,6 +169,7 @@ const exportToExcel = () => {
     Read: item.read,
     Replied: item.responded,
     Failed: item.failed,
+    Bounced: item.bounced,
   }));
 
   const worksheet = XLSX.utils.json_to_sheet(formattedData);
@@ -152,7 +196,8 @@ const allAnalytics = () => {
     endDate.getTime(),
     selectedChannelItem.value,
     true,
-    selectedStatuses.value
+    selectedStatuses.value,
+    pagination
   );
 };
 const statusOptions = [
@@ -174,16 +219,9 @@ watch(menuOpen, (newVal, oldVal) => {
 
 onMounted(async () => {
   const now = new Date();
-  const oneWeekAgo = new Date();
-  oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
-  oneWeekAgo.setHours(0, 0, 0, 0);
-  fetchCampaignData(
-    oneWeekAgo.getTime(),
-    now.getTime(),
-    "All Channels",
-    false,
-    selectedStatuses.value
-  );
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  fetchCampaignBlock(today.getTime(), now.getTime(), "All Channels", false, selectedStatuses.value);
 });
 </script>
 
@@ -254,11 +292,13 @@ onMounted(async () => {
       <AnalyticsMonthlyCampaignState :statistics="campaign" :title="`${campaign.title} `" />
     </VCol> -->
     <VCol cols="12">
-      <DemoDataTableKitchenSink
+      <!-- <DemoDataTableKitchenSink
         :headers="headers"
         :productList="campTable"
         :title="'Campaign Data'"
-      >
+      > -->
+      <MyDataTable :headers="headers" :items="campTable" :loading="isLoading" 
+        :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <template #item.name="{ item }">
           <RouterLink
             :to="{
@@ -315,7 +355,11 @@ onMounted(async () => {
             >{{ item.raw.failed }}</span
           >
         </template>
-      </DemoDataTableKitchenSink>
+        <template #item.bounced="{ item }">
+          <span style="width: 100%; display: inline-block; text-align: center">{{ item.raw.bounced }}</span>
+        </template>
+      </MyDataTable>
+      <!-- </DemoDataTableKitchenSink> -->
     </VCol>
   </VRow>
 </template>
