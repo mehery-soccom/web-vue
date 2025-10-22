@@ -15,4 +15,9 @@ export default [
     icon: { icon: "tabler-user-scan" },
     to: "admin-leads-list",
   },
+  {
+    title: "Stages",
+    icon: { icon: "tabler-chart-bar-popular" },
+    to: "admin-stages-list",
+  },
 ]

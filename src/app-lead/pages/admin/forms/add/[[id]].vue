@@ -239,14 +239,17 @@ const openPreview = () => {
 
                 <div v-if="field.inputType" class="mt-4">
 
-                  <VRadioGroup v-if="field.inputType === 'OPTIONS'" class="ps-4" disabled>
-                    <VRadio
-                      v-for="option in field.options"
-                      :key="option.value"
-                      :label="option.label"
-                      :value="option.value"
-                    />
-                  </VRadioGroup>
+                  <VRow v-if="field.inputType === 'OPTIONS'">
+                    <VCol md="8">
+                      <AppSelect
+                        :items="field.options"
+                        item-title="label"
+                        item-value="code"
+                        :placeholder="field.desc"
+                        disabled
+                      />
+                    </VCol>
+                  </VRow>
 
                   <VSwitch
                     v-else-if="field.inputType === 'BOOLEAN'"

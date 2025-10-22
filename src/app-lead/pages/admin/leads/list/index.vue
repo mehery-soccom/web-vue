@@ -19,6 +19,7 @@ const pagination = reactive({
 const headers = [
   { title: "Name", key: "response.name" },
   { title: "Email", key: "response.email" },
+  { title: "Campaign", key: "formTitle" },
   { title: "Created At", key: "createdAt", sortable: true },
   { title: "Modified At", key: "updatedAt", sortable: true },
   { title: "Actions", key: "actions", sortable: false },

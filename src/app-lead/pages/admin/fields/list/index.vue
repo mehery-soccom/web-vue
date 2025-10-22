@@ -212,6 +212,15 @@ const handleImport = async () => {
       </template>
 
       <template #item.actions="{ item }">
+          <IconBtn
+           :to="{
+              name: 'admin-fields-add-id?',
+              params: {id: item.raw._id}
+           }"
+          >
+            <VIcon icon="tabler-edit" />
+          </IconBtn>
+          
           <IconBtn>
             <VIcon icon="tabler-trash" />
             <v-dialog activator="parent" max-width="400">
@@ -236,15 +245,6 @@ const handleImport = async () => {
                 </v-card>
               </template>
             </v-dialog>
-          </IconBtn>
-
-          <IconBtn
-           :to="{
-              name: 'admin-fields-add-id?',
-              params: {id: item.raw._id}
-           }"
-          >
-            <VIcon icon="tabler-edit" />
           </IconBtn>
         </template>
     </MyDataTable>

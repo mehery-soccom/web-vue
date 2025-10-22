@@ -24,8 +24,8 @@ onMounted(() => {
 });
 
 const submitForm = () => {
-  alert('This is a preview. Form data would be submitted now. Check the console for values.');
-  console.log('Form Values:', formValues.value);
+  // alert('This is a preview. Form data would be submitted now. Check the console for values.');
+  // console.log('Form Values:', formValues.value);
 }
 </script>
 
@@ -59,17 +59,17 @@ const submitForm = () => {
                 </VCol>
               </VRow>
               
-              <VRadioGroup 
-                v-else-if="field.inputType === 'OPTIONS'" 
-                v-model="formValues[field.code]"
-              >
-                <VRadio
-                  v-for="option in field.options"
-                  :key="option.code"
-                  :label="option.label"
-                  :value="option.code"
-                />
-              </VRadioGroup>
+              <VRow v-else-if="field.inputType === 'OPTIONS'">
+                <VCol md="8">
+                  <AppSelect
+                    v-model="formValues[field.code]"
+                    :items="field.options"
+                    item-title="label"
+                    item-value="code"
+                    :placeholder="field.desc"
+                  />
+                </VCol>
+              </VRow>
 
               <VRow v-else-if="field.inputType === 'DATE'">
                 <VCol md="4">

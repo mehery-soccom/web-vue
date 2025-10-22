@@ -5,12 +5,15 @@ import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore';
 import { useFormsStore } from '@/app-lead/views/admin/forms/useFormsStore';
 import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { requiredValidator } from '@app-lead/@core/utils/validators'
+import LeadTimeline from "@/app-lead/views/admin/leads/LeadTimeline.vue";
+import LeadStageData from '@/app-lead/views/admin/leads/LeadStageData.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
 const router = useRouter();
 const leadsStore = useLeadsStore();
 const formsStore = useFormsStore();
+const tab = ref('details');
 
 const leadId = computed(() => route.params.id === 'add' ? null : route.params.id);
 const isLoading = ref(false);
@@ -21,6 +24,9 @@ const formList = ref([]);
 const selectedFormId = ref(null);
 const selectedFormStructure = ref(null);
 const leadData = ref({});
+const leadHistory = ref([]);
+const currentLeadStageId = ref(null);
+const originalLeadData = ref(null);
 
 const loadFormStructure = async (formId) => {
   if (leadId.value) return;
@@ -59,25 +65,44 @@ watch(selectedFormId, (newFormId) => {
   }
 });
 
-onMounted(async () => {
+
+const isFormEdited = computed(() => {
+  if (!leadId.value) {
+    return true; 
+  }
+  if (!originalLeadData.value) {
+    return false;
+  }
+  return JSON.stringify(originalLeadData.value) !== JSON.stringify(leadData.value);
+});
+
+const fetchLeadData = async () => {
   isFetching.value = true;
   try {
     const formsResponse = await formsStore.fetchFormsForDropdown();
     formList.value = formsResponse.results;
 
     if (leadId.value) {
-      const existingLead = await leadsStore.fetchLead(leadId.value);
-      leadData.value = existingLead.response || {};
-      selectedFormStructure.value = existingLead.formId;
-      selectedFormId.value = existingLead.formId._id;
+      const leadDetails = await leadsStore.fetchLead(leadId.value);
+
+      leadData.value = leadDetails.response || {};
+      leadHistory.value = leadDetails.leadHistory || [];
+      selectedFormStructure.value = leadDetails.formId;
+      selectedFormId.value = leadDetails.formId._id;
+      currentLeadStageId.value = leadDetails.leadStage;
+
+      originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
     }
   } catch (error) {
+    console.error("Failed to load lead data:", error);
     show({ message: 'Failed to load lead data.', color: 'error' });
     router.push({ name: 'admin-leads-list' });
   } finally {
     isFetching.value = false;
   }
-});
+};
+
+onMounted(fetchLeadData);
 
 const handleSubmit = async () => {
   const { valid } = await refForm.value.validate();
@@ -104,6 +129,7 @@ const handleSubmit = async () => {
   const payload = {
     formId: selectedFormId.value,
     formTitle: selectedForm ? selectedForm.title : '',
+    leadStage: "68edef61e2b7c8cb1ff25497",
     data: apiData,
   };
 
@@ -133,6 +159,8 @@ const fieldsToRender = computed(() => {
     .filter(masterField => !!masterField);
 });
 
+const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true');
+
 </script>
 
 <template>
@@ -140,91 +168,124 @@ const fieldsToRender = computed(() => {
     <VCol cols="12" md="8">
       <VCard>
         <VCardItem>
-          <VCardTitle>{{ leadId ? 'Edit Lead' : 'Create Lead' }}</VCardTitle>
+          <VCardTitle>{{ leadId ? 'Overview' : 'Create Lead' }}</VCardTitle>
         </VCardItem>
         <VDivider />
 
-        <VCardText>
-          <VForm ref="refForm" @submit.prevent="handleSubmit">
-            <VRow>
-              <VCol cols="12">
-                <AppSelect
-                  v-model="selectedFormId"
-                  :items="formList"
-                  item-title="title"
-                  item-value="_id"
-                  label="Select a Form"
-                  placeholder="Choose a form to generate fields"
-                  :rules="[requiredValidator]"
-                  :readonly="!!leadId"
-                />
-              </VCol>
-            </VRow>
-            
-            <VDivider class="my-4" v-if="selectedFormStructure" />
+        <VTabs v-if="leadId" v-model="tab" bg-color="transparent">
+          <VTab value="details">Details</VTab>
+          <VTab value="timeline">Timeline</VTab>
+        </VTabs>
+        <VDivider v-if="leadId" />
 
-            <div v-if="selectedFormStructure">
-              <VRow 
-                v-for="field in fieldsToRender" 
-                :key="field._id" 
-                align="center"
-              >
-                <VCol cols="12" md="4">
-                  <VLabel>{{ field.title }}</VLabel>
+        <VCardText>
+          <VWindow v-model="tab">
+            <VWindowItem value="details">
+              <VRow>
+
+                <VCol v-if="leadId && currentLeadStageId && shouldShowLeadProgress" cols="12">
+                  <LeadStageData 
+                    :current-stage-id="currentLeadStageId"
+                    :lead-id="leadId"
+                    @stage-updated="fetchLeadData"
+                  />
                 </VCol>
-                <VCol cols="12" md="8">
-                  <VTextField
-                    v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)"
-                    v-model="leadData[field.path.split('.')[1]]"
-                    :placeholder="field.desc"
-                    variant="outlined"
-                  />
-                  <VRadioGroup 
-                    v-else-if="field.inputType === 'OPTIONS'" 
-                    v-model="leadData[field.path.split('.')[1]]"
-                    inline
-                  >
-                    <VRadio
-                      v-for="option in field.options"
-                      :key="option.code"
-                      :label="option.label"
-                      :value="option.code"
-                    />
-                  </VRadioGroup>
-                  <AppDateTimePicker
-                    v-else-if="field.inputType === 'DATE'"
-                    v-model="leadData[field.path.split('.')[1]]"
-                    :placeholder="field.desc"
-                  />
-                  <VFileInput
-                    v-else-if="field.inputType === 'DOCUMENT'"
-                    v-model="leadData[field.path.split('.')[1]]"
-                    :label="field.desc || 'Upload'"
-                    variant="outlined"
-                  />
-                  <VSwitch
-                    v-else-if="field.inputType === 'BOOLEAN'"
-                    v-model="leadData[field.path.split('.')[1]]"
-                    :label="field.title"
-                  />
+
+                <VCol cols="12">
+                  <VCard border elevation="2">
+                    <VCardText>
+                      <VForm ref="refForm" @submit.prevent="handleSubmit">
+                        <VRow>
+                          <VCol cols="12">
+                            <AppSelect
+                              v-model="selectedFormId"
+                              :items="formList"
+                              item-title="title"
+                              item-value="_id"
+                              label="Form"
+                              placeholder="Choose a form to generate fields"
+                              :rules="[requiredValidator]"
+                              :readonly="!!leadId"
+                            />
+                          </VCol>
+                        </VRow>
+                        
+                        <VDivider class="my-4" v-if="selectedFormStructure" />
+
+                        <div v-if="selectedFormStructure">
+                          <VRow 
+                            v-for="field in fieldsToRender" 
+                            :key="field._id" 
+                            align="center"
+                          >
+                            <VCol cols="12" md="4">
+                              <VLabel>{{ field.title }}</VLabel>
+                            </VCol>
+                            <VCol cols="12" md="8">
+                              <VTextField
+                                v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :placeholder="field.desc"
+                                variant="outlined"
+                              />
+                              <AppSelect
+                                v-else-if="field.inputType === 'OPTIONS'"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :items="field.options"
+                                item-title="label"
+                                item-value="code"
+                                :placeholder="field.desc"
+                              />
+                              <AppDateTimePicker
+                                v-else-if="field.inputType === 'DATE'"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :placeholder="field.desc"
+                              />
+                              <VFileInput
+                                v-else-if="field.inputType === 'DOCUMENT'"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :label="field.desc || 'Upload'"
+                                variant="outlined"
+                              />
+                              <VSwitch
+                                v-else-if="field.inputType === 'BOOLEAN'"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :label="field.title"
+                              />
+                            </VCol>
+                          </VRow>
+                        </div>
+                        
+                        <VRow>
+                          <VCol class="d-flex gap-4 mt-6">
+                            <VSpacer />
+                            <VBtn
+                              color="secondary"
+                              variant="tonal"
+                              :to="{ name: 'admin-leads-list' }"
+                            >
+                              Cancel
+                            </VBtn>
+                            <VBtn 
+                              type="submit" 
+                              :loading="isLoading"
+                              :disabled="leadId && !isFormEdited"
+                            >
+                              {{ leadId ? 'Update Lead' : 'Create Lead' }}
+                            </VBtn>
+                          </VCol>
+                        </VRow>
+                      </VForm>
+                    </VCardText>
+                  </VCard>
                 </VCol>
               </VRow>
-            </div>
-            
-            <VRow>
-              <VCol class="d-flex gap-4 mt-6">
-                <VSpacer />
-                <VBtn
-                  color="secondary"
-                  variant="tonal"
-                  :to="{ name: 'admin-leads-list' }"
-                >
-                  Cancel
-                </VBtn>
-                <VBtn type="submit" :loading="isLoading">{{ leadId ? 'Update Lead' : 'Create Lead' }}</VBtn>
-              </VCol>
-            </VRow>
-          </VForm>
+            </VWindowItem>
+
+            <VWindowItem value="timeline">
+              <LeadTimeline :history="leadHistory" />
+            </VWindowItem>
+          </VWindow>
         </VCardText>
       </VCard>
     </VCol>
