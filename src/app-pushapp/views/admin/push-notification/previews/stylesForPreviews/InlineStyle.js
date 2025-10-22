@@ -119,6 +119,7 @@ video::-webkit-media-controls {
   align-items: center;
   /* margin-top: 30px; */
   padding: 0 12px;
+  margin-top: 0px !important;
 }
 
 .banner-content {

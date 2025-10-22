@@ -27,6 +27,7 @@ const backgroundStyle = computed(() => {
   }
   return style.bg_color;
 });
+const overrideMargin = true;
 const scale = ref(1);
 const wrapperRef = ref(null);
 
@@ -34,6 +35,8 @@ function updateScale() {
   if (!wrapperRef.value) return;
   const width = wrapperRef.value.offsetWidth;
   scale.value = width > 330 ? 1 : width / 350;
+  const banner = wrapperRef.value.querySelector('.banner-wrapper');
+  // if (banner) banner.style.marginTop = `${220 * scale.value}px`;
 }
 
 onMounted(() => {
@@ -239,7 +242,7 @@ video::-webkit-media-controls {
   align-items: center;
   margin-top: 30px;
   padding: 0 12px;
-  margin-top: 210px;
+  margin-top: 65%;
 }
 
 .banner-content {
