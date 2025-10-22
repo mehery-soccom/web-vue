@@ -6,6 +6,25 @@ window.onload = function () {
   let currentSlide = 0;
   let type = mediaItems[0]?.tagName?.toLowerCase();
 
+  async function preloadVideos() {
+    const videoElements = Array.from(mediaItems).filter(el => el.tagName.toLowerCase() === 'video');
+
+    for (let el of videoElements) {
+      const originalSrc = el.getAttribute('src');
+      if (originalSrc) {
+        try {
+          const response = await fetch(originalSrc, { mode: 'no-cors' });
+          const blob = await response.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          el.src = blobUrl;
+        } catch (err) {
+          console.warn('Prefetch failed for', originalSrc, err);
+        }
+      }
+    }
+  }
+  await preloadVideos();
+
   function showSlide(index) {
     mediaItems.forEach((item, i) => {
       item.style.display = i === index ? 'block' : 'none';

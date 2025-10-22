@@ -249,7 +249,7 @@ defineExpose({ isValid });
   width: 140px;
 }
 .freq-count {
-  width: 60px;
+  width: 90px;
 }
 .freq-period {
   width: 160px;

@@ -49,7 +49,7 @@ onBeforeUnmount(() => {
 <template>
   <transition name="fade-slide">
     <div class="preview-wrapper pop-up-dimensions" ref="wrapperRef">
-        <div class="banner-wrapper" :style="{ height: (props.template.style.height * scale) + 'px', width: (props.template.style.width * scale) + 'px', marginTop: (220 * scale) + 'px', background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
+        <div class="banner-wrapper" :style="{ height: (props.template.style.height * scale) + 'px', width: (props.template.style.width * scale) + 'px', background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
             <div class="banner-content" :class="{ vertical: props.template.style.align === 'vertical' }"
              :style="{ flexDirection: props.template.style.align === 'vertical' ? 'column' : 'row'}">
                 <div class="banner-text" v-if="props.template.style.align === 'vertical' && !!props.template.style.image_url">
@@ -239,6 +239,7 @@ video::-webkit-media-controls {
   align-items: center;
   margin-top: 30px;
   padding: 0 12px;
+  margin-top: 210px;
 }
 
 .banner-content {
