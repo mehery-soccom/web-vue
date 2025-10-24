@@ -23,7 +23,7 @@ window.onload = function () {
       }
     }
   }
-  await preloadVideos();
+  // await preloadVideos();
 
   function showSlide(index) {
     mediaItems.forEach((item, i) => {
