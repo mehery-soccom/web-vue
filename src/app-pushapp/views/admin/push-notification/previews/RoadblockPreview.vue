@@ -196,7 +196,7 @@ onBeforeUnmount(() => {
           <!-- Media (image/video) -->
           <div class="media-preview" v-if="props.template.style.image_url || props.template.style.video_url">
             <img v-if="props.template.style.image_url" :src="props.template.style.image_url" class="media-item" />
-            <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" />
+            <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" :poster="props.template.style.thumbnail_url || ''" />
           </div>
 
           <!-- Carousel -->
@@ -204,21 +204,22 @@ onBeforeUnmount(() => {
             <div class="carousel-wrapper">
                 <div class="media-carousel" ref="mediaCarouselRef">
                 <template v-for="(item, index) in activeMedia.items" :key="item.value + index">
-                    <img
+                  <img
                     v-if="activeMedia.type === 'image'"
                     :src="item.value"
                     class="media-item"
                     :style="{ display: index === currentSlide ? 'block' : 'none' }"
-                    />
-                    <video
+                  />
+                  <video
                     v-else
                     :src="item.value"
                     class="media-item"
                     autoplay
                     muted
                     playsinline
-                    :style="{ display: index === currentSlide ? 'block' : 'none' }"
-                    />
+                    :style="{ display: index === currentSlide ? 'block' : 'none' }" 
+                    :poster="props.template.style.thumbnail_url || ''"
+                  />
                 </template>
                 </div>
             </div>

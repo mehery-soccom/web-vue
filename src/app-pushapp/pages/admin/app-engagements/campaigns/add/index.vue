@@ -185,7 +185,7 @@ const create = async () => {
       };
       const templateRes = await (QUERY_T_EDIT
         ? templateRef.value._onUpdate()
-        : templateRef.value._onCreate());
+        : templateRef.value.saveTemplate());
       payload.action.template.id = templateRes.data._id;
       payload.action.template.code = templateRes.data.code;
       payload.action.template.type = templateRes.data.type;
@@ -311,12 +311,12 @@ const create = async () => {
         <div
           v-show="!campaign.abTesting.enabled || activeTemplateVariant === 'A'"
         >
-          <Template ref="templateRef" :edit="QUERY_T_EDIT" />
+          <Template ref="templateRef" :edit="QUERY_T_EDIT" :embedded="true" />
         </div>
         <div
           v-show="campaign.abTesting.enabled && activeTemplateVariant === 'B'"
         >
-          <Template ref="templateBRef" />
+          <Template ref="templateBRef" :embedded="true" />
         </div>
       </VWindowItem>
 

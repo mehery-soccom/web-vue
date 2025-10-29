@@ -288,7 +288,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
       return DataService.axios.post("/api/templates/in-app", params);
     },
     async fetchTemplates(params){
-      let { page, itemsPerPage, sortBy, filters } = params;
+      let { page, itemsPerPage, sortBy = [], filters } = params;
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");

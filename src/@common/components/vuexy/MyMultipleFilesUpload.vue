@@ -13,7 +13,7 @@ const props = defineProps({
   }
 })
 
-const emit = defineEmits(['update:modelValue'])
+const emit = defineEmits(['update:modelValue', 'update:thumbnailUrl'])
 
 const localFiles = ref([])        // Holds file URLs
 const visibleCount = ref(2)       // Initial 2 file inputs
@@ -69,11 +69,24 @@ function addFileInput() {
 <template>
   <div>
     <div v-for="(fileObj, index) in localFiles.slice(0, visibleCount)" :key="index" class="mb-3">
-      <MyFileInputUpload
-        v-model="fileObj.value"
-        :label="`${label || 'File'} ${index + 1}`"
-        :placeholder="placeholder" :max-size="props.maxSize"
+      <MyFileInputUpload v-if="index === 0"
+        v-model="fileObj.value" :label="`${props.label || 'File'} ${index + 1}`"
+        :placeholder="props.placeholder" :max-size="props.maxSize" 
+        :enableThumbnail="true" :thumbnail-url="fileObj.thumbnailUrl" 
+        @update:thumbnailUrl="val => {
+          fileObj.thumbnailUrl = val;
+          emit('update:thumbnailUrl', val)
+        }"
       />
+      <MyFileInputUpload v-else
+        v-model="fileObj.value" :label="`${props.label || 'File'} ${index + 1}`"
+        :placeholder="props.placeholder" :max-size="props.maxSize"
+      />
+      <!-- <MyFileInputUpload
+        v-model="fileObj.value"
+        :label="`${props.label || 'File'} ${index + 1}`"
+        :placeholder="props.placeholder" :max-size="props.maxSize"
+      /> -->
     </div>
     <div v-if="visibleCount < props.max">
       <v-btn variant="tonal" color="primary" @click="addFileInput">+ Add File</v-btn>

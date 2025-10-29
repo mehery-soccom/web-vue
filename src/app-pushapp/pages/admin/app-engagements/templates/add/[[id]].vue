@@ -16,6 +16,7 @@ const { show } = inject("snackbar");
 
 const props = defineProps({
   edit: { type: String },
+  embedded: { type: Boolean, default: false },
 });
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -271,6 +272,12 @@ const _onCreate = async () => {
     isLoading.value = false;
   }
 };
+ const saveTemplate = async () => {
+    if (template._id) {
+      return await _onUpdate();
+    }
+    return await _onCreate();
+  };
 
 const isValid = async () => {
   let validationResult = await formRef.value?.validate();
@@ -358,14 +365,14 @@ watch(
   }
 );
 
-defineExpose({ isValid, _onCreate, _onUpdate });
+defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
 </script>
 
 <template>
   <v-row v-if="isPreStep">
     <v-col cols="12" md="12">
       <TemplatePresetSelector
-        @select="onPresetSelect"
+        @select="onPresetSelect" :embedded="embedded"
         @selectTemplate="handlePreviewTemplate"
       />
     </v-col>

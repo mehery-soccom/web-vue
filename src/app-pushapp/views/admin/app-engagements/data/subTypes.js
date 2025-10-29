@@ -1081,6 +1081,7 @@ export const SUB_TYPES = [
           type: "file",
           label: "Video (Aspect ratio : 4/3)",
           required: true,
+          thumbnail: "style.thumbnail_url"
         },
         {
           id: "road-vid-btn",
@@ -1123,6 +1124,7 @@ export const SUB_TYPES = [
             btn: [],
             image_url: "",
             video_url: "https://xyz-mehery-data-longterm-20230321170801943500000002.s3.eu-west-2.amazonaws.com/pushapp/templates/images/1754654633151-festival%20gifting.mp4",
+            thumbnail_url: "",
             logo_url: "",
             button1_url: "",
             button2_url: "",
@@ -1481,6 +1483,7 @@ export const SUB_TYPES = [
           required: true,
           readonly: false,
           defaultValue: null,
+          thumbnail: "style.thumbnail_url"
         },
         {
           id: "road-vid-car-btn",
@@ -1531,6 +1534,7 @@ export const SUB_TYPES = [
                     "value": "https://xyz-mehery-data-longterm-20230321170801943500000002.s3.eu-west-2.amazonaws.com/pushapp/templates/images/1754654868283-Happy%20employees.mp4"
                 }
             ],
+            thumbnail_url: "",
             logo_url: "",
             button1_url: "",
             button2_url: "",

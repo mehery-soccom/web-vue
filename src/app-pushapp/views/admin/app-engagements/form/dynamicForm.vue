@@ -129,7 +129,9 @@ defineExpose({ validate });
         v-if="f.type === 'file'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
-        :rules="f.required ? [required] : []"
+        :thumbnail-url="get(local, f.thumbnail)"
+        @update:thumbnailUrl="val => set(local, f.thumbnail, val)"
+        :rules="f.required ? [required] : []" :enableThumbnail="true"
         :label="f.label" :max-size="f.maxSize"
       />
       <MyColorPicker
@@ -164,6 +166,8 @@ defineExpose({ validate });
         v-if="f.type === 'addFiles'"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
+        :thumbnail-url="get(local, f.thumbnail)"
+        @update:thumbnailUrl="val => set(local, f.thumbnail, val)"
         :label="f.label"
         :placeholder="f.placeholder"
         :rules="f.required ? [required] : []"
