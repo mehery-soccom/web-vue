@@ -2,6 +2,7 @@
 import { ref, reactive, inject, onMounted } from 'vue';
 import debounce from "lodash/debounce";
 import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore';
+import LeadTable from '@/app-lead/views/admin/leads/LeadTable.vue';
 
 const { show } = inject("snackbar");
 const leadsStore = useLeadsStore();
@@ -15,15 +16,6 @@ const pagination = reactive({
   sortBy: [],
   filters: {},
 });
-
-const headers = [
-  { title: "Name", key: "response.name" },
-  { title: "Email", key: "response.email" },
-  { title: "Campaign", key: "formTitle" },
-  { title: "Created At", key: "createdAt", sortable: true },
-  { title: "Modified At", key: "updatedAt", sortable: true },
-  { title: "Actions", key: "actions", sortable: false },
-];
 
 const fetchLeads = async (options = pagination) => {
   isLoading.value = true;
@@ -65,35 +57,11 @@ onMounted(() => {
     fetchLeads();
 });
 
-const formatDate = (timestampObj) => {
-  if (!timestampObj || !timestampObj.stamp) {
-    return '-';
-  }
-  const date = new Date(timestampObj.stamp);
-  const options = {
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: true,
-    day: '2-digit',
-    month: 'short',
-    year: '2-digit',
-  };
-  
-  const formatted = new Intl.DateTimeFormat('en-GB', options).format(date);
-  
-  const parts = formatted.split(', ');
-  if (parts.length === 2) {
-    return `${parts[1]} ${parts[0]}`;
-  }
-  return formatted;
-};
-
-const deleteLead = async (id, dialogCloseRef) => {
+const deleteLead = async (id) => {
   isLoading.value = true;
   try {
     await leadsStore.deleteLead({ id });
     await fetchLeads();
-    if (dialogCloseRef) dialogCloseRef.value = false;
     show({ message: "Lead deleted successfully", color: "success" });
   } catch (error) {
     console.error("Delete failed:", error);
@@ -133,54 +101,13 @@ const deleteLead = async (id, dialogCloseRef) => {
     </VCardText>
     <VDivider />
 
-    <MyDataTable 
-      :headers="headers" 
-      :items="leads" 
+    <LeadTable
+      :leads="leads"
       :loading="isLoading"
-      :server-side="true"
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
-    >
-      <template #item.createdAt="{ item }">
-        {{ formatDate(item.raw.createdAt) }}
-      </template>
-      <template #item.updatedAt="{ item }">
-        {{ formatDate(item.raw.updatedAt) }}
-      </template>
-
-      <template #item.actions="{ item }">
-        <IconBtn :to="{ name: 'admin-leads-add-id?', params: { id: item.raw._id } }">
-          <VIcon icon="tabler-eye" />
-        </IconBtn>
-
-        <IconBtn>
-          <VIcon icon="tabler-trash" />
-          <v-dialog activator="parent" max-width="400">
-            <template v-slot:default="{ isActive }">
-              <v-card
-                title="Confirm Deletion"
-                text="Are you sure you want to delete this lead?"
-              >
-                <template v-slot:actions>
-                  <VSpacer />
-                  <v-btn 
-                    text="Cancel" 
-                    @click="isActive.value = false"
-                  />
-                  <v-btn
-                    color="error"
-                    variant="tonal"
-                    text="Delete"
-                    :loading="isLoading"
-                    @click="deleteLead(item.raw._id, isActive)"
-                  />
-                </template>
-              </v-card>
-            </template>
-          </v-dialog>
-        </IconBtn>
-      </template>
-    </MyDataTable>
+      @delete-lead="deleteLead" 
+    />
   </VCard>
 </template>
 

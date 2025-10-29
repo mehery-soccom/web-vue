@@ -4,9 +4,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore';
 import { useFormsStore } from '@/app-lead/views/admin/forms/useFormsStore';
 import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
-import { requiredValidator } from '@app-lead/@core/utils/validators'
+import { emailValidator, requiredValidator } from '@app-lead/@core/utils/validators'
 import LeadTimeline from "@/app-lead/views/admin/leads/LeadTimeline.vue";
 import LeadStageData from '@/app-lead/views/admin/leads/LeadStageData.vue';
+import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue'; 
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -26,10 +27,26 @@ const selectedFormStructure = ref(null);
 const leadData = ref({});
 const leadHistory = ref([]);
 const currentLeadStageId = ref(null);
+const originalContactData = ref(null);
 const originalLeadData = ref(null);
 
+const contactData = ref({
+  name: '',
+  phone: '',
+  email: '',
+})
+
+const phoneValidator = value => {
+  if (!value) return true
+  const phoneRegex = /^[+]?[0-9]{10,15}$/;
+  return phoneRegex.test(value) || 'Please enter a valid phone number';
+}
+
+const phoneOrEmailRequired = () => {
+  return !!contactData.value.phone || !!contactData.value.email || 'Either Phone or Email is required';
+}
+
 const loadFormStructure = async (formId) => {
-  if (leadId.value) return;
 
   if (!formId) {
     selectedFormStructure.value = null;
@@ -46,16 +63,25 @@ const loadFormStructure = async (formId) => {
       formDetails.formFields.forEach(field => {
         const masterField = formDetails.masterFields[field.field_id];
         if (masterField && masterField.path) {
-          newLeadData[masterField.path] = leadData.value[masterField.path] || null;
+          const modelKey = masterField.path.split('.')[1];
+          newLeadData[modelKey] = leadData.value[modelKey] === undefined ? null : leadData.value[modelKey];
         }
       });
     }
-    leadData.value = newLeadData;
+    if (!leadId.value) {
+        leadData.value = newLeadData;
+        console.log("Initialized leadData for create mode:", JSON.parse(JSON.stringify(newLeadData)));
+    } else {
+        console.log("Edit mode: Keeping existing leadData:", JSON.parse(JSON.stringify(leadData.value)));
+    }
+
 
   } catch (error) {
+    console.error("Failed to load form structure:", error);
     show({ message: 'Failed to load form structure.', color: 'error' });
   } finally {
     isFetching.value = false;
+    console.log("loadFormStructure finished.");
   }
 };
 
@@ -68,12 +94,14 @@ watch(selectedFormId, (newFormId) => {
 
 const isFormEdited = computed(() => {
   if (!leadId.value) {
-    return true; 
+    return true;
   }
-  if (!originalLeadData.value) {
+  if (!originalContactData.value || !originalLeadData.value) {
     return false;
   }
-  return JSON.stringify(originalLeadData.value) !== JSON.stringify(leadData.value);
+  const contactEdited = JSON.stringify(originalContactData.value) !== JSON.stringify(contactData.value);
+  const leadEdited = JSON.stringify(originalLeadData.value) !== JSON.stringify(leadData.value);
+  return contactEdited || leadEdited;
 });
 
 const fetchLeadData = async () => {
@@ -85,13 +113,24 @@ const fetchLeadData = async () => {
     if (leadId.value) {
       const leadDetails = await leadsStore.fetchLead(leadId.value);
 
+      contactData.value = {
+          name: leadDetails.contact?.name || '',
+          phone: leadDetails.contact?.phone || '',
+          email: leadDetails.contact?.email || '',
+      };
+      originalContactData.value = JSON.parse(JSON.stringify(contactData.value));
+
       leadData.value = leadDetails.response || {};
+      originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
+
       leadHistory.value = leadDetails.leadHistory || [];
-      selectedFormStructure.value = leadDetails.formId;
-      selectedFormId.value = leadDetails.formId._id;
       currentLeadStageId.value = leadDetails.leadStage;
 
-      originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
+      selectedFormId.value = leadDetails.formId;
+    } else {
+        console.log("Create mode - No lead data to fetch.");
+        originalContactData.value = JSON.parse(JSON.stringify(contactData.value));
+        originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
     }
   } catch (error) {
     console.error("Failed to load lead data:", error);
@@ -99,6 +138,7 @@ const fetchLeadData = async () => {
     router.push({ name: 'admin-leads-list' });
   } finally {
     isFetching.value = false;
+    console.log("fetchLeadData finished.");
   }
 };
 
@@ -106,20 +146,33 @@ onMounted(fetchLeadData);
 
 const handleSubmit = async () => {
   const { valid } = await refForm.value.validate();
-  if (!valid || !selectedFormId.value) {
-    show({ message: 'Please select a form and fill in all required fields.', color: 'error' });
+  if (!valid || (!contactData.value.phone && !contactData.value.email)) {
+    show({ message: 'Please fill in Name and either Phone or Email.', color: 'error' });
+    if (!selectedFormId.value && !leadId.value){
+         show({ message: 'Please select a form.', color: 'error' });
+    }
     return;
   }
 
   isLoading.value = true;
 
   const apiData = {};
+  for (const key in contactData.value) {
+      const value = contactData.value[key] === '' ? null : contactData.value[key];
+      if (value !== null) {
+          apiData[`contact.${key}`] = value;
+      }
+  }
+
   if (selectedFormStructure.value && selectedFormStructure.value.formFields) {
     selectedFormStructure.value.formFields.forEach(field => {
       const masterField = selectedFormStructure.value.masterFields[field.field_id];
       if (masterField && masterField.path) {
         const modelKey = masterField.path.split('.')[1];
-        apiData[masterField.path] = leadData.value[modelKey];
+        const value = leadData.value[modelKey] === '' ? null : leadData.value[modelKey];
+         if (value !== null) {
+             apiData[masterField.path] = value;
+         }
       }
     });
   }
@@ -129,9 +182,12 @@ const handleSubmit = async () => {
   const payload = {
     formId: selectedFormId.value,
     formTitle: selectedForm ? selectedForm.title : '',
-    leadStage: "68edef61e2b7c8cb1ff25497",
     data: apiData,
   };
+
+  if (!leadId.value) {
+    payload.leadStage = "68fb5c0aec8a6bb94018efd2"; 
+  }
 
   try {
     if (leadId.value) {
@@ -213,6 +269,43 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                         <VDivider class="my-4" v-if="selectedFormStructure" />
 
                         <div v-if="selectedFormStructure">
+                          <VRow>
+                            <VCol cols="12" md="4">
+                                <VLabel class="font-weight-medium">Name <span class="text-error">*</span></VLabel>
+                            </VCol>
+                            <VCol cols="12" md="8">
+                                <AppTextField
+                                  v-model="contactData.name"
+                                  placeholder="Enter Lead Name"
+                                  :rules="[requiredValidator]"
+                                />
+                            </VCol>
+                          </VRow>
+                          <VRow>
+                            <VCol cols="12" md="4">
+                                <VLabel class="font-weight-medium">Phone</VLabel>
+                            </VCol>
+                              <VCol cols="12" md="8">
+                                <AppTextField
+                                  v-model="contactData.phone"
+                                  placeholder="Enter Phone Number"
+                                  :rules="[phoneValidator, phoneOrEmailRequired]"
+                                />
+                            </VCol>
+                          </VRow>
+                          <VRow>
+                            <VCol cols="12" md="4">
+                                <VLabel class="font-weight-medium">Email</VLabel>
+                            </VCol>
+                            <VCol cols="12" md="8">
+                                <AppTextField
+                                  v-model="contactData.email"
+                                  placeholder="Enter Email Address"
+                                  :rules="[emailValidator, phoneOrEmailRequired]"
+                                />
+                            </VCol>
+                          </VRow>
+
                           <VRow 
                             v-for="field in fieldsToRender" 
                             :key="field._id" 
@@ -278,6 +371,10 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                       </VForm>
                     </VCardText>
                   </VCard>
+                </VCol>
+
+                <VCol v-if="leadId" cols="12">
+                  <LeadDocs :lead-id="leadId" />
                 </VCol>
               </VRow>
             </VWindowItem>

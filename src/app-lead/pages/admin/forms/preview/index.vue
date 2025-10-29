@@ -1,9 +1,20 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
+import { emailValidator, requiredValidator } from '@app-lead/@core/utils/validators';
 
 const formStructure = ref(null);
 const formValues = ref({});
+
+const phoneValidator = value => {
+  if (!value) return true 
+  const phoneRegex = /^[+]?[0-9]{10,15}$/;
+  return phoneRegex.test(value) || 'Please enter a valid phone number';
+}
+
+const phoneOrEmailRequired = () => {
+  return !!formValues.value['contact.phone'] || !!formValues.value['contact.email'] || 'Either Phone or Email is required';
+}
 
 onMounted(() => {
   const data = sessionStorage.getItem('form-preview-data');
@@ -11,11 +22,23 @@ onMounted(() => {
     try {
       formStructure.value = JSON.parse(data);
 
+      const initialValues = {
+        'contact.name': null,
+        'contact.phone': null,
+        'contact.email': null,
+      };
+
       if (formStructure.value && formStructure.value.fields) {
         formStructure.value.fields.forEach(field => {
-          formValues.value[field.code] = null;
+          if(field.path) {
+              initialValues[field.path] = null;
+          } else {
+              initialValues[field.code] = null;
+          }
         });
       }
+      formValues.value = initialValues;
+
     } catch (e) {
       console.error("Failed to parse form preview data:", e);
       formStructure.value = null;
@@ -39,6 +62,52 @@ const submitForm = () => {
               <VCardTitle class="text-h3 pt-4">{{ formStructure.title }}</VCardTitle>
               <VCardSubtitle v-if="formStructure.desc" class="mt-2 font-italic">{{ formStructure.desc }}</VCardSubtitle>
             </VCardItem>
+          </VCard>
+
+          <VCard class="my-4">
+            <VCardText>
+               <VLabel class="mb-2 font-weight-medium">Name <span class="text-error">*</span></VLabel>
+               <VRow>
+                <VCol md="8">
+                  <VTextField
+                    v-model="formValues['contact.name']"
+                    placeholder="Enter Lead Name"
+                    variant="outlined"
+                    :rules="[requiredValidator]"
+                  />
+                </VCol>
+              </VRow>
+            </VCardText>
+          </VCard>
+           <VCard class="my-4">
+            <VCardText>
+               <VLabel class="mb-2 font-weight-medium">Phone</VLabel>
+               <VRow>
+                <VCol md="8">
+                  <VTextField
+                    v-model="formValues['contact.phone']"
+                    placeholder="Enter Phone Number"
+                    variant="outlined"
+                    :rules="[phoneValidator, phoneOrEmailRequired]"
+                  />
+                </VCol>
+              </VRow>
+            </VCardText>
+          </VCard>
+          <VCard class="my-4">
+            <VCardText>
+               <VLabel class="mb-2 font-weight-medium">Email</VLabel>
+                <VRow>
+                <VCol md="8">
+                  <VTextField
+                    v-model="formValues['contact.email']"
+                    placeholder="Enter Email Address"
+                    variant="outlined"
+                    :rules="[emailValidator, phoneOrEmailRequired]"
+                  />
+                </VCol>
+              </VRow>
+            </VCardText>
           </VCard>
 
           <VCard

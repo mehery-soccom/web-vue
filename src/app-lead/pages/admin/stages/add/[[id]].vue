@@ -26,15 +26,15 @@ const stageData = ref({
 const fetchStage = async id => {
   isLoading.value = true;
   try {
-    const response = await stagesStore.fetchStages({ id: id });
-    if (response.data && response.data.length > 0) {
-      const dataFromServer = response.data[0];
+    const response = await stagesStore.fetchStages(); 
+    const stageToEdit = response.data.find(stage => stage._id === id);
+    if (stageToEdit) {
       stageData.value = {
-        ...dataFromServer,
-        probability: Number(dataFromServer.probability || 0),
+        ...stageToEdit,
+        probability: Number(stageToEdit.probability || 0),
       };
     } else {
-      throw new Error('Stage not found');
+      throw new Error('Stage not found in the list');
     }
   } catch (error) {
     console.error(error);

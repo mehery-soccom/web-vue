@@ -29,7 +29,7 @@ const emit = defineEmits(['update:options', 'delete-lead']);
 const router = useRouter();
 
 const headers = [
-  { title: "Name", key: "name", sortable: false },
+  { title: "Name", key: "contact.name", sortable: false },
   { title: "Stage", key: "stage", sortable: false },
   { title: "Campaign", key: "campaign", sortable: false },
   { title: "Assigned Agent", key: "agent", sortable: false },
@@ -69,8 +69,7 @@ const handleRowClick = (event, { item }) => {
   >
     <template #item.name="{ item }">
       <div class="d-flex flex-column">
-        <span class="font-weight-medium">{{ item.raw.response.name || 'No Name' }}</span>
-        <small class="text-disabled">{{ item.raw.response.email }}</small>
+        <span class="font-weight-medium">{{item.raw.contact?.name || 'No Name' }}</span>
       </div>
     </template>
 
