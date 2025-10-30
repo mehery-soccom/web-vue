@@ -464,7 +464,7 @@ onMounted(() => {
                   :append-inner-icon="
                     item.versions?.length > 1 ? 'mdi-pencil' : null
                   "
-                  @click:append-inner="tab = 1"
+                  @click:append-inner="tab = 'versions'"
                 />
               </VCol>
             </VRow>

@@ -8,8 +8,6 @@ const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
 
 const route = useRoute();
-const QUERY_T_EDIT = route.query.t_edit;
-
 const router = useRouter();
 
 const isLoading = ref(false);
@@ -111,6 +109,15 @@ const audienceRef = ref();
 const scheduleRef = ref();
 const errors = ref({});
 
+const onSelectTemplate = (param = "t_edit") => {
+  router.replace({
+    query: {
+      ...route.query,
+      [param]: "6903443ed360e329e47a0571",
+    },
+  });
+};
+
 const clearError = (field) => {
   errors.value[field] = null;
 };
@@ -183,7 +190,7 @@ const create = async () => {
       const payload = {
         ...campaign,
       };
-      const templateRes = await (QUERY_T_EDIT
+      const templateRes = await (route.query.t_edit
         ? templateRef.value._onUpdate()
         : templateRef.value.saveTemplate());
       payload.action.template.id = templateRes.data._id;
@@ -191,7 +198,9 @@ const create = async () => {
       payload.action.template.type = templateRes.data.type;
       payload.action.template.subType = templateRes.data.subType;
       if (campaign.abTesting.enabled) {
-        const templateBRes = await templateBRef.value._onCreate();
+        const templateBRes = await (route.query.t_b_edit
+          ? templateBRef.value._onUpdate()
+          : templateBRef.value.saveTemplate());
         payload.action.templateB.id = templateBRes.data._id;
         payload.action.templateB.code = templateBRes.data.code;
         payload.action.templateB.type = templateBRes.data.type;
@@ -311,12 +320,24 @@ const create = async () => {
         <div
           v-show="!campaign.abTesting.enabled || activeTemplateVariant === 'A'"
         >
-          <Template ref="templateRef" :edit="QUERY_T_EDIT" :embedded="true" />
+          <div class="mb-4 d-flex">
+            <!-- select template -->
+            <!-- @click="() => onSelectTemplate()" -->
+          </div>
+          <Template
+            ref="templateRef"
+            :edit="route.query.t_edit"
+            :embedded="true"
+          />
         </div>
         <div
           v-show="campaign.abTesting.enabled && activeTemplateVariant === 'B'"
         >
-          <Template ref="templateBRef" :embedded="true" />
+          <Template
+            ref="templateBRef"
+            :edit="route.query.t_b_edit"
+            :embedded="true"
+          />
         </div>
       </VWindowItem>
 

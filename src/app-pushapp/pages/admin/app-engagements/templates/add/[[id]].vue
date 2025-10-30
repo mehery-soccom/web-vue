@@ -272,12 +272,12 @@ const _onCreate = async () => {
     isLoading.value = false;
   }
 };
- const saveTemplate = async () => {
-    if (template._id) {
-      return await _onUpdate();
-    }
-    return await _onCreate();
-  };
+const saveTemplate = async () => {
+  if (template._id) {
+    return await _onUpdate();
+  }
+  return await _onCreate();
+};
 
 const isValid = async () => {
   let validationResult = await formRef.value?.validate();
@@ -365,6 +365,13 @@ watch(
   }
 );
 
+watch(
+  () => props.edit,
+  (val) => {
+    console.log("props.edit updated", val);
+  }
+);
+
 defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
 </script>
 
@@ -372,7 +379,8 @@ defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
   <v-row v-if="isPreStep">
     <v-col cols="12" md="12">
       <TemplatePresetSelector
-        @select="onPresetSelect" :embedded="embedded"
+        @select="onPresetSelect"
+        :embedded="embedded"
         @selectTemplate="handlePreviewTemplate"
       />
     </v-col>
