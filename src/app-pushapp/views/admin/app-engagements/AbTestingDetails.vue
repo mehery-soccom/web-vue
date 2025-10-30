@@ -16,6 +16,15 @@ const distributionValues = {
     { title: "Android", value: "android" },
   ],
 };
+const tiePolicies = [
+  { title: "Abort", value: "abort" },
+  { title: "Prefer A", value: "preferA" },
+  { title: "Prefer B", value: "preferB" },
+];
+const winnerCriterias = [
+  { title: "CTA count", value: "cta_count" },
+  { title: "CTA percentage", value: "cta_percentage" },
+];
 
 const onSampleSizeInput = (val) => {
   // Clamp the value between 1 and 50
@@ -91,9 +100,27 @@ defineExpose({ isValid });
       </VCol>
     </VRow>
 
-    <!-- Winner Determination -->
     <VRow dense>
-      <VCol cols="12" md="3">
+      <!-- Winner Criteria -->
+      <VCol cols="12" md="2">
+        <AppSelect
+          v-model="props.modelValue.winnerCriteria"
+          :items="winnerCriterias"
+          label="Winner Criteria"
+        />
+      </VCol>
+
+      <!-- Tie Policy -->
+      <VCol cols="12" md="2">
+        <AppSelect
+          v-model="props.modelValue.decisionPolicy.tiePolicy"
+          :items="tiePolicies"
+          label="Tie Policy"
+        />
+      </VCol>
+
+      <!-- Winner Determination -->
+      <VCol cols="12" md="2">
         <AppTextField label="Winner Determination" value="Automatic" readonly>
           <template #append-inner>
             <VTooltip location="top">

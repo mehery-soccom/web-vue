@@ -52,8 +52,12 @@ const campaign = reactive({
   abTesting: {
     enabled: false,
     sampleSize: 5,
-    evaluationWindow: 15,
-    distributionParameter: null, // e.g., "contact.platform"
+    evaluationWindow: 10,
+    decisionPolicy: {
+      tiePolicy: "abort",
+    },
+    winnerCriteria: "cta_count",
+    distributionParameter: null, // e.g., "platform"
     distributionParameterValues: null,
   },
   schedule: {
