@@ -136,12 +136,12 @@
                 }}</strong>
               </template>
 
-              <template #item.conversionRate="{ item }">
+              <template #item.cta_percent="{ item }">
                 <div
                   v-if="item.raw.conversionValue"
                   class="d-flex align-center"
                 >
-                  <span class="me-2">{{ item.raw.conversionRate }}</span>
+                  <span class="me-2">{{ item.raw.cta_percent }}</span>
                   <VProgressLinear
                     :model-value="item.raw.conversionValue"
                     height="6"
@@ -160,100 +160,6 @@
 
       <!-- PARAMETER DISTRIBUTION FLOW -->
       <template v-else>
-        <VExpansionPanels multiple>
-          <VExpansionPanel
-            v-for="(metrics, param) in abTesting.metricsDistributionWise"
-            :key="param"
-          >
-            <VExpansionPanelTitle>
-              <div class="d-flex flex-column">
-                <strong>{{ param }}</strong>
-                <small>
-                  State:
-                  <span class="text-uppercase">{{
-                    abTesting.stateDistributionWise?.[param] || "—"
-                  }}</span>
-                  &nbsp; | &nbsp; Winner:
-                  <span :class="winnerClassFor(param)">{{
-                    abTesting.winnerDistributionWise?.[param] || "—"
-                  }}</span>
-                </small>
-              </div>
-            </VExpansionPanelTitle>
-
-            <VExpansionPanelText>
-              <VAlert
-                :type="
-                  {
-                    CONCLUDED: 'success',
-                    ABORTED: 'error',
-                    AWAITING_RESULT: 'info',
-                    TESTING: 'info',
-                  }[abTesting.stateDistributionWise?.[param]]
-                "
-                variant="outlined"
-                class="mb-3 text-body-2"
-              >
-                <strong>Decision:</strong>
-                {{
-                  abTesting.decisionDistributionWise?.[param]?.ruleApplied ||
-                  "—"
-                }}
-                :
-                {{ abTesting.decisionDistributionWise?.[param]?.reason || "—" }}
-                <br />
-                <strong>Decided at:</strong>
-                {{
-                  formatDate(
-                    abTesting.decisionDistributionWise?.[param]?.decidedAt
-                  )
-                }}
-              </VAlert>
-
-              <MyDataTable
-                :headers="metricHeaders"
-                :items="metricRowsDistribution(param)"
-                density="compact"
-                class="elevation-1"
-              >
-                <template #item.variant="{ item }">
-                  <strong
-                    :class="
-                      winnerHighlightDistribution(param, item.raw.variant)
-                    "
-                  >
-                    {{ item.raw.variant }}
-                  </strong>
-                </template>
-
-                <template #item.conversionRate="{ item }">
-                  <div
-                    v-if="item.raw.conversionValue"
-                    class="d-flex align-center"
-                  >
-                    <span class="me-2">{{ item.raw.conversionRate }}</span>
-                    <VProgressLinear
-                      :model-value="item.raw.conversionValue"
-                      height="6"
-                      :color="
-                        winnerHighlightDistribution(
-                          param,
-                          item.raw.variant,
-                          true
-                        )
-                      "
-                      rounded
-                      style="width: 80px"
-                    />
-                  </div>
-                </template>
-
-                <template #bottom></template>
-              </MyDataTable>
-            </VExpansionPanelText>
-          </VExpansionPanel>
-        </VExpansionPanels>
-        <br />
         <MyDataTable
           :headers="distributionHeaders"
           :items="distributionRows"
@@ -317,12 +223,12 @@
                     </strong>
                   </template>
 
-                  <template #item.conversionRate="{ item: vItem }">
+                  <template #item.cta_percent="{ item: vItem }">
                     <div
                       v-if="vItem.raw.conversionValue"
                       class="d-flex align-center"
                     >
-                      <span class="me-2">{{ vItem.raw.conversionRate }}</span>
+                      <span class="me-2">{{ vItem.raw.cta_percent }}</span>
                       <VProgressLinear
                         :model-value="vItem.raw.conversionValue"
                         height="6"
@@ -388,11 +294,11 @@ const props = defineProps({
 const metricHeaders = [
   { title: "Variant", key: "variant" },
   { title: "Sent", key: "sent", align: "center" },
-  { title: "CTA", key: "cta", align: "center" },
   { title: "Dismissed", key: "dismissed", align: "center" },
   { title: "Expired", key: "expired", align: "center" },
-  //   { title: "Resolved", key: "resolved", align: "center" }, // optional
-  { title: "Conversion Rate", key: "conversionRate", align: "start" },
+  // { title: "Resolved", key: "resolved", align: "center" }, // optional
+  { title: "CTA", key: "cta", align: "center" },
+  { title: "CTA %", key: "cta_percent", align: "start" },
 ];
 const metricRows = computed(() => {
   const metrics = props.abTesting?.metrics || {};
@@ -409,7 +315,7 @@ const metricRows = computed(() => {
       dismissed: m.dismissed || 0,
       expired: m.expired || 0,
       resolved: m.resolved || 0,
-      conversionRate: `${conversion}%`,
+      cta_percent: `${conversion}%`,
       conversionValue: parseFloat(conversion),
     };
   });
@@ -423,7 +329,7 @@ const metricRows = computed(() => {
       dismissed: (metrics.A?.dismissed ?? 0) + (metrics.B?.dismissed ?? 0),
       expired: (metrics.A?.expired ?? 0) + (metrics.B?.expired ?? 0),
       resolved: metrics.totalResolved || 0,
-      conversionRate: "—",
+      cta_percent: "—",
       conversionValue: 0,
     });
   }
@@ -447,7 +353,7 @@ const metricRowsDistribution = (param) => {
       dismissed: m.dismissed || 0,
       expired: m.expired || 0,
       resolved: m.resolved || 0,
-      conversionRate: `${conversion}%`,
+      cta_percent: `${conversion}%`,
       conversionValue: parseFloat(conversion),
     };
   });
@@ -460,7 +366,7 @@ const metricRowsDistribution = (param) => {
       dismissed: (metrics.A?.dismissed ?? 0) + (metrics.B?.dismissed ?? 0),
       expired: (metrics.A?.expired ?? 0) + (metrics.B?.expired ?? 0),
       resolved: metrics.totalResolved || 0,
-      conversionRate: "—",
+      cta_percent: "—",
       conversionValue: 0,
     });
   }

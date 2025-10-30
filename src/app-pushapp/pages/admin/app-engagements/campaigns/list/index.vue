@@ -63,6 +63,9 @@ const headers = [
     filterType: "select",
     filterOptions: [
       { title: "Created", value: "CREATED" },
+      { title: "Testing", value: "TESTING" },
+      { title: "Awaiting Result", value: "AWAITING_RESULT" },
+      { title: "Aborted", value: "ABORTED" },
       { title: "On-going", value: "ON_GOING" },
       { title: "Ended", value: "ENDED" },
     ],
