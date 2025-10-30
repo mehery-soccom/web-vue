@@ -1,4 +1,5 @@
 const AppConfig = require("@/@common/AppConfig");
+const { form } = require("./app-pushapp/views/demos/components/dialog/demoCodeDialog");
 
 module.exports = AppConfig.extend({
   apps: {
@@ -37,6 +38,12 @@ module.exports = AppConfig.extend({
       context: "/lead",
       entry: "./src/main.js",
       plugins: () => import("@/app-lead/plugins"),
+    },
+    form: {
+      component: () => import("@/app-form/AppForm.vue"),
+      context: "/form",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-form/plugins"),
     },
   },
 });
