@@ -30,7 +30,7 @@ const pagination = reactive({
 });
 const headers = [
   { title: "Campaign", key: "name" },
-  { title: "Channel", key: "channelId" },
+  { title: "Channel Type", key: "contactType" },
   { title: "Template", key: "templateName" },
   { title: "Status", key: "status" },
   { title: "Total", key: "total", sortable: true },
@@ -160,7 +160,7 @@ const fetchCampaignBlock = async (start, end, chan, bool, stats) => {
 const exportToExcel = () => {
   const formattedData = campTable.value.map((item) => ({
     Campaign: item.name,
-    Channel: item.channelId,
+    ChannelType: item.contactType,
     Template: item.templateName,
     Status: item.status,
     Total: item.total,

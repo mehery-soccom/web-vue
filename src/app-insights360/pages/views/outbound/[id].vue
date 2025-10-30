@@ -23,6 +23,7 @@ const headers = [
   { title: "Read", key: "stamps.READ", sortable: true },
 ];
 const statsCamp = ref([
+  { title: "Account", stats: "-", icon: "tabler-phone", color: "secondary" },
   { title: "Total", stats: "0", icon: "tabler-send", color: "info" },
   { title: "Sent", stats: "0", icon: "tabler-send", color: "primary" },
   { title: "Delivered", stats: "0", icon: "tabler-mailbox", color: "info" },
@@ -93,18 +94,20 @@ const onUpdateOptions = (options) => {
 const onUpdateOptionsDebounced = debounce((options) => {
   onUpdateOptions(options);
 }, 300);
-const fetchBlockData = (result, contactType) => {
-  if(result){
-    statsCamp.value[0].stats = String(result.SENT || 0);
-    statsCamp.value[1].stats = String(result.SENT || 0);
-    if(contactType == 'EMAIL') statsCamp.value[2].stats = String(result.READ || 0);
-    else statsCamp.value[2].stats = String(result.DLVRD || 0);
-    statsCamp.value[3].stats = String(result.READ || 0);
-    statsCamp.value[4].stats = String(result.RSPND || 0);
-    statsCamp.value[5].stats = String(result.FAILD || 0);
-    statsCamp.value[6].stats = String(result.BNCD || 0);
+const fetchBlockData = (result, contactType, lane) => {
+  if (result) {
+    statsCamp.value[0].stats = String(lane ?? "-");
+    statsCamp.value[1].stats = String(result.SENT || 0);   
+    statsCamp.value[2].stats = String(result.SENT || 0);
+    if (contactType === 'EMAIL') statsCamp.value[3].stats = String(result.READ || 0);
+    else statsCamp.value[3].stats = String(result.DLVRD || 0);
+    statsCamp.value[4].stats = String(result.READ || 0);
+    statsCamp.value[5].stats = String(result.RSPND || 0);
+    statsCamp.value[6].stats = String(result.FAILD || 0);
+    statsCamp.value[7].stats = String(result.BNCD || 0);
   }
 }
+
 const fetchCampaignData = async (id, pagination) => {
   isLoading.value = true;
   try {
@@ -113,7 +116,13 @@ const fetchCampaignData = async (id, pagination) => {
     console.log("sa", pagination.itemsLength, response.data.pagination.total)
     if (response?.data?.data != null) {
       campTable.value = response?.data?.results;
-      if(response?.data?.data && response?.data?.data?.stats) fetchBlockData(response.data.data.stats, response.data.data.contactType)
+      if (response?.data?.data && response?.data?.data?.stats) {
+        const laneFromResult = response?.data?.results && response.data.results.length
+          ? response.data.results[0]?.contact?.lane
+          : undefined;
+        const lane = laneFromResult ?? response.data.data.lane;
+        fetchBlockData(response.data.data.stats, response.data.data.contactType, lane);
+      }
     }
   } catch (error) {
     console.error("analytics error", error);
