@@ -196,7 +196,7 @@ const create = async () => {
       };
       const templateRes = await (route.query.t_edit
         ? templateRef.value._onUpdate()
-        : templateRef.value.saveTemplate());
+        : templateRef.value.saveTemplate()); // _onCreate()
       payload.action.template.id = templateRes.data._id;
       payload.action.template.code = templateRes.data.code;
       payload.action.template.type = templateRes.data.type;
@@ -204,7 +204,7 @@ const create = async () => {
       if (campaign.abTesting.enabled) {
         const templateBRes = await (route.query.t_b_edit
           ? templateBRef.value._onUpdate()
-          : templateBRef.value.saveTemplate());
+          : templateBRef.value.saveTemplate()); // _onCreate()
         payload.action.templateB.id = templateBRes.data._id;
         payload.action.templateB.code = templateBRes.data.code;
         payload.action.templateB.type = templateBRes.data.type;
@@ -326,7 +326,7 @@ const create = async () => {
         >
           <div class="mb-4 d-flex">
             <!-- select template -->
-            <!-- @click="() => onSelectTemplate()" -->
+            <!-- @click="() => onSelectTemplate('t_edit')" -->
           </div>
           <Template
             ref="templateRef"
@@ -337,6 +337,8 @@ const create = async () => {
         <div
           v-show="campaign.abTesting.enabled && activeTemplateVariant === 'B'"
         >
+          <!-- select template -->
+          <!-- @click="() => onSelectTemplate('t_b_edit')" -->
           <Template
             ref="templateBRef"
             :edit="route.query.t_b_edit"

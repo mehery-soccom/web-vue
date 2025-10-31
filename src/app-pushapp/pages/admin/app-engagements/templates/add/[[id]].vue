@@ -26,7 +26,7 @@ const route = useRoute();
 const IS_PAGE = route.name?.includes("admin-app-engagements-templates-add");
 const PARAM_ID = route.params.id;
 const QUERY_COPY = route.query.t_copy;
-const QUERY_EDIT = route.query.t_edit;
+const QUERY_EDIT = route.query.t_edit; // stop using
 
 const router = useRouter();
 
@@ -369,7 +369,9 @@ watch(
   () => props.edit,
   (val) => {
     console.log("props.edit updated", val);
-  }
+    // fetch full template and set state
+  },
+  { immediate: true }
 );
 
 defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });

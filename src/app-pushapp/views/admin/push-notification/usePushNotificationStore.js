@@ -137,99 +137,20 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     },
 
     // 👉 Fetch all Templates
-    // async fetchTemplates() {
-    //   let apiRes = await DataService.axios.get("/api/templates/push");
-    //   this.templates = apiRes.data.results;
-    //   let res = {
-    //     results: apiRes.data.results || [
-    //       {
-    //         id: 1,
-    //         code: "greeting",
-    //         desc: "",
-    //         type: "simple",
-    //         category: "custom",
-    //         lang: "en_US",
-    //         createdBy: "tester",
-    //         createdStamp: 1746683942788,
-    //         options: {
-    //           buttons: [],
-    //         },
-    //         model: {
-    //           data: {
-    //             user_name: "",
-    //             rider_name: "",
-    //             var1: "",
-    //             var2: "",
-    //           },
-    //           contact: {},
-    //           global: {},
-    //           session: {},
-    //         },
-    //         style: {
-    //           logo_url: "",
-    //           image_url: "",
-    //           line_1: `hi {{ user_name }}`,
-    //           line_2: `{{ rider_name }} has picked your parcel`,
-    //           line_3: `will be delivered in {{ var1 }} {{ var2 }}`,
-    //           bg_color: "",
-    //           bg_color_gradient: "",
-    //           bg_color_gradient_dir: "",
-    //           align: "left" || "right",
-    //           progress_color: "no_value" || "#ffff",
-    //         },
-    //       },
-    //       {
-    //         id: 2,
-    //         code: "delivery",
-    //         desc: "",
-    //         type: "styled",
-    //         category: "custom",
-    //         lang: "en_US",
-    //         createdBy: "tester",
-    //         createdStamp: 1746683942788,
-    //         options: {
-    //           buttons: [],
-    //         },
-    //         model: {
-    //           data: {
-    //             user_name: "",
-    //             rider_name: "",
-    //             var1: "",
-    //             var2: "",
-    //           },
-    //           contact: {},
-    //           global: {},
-    //           session: {},
-    //         },
-    //         style: {
-    //           logo_url: "",
-    //           image_url: "",
-    //           line_1: `hi {{ user_name }}`,
-    //           line_2: `{{ rider_name }} has picked your parcel`,
-    //           line_3: `will be delivered in {{ var1 }} {{ var2 }}`,
-    //           bg_color: "",
-    //           bg_color_gradient: "",
-    //           bg_color_gradient_dir: "",
-    //           align: "left" || "right",
-    //           progress_color: "no_value" || "#ffff",
-    //         },
-    //       },
-    //     ],
-    //     data: {
-    //       total: apiRes.data.pagination?.total,
-    //       page: apiRes.data.pagination?.pageNo || 1,
-    //     },
-    //   };
-    //   return res;
-    // },
-    fetchTemplates(params){
+    fetchTemplates(params) {
       if (!params) return DataService.axios.get(`/api/templates/push`);
-      let { page, itemsPerPage, sortBy, filters } = params;
+      let { page, itemsPerPage, sortBy, filters, fields } = params;
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
       return DataService.axios.get(`/api/templates/push`, {
-        params: { page, limit: itemsPerPage, sort: sort || "-createdAt", search: filters },
+        params: {
+          page,
+          limit: itemsPerPage,
+          sort: sort || "-createdAt",
+          search: filters,
+          fields,
+        },
       });
     },
 
