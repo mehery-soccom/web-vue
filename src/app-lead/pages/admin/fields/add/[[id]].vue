@@ -55,6 +55,7 @@ const submitForm = async () => {
   if (payload.inputType !== 'OPTIONS') {
     delete payload.options
   }
+  payload.byUser = window.CONST?.USER.user
 
   try {
     if (PARAM_ID) {

@@ -23,6 +23,7 @@ const { show } = inject("snackbar");
 const allStages = ref([]);
 const isLoading = ref(true); 
 const isUpdating = ref(false);
+const byUser = window.CONST?.USER?.user || null;
 
 const stageForm = ref({
   selectedStageId: props.currentStageId,
@@ -79,6 +80,7 @@ const handleSubmit = async () => {
   try {
     const payload = {
       leadStage: stageForm.value.selectedStageId,
+      byUser: byUser,
     };
     await leadsStore.updateLead({ id: props.leadId, data: payload });
     show({ message: 'Lead stage updated successfully!', color: 'success' });

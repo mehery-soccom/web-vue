@@ -1,14 +1,11 @@
 import { createPinia } from "pinia";
 import vuetify from "@app-lead/plugins/vuetify";
-import layouts from "@app-lead/plugins/layouts";
 
 export default {
   install(app) {
-    console.log("[lead] [plugins] loading");
+    console.log("[form] [plugins] loading");
 
     app.use(createPinia());
-
-    app.use(layouts);
 
     app.use(vuetify);
 

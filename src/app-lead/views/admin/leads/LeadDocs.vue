@@ -15,6 +15,7 @@ const { show } = inject("snackbar");
 
 const allDocs = ref([]);
 const isLoading = ref(true);
+const byUser = window.CONST?.USER?.user || null;
 
 const isAddingNote = ref(false);
 const isSavingNote = ref(false);
@@ -80,8 +81,8 @@ const handleSaveNote = async () => {
       type: 'NOTE',
       content: newNote.value.content,
       leadId: props.leadId,
-      createdBy: 'HIMANSHU',
       documentInfo: {},
+      byUser: byUser,
     };
 
     await docStore.createDoc({ payload });
@@ -120,8 +121,8 @@ const handleUpdateNote = async () => {
       content: editedNoteData.value.content,
       type: 'NOTE',
       leadId: props.leadId,
-      createdBy: 'HIMANSHU', // This remains hardcoded for now
       documentInfo: {},
+      byUser: byUser,
     };
 
     await docStore.updateDoc({
@@ -223,7 +224,7 @@ const formatTimestamp = (note) => {
   
   const prefix = (note.updatedAt && note.updatedAt.stamp !== note.createdAt.stamp) ? 'Edited on' : 'Created on';
 
-  return `${prefix} ${formattedDate} by ${note.createdBy}`;
+  return `${prefix} ${formattedDate} by ${timestampObj.byUser}`;
 };
 
 </script>

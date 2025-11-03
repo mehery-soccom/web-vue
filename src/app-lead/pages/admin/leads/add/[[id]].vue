@@ -143,6 +143,7 @@ const fetchLeadData = async () => {
 };
 
 onMounted(fetchLeadData);
+const byUser = window.CONST?.USER?.user || null;
 
 const handleSubmit = async () => {
   const { valid } = await refForm.value.validate();
@@ -183,6 +184,7 @@ const handleSubmit = async () => {
     formId: selectedFormId.value,
     formTitle: selectedForm ? selectedForm.title : '',
     data: apiData,
+    byUser: byUser,
   };
 
   if (!leadId.value) {

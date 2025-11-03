@@ -41,7 +41,7 @@ module.exports = AppConfig.extend({
     },
     form: {
       component: () => import("@/app-form/AppForm.vue"),
-      context: "/form",
+      context: "/nexus/form",
       entry: "./src/main.js",
       plugins: () => import("@/app-form/plugins"),
     },
