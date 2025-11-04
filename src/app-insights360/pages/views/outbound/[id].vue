@@ -230,7 +230,7 @@ function formatTimestamp(ts) {
         </template> -->
         <template #item.stamps.SENT="{ item }">
           <span
-            style="width: 100%; display: inline-block; text-align: center"
+            style="width: 100%; display: inline-block;"
             >{{ formatTimestamp(item.raw.stamps.SENT) }}</span
           >
         </template>
@@ -248,7 +248,7 @@ function formatTimestamp(ts) {
         </template>
         <template #item.error="{ item }">
           <span v-if="item.raw.logs && item.raw.logs[0]"
-            style="width: 100%; display: inline-block; text-align: center"
+            style="width: 100%; display: inline-block;"
             >{{ item.raw.logs[0] }} 
             <span style="position: relative; display: inline-block; margin-left: 5px; cursor: pointer;"
                   @mouseenter="showTooltip(item.raw.logs[0], $event)" @mouseleave="startHideTooltipTimer">

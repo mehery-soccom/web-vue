@@ -153,6 +153,14 @@ const currentComponent = computed(() => {
             @update:modelValue="handleFiltersUpdate"
             clearable
           ></VSelect>
+          <VSwitch
+            v-else-if="
+              props.filters.hasOwnProperty(header.key) &&
+              header.filterType === 'switch'
+            " style="margin-left: 6px;"
+            v-model="props.filters[header.key]"
+            @update:modelValue="handleFiltersUpdate"
+          ></VSwitch>
           <v-text-field
             v-else-if="props.filters.hasOwnProperty(header.key)"
             v-model="props.filters[header.key]"

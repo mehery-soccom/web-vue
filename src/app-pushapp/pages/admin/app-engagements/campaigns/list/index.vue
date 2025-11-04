@@ -56,6 +56,11 @@ const headers = [
   {
     title: "A/B",
     key: "abTesting.enabled",
+    filterType: "switch",
+    filterOptions: [
+      { title: "Enabled", value: true },
+      { title: "Disabled", value: false },
+    ]
   },
   {
     title: "Status",
@@ -129,6 +134,7 @@ const pagination = reactive({
     "action.template.code": null,
     "action.template.type": null,
     "action.template.subType": null,
+    "abTesting.enabled": false,
     status: null,
   },
 });
