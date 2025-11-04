@@ -9,27 +9,39 @@ export const useStagesStore = defineStore("StagesStore", {
     getters: {},
 
     actions: {
-        async fetchStages(params) {
-            const response = await DataService.axios.get("/stage/list", { params });
-            return response.data;
-        },
+        async fetchStages(params) {
+            const response = await DataService.axios.get("/stage/list", { params, toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
-        async createStage({ payload, params }) {
-            const response = await DataService.axios.post("/stage/create", payload, { params });
-            return response.data;
-        },
+        async createStage({ payload, params }) {
+            const response = await DataService.axios.post("/stage/create", payload, { params, toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
-        async updateStage({ id, data, params }) {
-            const response = await DataService.axios.post(`/stage/edit/${id}`, data, { params });
-            return response.data;
-        },
+        async updateStage({ id, data, params }) {
+            const response = await DataService.axios.post(`/stage/edit/${id}`, data, { params, toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
-        async deleteStage({ id, params }) {
-            const response = await DataService.axios.delete(`/stage/delete/${id}`, {
-                params,
-                toast: false,
-            });
-            return response.data;
-        },
-    }
+        async deleteStage({ id, params }) {
+            const response = await DataService.axios.delete(`/stage/delete/${id}`, {
+                params,
+                toast: false,
+            });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+    }
 });

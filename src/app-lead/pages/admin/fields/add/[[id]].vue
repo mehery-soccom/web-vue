@@ -33,7 +33,8 @@ const fetchField = async id => {
     }
   } catch (error) {
     console.error(error)
-    show({ message: 'Failed to fetch field data', color: 'error' })
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch field data'
+    show({ message: errorMessage, color: 'error' })
     router.push({ name: 'admin-fields-list' }) 
   }
 }
@@ -68,7 +69,9 @@ const submitForm = async () => {
     router.push({ name: 'admin-fields-list' })
   } catch (error) {
     console.error(error)
-    show({ message: `Failed to ${PARAM_ID ? 'update' : 'create'} field`, color: 'error' })
+    const action = PARAM_ID ? 'update' : 'create'
+    const errorMessage = error.response?.data?.message || error.message || `Failed to ${action} field`
+    show({ message: errorMessage, color: 'error' })
   } finally {
     isLoading.value = false
   }

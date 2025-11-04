@@ -8,31 +8,65 @@ export const useLeadsStore = defineStore("LeadsStore", {
     getters: {},
     actions: {
         async fetchLeads(params) {
-            const response = await DataService.axios.get("/profile/list", { params });
-            return response.data;
-        },
+            const response = await DataService.axios.get("/profile/list", { params, toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
-        async fetchLead(id) {
-            const response = await DataService.axios.get(`/profile/get`, { params: { leadId: id } });
-            return response.data.results;
-        },
+        async fetchLead(id) {
+            const response = await DataService.axios.get(`/profile/get`, { params: { leadId: id }, toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data.results;
+        },
 
-        async createLead(payload) {
-            const response = await DataService.axios.post("/profile/create", payload);
-            return response.data;
-        },
+        async createLead(payload) {
+            const response = await DataService.axios.post("/profile/create", payload, { toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
-        async updateLead({ id, data }) {
-            const response = await DataService.axios.post(`/profile/update/${id}`, data);
-            return response.data;
-        },
+        async updateLead({ id, data }) {
+            const response = await DataService.axios.post(`/profile/update/${id}`, data, { toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
-        async deleteLead({ id }) {
-            const response = await DataService.axios.delete(`/profile/delete/${id}`, {
-                toast: false,
-            });
-            return response.data;
-        },
+        async deleteLead({ id }) {
+            const response = await DataService.axios.delete(`/profile/delete/${id}`, {
+                toast: false,
+            });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+
+        // async createFollowup(payload) {
+        //     const response = await DataService.axios.post("/nexus/calendar/api/v1/followup/create", payload);
+        //     return response.data;
+        // },
+        async createFollowup(payload) {
+            const response = await DataService.axios.post("/nexus/calendar/api/v1/followup/create", payload, { toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+        async linkFollowupToLead({ leadId, payload }) {
+            const response = await DataService.axios.post(`/profile/followups/${leadId}`, payload, { toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
     }
 });
 

@@ -38,7 +38,8 @@ const fetchStage = async id => {
     }
   } catch (error) {
     console.error(error);
-    show({ message: 'Failed to fetch stage data.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch stage data.'
+    show({ message: errorMessage, color: 'error' });
     router.push({ name: 'admin-stages-list' });
   } finally {
     isLoading.value = false;
@@ -81,7 +82,8 @@ const submitForm = async () => {
   } catch (error) {
     console.error(error);
     const action = isEditMode.value ? 'update' : 'create';
-    show({ message: `Failed to ${action} stage.`, color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || `Failed to ${action} stage.`
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isLoading.value = false;
   }

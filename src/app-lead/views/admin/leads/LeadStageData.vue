@@ -36,7 +36,8 @@ onMounted(async () => {
     const response = await stagesStore.fetchStages();
     allStages.value = response.data || [];
   } catch (error) {
-    show({ message: 'Could not load stages data.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Could not load stages data.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isLoading.value = false;
   }
@@ -88,7 +89,8 @@ const handleSubmit = async () => {
     emit('stage-updated');
 
   } catch (error) {
-    show({ message: 'Failed to update lead stage.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to update lead stage.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isUpdating.value = false;
   }

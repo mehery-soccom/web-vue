@@ -45,9 +45,10 @@ const fetchForms = async (options = pagination) => {
     forms.value = response.results;
     pagination.itemsLength = response.pagination?.total || 0;
   } catch (error) {
-    if (error.response?.data?.error !== "No forms found") {
-      show({ message: "Something went wrong while fetching forms.", color: "error" });
-    }
+    const errorMessage = error.response?.data?.message || error.message
+    if (errorMessage && errorMessage !== "No forms found") {
+      show({ message: errorMessage || "Something went wrong while fetching forms.", color: "error" });
+    }
     forms.value = [];
     pagination.itemsLength = 0;
   } finally {
@@ -64,7 +65,8 @@ const deleteForm = async (id, dialogCloseRef) => {
     show({ message: "Form deleted successfully", color: "success" });
   } catch (error) {
     console.error("Delete failed:", error);
-    show({ message: "Failed to delete form", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Failed to delete form"
+    show({ message: errorMessage, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -92,7 +94,8 @@ const cloneForm = async (formId) => {
 
   } catch (error) {
     console.error("Clone failed:", error);
-    show({ message: "Failed to clone form", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Failed to clone form"
+    show({ message: errorMessage, color: "error" });
   } finally {
     isLoading.value = false;
   }

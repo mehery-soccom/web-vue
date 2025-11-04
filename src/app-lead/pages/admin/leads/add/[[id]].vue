@@ -7,7 +7,8 @@ import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/App
 import { emailValidator, requiredValidator } from '@app-lead/@core/utils/validators'
 import LeadTimeline from "@/app-lead/views/admin/leads/LeadTimeline.vue";
 import LeadStageData from '@/app-lead/views/admin/leads/LeadStageData.vue';
-import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue'; 
+import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue';
+import LeadActivities from '@/app-lead/views/admin/leads/LeadActivities.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -26,6 +27,7 @@ const selectedFormId = ref(null);
 const selectedFormStructure = ref(null);
 const leadData = ref({});
 const leadHistory = ref([]);
+const followups = ref([]);
 const currentLeadStageId = ref(null);
 const originalContactData = ref(null);
 const originalLeadData = ref(null);
@@ -78,7 +80,8 @@ const loadFormStructure = async (formId) => {
 
   } catch (error) {
     console.error("Failed to load form structure:", error);
-    show({ message: 'Failed to load form structure.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load form structure.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isFetching.value = false;
     console.log("loadFormStructure finished.");
@@ -124,6 +127,7 @@ const fetchLeadData = async () => {
       originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
 
       leadHistory.value = leadDetails.leadHistory || [];
+      followups.value = leadDetails.followups || [];
       currentLeadStageId.value = leadDetails.leadStage;
 
       selectedFormId.value = leadDetails.formId;
@@ -134,7 +138,8 @@ const fetchLeadData = async () => {
     }
   } catch (error) {
     console.error("Failed to load lead data:", error);
-    show({ message: 'Failed to load lead data.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load lead data.'
+    show({ message: errorMessage, color: 'error' });
     router.push({ name: 'admin-leads-list' });
   } finally {
     isFetching.value = false;
@@ -201,7 +206,8 @@ const handleSubmit = async () => {
     }
     router.push({ name: 'admin-leads-list' });
   } catch (error) {
-    show({ message: error.message || 'Failed to save lead.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to save lead.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isLoading.value = false;
   }
@@ -379,6 +385,14 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                   <LeadDocs :lead-id="leadId" />
                 </VCol>
               </VRow>
+
+              <!-- <VCol v-if="leadId" cols="12">
+                <LeadActivities 
+                  :lead-id="leadId"
+                  :followups="followups"
+                  @activity-added="fetchLeadData" 
+                />
+              </VCol> -->
             </VWindowItem>
 
             <VWindowItem value="timeline">

@@ -36,7 +36,8 @@ const fetchLeads = async (options = pagination) => {
     leads.value = response.results;
     pagination.itemsLength = response.pagination?.total || 0;
   } catch (error) {
-    show({ message: error.message || "Something went wrong while fetching leads.", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Something went wrong while fetching leads."
+    show({ message: errorMessage, color: "error" });
     leads.value = [];
     pagination.itemsLength = 0;
   } finally {
@@ -65,7 +66,8 @@ const deleteLead = async (id) => {
     show({ message: "Lead deleted successfully", color: "success" });
   } catch (error) {
     console.error("Delete failed:", error);
-    show({ message: "Failed to delete lead", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Failed to delete lead"
+    show({ message: errorMessage, color: "error" });
   } finally {
     isLoading.value = false;
   }

@@ -58,7 +58,8 @@ onMounted(async () => {
     }
   } catch (error) {
     console.error('Failed to load form data:', error);
-    show({ message: 'Failed to load data. Please try again.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to load data. Please try again.'
+    show({ message: errorMessage, color: 'error' });
     router.push({ name: 'admin-forms-list' });
   } finally {
     isFetching.value = false;
@@ -128,7 +129,8 @@ const handleSubmit = async () => {
     router.push({ name: 'admin-forms-list' });
   } catch (error) {
     console.error('Failed to save form:', error);
-    show({ message: error.response?.data?.message || 'Failed to save the form.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to save the form.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isLoading.value = false;
   }

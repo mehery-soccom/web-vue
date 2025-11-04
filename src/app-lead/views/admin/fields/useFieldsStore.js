@@ -6,26 +6,51 @@ export const useFieldsStore = defineStore("FieldsStore", {
         fields: [],
     }),
     getters: {},
-    actions: {
-        async fetchFields(params) {
-            const response = await DataService.axios.get("/field/get", { params });
-            return response.data;
-        },
-        createField(params) {
-            return DataService.axios.post("/field/create", params);
-        },
-        updateField({ id }, params) {
-            return DataService.axios.post(`/field/update/${id}`, params);
-        },         
-        deleteField({ id }) {
-            return DataService.axios.delete(`/field/delete/${id}`, {
-                toast: false,
-            });
-        },
-        async fetchCustomerFields(params) {
-            const response = await DataService.axios.get("/field/customer/get", { params });
-            return response.data;
-        },
-            
-    }
+    actions: {
+        async fetchFields(params) {
+            const response = await DataService.axios.get("/field/get", { params, toast: false });
+            
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+
+        async createField(params) {
+            const response = await DataService.axios.post("/field/create", params, { toast: false });
+            
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+
+        async updateField({ id }, params) {
+            const response = await DataService.axios.post(`/field/update/${id}`, params, { toast: false });
+         
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },         
+
+        async deleteField({ id }) {
+            const response = await DataService.axios.delete(`/field/delete/${id}`, { toast: false });
+
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+
+        async fetchCustomerFields(params) {
+            const response = await DataService.axios.get("/field/customer/get", { params, toast: false });
+            
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
+            
+    }
 })

@@ -62,7 +62,8 @@ const fetchStages = async (options = pagination) => {
         show({ message: 'Default stages created.', color: 'success' });
       } catch (createError) {
         console.error("Error creating default stages:", createError);
-        show({ message: `Failed to create some default stages: ${createError.message || createError}`, color: 'error' });
+        const createErrorMessage = createError.response?.data?.message || createError.message || 'Unknown error'
+        show({ message: `Failed to create some default stages: ${createErrorMessage}`, color: 'error' });
         shouldRefetch = false;
       }
     }
@@ -77,7 +78,8 @@ const fetchStages = async (options = pagination) => {
     }
 
   } catch (error) {
-    show({ message: error.message || "Something went wrong while fetching stages.", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Something went wrong while fetching stages."
+    show({ message: errorMessage, color: "error" });
     stages.value = [];
     pagination.itemsLength = 0;
   } finally {
@@ -94,7 +96,8 @@ const deleteStage = async (id, dialogCloseRef) => {
     show({ message: "Stage deleted successfully", color: "success" });
   } catch (error) {
     console.error("Delete failed:", error);
-    show({ message: "Failed to delete stage", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Failed to delete stage"
+    show({ message: errorMessage, color: "error" });
   } finally {
     isLoading.value = false;
   }

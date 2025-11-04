@@ -1,4 +1,3 @@
-
 <script setup>
 import { ref, onMounted, inject } from 'vue';
 import debounce from "lodash/debounce";
@@ -65,7 +64,8 @@ const fetchFields = async (options = pagination) => {
     fields.value = response.results;
     pagination.itemsLength = response.pagination.total || 0;
   } catch (error) {
-      show({ message: error.message || "Something went wrong while fetching fields.", color: "error" });
+      const errorMessage = error.response?.data?.message || error.message || "Something went wrong while fetching fields."
+      show({ message: errorMessage, color: "error" });
       fields.value = [];
   } finally {
     isLoading.value = false;
@@ -83,7 +83,8 @@ const deleteField = async (id, dialogCloseRef) => {
     show({ message: "Field deleted successfully", color: "success" });
   } catch (error) {
     console.log(error);
-    show({ message: "Failed to delete field", color: "error" });
+    const errorMessage = error.response?.data?.message || error.message || "Failed to delete field"
+    show({ message: errorMessage, color: "error" });
   } finally {
     isLoading.value = false;
   }
@@ -98,7 +99,8 @@ const openImportModal = async () => {
     customerFields.value = response.results
   }
   catch (error) {
-    show({ message: 'Failed to fetch customer fields', color: 'error' })
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch customer fields'
+    show({ message: errorMessage, color: 'error' })
     isImportModalVisible.value = false
   }
   finally {
@@ -151,7 +153,10 @@ const handleImport = async () => {
   }
   catch (error) {
     console.error('Import failed:', error)
-    show({ message: error.message || 'An error occurred during import.', color: 'error' })
+    const errorMessage = error.response?.data?.message || error.message || 'An error occurred during import.'
+    show({ message: errorMessage, color: 'error' })
+    isImportModalVisible.value = false
+    selectedCustomerFields.value = []
   }
   finally {
     isImporting.value = false

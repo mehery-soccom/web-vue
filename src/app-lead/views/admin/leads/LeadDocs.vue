@@ -49,7 +49,8 @@ const fetchDocsAndNotes = async () => {
     allDocs.value = response.data || [];
   } catch (error) {
     console.error("Failed to fetch documents:", error);
-    show({ message: 'Could not load documents and notes.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Could not load documents and notes.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isLoading.value = false;
   }
@@ -93,7 +94,8 @@ const handleSaveNote = async () => {
 
   } catch (error) {
     console.error("Failed to save note:", error);
-    show({ message: 'Failed to save note.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to save note.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isSavingNote.value = false;
   }
@@ -134,7 +136,8 @@ const handleUpdateNote = async () => {
     await fetchDocsAndNotes();
     cancelEdit();
   } catch (error) {
-    show({ message: 'Failed to update note.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to update note.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isSavingNote.value = false;
   }
@@ -147,7 +150,8 @@ const handleDeleteNote = async (noteId) => {
     show({ message: 'Note deleted successfully', color: 'success' });
     await fetchDocsAndNotes();
   } catch (error) {
-    show({ message: 'Failed to delete note.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to delete note.'
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isSavingNote.value = false;
   }
@@ -188,7 +192,8 @@ const handleDocumentUploadComplete = async (uploadedUrl) => {
 
   } catch (error) {
     console.error("Failed to save document:", error);
-    show({ message: 'Failed to save document record.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to save document record.'
+    show({ message: errorMessage, color: 'error' });
     // Keep the form open for retry if needed, or you could close it here too
   } finally {
     isSavingDoc.value = false;
@@ -210,7 +215,8 @@ const handleDeleteDocument = async (docId) => {
     show({ message: 'Document deleted successfully', color: 'success' });
     await fetchDocsAndNotes();
   } catch (error) {
-    show({ message: 'Failed to delete document.', color: 'error' });
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to delete document.'
+    show({ message: errorMessage, color: 'error' });
   } 
 };
 
@@ -370,7 +376,7 @@ const formatTimestamp = (note) => {
     </VCol>
 
     <!-- Documents Card -->
-    <!-- <VCol cols="12">
+    <VCol cols="12">
       <VCard border elevation="2">
         <VCardItem>
           <VCardTitle>Documents</VCardTitle>
@@ -395,7 +401,7 @@ const formatTimestamp = (note) => {
           <MyFileInputUpload
             label="Select Document"
             v-model="newDocument.url" 
-            accept="*" 
+            accept="image/*" 
           />
           <div class="d-flex gap-4 mt-4">
               <VSpacer />
@@ -476,7 +482,7 @@ const formatTimestamp = (note) => {
           <VProgressCircular indeterminate />
         </VCardText>
       </VCard>
-    </VCol> -->
+    </VCol>
   </VRow>
 </template>
 
