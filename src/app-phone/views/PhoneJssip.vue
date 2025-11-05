@@ -181,7 +181,7 @@ const setupMessageHandlers = () => {
       switch (data.event) {
         case "incoming-call":
           // Handle incoming call from Meta webhook
-          handleIncomingCall(data.event_data.session, data.event_data.from);
+          handleIncomingCall(data.event_data.session, data.event_data.from, data.event_data);
           break;
 
         case "webrtc-answer":
@@ -191,10 +191,10 @@ const setupMessageHandlers = () => {
 
         case "response-to-call":
           if (data.event_data) {
-            await answerCall(data.event_data);
+            await answerCall();
             // The answer SDP will be sent via the composable's postMessage
           } else {
-            rejectCall(data.event_data);
+            rejectCall();
           }
           break;
 
@@ -233,7 +233,7 @@ onMounted(async () => {
   //     }
   //   }
   // }
-  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from); }, 15000);
+  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from, cata.event_data); }, 15000);
 });
 
 onUnmounted(() => {

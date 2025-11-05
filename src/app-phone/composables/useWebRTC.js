@@ -424,7 +424,7 @@ export function useWebRTC() {
   /**
    * Handle incoming call from webhook
    */
-  const handleIncomingCall = (offerSDP, remoteNumber = "") => {
+  const handleIncomingCall = (offerSDP, remoteNumber = "", fullOffer) => {
     currentPeerNumber.value = remoteNumber;
     incomingCall.value = {
       show: true,
@@ -434,6 +434,7 @@ export function useWebRTC() {
     callState.value = "ringing";
     playRingtone();
     console.log("handle got called", offerSDP)
+    callData.value = fullOffer;
     
     // Store the offer for when user answers
     incomingCall.value.pendingOffer = offerSDP;
@@ -442,14 +443,15 @@ export function useWebRTC() {
   /**
    * Answer incoming call
    */
-  const answerCall = async (event_data) => {
+  const answerCall = async () => {
     if (!incomingCall.value.show || !incomingCall.value.pendingOffer) {
       throw new Error("No incoming call to answer");
     }
 
     try {
-      callData.value = event_data;
-      const answerSDP = await createAnswer(incomingCall.value.pendingOffer || event_data.session);
+      console.log("bef assign", JSON.parse(JSON.stringify(callData.value)))
+      // callData.value = event_data;
+      const answerSDP = await createAnswer(incomingCall.value.pendingOffer || callData.value.session);
       incomingCall.value.show = false;
       activeCall.value = {
         show: true,
