@@ -1,244 +1,107 @@
 <script setup>
-import DataService from "@/@common/services/DataService";
-import { REMOTE_JS_URL } from "@common/constants";
-import {
-  computed,
-  nextTick,
-  onUnmounted,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-} from "vue";
-import { useSip } from "@/app-phone/composables/useSip";
+import { onMounted, onUnmounted, ref, computed } from "vue";
+import { useWebRTC } from "@/app-phone/composables/useWebRTC";
+import { REMOTE_JS_URL } from "@/@common/constants";
 
-// Use the SIP composable
+// Use the WebRTC composable
 const {
-  isRegistered,
+  isConnected,
   isConnecting,
-  registrationStatus,
+  connectionStatus,
   errorMessage,
   activeCall,
   incomingCall,
   callState,
   callDuration,
   callHistory,
-  initSip,
-  register,
-  disconnect,
   makeCall,
   answerCall,
   rejectCall,
   endCall,
-} = useSip();
+  handleIncomingCall,
+  setRemoteDescription,
+} = useWebRTC();
+
 // Component state
 const dialedNumber = ref("");
 const isCallHistory = ref(false);
 const isDialer = ref(true);
-const tenantPartitionKey = ref("kedar");
-const loadedResources = ref([]);
-const currentDateTime = ref("");
 
-// Call controls state
-const callProcessing = ref(false);
-const isMuted = ref(false);
-const isOnHold = ref(false);
-const openRecents = async () => {
-  isCallHistory.value = true;
-  isDialer.value = false;
-};
-const openDialer = async () => {
-  isCallHistory.value = false;
-  isDialer.value = true;
-};
-const sendPostMessage = (event_type, data) => {
-  const phoneEvent = JSON.stringify({ event: event_type, event_data: data });
-  window.parent.postMessage(phoneEvent, "*");
-};
 // Computed properties
 const canUseKeypad = computed(() => {
   return callState.value === "idle" || callState.value === "talking";
 });
+
+// Utility functions
+const sendPostMessage = (event_type, data) => {
+  const phoneEvent = JSON.stringify({ event: event_type, event_data: data });
+  window.parent.postMessage(phoneEvent, "*");
+};
+
 const formatCallTime = (timestamp) => {
   if (!timestamp) return "";
   const date = new Date(timestamp);
   return date.toLocaleTimeString();
 };
-const updateDateTime = () => {
-  const now = new Date();
 
-  // Format date as DD-MM-YY
-  const day = String(now.getDate()).padStart(2, "0");
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  const year = String(now.getFullYear()).slice(-2);
-
-  // Format time as HH:MM AM/PM
-  let hours = now.getHours();
-  const minutes = String(now.getMinutes()).padStart(2, "0");
-  const ampm = hours >= 12 ? "PM" : "AM";
-
-  hours = hours % 12;
-  hours = hours ? hours : 12; // 0 should be 12
-  const formattedHours = String(hours).padStart(2, "0");
-
-  currentDateTime.value = `${day}-${month}-${year}, ${formattedHours}:${minutes} ${ampm}`;
+const openRecents = () => {
+  isCallHistory.value = true;
+  isDialer.value = false;
 };
-// Hardcoded SIP configuration - replace with backend call or environment variables
-const sipConfig = ref(null);
-function areJsonEqual(obj1, obj2, path = "") {
-  // If they're the same reference, return true
-  if (obj1 === obj2) return { isEqual: true };
 
-  // Check for null or non-object types
-  if (
-    typeof obj1 !== "object" ||
-    obj1 === null ||
-    typeof obj2 !== "object" ||
-    obj2 === null
-  ) {
-    return {
-      isEqual: false,
-      mismatch: {
-        path: path || "root",
-        type: "type_mismatch",
-        value1: obj1,
-        value2: obj2,
-        message: `Type mismatch at ${
-          path || "root"
-        }: ${typeof obj1} vs ${typeof obj2}`,
-      },
-    };
-  }
-
-  const keys1 = Object.keys(obj1);
-  const keys2 = Object.keys(obj2);
-
-  // Check if number of keys is different
-  if (keys1.length !== keys2.length) {
-    const missingInObj2 = keys1.filter((key) => !keys2.includes(key));
-    const missingInObj1 = keys2.filter((key) => !keys1.includes(key));
-
-    return {
-      isEqual: false,
-      mismatch: {
-        path: path || "root",
-        type: "key_count_mismatch",
-        keysInObj1: keys1,
-        keysInObj2: keys2,
-        missingInObj2: missingInObj2,
-        missingInObj1: missingInObj1,
-        message: `Different number of keys at ${path || "root"}. Obj1 has ${
-          keys1.length
-        } keys, Obj2 has ${keys2.length} keys`,
-      },
-    };
-  }
-
-  // Check each key
-  for (let key of keys1) {
-    if (!keys2.includes(key)) {
-      return {
-        isEqual: false,
-        mismatch: {
-          path: path ? `${path}.${key}` : key,
-          type: "missing_key",
-          missingKey: key,
-          message: `Key '${key}' exists in obj1 but not in obj2 at path ${
-            path ? `${path}.${key}` : key
-          }`,
-        },
-      };
-    }
-
-    const currentPath = path ? `${path}.${key}` : key;
-    const result = areJsonEqual(obj1[key], obj2[key], currentPath);
-
-    if (!result.isEqual) {
-      return result; // Return the first mismatch found
-    }
-  }
-
-  return { isEqual: true };
-}
-// Auto-connect when component mounts
-const autoConnect = async () => {
-  try {
-    console.log("Auto-connecting with SIP config...");
-    initSip(sipConfig);
-  } catch (error) {
-    console.error("Auto-connection failed:", error);
-  }
+const openDialer = () => {
+  isCallHistory.value = false;
+  isDialer.value = true;
 };
-const getSecrets = async () => {
-  try {
-    const response = await DataService.axios.get("/v1/register", {
-      headers: {
-        tnt: tenantPartitionKey.value,
-      },
-    });
-    const data = await response.data;
-    // const response = await fetch(
-    //   // "http://localhost:8090/nexus/phone/v1/register",
-    //   "http://localhost:8090/scriptus/phone/v1/register",
-    //   {
-    //     method: "GET",
-    //     headers: {
-    //       "Content-Type": "application/json",
-    //       tnt: tenantPartitionKey.value,
-    //     },
-    //   }
-    // );
-    // const data = await response.json();
-    sipConfig.value = {
-      uri: data.bullforcePstn.FS_IMPU,
-      password: data.bullforcePstn.FS_SECRET.toString(),
-      display_name: "kedar",
-      websocket_servers: [data.bullforcePstn.FS_WS_PROXY_URL_INT],
-      realm: data.bullforcePstn.FS_REALM,
-      authorization_user: data.bullforcePstn.FS_IMPI.toString(),
-    };
-    // console.log("auth config equal : ",areJsonEqual(correctSipConfig,sipConfig.value));
-  } catch (error) {
-    console.error(error);
-  } finally {
-    console.log(`Sip register to be called`);
-    autoConnect();
-  }
-};
+
+// Keypad functions
 const addDigit = (digit) => {
   if (callState.value === "talking") {
-    // IVR response - you can emit an event or handle IVR logic here
-    console.log("IVR input:", digit);
+    // DTMF tones could be implemented here
+    console.log("DTMF input:", digit);
   } else if (callState.value === "idle") {
     dialedNumber.value = `${dialedNumber.value}${digit}`;
   }
 };
+
 const removeDigit = () => {
   if (callState.value === "idle" && dialedNumber.value.length > 0) {
     dialedNumber.value = dialedNumber.value.slice(0, -1);
   }
 };
-function handleKeydown(event) {
+
+const handleKeydown = (event) => {
   const allowedKeys = ["Backspace", "Delete"];
   const isDigit = /^[0-9]$/.test(event.key);
   if (isDigit) {
     addDigit(event.key);
   } else if (allowedKeys.includes(event.key)) {
-    // Do something for Backspace, Delete, or digit 0–9
     removeDigit();
   }
-}
+};
 
+// Call handling
 const handleCall = async () => {
   if (!dialedNumber.value) return;
 
   try {
-    await makeCall(dialedNumber.value);
-    console.log("Call initiated to:", dialedNumber.value);
+    const offerSDP = await makeCall(dialedNumber.value);
+    
+    // Send offer to Meta API via parent window
+    sendPostMessage("webrtc-offer", {
+      dialedNumber: dialedNumber.value,
+      offerSDP: offerSDP
+    });
+    
+    console.log("WebRTC offer created and sent to Meta API");
+
   } catch (error) {
     console.error("Call failed:", error);
     alert("Failed to make call: " + error.message);
   }
 };
+
+// Audio elements configuration
 const audioElements = [
   {
     parentTagName: "body",
@@ -246,7 +109,7 @@ const audioElements = [
     attrs: {
       id: "ringtone",
       loop: "",
-      src: `${REMOTE_JS_URL}/javascript/sounds/ringtone.wav`,
+      src: `${REMOTE_JS_URL}/javacript/sounds/ringtone.wav`,
     },
   },
   {
@@ -255,7 +118,7 @@ const audioElements = [
     attrs: {
       id: "ringbacktone",
       loop: "",
-      src: `${REMOTE_JS_URL}/javascript/sounds/ringbacktone.wav`,
+      src: `${REMOTE_JS_URL}/javacript/sounds/ringbacktone.wav`,
     },
   },
   {
@@ -263,7 +126,7 @@ const audioElements = [
     tagName: "audio",
     attrs: {
       id: "dtmfTone",
-      src: `${REMOTE_JS_URL}/javascript/sounds/dtmf.wav`,
+      src: `${REMOTE_JS_URL}/javacript/sounds/dtmf.wav`,
     },
   },
   {
@@ -271,19 +134,21 @@ const audioElements = [
     tagName: "audio",
     attrs: { id: "audio-remote", autoplay: "autoplay" },
   },
+  {
+    parentTagName: "body",
+    tagName: "audio",
+    attrs: { id: "audio-local", autoplay: "autoplay", muted: "muted" },
+  },
 ];
 
 const loadElements = async (elements) => {
   return Promise.all(
     elements.map((elementConfig) => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve) => {
         const parent = document.querySelector(elementConfig.parentTagName);
         if (!parent) {
-          console.warn(
-            `Parent tag "${elementConfig.parentTagName}" not found for element:`,
-            elementConfig
-          );
-          return resolve(); // Resolve even if parent not found to not block other elements
+          console.warn(`Parent tag "${elementConfig.parentTagName}" not found`);
+          return resolve();
         }
 
         const newElement = document.createElement(elementConfig.tagName);
@@ -291,170 +156,128 @@ const loadElements = async (elements) => {
           newElement.setAttribute(attr, elementConfig.attrs[attr]);
         }
 
-        if (elementConfig.tagName === "script") {
-          newElement.onload = () => {
-            console.log(`Script loaded: ${elementConfig.attrs.src}`);
-            resolve();
-          };
-          newElement.onerror = (error) => {
-            console.error(
-              `Error loading script: ${elementConfig.attrs.src}`,
-              error
-            );
-            reject(error);
-          };
-        } else if (
-          elementConfig.tagName === "audio" &&
-          elementConfig.attrs.src
-        ) {
-          // For audio, we can listen to 'canplaythrough' or 'loadeddata'
-          // 'canplaythrough' means the browser estimates it can play the media to the end without stopping for buffering
+        if (elementConfig.tagName === "audio" && elementConfig.attrs.src) {
           newElement.oncanplaythrough = () => {
-            console.log(
-              `Audio loaded and ready to play: ${elementConfig.attrs.id}`
-            );
+            console.log(`Audio loaded: ${elementConfig.attrs.id}`);
             resolve();
           };
-          newElement.onerror = (error) => {
-            console.error(
-              `Error loading audio: ${elementConfig.attrs.id}`,
-              error
-            );
-            reject(error);
-          };
-          // In case canplaythrough doesn't fire for some reason or faster resolution is needed
-          // newElement.onloadeddata = () => {
-          //   console.log(`Audio data loaded: ${elementConfig.attrs.id}`);
-          //   resolve();
-          // };
+          newElement.onerror = () => resolve(); // Resolve even if audio fails
         } else {
-          resolve(); // For other tag types, resolve immediately after creation
+          resolve();
         }
         parent.appendChild(newElement);
       });
     })
   );
 };
-// Set up event handlers and auto-connect
-onMounted(async () => {
-  sendPostMessage("connection-status", { connection: "connected" });
-  try {
-    // Create and load audio elements
-    await loadElements(audioElements);
-    console.log("All audio elements created and ready.");
 
-    // Once both are done, the rest of your onMounted logic can run
-    console.log(
-      "onMounted: audio elements setup complete. Running the rest of the onMounted hook."
-    );
-    // Your other onMounted logic here
-    // e.g., initialize SIPml-api, set up event listeners, etc.
-  } catch (error) {
-    console.error(
-      "onMounted: Error during preloading or element creation:",
-      error
-    );
-    // Handle errors appropriately, e.g., show an error message to the user
-  }
-  window.addEventListener("keydown", handleKeydown);
-  window.addEventListener("message", (e) => {
+// Message handling for Meta API integration
+const setupMessageHandlers = () => {
+  window.addEventListener("message", async (e) => {
     try {
       const data = JSON.parse(e.data);
-      console.log("event from agent panel :", data);
-      if (data.event === "response-to-call") {
-        console.log("response to call event : ", data.event_data);
-        if (data.event_data) {
-          console.log("Phone app call answered ");
-          answerCall();
-        } else {
-          console.log("Phone app call rejected ");
-          rejectCall();
-        }
-      } else if (data.event === "make-call") {
-        console.log("Outbound number : ", data.event_data.dialed_number);
-        makeCall(data.event_data.dialed_number);
+      console.log("Message from parent/Meta API:", data);
+
+      switch (data.event) {
+        case "incoming-call":
+          // Handle incoming call from Meta webhook
+          handleIncomingCall(data.event_data.session, data.event_data.from);
+          break;
+
+        case "webrtc-answer":
+          // Set the answer from Meta API
+          await setRemoteDescription(data.event_data.answerSDP);
+          break;
+
+        case "response-to-call":
+          if (data.event_data) {
+            await answerCall(data.event_data);
+            // The answer SDP will be sent via the composable's postMessage
+          } else {
+            rejectCall(data.event_data);
+          }
+          break;
+
+        case "make-call":
+          await handleCall(data.event_data.dialed_number);
+          break;
+
+        case "end-call":
+          endCall();
+          break;
       }
     } catch (err) {
-      console.warn("event from Non-JSON message received:", e.data);
+      console.warn("Non-JSON message or parsing error:", e.data, err);
     }
   });
-  // Auto-connect on mount
-  // Comment out the next line if you want to load from backend instead
-  // autoConnect();
-  await getSecrets();
+};
 
-  // Uncomment the next line to load config from backend API
-  // loadConfigFromBackend()
+onMounted(async () => {
+  await loadElements(audioElements);
+  window.addEventListener("keydown", handleKeydown);
+  setupMessageHandlers();
+  
+  sendPostMessage("webrtc-ready", { status: "initialized" });
+  // const cata = { 
+  //   event:"response-to-call",
+  //   event_data:{
+  //     id:"wacid.HBgONDc3MDAwNTc4Mjk0NTMVEgASGCBBQzVCQTVFNTE2MUJGN0VDRkIyRjREQjFFRUZFRDI0MxwYDDkxOTYxOTcyMzc1ORUCABUeAA==",
+  //     from:"918691945760",
+  //     to:"919619723759",
+  //     event:"connect",
+  //     timestamp:"1762336250",
+  //     direction:"USER_INITIATED",
+  //     session:{
+  //       sdp:"v=0\r\no=- 1762336250050 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE audio\r\na=msid-semantic: WMS 1a8be36a-9a9c-4322-8636-f2247cfdf1b9\r\na=ice-lite\r\nm=audio 3484 UDP/TLS/RTP/SAVPF 111 126\r\nc=IN IP4 163.70.144.130\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=candidate:707619806 1 udp 2122260223 163.70.144.130 3484 typ host generation 0 network-cost 50\r\na=candidate:1267757827 1 udp 2122262783 2a03:2880:f288:1d4:face:b00c:0:699c 3484 typ host generation 0 network-cost 50\r\na=ice-ufrag:VyVkdwnqGUZtqVON\r\na=ice-pwd:sGUUAvS/fOjzPtIoL72o2g==\r\na=fingerprint:sha-256 8E:64:08:0B:8F:CE:73:ED:E2:44:9C:FB:EA:0B:20:D5:41:B6:93:06:F9:79:6C:48:78:1A:A2:41:AD:9C:EA:68\r\na=setup:actpass\r\na=mid:audio\r\na=sendrecv\r\na=msid:1a8be36a-9a9c-4322-8636-f2247cfdf1b9 WhatsAppTrack1\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\na=rtcp-fb:111 transport-cc\r\na=fmtp:111 maxaveragebitrate=20000;maxplaybackrate=16000;minptime=20;sprop-maxcapturerate=16000;useinbandfec=1\r\na=rtpmap:126 telephone-event/8000\r\na=maxptime:20\r\na=ptime:20\r\na=ssrc:972010428 cname:WhatsAppAudioStream1\r\n",
+  //       sdp_type:"offer"
+  //     }
+  //   }
+  // }
+  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from); }, 15000);
 });
-onUnmounted(async () => {
+
+onUnmounted(() => {
   window.removeEventListener("keydown", handleKeydown);
 });
 </script>
+
 <template>
   <div class="container">
-    <!-- Status Bar -->
-    <div class="sip-client">
+    <div class="webrtc-client">
+      <!-- Status Bar -->
       <div class="status-bar">
         <div class="status-left"></div>
         <div class="status-right">
-          <div class="registration-status">
-            <!-- Connected Icon -->
-            <div v-if="registrationStatus === 'Disconnected'">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M22 16v-.5a2.5 2.5 0 0 0-5 0v.5c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h5c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 0h-3v-.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5zM18 5.83v5.43c.47-.16.97-.26 1.5-.26c.17 0 .33.03.5.05V1L1 20h13v-2H5.83z"
-                />
+          <div class="connection-status">
+            <div v-if="connectionStatus === 'disconnected'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M22 16v-.5a2.5 2.5 0 0 0-5 0v.5c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h5c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 0h-3v-.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5zM18 5.83v5.43c.47-.16.97-.26 1.5-.26c.17 0 .33.03.5.05V1L1 20h13v-2H5.83z"/>
               </svg>
             </div>
-            <div v-else-if="registrationStatus === 'registered'">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="24"
-                height="24"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  fill="currentColor"
-                  d="M19.5 10c.17 0 .33.03.5.05V1L1 20h13v-3c0-.89.39-1.68 1-2.23v-.27c0-2.48 2.02-4.5 4.5-4.5m2.5 6v-1.5a2.5 2.5 0 0 0-5 0V16c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h5c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 0h-3v-1.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"
-                />
+            <div v-else-if="connectionStatus === 'connected'">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+                <path fill="currentColor" d="M19.5 10c.17 0 .33.03.5.05V1L1 20h13v-3c0-.89.39-1.68 1-2.23v-.27c0-2.48 2.02-4.5 4.5-4.5m2.5 6v-1.5a2.5 2.5 0 0 0-5 0V16c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h5c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 0h-3v-1.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"/>
               </svg>
             </div>
-            <!-- <span class="status-text">{{ registrationStatus }}</span> -->
           </div>
         </div>
       </div>
-      <!-- Incoming Call Modal/Alert -->
+
+      <!-- Incoming Call Modal -->
       <div v-if="incomingCall.show" class="incoming-call-overlay">
         <div class="incoming-call-modal">
-          <h3>Incoming Call</h3>
+          <h3>Incoming WhatsApp Call</h3>
           <p class="caller-info">
             <strong>From: {{ incomingCall.remoteNumber }}</strong>
           </p>
           <p class="call-time">{{ formatCallTime(incomingCall.timestamp) }}</p>
 
           <div class="call-actions">
-            <button
-              @click="answerCall"
-              class="btn btn-success answer-btn"
-              :disabled="callProcessing"
-            >
-              <span v-if="!callProcessing">Answer</span>
-              <span v-else>Connecting...</span>
+            <button @click="answerCall" class="btn btn-success answer-btn">
+              Answer
             </button>
-
-            <button
-              @click="rejectCall"
-              class="btn btn-danger reject-btn"
-              :disabled="callProcessing"
-            >
-              <span v-if="!callProcessing">Reject</span>
-              <span v-else>Rejecting...</span>
+            <button @click="rejectCall" class="btn btn-danger reject-btn">
+              Reject
             </button>
           </div>
         </div>
@@ -462,21 +285,15 @@ onUnmounted(async () => {
 
       <!-- Active Call Status -->
       <div v-if="activeCall.show" class="active-call-status">
-        <h4>Call Active</h4>
-
+        <h4>WhatsApp Call Active</h4>
         <p>Connected to: {{ activeCall.remoteNumber }}</p>
         <p v-if="activeCall.startTime">Duration: {{ callDuration }}</p>
 
         <div class="call-controls">
           <button @click="endCall" class="btn btn-danger">❌ Hang Up</button>
-          <!-- <button @click="toggleMute" class="btn btn-secondary">
-            {{ isMuted ? "🔊 Unmute" : "🔇 Mute" }}
-          </button>
-          <button @click="toggleHold" class="btn btn-secondary">
-            {{ isOnHold ? "▶️ Resume" : "⏸️ Hold" }}
-          </button> -->
         </div>
       </div>
+
       <!-- Call History -->
       <div class="call-history" v-if="isCallHistory">
         <h4>Recent Calls</h4>
@@ -487,217 +304,70 @@ onUnmounted(async () => {
           </li>
         </ul>
       </div>
+
+      <!-- Dialer -->
       <div class="dialer-container" v-if="isDialer">
-        <!-- Registration Status -->
-        <!-- <div class="registration-status">
-          <p>Status: {{ registrationStatus }}</p>
-        </div> -->
         <div class="display">
           <div class="number-display">{{ dialedNumber }}</div>
-          <!-- <div class="status-display" :class="statusClass">
-            {{ statusText }}
-          </div> -->
         </div>
+
         <div class="keypad">
           <div class="keypad-row">
-            <button
-              class="key-button"
-              @click="addDigit('1')"
-              :disabled="!canUseKeypad"
-            >
-              1
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('2')"
-              :disabled="!canUseKeypad"
-            >
-              2
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('3')"
-              :disabled="!canUseKeypad"
-            >
-              3
-            </button>
+            <button class="key-button" @click="addDigit('1')" :disabled="!canUseKeypad">1</button>
+            <button class="key-button" @click="addDigit('2')" :disabled="!canUseKeypad">2</button>
+            <button class="key-button" @click="addDigit('3')" :disabled="!canUseKeypad">3</button>
           </div>
 
           <div class="keypad-row">
-            <button
-              class="key-button"
-              @click="addDigit('4')"
-              :disabled="!canUseKeypad"
-            >
-              4
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('5')"
-              :disabled="!canUseKeypad"
-            >
-              5
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('6')"
-              :disabled="!canUseKeypad"
-            >
-              6
-            </button>
+            <button class="key-button" @click="addDigit('4')" :disabled="!canUseKeypad">4</button>
+            <button class="key-button" @click="addDigit('5')" :disabled="!canUseKeypad">5</button>
+            <button class="key-button" @click="addDigit('6')" :disabled="!canUseKeypad">6</button>
           </div>
 
           <div class="keypad-row">
-            <button
-              class="key-button"
-              @click="addDigit('7')"
-              :disabled="!canUseKeypad"
-            >
-              7
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('8')"
-              :disabled="!canUseKeypad"
-            >
-              8
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('9')"
-              :disabled="!canUseKeypad"
-            >
-              9
-            </button>
+            <button class="key-button" @click="addDigit('7')" :disabled="!canUseKeypad">7</button>
+            <button class="key-button" @click="addDigit('8')" :disabled="!canUseKeypad">8</button>
+            <button class="key-button" @click="addDigit('9')" :disabled="!canUseKeypad">9</button>
           </div>
 
           <div class="keypad-row">
-            <button
-              class="key-button"
-              @click="addDigit('+')"
-              :disabled="!canUseKeypad"
-            >
-              +
-            </button>
-            <button
-              class="key-button"
-              @click="addDigit('0')"
-              :disabled="!canUseKeypad"
-            >
-              0
-            </button>
-            <button
-              class="key-button backspace"
-              @click="removeDigit"
-              :disabled="callState !== 'idle'"
-            >
-              ⌫
-            </button>
+            <button class="key-button" @click="addDigit('+')" :disabled="!canUseKeypad">+</button>
+            <button class="key-button" @click="addDigit('0')" :disabled="!canUseKeypad">0</button>
+            <button class="key-button backspace" @click="removeDigit" :disabled="callState !== 'idle'">⌫</button>
           </div>
         </div>
 
         <div class="action-buttons">
-          <button
-            class="action-button call-button"
-            @click="makeCall(dialedNumber)"
-            :disabled="callState === 'ringing' || !dialedNumber"
-          >
+          <button class="action-button call-button" @click="handleCall" 
+                  :disabled="callState === 'ringing' || !dialedNumber">
             📞 Call
           </button>
-
-          <button
-            class="action-button hangup-button"
-            @click="endCall"
-            :disabled="callState === 'idle'"
-          >
+          <button class="action-button hangup-button" @click="endCall" 
+                  :disabled="callState === 'idle'">
             📱 Hang Up
           </button>
         </div>
       </div>
-      <!-- <ul class="tab-nav-container">
-        <li class="tab tab-purple" @click="openDialer">
-          <p>Dialer</p>
-        </li>
-        <li class="tab tab-pink" @click="openRecents">
-          <p>Recents</p>
-        </li>
-      </ul> -->
+
+      <!-- Bottom Navigation -->
       <ul class="tab-nav-container">
         <li class="tab" @click="openDialer">
-          <!-- <div class="icon-placeholder"></div> -->
           <div class="icon-placeholder" :class="{ active: isDialer }">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="currentColor"
-                d="M12 19c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2M6 1c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m12-8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2m-6 8c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m6 0c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0-6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m-6 0c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0-6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2"
-              />
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M12 19c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2M6 1c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0 6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m12-8c1.1 0 2-.9 2-2s-.9-2-2-2s-2 .9-2 2s.9 2 2 2m-6 8c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m6 0c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0-6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m-6 0c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2m0-6c-1.1 0-2 .9-2 2s.9 2 2 2s2-.9 2-2s-.9-2-2-2"/>
             </svg>
           </div>
           <p>Dialer</p>
         </li>
         <li class="tab" @click="openRecents">
-          <div v-if="!isCallHistory" class="icon-placeholder">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="currentColor"
-                d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2M12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8s8 3.58 8 8s-3.58 8-8 8"
-              />
-              <path
-                fill="currentColor"
-                d="M12.5 7H11v6l5.25 3.15l.75-1.23l-4.5-2.67z"
-              />
-            </svg>
-          </div>
-          <div
-            v-else
-            class="icon-placeholder"
-            :class="{ active: isCallHistory }"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-            >
-              <path
-                fill="currentColor"
-                d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2m3.3 14.71L11 12.41V7h2v4.59l3.71 3.71z"
-              />
+          <div class="icon-placeholder" :class="{ active: isCallHistory }">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
+              <path fill="currentColor" d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2m3.3 14.71L11 12.41V7h2v4.59l3.71 3.71z"/>
             </svg>
           </div>
           <p>Recent</p>
         </li>
-        <!-- <li class="tab">
-            <div class="icon-placeholder"></div>
-            <p>Contacts</p>
-        </li> -->
       </ul>
-      <!-- <button
-        v-if="registrationStatus === 'connected'"
-        class="action-button"
-        @click="callSipUnregister"
-        :disabled="registrationStatus !== 'connected'"
-      >
-        Sip-Un-Register
-      </button>
-      <button
-        v-if="registrationStatus === 'Disconnected'"
-        class="action-button"
-        @click="callSipRegister"
-        :disabled="registrationStatus !== 'Disconnected'"
-      >
-        Sip-Register
-      </button> -->
     </div>
   </div>
 </template>

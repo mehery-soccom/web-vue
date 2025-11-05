@@ -9,6 +9,22 @@ export function useWebRTC() {
   const connectionStatus = ref("disconnected"); // 'disconnected', 'connecting', 'connected', 'error'
   const errorMessage = ref("");
   const callDuration = ref("00:00");
+  // const callData = ref({ 
+  //   event:"response-to-call",
+  //   event_data:{
+  //     id:"wacid.HBgONDc3MDAwNTc4Mjk0NTMVEgASGCBBQzVCQTVFNTE2MUJGN0VDRkIyRjREQjFFRUZFRDI0MxwYDDkxOTYxOTcyMzc1ORUCABUeAA==",
+  //     from:"918691945760",
+  //     to:"919619723759",
+  //     event:"connect",
+  //     timestamp:"1762336250",
+  //     direction:"USER_INITIATED",
+  //     session:{
+  //       sdp:"v=0\r\no=- 1762336250050 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE audio\r\na=msid-semantic: WMS 1a8be36a-9a9c-4322-8636-f2247cfdf1b9\r\na=ice-lite\r\nm=audio 3484 UDP/TLS/RTP/SAVPF 111 126\r\nc=IN IP4 163.70.144.130\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=candidate:707619806 1 udp 2122260223 163.70.144.130 3484 typ host generation 0 network-cost 50\r\na=candidate:1267757827 1 udp 2122262783 2a03:2880:f288:1d4:face:b00c:0:699c 3484 typ host generation 0 network-cost 50\r\na=ice-ufrag:VyVkdwnqGUZtqVON\r\na=ice-pwd:sGUUAvS/fOjzPtIoL72o2g==\r\na=fingerprint:sha-256 8E:64:08:0B:8F:CE:73:ED:E2:44:9C:FB:EA:0B:20:D5:41:B6:93:06:F9:79:6C:48:78:1A:A2:41:AD:9C:EA:68\r\na=setup:actpass\r\na=mid:audio\r\na=sendrecv\r\na=msid:1a8be36a-9a9c-4322-8636-f2247cfdf1b9 WhatsAppTrack1\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\na=rtcp-fb:111 transport-cc\r\na=fmtp:111 maxaveragebitrate=20000;maxplaybackrate=16000;minptime=20;sprop-maxcapturerate=16000;useinbandfec=1\r\na=rtpmap:126 telephone-event/8000\r\na=maxptime:20\r\na=ptime:20\r\na=ssrc:972010428 cname:WhatsAppAudioStream1\r\n",
+  //       sdp_type:"offer"
+  //     }
+  //   }
+  // })
+  const callData = ref({})
   
   // WebRTC objects
   let pc = null;
@@ -273,7 +289,6 @@ export function useWebRTC() {
       playRingbacktone();
       
       console.log("SDP Offer created, waiting for answer...");
-      await sendAnswer(answerData, callData, 'wacfb:919619723759');
       // Return the local description for sending to Meta API
       return getLocalSDPData();
 
@@ -285,29 +300,28 @@ export function useWebRTC() {
     }
   };
 
-  const sendAnswer = async (answerData, callData, channelId) => {
-  try {
-    const url = `https://crforex.mehery.xyz/scriptus/phone/whatsapp/calling/accept`;
+  const sendAnswer = async (answerData, callDatas, channelId) => {
+    try {
+      const url = `https://crforex.mehery.xyz/admin/api/scriptus/phone/whatsapp/calling/accept`;
 
-    const payload = {
-      callData: callData,           // required — from incoming webhook
-      channelId: channelId,            // let Meta know this is an SDP answer
-      sdpAnswer: answerData.sdp,       // the SDP data (pc.localDescription)
-      // ice: answerData.ice || [], // ICE candidates if any
-    };
+      const payload = {
+        callData: callData.value,           // required — from incoming webhook
+        channelId: channelId,            // let Meta know this is an SDP answer
+        sdpAnswer: answerData.sdp,       // the SDP data (pc.localDescription)
+        // ice: answerData.ice || [], // ICE candidates if any
+      };
 
-    const response = await axios.post( url, payload);
-
-    console.log("Meta API response:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error(
-      "Error sending answer to Meta API:",
-      error.response?.data || error.message
-    );
-    throw error;
-  }
-};
+      const response = await axios.post( url, payload);
+      console.log("Meta API response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
+      throw error;
+    }
+  };
 
   /**
    * Create SDP answer for incoming call
@@ -322,7 +336,11 @@ export function useWebRTC() {
       playRingtone();
 
       // Set remote offer
-      await pc.setRemoteDescription(new RTCSessionDescription(offerSDP.sdp));
+      const remoteDesc = {
+        type: offerSDP.sdp_type || offerSDP.type || "offer",
+        sdp: offerSDP.sdp
+      };
+      await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
       
       // Create answer
       const answer = await pc.createAnswer();
@@ -336,8 +354,8 @@ export function useWebRTC() {
       
       addToCallHistory(currentPeerNumber.value, "incoming", new Date());
       
-      console.log("SDP Answer created");
-      
+      console.log("SDP Answer created", answer);
+      await sendAnswer( answer, callData.value, 'wacfb:919619723759');
       // Return the local description for sending to Meta API
       return getLocalSDPData();
 
@@ -415,6 +433,7 @@ export function useWebRTC() {
     };
     callState.value = "ringing";
     playRingtone();
+    console.log("handle got called", offerSDP)
     
     // Store the offer for when user answers
     incomingCall.value.pendingOffer = offerSDP;
@@ -423,20 +442,21 @@ export function useWebRTC() {
   /**
    * Answer incoming call
    */
-  const answerCall = async () => {
+  const answerCall = async (event_data) => {
     if (!incomingCall.value.show || !incomingCall.value.pendingOffer) {
       throw new Error("No incoming call to answer");
     }
 
     try {
-      const answerSDP = await createAnswer(incomingCall.value.pendingOffer);
+      callData.value = event_data;
+      const answerSDP = await createAnswer(incomingCall.value.pendingOffer || event_data.session);
       incomingCall.value.show = false;
       activeCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
         startTime: null, // Will be set when connected
       };
-      
+      console.log("answered call", answerSDP);
       stopRingtone();
       updateCallHistory("answered");
       
