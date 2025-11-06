@@ -192,9 +192,8 @@ const setupMessageHandlers = () => {
         case "response-to-call":
           if (data.event_data) {
             await answerCall();
-            // The answer SDP will be sent via the composable's postMessage
           } else {
-            rejectCall();
+            await rejectCall();
           }
           break;
 
@@ -203,7 +202,7 @@ const setupMessageHandlers = () => {
           break;
 
         case "end-call":
-          endCall();
+          await endCall();
           break;
       }
     } catch (err) {

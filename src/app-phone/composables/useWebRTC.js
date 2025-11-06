@@ -1,6 +1,8 @@
 // composables/useWebRTC.js
 import { ref, reactive, onUnmounted } from "vue";
 import axios from "axios";
+import { usePhoneStore } from "../views/usePhoneStore";
+const PhoneStore = usePhoneStore();
 
 export function useWebRTC() {
   // Reactive state
@@ -302,23 +304,36 @@ export function useWebRTC() {
 
   const sendAnswer = async (answerData, callDatas, channelId) => {
     try {
-      const url = `https://crforex.mehery.xyz/admin/api/scriptus/phone/whatsapp/calling/accept`;
+      // const url = `https://crforex.mehery.xyz/admin/api/scriptus/phone/whatsapp/calling/accept`;
+      const payload = { callData: callData.value, channelId: channelId, sdpAnswer: answerData.sdp };
 
-      const payload = {
-        callData: callData.value,           // required — from incoming webhook
-        channelId: channelId,            // let Meta know this is an SDP answer
-        sdpAnswer: answerData.sdp,       // the SDP data (pc.localDescription)
-        // ice: answerData.ice || [], // ICE candidates if any
-      };
-
-      const response = await axios.post( url, payload);
+      const response = await PhoneStore.sendAnswerToMeta(payload);
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error(
-        "Error sending answer to Meta API:",
-        error.response?.data || error.message
-      );
+      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      throw error;
+    }
+  };
+  const rejectCallMeta = async (channelId) => {
+    try {
+      const payload = { callData: callData.value, channelId: channelId };
+      const response = await PhoneStore.rejectSendToMeta(payload);
+      console.log("Meta API response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      throw error;
+    }
+  };
+  const terminateCallMeta = async (channelId) => {
+    try {
+      const payload = { callData: callData.value, channelId: channelId };
+      const response = await PhoneStore.terminateCallToMeta(payload);
+      console.log("Meta API response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
       throw error;
     }
   };
@@ -333,7 +348,7 @@ export function useWebRTC() {
 
     try {
       callState.value = "ringing";
-      playRingtone();
+      // playRingtone();
 
       // Set remote offer
       const remoteDesc = {
@@ -473,11 +488,11 @@ export function useWebRTC() {
   /**
    * Reject incoming call
    */
-  const rejectCall = () => {
+  const rejectCall = async () => {
     if (!incomingCall.value.show) {
       throw new Error("No incoming call to reject");
     }
-
+    await rejectCallMeta('wacfb:919619723759');
     incomingCall.value = {
       show: false,
       remoteNumber: "",
@@ -497,7 +512,7 @@ export function useWebRTC() {
   /**
    * End active call
    */
-  const endCall = () => {
+  const endCall = async () => {
     if (pc) {
       pc.close();
       pc = null;
@@ -528,6 +543,7 @@ export function useWebRTC() {
     stopCallTimer();
     stopRingtone();
     stopRingbacktone();
+    await terminateCallMeta('wacfb:919619723759');
 
     // Clear audio elements
     const remoteAudio = document.getElementById("audio-remote");
