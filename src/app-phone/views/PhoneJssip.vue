@@ -180,29 +180,24 @@ const setupMessageHandlers = () => {
 
       switch (data.event) {
         case "incoming-call":
-          // Handle incoming call from Meta webhook
           handleIncomingCall(data.event_data.session, data.event_data.from, data.event_data);
           break;
 
-        case "webrtc-answer":
-          // Set the answer from Meta API
-          await setRemoteDescription(data.event_data.answerSDP);
-          break;
-
         case "response-to-call":
-          if (data.event_data) {
-            await answerCall();
-          } else {
-            await rejectCall();
-          }
-          break;
-
-        case "make-call":
-          await handleCall(data.event_data.dialed_number);
+          if (data.event_val) await answerCall();
+          else await rejectCall();
           break;
 
         case "end-call":
           await endCall();
+          break;
+        
+        case "webrtc-answer":
+          await setRemoteDescription(data.event_data.answerSDP);
+          break;
+
+        case "make-call":
+          await handleCall(data.event_data.dialed_number);
           break;
       }
     } catch (err) {
@@ -265,7 +260,8 @@ onUnmounted(() => {
       <!-- Incoming Call Modal -->
       <div v-if="incomingCall.show" class="incoming-call-overlay">
         <div class="incoming-call-modal">
-          <h3>Incoming WhatsApp Call</h3>
+          <h2>Connecting...</h2>
+          <!-- <h3>Incoming WhatsApp Call</h3>
           <p class="caller-info">
             <strong>From: {{ incomingCall.remoteNumber }}</strong>
           </p>
@@ -278,7 +274,7 @@ onUnmounted(() => {
             <button @click="rejectCall" class="btn btn-danger reject-btn">
               Reject
             </button>
-          </div>
+          </div> -->
         </div>
       </div>
 
