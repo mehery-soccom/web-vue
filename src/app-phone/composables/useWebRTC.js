@@ -247,7 +247,7 @@ export function useWebRTC() {
         case "failed":
           isConnected.value = false;
           connectionStatus.value = "error";
-          endCall();
+          endCall(false);
           break;
         case "closed":
           isConnected.value = false;
@@ -512,7 +512,7 @@ export function useWebRTC() {
   /**
    * End active call
    */
-  const endCall = async () => {
+  const endCall = async (endFromAgent) => {
     if (pc) {
       pc.close();
       pc = null;
@@ -543,7 +543,7 @@ export function useWebRTC() {
     stopCallTimer();
     stopRingtone();
     stopRingbacktone();
-    await terminateCallMeta('wacfb:919619723759');
+    if(endFromAgent) await terminateCallMeta('wacfb:919619723759');
 
     // Clear audio elements
     const remoteAudio = document.getElementById("audio-remote");
@@ -580,7 +580,7 @@ export function useWebRTC() {
    * Cleanup
    */
   const disconnect = () => {
-    endCall();
+    endCall(false);
     isConnected.value = false;
     connectionStatus.value = "disconnected";
   };
@@ -590,7 +590,6 @@ export function useWebRTC() {
   });
 
   return {
-    // State
     isConnected,
     isConnecting,
     connectionStatus,
@@ -600,8 +599,7 @@ export function useWebRTC() {
     callState,
     callDuration,
     callHistory,
-    
-    // Methods
+
     initWebRTC,
     disconnect,
     makeCall,

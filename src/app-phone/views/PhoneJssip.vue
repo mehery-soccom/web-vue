@@ -189,7 +189,7 @@ const setupMessageHandlers = () => {
           break;
 
         case "end-call":
-          await endCall();
+          await endCall(false);
           break;
         
         case "webrtc-answer":
@@ -258,10 +258,9 @@ onUnmounted(() => {
       </div>
 
       <!-- Incoming Call Modal -->
-      <div v-if="incomingCall.show" class="incoming-call-overlay">
+      <!-- <div v-if="incomingCall.show" class="incoming-call-overlay">
         <div class="incoming-call-modal">
-          <h2>Connecting...</h2>
-          <!-- <h3>Incoming WhatsApp Call</h3>
+          <h3>Incoming WhatsApp Call</h3>
           <p class="caller-info">
             <strong>From: {{ incomingCall.remoteNumber }}</strong>
           </p>
@@ -274,9 +273,9 @@ onUnmounted(() => {
             <button @click="rejectCall" class="btn btn-danger reject-btn">
               Reject
             </button>
-          </div> -->
+          </div>
         </div>
-      </div>
+      </div> -->
 
       <!-- Active Call Status -->
       <div v-if="activeCall.show" class="active-call-status">
@@ -285,7 +284,7 @@ onUnmounted(() => {
         <p v-if="activeCall.startTime">Duration: {{ callDuration }}</p>
 
         <div class="call-controls">
-          <button @click="endCall" class="btn btn-danger">❌ Hang Up</button>
+          <button @click="endCall(true)" class="btn btn-danger">❌ Hang Up</button>
         </div>
       </div>
 
@@ -337,7 +336,7 @@ onUnmounted(() => {
                   :disabled="callState === 'ringing' || !dialedNumber">
             📞 Call
           </button>
-          <button class="action-button hangup-button" @click="endCall" 
+          <button class="action-button hangup-button" @click="endCall(true)" 
                   :disabled="callState === 'idle'">
             📱 Hang Up
           </button>
