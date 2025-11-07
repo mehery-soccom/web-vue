@@ -1,34 +1,15 @@
 // composables/useWebRTC.js
 import { ref, reactive, onUnmounted } from "vue";
-import axios from "axios";
 import { usePhoneStore } from "../views/usePhoneStore";
 const PhoneStore = usePhoneStore();
 
 export function useWebRTC() {
-  // Reactive state
   const isConnected = ref(false);
   const isConnecting = ref(false);
   const connectionStatus = ref("disconnected"); // 'disconnected', 'connecting', 'connected', 'error'
   const errorMessage = ref("");
   const callDuration = ref("00:00");
-  // const callData = ref({ 
-  //   event:"response-to-call",
-  //   event_data:{
-  //     id:"wacid.HBgONDc3MDAwNTc4Mjk0NTMVEgASGCBBQzVCQTVFNTE2MUJGN0VDRkIyRjREQjFFRUZFRDI0MxwYDDkxOTYxOTcyMzc1ORUCABUeAA==",
-  //     from:"918691945760",
-  //     to:"919619723759",
-  //     event:"connect",
-  //     timestamp:"1762336250",
-  //     direction:"USER_INITIATED",
-  //     session:{
-  //       sdp:"v=0\r\no=- 1762336250050 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE audio\r\na=msid-semantic: WMS 1a8be36a-9a9c-4322-8636-f2247cfdf1b9\r\na=ice-lite\r\nm=audio 3484 UDP/TLS/RTP/SAVPF 111 126\r\nc=IN IP4 163.70.144.130\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=candidate:707619806 1 udp 2122260223 163.70.144.130 3484 typ host generation 0 network-cost 50\r\na=candidate:1267757827 1 udp 2122262783 2a03:2880:f288:1d4:face:b00c:0:699c 3484 typ host generation 0 network-cost 50\r\na=ice-ufrag:VyVkdwnqGUZtqVON\r\na=ice-pwd:sGUUAvS/fOjzPtIoL72o2g==\r\na=fingerprint:sha-256 8E:64:08:0B:8F:CE:73:ED:E2:44:9C:FB:EA:0B:20:D5:41:B6:93:06:F9:79:6C:48:78:1A:A2:41:AD:9C:EA:68\r\na=setup:actpass\r\na=mid:audio\r\na=sendrecv\r\na=msid:1a8be36a-9a9c-4322-8636-f2247cfdf1b9 WhatsAppTrack1\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\na=rtcp-fb:111 transport-cc\r\na=fmtp:111 maxaveragebitrate=20000;maxplaybackrate=16000;minptime=20;sprop-maxcapturerate=16000;useinbandfec=1\r\na=rtpmap:126 telephone-event/8000\r\na=maxptime:20\r\na=ptime:20\r\na=ssrc:972010428 cname:WhatsAppAudioStream1\r\n",
-  //       sdp_type:"offer"
-  //     }
-  //   }
-  // })
   const callData = ref({})
-  
-  // WebRTC objects
   let pc = null;
   let localStream = null;
   
@@ -39,10 +20,9 @@ export function useWebRTC() {
     { urls: "stun:stun.l.google.com:3478" },
     { urls: "stun:stun.counterpath.net:3478" },
     { urls: "stun:numb.viagenie.ca:3478" },
-    // Add TURN servers if needed for WhatsApp
+    // Will add TURN servers if needed 
   ]);
 
-  // Call state
   const activeCall = ref({
     show: false,
     remoteNumber: "",
@@ -67,7 +47,6 @@ export function useWebRTC() {
     window.parent.postMessage(phoneEvent, "*");
   };
 
-  // Call history management
   const addToCallHistory = (remoteNumber, status, timestamp) => {
     callHistory.value.unshift({
       id: Date.now(),
@@ -157,16 +136,11 @@ export function useWebRTC() {
     }
   };
 
-  /**
-   * Initialize WebRTC connection
-   */
   const initWebRTC = async () => {
     try {
       isConnecting.value = true;
       connectionStatus.value = "connecting";
       errorMessage.value = "";
-
-      // Get user media
       localStream = await navigator.mediaDevices.getUserMedia({ 
         audio: {
           echoCancellation: true,
@@ -178,20 +152,16 @@ export function useWebRTC() {
       
       setupLocalAudio(localStream);
 
-      // Create peer connection
       pc = new RTCPeerConnection({
         iceServers: iceServers.value,
         iceTransportPolicy: "all"
       });
 
-      // Add local tracks
       localStream.getTracks().forEach(track => {
         pc.addTrack(track, localStream);
       });
 
-      // Set up event listeners
       setupRTCEventListeners();
-
       isConnecting.value = false;
       connectionStatus.value = "connected";
       console.log("WebRTC initialized successfully");
@@ -204,13 +174,9 @@ export function useWebRTC() {
     }
   };
 
-  /**
-   * Set up WebRTC event listeners
-   */
   const setupRTCEventListeners = () => {
     if (!pc) return;
 
-    // Handle incoming tracks (remote audio)
     pc.ontrack = (event) => {
       console.log("Received remote track:", event);
       if (event.streams && event.streams[0]) {
@@ -218,7 +184,6 @@ export function useWebRTC() {
       }
     };
 
-    // Handle ICE candidates
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         gatheredCandidates.value.push(event.candidate.toJSON());
@@ -338,9 +303,6 @@ export function useWebRTC() {
     }
   };
 
-  /**
-   * Create SDP answer for incoming call
-   */
   const createAnswer = async (offerSDP) => {
     if (!pc) {
       await initWebRTC();
@@ -382,38 +344,27 @@ export function useWebRTC() {
     }
   };
 
-  /**
-   * Set remote SDP description (for completing the handshake)
-   */
   const setRemoteDescription = async (remoteSDPData) => {
     if (!pc) {
       throw new Error("WebRTC not initialized");
     }
 
     try {
-      // Set remote description
       if (remoteSDPData.sdp) {
         await pc.setRemoteDescription(new RTCSessionDescription(remoteSDPData.sdp));
       }
-
-      // Add ICE candidates if available
       if (remoteSDPData.ice && Array.isArray(remoteSDPData.ice)) {
         for (const candidate of remoteSDPData.ice) {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
         }
       }
-
       console.log("Remote description set successfully");
-
     } catch (error) {
       console.error("Failed to set remote description:", error);
       throw error;
     }
   };
 
-  /**
-   * Get local SDP data (offer/answer + ICE candidates)
-   */
   const getLocalSDPData = () => {
     if (!pc || !pc.localDescription) {
       return null;
@@ -425,20 +376,13 @@ export function useWebRTC() {
     };
   };
 
-  /**
-   * Update local SDP data display (for debugging)
-   */
   const updateLocalSDPData = () => {
     const localData = getLocalSDPData();
     if (localData) {
-      // You can send this to parent window or store it for Meta API
       sendPostMessage("local-sdp-data", localData);
     }
   };
 
-  /**
-   * Handle incoming call from webhook
-   */
   const handleIncomingCall = (offerSDP, remoteNumber = "", fullOffer) => {
     currentPeerNumber.value = remoteNumber;
     incomingCall.value = {
@@ -450,28 +394,23 @@ export function useWebRTC() {
     playRingtone();
     console.log("handle got called", offerSDP)
     callData.value = fullOffer;
-    
-    // Store the offer for when user answers
     incomingCall.value.pendingOffer = offerSDP;
   };
 
-  /**
-   * Answer incoming call
-   */
   const answerCall = async () => {
     if (!incomingCall.value.show || !incomingCall.value.pendingOffer) {
       throw new Error("No incoming call to answer");
     }
 
     try {
-      console.log("bef assign", JSON.parse(JSON.stringify(callData.value)))
+      console.log("before assign", JSON.parse(JSON.stringify(callData.value)))
       // callData.value = event_data;
       const answerSDP = await createAnswer(incomingCall.value.pendingOffer || callData.value.session);
       incomingCall.value.show = false;
       activeCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
-        startTime: null, // Will be set when connected
+        startTime: null,
       };
       console.log("answered call", answerSDP);
       stopRingtone();
@@ -485,9 +424,6 @@ export function useWebRTC() {
     }
   };
 
-  /**
-   * Reject incoming call
-   */
   const rejectCall = async () => {
     if (!incomingCall.value.show) {
       throw new Error("No incoming call to reject");
@@ -509,9 +445,6 @@ export function useWebRTC() {
     });
   };
 
-  /**
-   * End active call
-   */
   const endCall = async (endFromAgent) => {
     if (pc) {
       pc.close();
@@ -558,9 +491,6 @@ export function useWebRTC() {
     });
   };
 
-  /**
-   * Make outgoing call (initiate WebRTC offer)
-   */
   const makeCall = async (remoteNumber) => {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
@@ -576,9 +506,6 @@ export function useWebRTC() {
     }
   };
 
-  /**
-   * Cleanup
-   */
   const disconnect = () => {
     endCall(false);
     isConnected.value = false;

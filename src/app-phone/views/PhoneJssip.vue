@@ -3,7 +3,6 @@ import { onMounted, onUnmounted, ref, computed } from "vue";
 import { useWebRTC } from "@/app-phone/composables/useWebRTC";
 import { REMOTE_JS_URL } from "@/@common/constants";
 
-// Use the WebRTC composable
 const {
   isConnected,
   isConnecting,
@@ -22,17 +21,14 @@ const {
   setRemoteDescription,
 } = useWebRTC();
 
-// Component state
 const dialedNumber = ref("");
 const isCallHistory = ref(false);
 const isDialer = ref(true);
-
-// Computed properties
 const canUseKeypad = computed(() => {
   return callState.value === "idle" || callState.value === "talking";
 });
 
-// Utility functions
+// Utility function
 const sendPostMessage = (event_type, data) => {
   const phoneEvent = JSON.stringify({ event: event_type, event_data: data });
   window.parent.postMessage(phoneEvent, "*");
@@ -86,14 +82,12 @@ const handleCall = async () => {
 
   try {
     const offerSDP = await makeCall(dialedNumber.value);
-    
-    // Send offer to Meta API via parent window
     sendPostMessage("webrtc-offer", {
       dialedNumber: dialedNumber.value,
       offerSDP: offerSDP
     });
     
-    console.log("WebRTC offer created and sent to Meta API");
+    console.log("WebRTC offer created and then send to Meta API");
 
   } catch (error) {
     console.error("Call failed:", error);
@@ -227,7 +221,7 @@ onMounted(async () => {
   //     }
   //   }
   // }
-  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from, cata.event_data); }, 15000);
+  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from, cata.event_data); }, 10000);
 });
 
 onUnmounted(() => {
@@ -237,8 +231,7 @@ onUnmounted(() => {
 
 <template>
   <div class="container">
-    <div class="webrtc-client">
-      <!-- Status Bar -->
+    <div class="webrtc-client" style="max-width: 310px;">
       <div class="status-bar">
         <div class="status-left"></div>
         <div class="status-right">
@@ -277,7 +270,6 @@ onUnmounted(() => {
         </div>
       </div> -->
 
-      <!-- Active Call Status -->
       <div v-if="activeCall.show" class="active-call-status">
         <h4>WhatsApp Call Active</h4>
         <p>Connected to: {{ activeCall.remoteNumber }}</p>
@@ -288,7 +280,6 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Call History -->
       <div class="call-history" v-if="isCallHistory">
         <h4>Recent Calls</h4>
         <ul>
@@ -299,7 +290,6 @@ onUnmounted(() => {
         </ul>
       </div>
 
-      <!-- Dialer -->
       <div class="dialer-container" v-if="isDialer">
         <div class="display">
           <div class="number-display">{{ dialedNumber }}</div>
@@ -343,7 +333,6 @@ onUnmounted(() => {
         </div>
       </div>
 
-      <!-- Bottom Navigation -->
       <ul class="tab-nav-container">
         <li class="tab" @click="openDialer">
           <div class="icon-placeholder" :class="{ active: isDialer }">
