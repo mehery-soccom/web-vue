@@ -41,6 +41,22 @@ export const useDocStore = defineStore("DocStore", {
             }
             return response.data;
         },
+
+        async uploadPofileDocument({ formData, existingUuid = null }) {
+            let url = 'admin/api/upload/pofile/document?uploadType=insert';
+            if (existingUuid) {
+                url = `admin/api/upload/pofile/document?uploadType=update&uuId=${existingUuid}`;
+            }
+
+            const response = await DataService.axios.post(url, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+                skipApiContext: true,
+            });
+            
+            return response.data;
+        },
     }
 });
 

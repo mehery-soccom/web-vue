@@ -1,5 +1,5 @@
 import { createPinia } from "pinia";
-import vuetify from "@app-lead/plugins/vuetify";
+import vuetify from "../plugins/vuetify";
 
 export default {
   install(app) {

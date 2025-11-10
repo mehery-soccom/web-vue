@@ -1,14 +1,19 @@
 export default [
-  { heading: "Admin" },
+  { heading: "Setup" },
   {
     title: "Fields",
     icon: { icon: "tabler-plug" },
     to: "admin-fields-list",
   },
   {
-    title: "Campaigns",
+    title: "Forms",
     icon: { icon: "tabler-clipboard-text" },
     to: "admin-forms-list",
+  },
+  {
+    title: "Campaigns",
+    icon: { icon: "tabler-clipboard-text" },
+    to: "admin-campaigns-list",
   },
   {
     title: "Leads",

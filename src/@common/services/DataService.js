@@ -347,6 +347,11 @@ const DataService = {
     axios.interceptors.request.use((config) => {
       config.headers["timezone"] =
         Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+      if (config.skipApiContext === true) {
+        config.baseURL = window.location.origin;
+      }
+
       return config;
     });
   },

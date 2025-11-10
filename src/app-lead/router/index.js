@@ -12,6 +12,8 @@ import LeadsList from "@/app-lead/pages/admin/leads/list/index.vue";
 import LeadsAdd from "@/app-lead/pages/admin/leads/add/[[id]].vue";
 import StagesList from "@/app-lead/pages/admin/stages/list/index.vue";
 import StagesAdd from "@/app-lead/pages/admin/stages/add/[[id]].vue";
+import CampaignsList from "@/app-lead/pages/admin/campaigns/list/index.vue";
+import CampaignsAdd from "@/app-lead/pages/admin/campaigns/add/[[id]].vue";
 
 const baseRoutes = [
   {
@@ -152,6 +154,32 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "admin-stages-add-id?",
           component: StagesAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/campaigns/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-campaigns-list",
+          component: CampaignsList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/campaigns/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-campaigns-add-id?",
+          component: CampaignsAdd,
           props: true,
           meta: { layout: "default" },
         },

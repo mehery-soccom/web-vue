@@ -55,6 +55,19 @@ onMounted(async () => {
           label: masterField.title, 
         };
       });
+    }else {
+      const defaultCodes = ['name', 'email', 'phone'];
+      const defaultAccess = { contact: 'R', moderator: 'R', agent: 'R' };
+
+      const fieldsToAdd = defaultCodes.map(code => {
+        return availableFields.value.find(f => f.code === code);
+      }).filter(Boolean);
+
+      formFields.value = fieldsToAdd.map(field => ({
+        ...field,
+        access: { ...defaultAccess },
+        label: field.title
+      }));
     }
   } catch (error) {
     console.error('Failed to load form data:', error);
@@ -70,12 +83,17 @@ const addFieldCard = () => {
   formFields.value.push({
     _id: null,
     inputType: null,
-    access: { contact: 'R', moderator: 'R', agent: 'R' },
+    access: { contact: 'W', moderator: 'W', agent: 'W' },
   });
 };
 
 const removeFieldCard = (index) => {
-  formFields.value.splice(index, 1);
+  const field = formFields.value[index];
+  if (field && field.code === 'name') {
+    show({ message: 'The Name field cannot be removed.', color: 'warning' });
+    return;
+  }
+  formFields.value.splice(index, 1);
 };
 
 const onFieldSelected = (selectedFieldId, index) => {
@@ -89,7 +107,7 @@ const onFieldSelected = (selectedFieldId, index) => {
     formFields.value[index] = {
       _id: null,
       inputType: null,
-      access: { contact: 'R', moderator: 'R', agent: 'R' },
+      access: { contact: 'W', moderator: 'W', agent: 'W' },
     };
   }
 };
@@ -212,6 +230,10 @@ const openPreview = () => {
                       placeholder="Search for a field to add"
                       clearable
                     >
+                      <template #label>
+                        {{ field.title || 'Select a Field' }}
+                        <span v-if="field.optional === false" class="text-error">*</span>
+                      </template>
                       <template #item="{ props, item }">
                           <VListItem v-bind="props" :title="undefined">
                             <VListItemTitle>{{ item.raw.title }}</VListItemTitle>
@@ -233,7 +255,7 @@ const openPreview = () => {
                     </VAutocomplete>
                   </VCol>
                   <VCol cols="12" md="1" class="text-right">
-                    <VBtn icon="tabler-trash" variant="text" color="error" @click="removeFieldCard(index)" />
+                    <VBtn icon="tabler-trash" variant="text" color="error" @click="removeFieldCard(index)" :disabled="field.code === 'name'" />
                   </VCol>
                   <VCol cols="1" md="1" class="text-center">
                     <VIcon class="drag-handle" style="cursor: move;">tabler-grip-vertical</VIcon>

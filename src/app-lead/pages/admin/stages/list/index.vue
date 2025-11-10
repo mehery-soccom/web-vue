@@ -137,12 +137,26 @@ onMounted(() => {
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
-        <VBtn
-          prepend-icon="tabler-plus"
-          :to="{ name: 'admin-stages-add-id?', params: { id: 'add' } }"
+        <VTooltip
+          location="top"
+          text="Maximum 10 Stages are allowed"
+          :disabled="pagination.itemsLength < 10"
         >
-          Create Stage
-        </VBtn>
+          <template #activator="{ props: tooltipProps }">
+            <div
+              v-bind="tooltipProps"
+              class="d-inline-block"
+            >
+              <VBtn
+                prepend-icon="tabler-plus"
+                :to="pagination.itemsLength >= 10 ? undefined : { name: 'admin-stages-add-id?', params: { id: 'add' } }"
+                :disabled="pagination.itemsLength >= 10"
+              >
+                Create Stage
+              </VBtn>
+            </div>
+          </template>
+        </VTooltip>
       </div>
     </VCardText>
     <VDivider />

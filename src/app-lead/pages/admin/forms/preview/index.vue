@@ -12,38 +12,46 @@ const phoneValidator = value => {
   return phoneRegex.test(value) || 'Please enter a valid phone number';
 }
 
-const phoneOrEmailRequired = () => {
-  return !!formValues.value['contact.phone'] || !!formValues.value['contact.email'] || 'Either Phone or Email is required';
+const getRules = (field) => {
+  const rules = [];
+
+  if (field.optional === false) {
+    rules.push(requiredValidator);
+  }
+  if (field.inputType === 'EMAIL') {
+    rules.push(emailValidator);
+  }
+  if (field.inputType === 'PHONE') {
+    rules.push(phoneValidator);
+  }
+  
+  return rules;
 }
 
 onMounted(() => {
-  const data = sessionStorage.getItem('form-preview-data');
-  if (data) {
-    try {
-      formStructure.value = JSON.parse(data);
+  const data = sessionStorage.getItem('form-preview-data');
+  if (data) {
+    try {
+      formStructure.value = JSON.parse(data);
 
-      const initialValues = {
-        'contact.name': null,
-        'contact.phone': null,
-        'contact.email': null,
-      };
+      const initialValues = {};
 
-      if (formStructure.value && formStructure.value.fields) {
-        formStructure.value.fields.forEach(field => {
+      if (formStructure.value && formStructure.value.fields) {
+        formStructure.value.fields.forEach(field => {
           if(field.path) {
-              initialValues[field.path] = null;
-          } else {
-              initialValues[field.code] = null;
-          }
-        });
-      }
-      formValues.value = initialValues;
+              initialValues[field.path] = null;
+          } else {
+              initialValues[field.code] = null;
+          }
+        });
+      }
+      formValues.value = initialValues;
 
-    } catch (e) {
-      console.error("Failed to parse form preview data:", e);
-      formStructure.value = null;
-    }
-  }
+    } catch (e) {
+      console.error("Failed to parse form preview data:", e);
+      formStructure.value = null;
+    }
+  }
 });
 
 const submitForm = () => {
@@ -53,61 +61,20 @@ const submitForm = () => {
 </script>
 
 <template>
-  <VContainer >
+  <VContainer>
     <VRow class="justify-center">
       <VCol cols="12" md="7">
         <VForm v-if="formStructure" @submit.prevent="submitForm">
           <VCard class="mb-6">
             <VCardItem class="text-left">
               <VCardTitle class="text-h3 pt-4">{{ formStructure.title }}</VCardTitle>
-              <VCardSubtitle v-if="formStructure.desc" class="mt-2 font-italic">{{ formStructure.desc }}</VCardSubtitle>
+              <VCardSubtitle
+                v-if="formStructure.desc"
+                class="mt-2 font-italic"
+              >
+                {{ formStructure.desc }}
+              </VCardSubtitle>
             </VCardItem>
-          </VCard>
-
-          <VCard class="my-4">
-            <VCardText>
-               <VLabel class="mb-2 font-weight-medium">Name <span class="text-error">*</span></VLabel>
-               <VRow>
-                <VCol md="8">
-                  <VTextField
-                    v-model="formValues['contact.name']"
-                    placeholder="Enter Lead Name"
-                    variant="outlined"
-                    :rules="[requiredValidator]"
-                  />
-                </VCol>
-              </VRow>
-            </VCardText>
-          </VCard>
-           <VCard class="my-4">
-            <VCardText>
-               <VLabel class="mb-2 font-weight-medium">Phone</VLabel>
-               <VRow>
-                <VCol md="8">
-                  <VTextField
-                    v-model="formValues['contact.phone']"
-                    placeholder="Enter Phone Number"
-                    variant="outlined"
-                    :rules="[phoneValidator, phoneOrEmailRequired]"
-                  />
-                </VCol>
-              </VRow>
-            </VCardText>
-          </VCard>
-          <VCard class="my-4">
-            <VCardText>
-               <VLabel class="mb-2 font-weight-medium">Email</VLabel>
-                <VRow>
-                <VCol md="8">
-                  <VTextField
-                    v-model="formValues['contact.email']"
-                    placeholder="Enter Email Address"
-                    variant="outlined"
-                    :rules="[emailValidator, phoneOrEmailRequired]"
-                  />
-                </VCol>
-              </VRow>
-            </VCardText>
           </VCard>
 
           <VCard
@@ -116,26 +83,32 @@ const submitForm = () => {
             class="my-4"
           >
             <VCardText>
-              <VLabel class="mb-2 font-weight-medium">{{ field.title }}</VLabel>
+              <VLabel class="mb-2 font-weight-medium">
+                {{ field.title }}
+                <span v-if="field.optional === false" class="text-error">*</span>
+              </VLabel>
 
+              <!-- TEXT / EMAIL / PHONE -->
               <VRow v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)">
                 <VCol md="8">
                   <VTextField
-                    v-model="formValues[field.code]"
+                    v-model="formValues[field.path || field.code]"
                     :placeholder="field.desc"
                     variant="outlined"
+                    :rules="getRules(field)"
                   />
                 </VCol>
               </VRow>
-              
+
               <VRow v-else-if="field.inputType === 'OPTIONS'">
                 <VCol md="8">
                   <AppSelect
-                    v-model="formValues[field.code]"
+                    v-model="formValues[field.path || field.code]"
                     :items="field.options"
                     item-title="label"
                     item-value="code"
                     :placeholder="field.desc"
+                    :rules="getRules(field)"
                   />
                 </VCol>
               </VRow>
@@ -143,49 +116,52 @@ const submitForm = () => {
               <VRow v-else-if="field.inputType === 'DATE'">
                 <VCol md="4">
                   <AppDateTimePicker
-                    v-model="formValues[field.code]"
+                    v-model="formValues[field.path || field.code]"
                     :placeholder="field.desc"
                     prepend-inner-icon="tabler-calendar"
+                    :rules="getRules(field)"
                   />
                 </VCol>
               </VRow>
-              
-             <VRow v-else-if="field.inputType === 'DOCUMENT'">
-              <VCol md="6">
-                <VFileInput
-                  v-model="formValues[field.code]"
-                  :label="field.desc || 'Upload a file'"
-                  variant="outlined"
-                  chips
-                />
-              </VCol>
-             </VRow>
+
+              <VRow v-else-if="field.inputType === 'DOCUMENT'">
+                <VCol md="6">
+                  <VFileInput
+                    v-model="formValues[field.path || field.code]"
+                    :label="field.desc || 'Upload a file'"
+                    variant="outlined"
+                    chips
+                    :rules="getRules(field)"
+                  />
+                </VCol>
+              </VRow>
 
               <VSwitch
                 v-else-if="field.inputType === 'BOOLEAN'"
-                v-model="formValues[field.code]"
+                v-model="formValues[field.path || field.code]"
                 :label="field.title"
-                class="ms-n3"
+                :rules="getRules(field)"
               />
 
               <VTextField
                 v-else
-                v-model="formValues[field.code]"
+                v-model="formValues[field.path || field.code]"
                 :placeholder="field.desc"
                 variant="outlined"
                 disabled
                 hint="Unsupported field type"
+                :rules="getRules(field)"
               />
             </VCardText>
           </VCard>
-          
+
           <VBtn class="mt-6" type="submit" block>Submit</VBtn>
         </VForm>
-        
+
         <div v-else class="text-center mt-10">
-            <VAlert type="error" variant="tonal">
-                No form data found to preview or the data is invalid. Please go back and try again.
-            </VAlert>
+          <VAlert type="error" variant="tonal">
+            No form data found to preview or the data is invalid. Please go back and try again.
+          </VAlert>
         </div>
       </VCol>
     </VRow>
@@ -197,4 +173,5 @@ const submitForm = () => {
   background-color: #f4f5fa;
 }
 </style>
+
 

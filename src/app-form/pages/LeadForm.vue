@@ -1,79 +1,250 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from "vue"
+import { useRoute, useRouter } from "vue-router"
+import { useFormStore } from "@/app-form/views/useFormStore"
+import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
+import { emailValidator, requiredValidator } from "@app-lead/@core/utils/validators"
 
-const name = ref('');
-const form = ref(null); 
-const valid = ref(false); 
+const route = useRoute()
+const router = useRouter();
+const formStore = useFormStore()
 
-const rules = {
-  required: value => !!value || 'Name is required.',
-  min: value => value.length >= 3 || 'Name must be at least 3 characters.',
-};
+const refForm = ref(null)
+const formStructure = ref(null)
+const formCode = ref(null);
+const formTitle = ref(null);
+const formValues = ref({})
+const isLoading = ref(true)
 
+const phoneValidator = (value) => {
+  if (!value) return true
+  const phoneRegex = /^[+]?[0-9]{10,15}$/
+  return phoneRegex.test(value) || "Please enter a valid phone number"
+}
 
-const submitForm = () => {
-  if (valid.value) {
-    console.log('Form is valid and submitted! Name:', name.value);
-  } else {
-    console.log('Form is invalid. Please check fields.');
+const getRules = (field) => {
+  const rules = []
+  if (field.optional === false) rules.push(requiredValidator)
+  if (field.inputType === "EMAIL") rules.push(emailValidator)
+  if (field.inputType === "PHONE") rules.push(phoneValidator)
+  return rules
+}
+
+onMounted(async () => {
+  isLoading.value = true
+
+  const formId = route.params.formId
+  const submissionId = route.params.submissionId
+  const queryParams = route.query
+
+  if (!formId || !submissionId) {
+    isLoading.value = false
+    return
   }
-};
 
-const resetForm = () => {
-  form.value.reset();
-  name.value = '';
-};
+  try {
+    const response = await formStore.fetchFormData({
+      formId,
+      submissionId,
+      params: queryParams,
+    })
+
+    const formDef = response.data.results[0]
+    if (!formDef) throw new Error("No form definition found in API response.")
+
+    const mappedFields = formDef.formFields
+      .map((f) => formDef.masterFields[f.field_id] || null)
+      .filter((f) => f !== null)
+
+    formCode.value = formDef.code;
+    formTitle.value = formDef.title;
+
+    formStructure.value = {
+      title: formDef.title,
+      desc: formDef.desc,
+      fields: mappedFields,
+    }
+
+    const initialValues = {}
+    formStructure.value.fields.forEach((field) => {
+      initialValues[field.path || field.code] = null
+    })
+    formValues.value = initialValues
+  } catch (error) {
+    formStructure.value = null
+  } finally {
+    isLoading.value = false
+  }
+})
+
+const submitForm = async () => {
+  if (!refForm.value) return
+
+  const { valid } = await refForm.value.validate()
+  if (!valid) return
+
+  isLoading.value = true
+
+  const apiData = Object.keys(formValues.value).reduce((acc, currentKey) => {
+    const value = formValues.value[currentKey]
+    const keyMap = {
+      'custom.name': 'contact.name',
+      'custom.email': 'contact.email',
+      'custom.phone': 'contact.phone'
+    }
+    if (keyMap[currentKey]) {
+      acc[keyMap[currentKey]] = value
+    } else {
+      acc[currentKey] = value
+    }
+    return acc
+  }, {})
+
+  const payload = {
+    formCode: formCode.value,
+    formTitle: formTitle.value,
+    data: apiData
+  };
+
+  // console.log("Submitting payload:", payload);
+
+  const formId = route.params.formId
+  const submissionId = route.params.submissionId
+  const queryParams = route.query
+
+  try {
+    await formStore.submitFormData({
+      formId,
+      submissionId,
+      params: queryParams,
+      payload
+    })
+
+    router.push({
+			name: "app-form-success",
+			params: { formId: formId, submissionId: submissionId },
+		});
+  } catch (error) {
+    console.error("Error submitting form:", error);
+    alert("Failed to submit form. Please try again.")
+  } finally {
+    isLoading.value = false
+  }
+}
+
 </script>
 
 <template>
-  <v-container>
-    <h2>Simple VForm Example</h2>
-    
-    <v-form 
-      ref="form"
-      v-model="valid" 
-      @submit.prevent="submitForm"
-      lazy-validation
-    >
-      <v-text-field
-        v-model="name"
-        :rules="[rules.required, rules.min]"
-        label="Enter Your Name"
-        required
-        counter
-      ></v-text-field>
+  <VContainer>
+    <VRow class="justify-center">
+      <VCol cols="10" md="7">
+        <div v-if="isLoading" class="text-center mt-10">
+          <VProgressCircular indeterminate size="64" />
+          <p class="mt-4">Loading Form...</p>
+        </div>
 
-      <v-row>
-        <v-col cols="6">
-          <v-btn
-            color="success"
-            type="submit"
-            :disabled="!valid" 
-            block
+        <VForm v-else-if="formStructure" ref="refForm" @submit.prevent="submitForm">
+          <VCard class="mb-6">
+            <VCardItem class="text-left">
+              <VCardTitle class="text-h3 ">{{ formStructure.title }}</VCardTitle>
+              <VCardSubtitle v-if="formStructure.desc" class="mt-2 font-italic">
+                {{ formStructure.desc }}
+              </VCardSubtitle>
+            </VCardItem>
+          </VCard>
+
+          <VCard
+            v-for="field in formStructure.fields"
+            :key="field._id"
+            class="my-4"
           >
+            <VCardText>
+              <VLabel class="mb-2 font-weight-medium">
+                {{ field.title }}
+                <span v-if="field.optional === false" class="text-error">*</span>
+              </VLabel>
+
+              <VRow v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)">
+                <VCol md="8">
+                  <VTextField
+                    v-model="formValues[field.path || field.code]"
+                    :placeholder="field.desc"
+                    variant="outlined"
+                    :rules="getRules(field)"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'OPTIONS'">
+                <VCol md="8">
+                  <VSelect
+                    v-model="formValues[field.path || field.code]"
+                    :items="field.options"
+                    item-title="label"
+                    item-value="code"
+                    :placeholder="field.desc"
+                    :rules="getRules(field)"
+                    variant="outlined"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'DATE'">
+                <VCol md="4">
+                  <AppDateTimePicker
+                    v-model="formValues[field.path || field.code]"
+                    :placeholder="field.desc"
+                    prepend-inner-icon="tabler-calendar"
+                    :rules="getRules(field)"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'DOCUMENT'">
+                <VCol md="6">
+                  <VFileInput
+                    v-model="formValues[field.path || field.code]"
+                    :label="field.desc || 'Upload a file'"
+                    variant="outlined"
+                    chips
+                    :rules="getRules(field)"
+                  />
+                </VCol>
+              </VRow>
+
+              <VSwitch
+                v-else-if="field.inputType === 'BOOLEAN'"
+                v-model="formValues[field.path || field.code]"
+                :rules="getRules(field)"
+              />
+
+              <VTextField
+                v-else
+                :placeholder="field.desc"
+                variant="outlined"
+                disabled
+                hint="Unsupported field type"
+              />
+            </VCardText>
+          </VCard>
+
+          <VBtn class="mt-6" type="submit" block :loading="isLoading">
             Submit
-          </v-btn>
-        </v-col>
-        <v-col cols="6">
-          <v-btn
-            color="error"
-            @click="resetForm"
-            block
-          >
-            Reset
-          </v-btn>
-        </v-col>
-      </v-row>
-    </v-form>
-  </v-container>
+          </VBtn>
+        </VForm>
+
+        <div v-else class="text-center mt-10">
+          <VAlert type="error" variant="tonal">
+            No form data found or the data is invalid. Please check the console for errors.
+          </VAlert>
+        </div>
+      </VCol>
+    </VRow>
+  </VContainer>
 </template>
 
-<style scoped>
-.v-container {
-  max-width: 400px;
-  margin-top: 20px;
-  padding: 20px;
-  border: 1px solid #ccc;
-  border-radius: 8px;
+<style>
+.layout-wrapper.layout-blank {
+  background-color: #f4f5fa;
 }
 </style>

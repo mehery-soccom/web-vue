@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, inject } from 'vue';
+import { ref, onMounted, inject, reactive } from 'vue';
 import debounce from "lodash/debounce";
 import { useFieldsStore } from "@/app-lead/views/admin/fields/useFieldsStore";
 
@@ -23,6 +23,18 @@ const pagination = reactive({
     code: null,
   },
 });
+
+const defaultFields = [
+  { title: 'Name', code: 'name', desc: 'Name', inputType: 'TEXT', optional: false, isActive: true },
+  { title: 'Phone', code: 'phone', desc: 'Phone Number', inputType: 'PHONE', optional: false, isActive: true },
+  { title: 'Email', code: 'email', desc: 'Email ID', inputType: 'EMAIL', optional: false, isActive: true },
+];
+
+const defaultFieldCodes = defaultFields.map(f => f.code);
+
+const isDefaultField = (field) => {
+  return defaultFieldCodes.includes(field.code);
+};
 
 const onUpdateOptions = (options) => {
   pagination.page = options.page;
@@ -63,10 +75,29 @@ const fetchFields = async (options = pagination) => {
     const response = await fieldsStore.fetchFields(apiParams);
     fields.value = response.results;
     pagination.itemsLength = response.pagination.total || 0;
+
+    if (pagination.itemsLength === 0) {
+      show({ message: 'No fields found. Creating default fields...', color: 'info' });
+      try {
+        await Promise.all(defaultFields.map(field => fieldsStore.createField(field)));
+        show({ message: 'Default fields created successfully.', color: 'success' });
+        
+        const finalResponse = await fieldsStore.fetchFields(apiParams);
+        fields.value = finalResponse.results;
+        pagination.itemsLength = finalResponse.pagination.total || 0;
+
+      } catch (createError) {
+        console.error("Error creating default fields:", createError);
+        const createErrorMessage = createError.response?.data?.message || 'Failed to create default fields'
+        show({ message: createErrorMessage, color: 'error' });
+      }
+    }
+
   } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || "Something went wrong while fetching fields."
-      show({ message: errorMessage, color: "error" });
+      show({ message: errorMessage, color: "error" });
       fields.value = [];
+      pagination.itemsLength = 0;
   } finally {
     isLoading.value = false;
   }
@@ -223,11 +254,12 @@ const handleImport = async () => {
               name: 'admin-fields-add-id?',
               params: {id: item.raw._id}
            }"
+           :disabled="isDefaultField(item.raw)"
           >
             <VIcon icon="tabler-edit" />
           </IconBtn>
           
-          <IconBtn>
+          <IconBtn :disabled="isDefaultField(item.raw)">
             <VIcon icon="tabler-trash" />
             <v-dialog activator="parent" max-width="400">
               <template v-slot:default="{ isActive }">

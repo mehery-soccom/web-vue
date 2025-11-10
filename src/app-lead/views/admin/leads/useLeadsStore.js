@@ -48,25 +48,30 @@ export const useLeadsStore = defineStore("LeadsStore", {
             }
             return response.data;
         },
+        async createLeadFollowup({ leadId, payload }) {
+            const response = await DataService.axios.post(`/profile/followups/${leadId}`, payload, { toast: false })
+            if (response.data.error) {
+                throw { response: { data: response.data } }
+            }
+            return response.data
+        },
 
-        // async createFollowup(payload) {
-        //     const response = await DataService.axios.post("/nexus/calendar/api/v1/followup/create", payload);
-        //     return response.data;
-        // },
-        async createFollowup(payload) {
-            const response = await DataService.axios.post("/nexus/calendar/api/v1/followup/create", payload, { toast: false });
-            if (response.data.error) {
-                throw { response: { data: response.data } };
-            }
-            return response.data;
-        },
-        async linkFollowupToLead({ leadId, payload }) {
-            const response = await DataService.axios.post(`/profile/followups/${leadId}`, payload, { toast: false });
-            if (response.data.error) {
-                throw { response: { data: response.data } };
-            }
-            return response.data;
-        },
+        async updateLeadFollowup({ followupId, payload }) {
+            const response = await DataService.axios.post(`/followups/lead/${followupId}/update`, payload, { toast: false })
+            if (response.data.error) {
+                throw { response: { data: response.data } }
+            }
+            return response.data
+        },
+
+        async cancelLeadFollowup({ followupId, payload }) {
+            const response = await DataService.axios.post(`/followups/lead/${followupId}/cancel`, payload, { toast: false })
+            if (response.data.error) {
+                throw { response: { data: response.data } }
+            }
+            return response.data
+        },
+
     }
 });
 

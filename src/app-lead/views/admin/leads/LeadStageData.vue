@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, inject, watch } from 'vue';
 import { useStagesStore } from '@/app-lead/views/admin/stages/useStagesStore';
 import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore';
+import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
 
 const props = defineProps({
   currentStageId: {
@@ -11,7 +12,11 @@ const props = defineProps({
   leadId: {
     type: String,
     required: true,
-  }
+  },
+  initialClosingDate: {
+    type: Number,
+    default: null,
+  }
 });
 
 const emit = defineEmits(['stage-updated']);
@@ -25,11 +30,17 @@ const isLoading = ref(true);
 const isUpdating = ref(false);
 const byUser = window.CONST?.USER?.user || null;
 
+const tsToDate = (ts) => (ts ? new Date(ts) : null);
+
 const stageForm = ref({
-  selectedStageId: props.currentStageId,
+  selectedStageId: props.currentStageId,
+  closingDate: tsToDate(props.initialClosingDate),
 });
 
-const originalStageId = ref(props.currentStageId);
+const originalStageForm = ref({
+  selectedStageId: props.currentStageId,
+  closingDate: tsToDate(props.initialClosingDate),
+});
 
 onMounted(async () => {
   try {
@@ -43,9 +54,10 @@ onMounted(async () => {
   }
 });
 
-watch(() => props.currentStageId, (newId) => {
-  stageForm.value.selectedStageId = newId;
-  originalStageId.value = newId;
+watch(() => props.initialClosingDate, (newTs) => {
+  const newDate = tsToDate(newTs);
+  stageForm.value.closingDate = newDate;
+  originalStageForm.value.closingDate = newDate;
 });
 
 const sortedStages = computed(() => {
@@ -66,12 +78,13 @@ const probability = computed(() => {
 });
 
 const isFormEdited = computed(() => {
-  return stageForm.value.selectedStageId !== originalStageId.value;
+  return stageForm.value.selectedStageId !== originalStageForm.value.selectedStageId ||
+         stageForm.value.closingDate !== originalStageForm.value.closingDate;
 });
 
-
 const handleCancel = () => {
-  stageForm.value.selectedStageId = originalStageId.value;
+  stageForm.value.selectedStageId = originalStageForm.value.selectedStageId;
+  stageForm.value.closingDate = originalStageForm.value.closingDate;
 };
 
 const handleSubmit = async () => {
@@ -81,6 +94,7 @@ const handleSubmit = async () => {
   try {
     const payload = {
       leadStage: stageForm.value.selectedStageId,
+      closingDate: stageForm.value.closingDate ? new Date(stageForm.value.closingDate).getTime() : null,
       byUser: byUser,
     };
     await leadsStore.updateLead({ id: props.leadId, data: payload });
@@ -174,10 +188,12 @@ const handleSubmit = async () => {
             <VLabel>Closing Date</VLabel>
           </VCol>
           <VCol cols="12" md="8">
-            <AppTextField
-              placeholder="-"
-              disabled
-            />
+            <AppDateTimePicker
+               v-model="stageForm.closingDate"
+               placeholder="Select a closing date"
+               :config="{ minDate: 'today' }"
+               prepend-inner-icon="tabler-calendar"
+             />
           </VCol>
         </VRow>
 

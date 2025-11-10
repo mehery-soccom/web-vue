@@ -29,14 +29,9 @@ const leadData = ref({});
 const leadHistory = ref([]);
 const followups = ref([]);
 const currentLeadStageId = ref(null);
-const originalContactData = ref(null);
 const originalLeadData = ref(null);
+const closingDate = ref(null);
 
-const contactData = ref({
-  name: '',
-  phone: '',
-  email: '',
-})
 
 const phoneValidator = value => {
   if (!value) return true
@@ -44,8 +39,18 @@ const phoneValidator = value => {
   return phoneRegex.test(value) || 'Please enter a valid phone number';
 }
 
-const phoneOrEmailRequired = () => {
-  return !!contactData.value.phone || !!contactData.value.email || 'Either Phone or Email is required';
+const getRules = (field) => {
+  const rules = [];
+  if (field.optional === false) {
+    rules.push(requiredValidator);
+  }
+  if (field.inputType === 'EMAIL') {
+    rules.push(emailValidator);
+  }
+  if (field.inputType === 'PHONE') {
+    rules.push(phoneValidator);
+  }
+  return rules;
 }
 
 const loadFormStructure = async (formId) => {
@@ -96,15 +101,14 @@ watch(selectedFormId, (newFormId) => {
 
 
 const isFormEdited = computed(() => {
-  if (!leadId.value) {
-    return true;
-  }
-  if (!originalContactData.value || !originalLeadData.value) {
-    return false;
-  }
-  const contactEdited = JSON.stringify(originalContactData.value) !== JSON.stringify(contactData.value);
-  const leadEdited = JSON.stringify(originalLeadData.value) !== JSON.stringify(leadData.value);
-  return contactEdited || leadEdited;
+  if (!leadId.value) {
+    return true;
+  }
+  if (!originalLeadData.value) {
+    return false;
+  }
+  const leadEdited = JSON.stringify(originalLeadData.value) !== JSON.stringify(leadData.value);
+  return leadEdited;
 });
 
 const fetchLeadData = async () => {
@@ -116,24 +120,19 @@ const fetchLeadData = async () => {
     if (leadId.value) {
       const leadDetails = await leadsStore.fetchLead(leadId.value);
 
-      contactData.value = {
-          name: leadDetails.contact?.name || '',
-          phone: leadDetails.contact?.phone || '',
-          email: leadDetails.contact?.email || '',
-      };
-      originalContactData.value = JSON.parse(JSON.stringify(contactData.value));
-
-      leadData.value = leadDetails.response || {};
+      const contactData = leadDetails.contact || {};
+      const responseData = leadDetails.response || {};
+      leadData.value = { ...responseData, ...contactData }; 
       originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
 
       leadHistory.value = leadDetails.leadHistory || [];
       followups.value = leadDetails.followups || [];
       currentLeadStageId.value = leadDetails.leadStage;
+      closingDate.value = leadDetails.closingDate || null;
 
-      selectedFormId.value = leadDetails.formId;
+      selectedFormId.value = leadDetails.form?.id || leadDetails.formId;
     } else {
         console.log("Create mode - No lead data to fetch.");
-        originalContactData.value = JSON.parse(JSON.stringify(contactData.value));
         originalLeadData.value = JSON.parse(JSON.stringify(leadData.value));
     }
   } catch (error) {
@@ -152,23 +151,17 @@ const byUser = window.CONST?.USER?.user || null;
 
 const handleSubmit = async () => {
   const { valid } = await refForm.value.validate();
-  if (!valid || (!contactData.value.phone && !contactData.value.email)) {
-    show({ message: 'Please fill in Name and either Phone or Email.', color: 'error' });
-    if (!selectedFormId.value && !leadId.value){
-         show({ message: 'Please select a form.', color: 'error' });
-    }
-    return;
-  }
+  if (!valid) { 
+    show({ message: 'Please fill in all required fields.', color: 'error' });
+    if (!selectedFormId.value && !leadId.value){
+         show({ message: 'Please select a form.', color: 'error' });
+    }
+    return;
+  }
 
   isLoading.value = true;
 
   const apiData = {};
-  for (const key in contactData.value) {
-      const value = contactData.value[key] === '' ? null : contactData.value[key];
-      if (value !== null) {
-          apiData[`contact.${key}`] = value;
-      }
-  }
 
   if (selectedFormStructure.value && selectedFormStructure.value.formFields) {
     selectedFormStructure.value.formFields.forEach(field => {
@@ -177,7 +170,11 @@ const handleSubmit = async () => {
         const modelKey = masterField.path.split('.')[1];
         const value = leadData.value[modelKey] === '' ? null : leadData.value[modelKey];
          if (value !== null) {
-             apiData[masterField.path] = value;
+             if (masterField.code === 'name' || masterField.code === 'phone' || masterField.code === 'email') {
+                apiData[`contact.${masterField.code}`] = value;
+              } else {
+                apiData[masterField.path] = value;
+              }
          }
       }
     });
@@ -188,13 +185,14 @@ const handleSubmit = async () => {
   const payload = {
     formId: selectedFormId.value,
     formTitle: selectedForm ? selectedForm.title : '',
+    formCode: selectedForm ? selectedForm.code : '',
     data: apiData,
     byUser: byUser,
   };
 
-  if (!leadId.value) {
-    payload.leadStage = "68fb5c0aec8a6bb94018efd2"; 
-  }
+  // if (!leadId.value) {
+  //   payload.stageCode = "initial"; 
+  // }
 
   try {
     if (leadId.value) {
@@ -251,6 +249,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                   <LeadStageData 
                     :current-stage-id="currentLeadStageId"
                     :lead-id="leadId"
+                    :initial-closing-date="closingDate"
                     @stage-updated="fetchLeadData"
                   />
                 </VCol>
@@ -266,7 +265,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                               :items="formList"
                               item-title="title"
                               item-value="_id"
-                              label="Form"
+                              label="Customer data"
                               placeholder="Choose a form to generate fields"
                               :rules="[requiredValidator]"
                               :readonly="!!leadId"
@@ -277,42 +276,6 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                         <VDivider class="my-4" v-if="selectedFormStructure" />
 
                         <div v-if="selectedFormStructure">
-                          <VRow>
-                            <VCol cols="12" md="4">
-                                <VLabel class="font-weight-medium">Name <span class="text-error">*</span></VLabel>
-                            </VCol>
-                            <VCol cols="12" md="8">
-                                <AppTextField
-                                  v-model="contactData.name"
-                                  placeholder="Enter Lead Name"
-                                  :rules="[requiredValidator]"
-                                />
-                            </VCol>
-                          </VRow>
-                          <VRow>
-                            <VCol cols="12" md="4">
-                                <VLabel class="font-weight-medium">Phone</VLabel>
-                            </VCol>
-                              <VCol cols="12" md="8">
-                                <AppTextField
-                                  v-model="contactData.phone"
-                                  placeholder="Enter Phone Number"
-                                  :rules="[phoneValidator, phoneOrEmailRequired]"
-                                />
-                            </VCol>
-                          </VRow>
-                          <VRow>
-                            <VCol cols="12" md="4">
-                                <VLabel class="font-weight-medium">Email</VLabel>
-                            </VCol>
-                            <VCol cols="12" md="8">
-                                <AppTextField
-                                  v-model="contactData.email"
-                                  placeholder="Enter Email Address"
-                                  :rules="[emailValidator, phoneOrEmailRequired]"
-                                />
-                            </VCol>
-                          </VRow>
 
                           <VRow 
                             v-for="field in fieldsToRender" 
@@ -320,7 +283,10 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                             align="center"
                           >
                             <VCol cols="12" md="4">
-                              <VLabel>{{ field.title }}</VLabel>
+                              <VLabel>
+                                {{ field.title }}
+                                <span v-if="field.optional === false" class="text-error">*</span>
+                              </VLabel>
                             </VCol>
                             <VCol cols="12" md="8">
                               <VTextField
@@ -328,6 +294,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :placeholder="field.desc"
                                 variant="outlined"
+                                :rules="getRules(field)"
                               />
                               <AppSelect
                                 v-else-if="field.inputType === 'OPTIONS'"
@@ -336,22 +303,36 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 item-title="label"
                                 item-value="code"
                                 :placeholder="field.desc"
+                                :rules="getRules(field)"
                               />
                               <AppDateTimePicker
                                 v-else-if="field.inputType === 'DATE'"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :placeholder="field.desc"
+                                prepend-inner-icon="tabler-calendar"
+                                :rules="getRules(field)"
                               />
                               <VFileInput
                                 v-else-if="field.inputType === 'DOCUMENT'"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :label="field.desc || 'Upload'"
                                 variant="outlined"
+                                :rules="getRules(field)"
                               />
                               <VSwitch
                                 v-else-if="field.inputType === 'BOOLEAN'"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :label="field.title"
+                                :rules="getRules(field)"
+                              />
+                              <VTextField
+                                v-else
+                                v-model="leadData[field.path?.split('.')?.[1] || field.code]"
+                                :placeholder="field.desc"
+                                variant="outlined"
+                                disabled
+                                hint="Unsupported field type"
+                                :rules="getRules(field)"
                               />
                             </VCol>
                           </VRow>

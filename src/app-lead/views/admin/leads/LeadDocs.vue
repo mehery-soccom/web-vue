@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, computed, inject } from 'vue';
-import MyFileInputUpload from '@/@common/components/vuexy/MyFileInputUpload.vue'; 
+import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
 import { useDocStore } from '@/app-lead/views/admin/leads/useDocStore';
 
 const props = defineProps({
@@ -37,6 +37,15 @@ const documents = computed(() => {
     .filter(doc => doc.type === 'DOCUMENT')
     .sort((a, b) => (b.updatedAt?.stamp || b.createdAt.stamp) - (a.updatedAt?.stamp || a.createdAt.stamp));
 });
+
+const formatFileSize = (bytes) => {
+  if (!bytes) return '0 KB';
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  } else {
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  }
+}
 
 
 const editingNoteId = ref(null);
@@ -162,50 +171,50 @@ const resetAndCloseDocForm = () => {
   isAddingDoc.value = false;
 };
 
-const handleDocumentUploadComplete = async (uploadedUrl) => {
-  if (!uploadedUrl) return; // Exit if the URL is empty (e.g., cleared)
+const handleDocumentUploadComplete = async () => {
+  const uploadedUrl = newDocument.value.url;
+  const fileDetails = newDocument.value.fileDetails;
 
-  isSavingDoc.value = true;
-  try {
-    // Attempt to get file details from the component or event if available
-    // For now, we hardcode documentInfo as requested
-    const hardcodedFileInfo = {
-      fileName: newDocument.value.title || uploadedUrl.split('/').pop() || 'document.pdf', // Best guess for filename
-      fileSize: 1000000, // Placeholder size
-      mimeType: 'application/octet-stream', // Placeholder type
-    };
+  // Add validation
+  if (!uploadedUrl || !fileDetails) {
+    show({ message: 'Please upload a file first.', color: 'warning' });
+    return;
+  }
 
-    const payload = {
-      title: newDocument.value.title || hardcodedFileInfo.fileName.split('.')[0] || 'Document', // Use filename base if no title
-      type: 'DOCUMENT',
-      content: uploadedUrl, // The URL from the upload component
-      leadId: props.leadId,
-      createdBy: 'HIMANSHU', // Hardcoded as requested
-      documentInfo: hardcodedFileInfo, // Hardcoded for now
-    };
+  isSavingDoc.value = true;
+  try {
+    // Use the real file details
+    const documentInfo = {
+      fileName: fileDetails.name || uploadedUrl.split('/').pop(),
+      fileSize: fileDetails.contentLength || 0,
+      mimeType: fileDetails.contentType || 'application/pdf',
+      path: fileDetails.path || null
+    };
 
-    await docStore.createDoc({ payload });
-    show({ message: 'Document saved successfully!', color: 'success' });
-    
-    await fetchDocsAndNotes();
-    resetAndCloseDocForm(); // Close form after successful save
+    const payload = {
+      // Use a better title fallback based on the real file name
+      title: newDocument.value.title || documentInfo.fileName.split('.').slice(0, -1).join('.') || 'Document', 
+      type: 'DOCUMENT',
+      content: uploadedUrl, // The URL from v-model
+      leadId: props.leadId,
+      byUser: byUser, // Use the byUser const from top of script
+      documentInfo: documentInfo, // Use the new object
+    };
 
-  } catch (error) {
-    console.error("Failed to save document:", error);
-    const errorMessage = error.response?.data?.message || error.message || 'Failed to save document record.'
+    await docStore.createDoc({ payload });
+    show({ message: 'Document saved successfully!', color: 'success' });
+    
+    await fetchDocsAndNotes();
+    resetAndCloseDocForm(); // Close form after successful save
+
+  } catch (error) {
+    console.error("Failed to save document:", error);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to save document record.'
     show({ message: errorMessage, color: 'error' });
-    // Keep the form open for retry if needed, or you could close it here too
-  } finally {
-    isSavingDoc.value = false;
-  }
+  } finally {
+    isSavingDoc.value = false;
+  }
 };
-
-watch(() => newDocument.value.url, (newUrl, oldUrl) => {
-  // Trigger save only when a new URL is set (not when cleared)
-  if (newUrl && newUrl !== oldUrl) {
-    handleDocumentUploadComplete(newUrl);
-  }
-});
 
 // 5. Add handler for deleting documents (similar to notes)
 const handleDeleteDocument = async (docId) => {
@@ -398,10 +407,10 @@ const formatTimestamp = (note) => {
             variant="outlined"
             class="mb-4"
           />
-          <MyFileInputUpload
+          <MyPdfUpload
             label="Select Document"
-            v-model="newDocument.url" 
-            accept="image/*" 
+            v-model="newDocument.url"
+            @upload-complete="newDocument.fileDetails = $event"
           />
           <div class="d-flex gap-4 mt-4">
               <VSpacer />
@@ -412,7 +421,11 @@ const formatTimestamp = (note) => {
               >
                 Cancel
               </VBtn>
-              <VBtn :loading="isSavingDoc" disabled> 
+             <VBtn 
+                :loading="isSavingDoc" 
+                :disabled="!newDocument.url || isSavingDoc"
+                @click="handleDocumentUploadComplete"
+              > 
                 {{ isSavingDoc ? 'Saving...' : 'Upload & Save' }}
               </VBtn> 
             </div>
@@ -423,10 +436,7 @@ const formatTimestamp = (note) => {
         <VList v-if="documents.length > 0" class="py-0">
           <template v-for="doc in documents" :key="doc._id">
             <VListItem 
-              class="list-item-hover pa-4 pb-8" 
-              :href="doc.content" 
-              target="_blank" 
-              rel="noopener noreferrer"
+              class="list-item-hover pa-4 pb-5" 
             >
               <template #prepend>
                 <VIcon icon="tabler-file" class="mt-n1" />
@@ -445,6 +455,14 @@ const formatTimestamp = (note) => {
 
               <template #append>
                 <div class="list-item-actions">
+                  <IconBtn
+                    size="x-small"
+                    :href="doc.content"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <VIcon icon="tabler-eye" />
+                  </IconBtn>
                   <IconBtn size="x-small">
                     <VIcon icon="tabler-trash" />
                     <v-dialog activator="parent" max-width="400">

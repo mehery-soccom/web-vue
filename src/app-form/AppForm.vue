@@ -1,23 +1,14 @@
 <script setup>
 import { onMounted } from "vue";
 
-import LeadForm from "@/app-form/pages/LeadForm.vue"; 
-
 onMounted(() => {
-  console.log("App Form mounted");
+  console.log("App Form Layout mounted");
 });
 </script>
 
 <template>
   <VApp>
-    <VMain>
-      <VContainer>
-        <LeadForm />
-      </VContainer>
-    </VMain>
+    <RouterView/>
   </VApp>
 </template>
 
-<style lang="scss">
-/* Keep this blank or add your minimal styles */
-</style>

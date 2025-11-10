@@ -1,7 +1,7 @@
 <script setup>
-import { ref, computed, inject } from 'vue';
-import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore'; 
-import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue'; 
+import { ref, computed, inject, onMounted, watch } from 'vue';
+import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore';
+import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { requiredValidator } from '@app-lead/@core/utils/validators';
 
 const props = defineProps({
@@ -13,13 +13,17 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  contact: {
+    type: Object,
+    default: () => ({ name: '', phone: '', email: '' })
+  }
 });
 
 const emit = defineEmits(['activity-added']);
 
 const leadsStore = useLeadsStore();
 const { show } = inject("snackbar");
-const byUser = window.CONST?.USER?.user || 'dev'; // Get user or fallback
+const byUser = window.CONST?.USER?.user || 'dev';
 
 const isAddingActivity = ref(false);
 const isSaving = ref(false);
@@ -27,6 +31,21 @@ const newActivity = ref({
   title: '',
   description: '',
   dueDate: null,
+});
+
+// State for editing an existing followup
+const editingFollowupId = ref(null);
+const editedFollowupData = ref({
+  title: '',
+  description: '',
+  dueDate: null
+});
+
+// We only have IDs and dates from the prop, so we'll display that.
+// The edit form will be pre-filled with placeholders for now.
+const sortedFollowups = computed(() => {
+  if (!props.followups) return [];
+  return [...props.followups].sort((a, b) => b.addedAt.stamp - a.addedAt.stamp);
 });
 
 // Helper to format the timestamp
@@ -37,10 +56,8 @@ const formatTimestamp = (timestampObj) => {
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
 
-// Sorts the existing followups by date
-const sortedFollowups = computed(() => {
-  return [...props.followups].sort((a, b) => b.addedAt.stamp - a.addedAt.stamp);
-});
+
+// --- CRUD Functions ---
 
 const resetAndCloseForm = () => {
   isAddingActivity.value = false;
@@ -52,40 +69,87 @@ const handleSaveActivity = async () => {
     show({ message: 'Title and Due Date are required.', color: 'warning' });
     return;
   }
-
   isSaving.value = true;
   try {
-    // 1. Create the Followup
-    const createPayload = {
+    const payload = {
       title: newActivity.value.title,
       description: newActivity.value.description,
-      dueDate: newActivity.value.dueDate, // Assumes AppDateTimePicker provides the correct format
-      customerId: "wa919511803801_919619723759", // Hardcoded as requested
+      dueDate: newActivity.value.dueDate,
+      customerId: "wa918698105281_918689909204", // Hardcoded as requested
       timezone: "Asia/Kolkata",
-      logType: "B"
-    };
-
-    const createResponse = await leadsStore.createFollowup(createPayload);
-    const newFollowupId = createResponse.results?._id;
-
-    if (!newFollowupId) {
-      throw new Error('Failed to get followup ID from creation response.');
-    }
-
-    // 2. Link the Followup to the Lead
-    const linkPayload = {
-      followupId: newFollowupId,
+      leadId: props.leadId,
+      leadName: props.contact.name,
+      leadEmail: props.contact.email,
+      leadPhone: props.contact.phone,
       byUser: byUser
     };
-
-    await leadsStore.linkFollowupToLead({ leadId: props.leadId, payload: linkPayload });
-
+    
+    await leadsStore.createLeadFollowup({ leadId: props.leadId, payload: payload });
     show({ message: 'Activity added successfully!', color: 'success' });
     resetAndCloseForm();
-    emit('activity-added'); // Tell the parent page to refresh
+    emit('activity-added'); // Tell parent to refetch lead data (which includes followup list)
   } catch (error) {
     console.error("Failed to save activity:", error);
     show({ message: 'Failed to save activity.', color: 'error' });
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const handleEditFollowup = (followup) => {
+  editingFollowupId.value = followup.followupId;
+  // Since we don't have existing data, we prefill with placeholders.
+  // In a real scenario, you'd fetch this data first.
+  editedFollowupData.value = {
+    title: `Edit: ${followup.followupId}`,
+    description: 'Enter new description',
+    dueDate: new Date(followup.addedAt.stamp).toISOString().slice(0, 16) // Default to added date
+  };
+};
+
+const cancelEdit = () => {
+  editingFollowupId.value = null;
+  editedFollowupData.value = { title: '', description: '', dueDate: null };
+};
+
+const handleUpdateFollowup = async () => {
+  isSaving.value = true;
+  try {
+    const payload = {
+      title: editedFollowupData.value.title,
+      description: editedFollowupData.value.description,
+      dueDate: editedFollowupData.value.dueDate,
+      timezone: "Asia/Kolkata",
+      byUser: byUser,
+    };
+
+    await leadsStore.updateLeadFollowup({ 
+      followupId: editingFollowupId.value, 
+      payload: payload 
+    });
+    
+    show({ message: 'Activity updated successfully!', color: 'success' });
+    cancelEdit();
+    emit('activity-added'); // Refetch
+  } catch (error) {
+    show({ message: 'Failed to update activity.', color: 'error' });
+  } finally {
+    isSaving.value = false;
+  }
+};
+
+const handleCancelFollowup = async (followupId, dialogActive) => {
+  isSaving.value = true;
+  try {
+    await leadsStore.cancelLeadFollowup({ 
+      followupId: followupId, 
+      payload: { byUser: byUser } // Send user, and other required fields
+    });
+    show({ message: 'Activity cancelled successfully!', color: 'success' });
+    if (dialogActive) dialogActive.value = false;
+    emit('activity-added'); // Refetch
+  } catch (error) {
+    show({ message: 'Failed to cancel activity.', color: 'error' });
   } finally {
     isSaving.value = false;
   }
@@ -120,7 +184,7 @@ const handleSaveActivity = async () => {
           v-model="newActivity.dueDate"
           label="Due Date"
           :rules="[requiredValidator]"
-          :config="{ enableTime: true, dateFormat: 'Y-m-d H:i' }"
+          :config="{ enableTime: true, dateFormat: 'Y-m-d H:i', minDate: 'today' }"
           placeholder="Select date and time"
           class="mb-4"
         />
@@ -154,14 +218,80 @@ const handleSaveActivity = async () => {
     <!-- List of Existing Follow-ups -->
     <VList v-if="sortedFollowups.length > 0" class="py-0">
       <template v-for="item in sortedFollowups" :key="item.followupId">
-        <VListItem class="pa-4">
+        <VListItem class="pa-4 list-item-hover">
           <template #prepend>
             <VIcon icon="tabler-calendar-event" class="mt-1" />
           </template>
-          <VListItemTitle class="mb-1">Follow-up: {{ item.followupId }}</VListItemTitle>
-          <VListItemSubtitle>
-            Added on {{ formatTimestamp(item.addedAt) }} by {{ item.addedAt.byUser }}
-          </VListItemSubtitle>
+
+          <!-- Edit Mode -->
+          <div v-if="editingFollowupId === item.followupId" class="py-2">
+            <VTextField
+              v-model="editedFollowupData.title"
+              label="Title"
+              :rules="[requiredValidator]"
+              variant="outlined"
+              density="compact"
+              class="mb-4"
+            />
+            <AppDateTimePicker
+              v-model="editedFollowupData.dueDate"
+              label="Due Date"
+              :rules="[requiredValidator]"
+              :config="{ enableTime: true, dateFormat: 'Y-m-d H:i' }"
+              placeholder="Select date and time"
+              class="mb-4"
+            />
+            <VTextarea
+              v-model="editedFollowupData.description"
+              label="Description"
+              variant="outlined"
+              rows="2"
+            />
+            <div class="d-flex gap-4 mt-2">
+              <VSpacer />
+              <VBtn size="small" variant="text" @click="cancelEdit">Cancel</VBtn>
+              <VBtn size="small" :loading="isSaving" @click="handleUpdateFollowup">Update</VBtn>
+            </div>
+          </div>
+          
+          <!-- Display Mode -->
+          <div v-else>
+            <VListItemTitle class="mb-1">Activity</VListItemTitle>
+            <VListItemSubtitle>
+              Added on {{ formatTimestamp(item.addedAt) }} by {{ item.addedAt.byUser }}
+            </VListItemSubtitle>
+          </div>
+
+          <!-- Actions -->
+          <div class="list-item-actions" v-if="editingFollowupId !== item.followupId">
+            <IconBtn size="x-small" @click="handleEditFollowup(item)">
+              <VIcon icon="tabler-pencil" />
+            </IconBtn>
+            
+            <IconBtn size="x-small">
+              <VIcon icon="tabler-x" />
+              <v-dialog activator="parent" max-width="400">
+                <template v-slot:default="{ isActive }">
+                  <v-card
+                    title="Confirm Cancellation"
+                    text="Are you sure you want to cancel this activity?"
+                  >
+                    <template v-slot:actions>
+                      <VSpacer />
+                      <v-btn text="Close" @click="isActive.value = false" />
+                      <v-btn
+                        color="error"
+                        variant="tonal"
+                        text="Cancel Activity"
+                        :loading="isSaving"
+                        @click="handleCancelFollowup(item.followupId, isActive)"
+                      />
+                    </template>
+                  </v-card>
+                </template>
+              </v-dialog>
+            </IconBtn>
+          </div>
         </VListItem>
         <VDivider />
       </template>
@@ -172,3 +302,24 @@ const handleSaveActivity = async () => {
     </VCardText>
   </VCard>
 </template>
+
+<!-- Add this style block, same as in LeadDocs -->
+<style scoped>
+.list-item-hover {
+  position: relative; 
+}
+.list-item-actions {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  display: flex;
+  gap: 0.25rem;
+  background-color: rgb(var(--v-theme-surface));
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+.list-item-hover:hover .list-item-actions {
+  opacity: 1;
+}
+</style>
