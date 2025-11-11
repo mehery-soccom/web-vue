@@ -368,7 +368,7 @@ html, body {
   background: rgba(255, 255, 255, 0.85);
   border-radius: 25px;
   backdrop-filter: blur(8px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  box-shadow: 10px 10px 25px rgba(0, 0, 0, 0.1);
   overflow: hidden;
 }
 
@@ -479,6 +479,7 @@ html, body {
   padding: 18px;
   margin-bottom: 15px;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 0.5px solid #ddd;
 }
 
 .number-display {
