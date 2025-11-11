@@ -342,9 +342,19 @@ onUnmounted(() => {
 </template>
 
 <style>
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden !important;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+}
 
-/* Base Layout */
 .container {
+  overflow: hidden !important;
+  width: 100%;
+  /* height: 100%; */
   display: flex;
   justify-content: center;
   align-items: center;
@@ -354,7 +364,7 @@ onUnmounted(() => {
 }
 
 .webrtc-client {
-  width: 320px;
+  width: 300px;
   background: rgba(255, 255, 255, 0.85);
   border-radius: 25px;
   backdrop-filter: blur(8px);
@@ -619,9 +629,12 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
-/* ===== Animation ===== */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+::-webkit-scrollbar {
+  display: none !important;
 }
 </style>
