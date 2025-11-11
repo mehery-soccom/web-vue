@@ -12,6 +12,7 @@ export function useWebRTC() {
   const callData = ref({})
   let pc = null;
   let localStream = null;
+  let channelId = ref('');
   
   // ICE servers configuration
   const iceServers = ref([
@@ -332,7 +333,7 @@ export function useWebRTC() {
       addToCallHistory(currentPeerNumber.value, "incoming", new Date());
       
       console.log("SDP Answer created", answer);
-      await sendAnswer( answer, callData.value, 'wacfb:919619723759');
+      await sendAnswer( answer, callData.value, channelId.value);
       // Return the local description for sending to Meta API
       return getLocalSDPData();
 
@@ -383,7 +384,8 @@ export function useWebRTC() {
     }
   };
 
-  const handleIncomingCall = (offerSDP, remoteNumber = "", fullOffer) => {
+  const handleIncomingCall = (offerSDP, remoteNumber = "", fullOffer, channel_id) => {
+    channelId.value = channel_id;
     currentPeerNumber.value = remoteNumber;
     incomingCall.value = {
       show: true,
@@ -428,7 +430,7 @@ export function useWebRTC() {
     if (!incomingCall.value.show) {
       throw new Error("No incoming call to reject");
     }
-    await rejectCallMeta('wacfb:919619723759');
+    await rejectCallMeta(channelId.value);
     incomingCall.value = {
       show: false,
       remoteNumber: "",
@@ -438,6 +440,7 @@ export function useWebRTC() {
     callState.value = "idle";
     stopRingtone();
     updateCallHistory("rejected");
+    channelId.value = '';
     
     sendPostMessage("call-rejected", {
       remoteNumber: currentPeerNumber.value,
@@ -476,7 +479,7 @@ export function useWebRTC() {
     stopCallTimer();
     stopRingtone();
     stopRingbacktone();
-    if(endFromAgent) await terminateCallMeta('wacfb:919619723759');
+    if(endFromAgent) await terminateCallMeta(channelId.value);
 
     // Clear audio elements
     const remoteAudio = document.getElementById("audio-remote");
@@ -484,6 +487,7 @@ export function useWebRTC() {
     if (remoteAudio) remoteAudio.srcObject = null;
     if (localAudio) localAudio.srcObject = null;
 
+    channelId.value = '';
     updateCallHistory("ended");
     sendPostMessage("call-ended", {
       description: "HANGUP",

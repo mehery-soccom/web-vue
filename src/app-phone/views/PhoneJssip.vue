@@ -174,7 +174,7 @@ const setupMessageHandlers = () => {
 
       switch (data.event) {
         case "incoming-call":
-          handleIncomingCall(data.event_data.session, data.event_data.from, data.event_data);
+          handleIncomingCall(data.event_data.session, data.event_data.from, data.event_data, data.channelId);
           break;
 
         case "response-to-call":
@@ -219,9 +219,10 @@ onMounted(async () => {
   //       sdp:"v=0\r\no=- 1762336250050 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE audio\r\na=msid-semantic: WMS 1a8be36a-9a9c-4322-8636-f2247cfdf1b9\r\na=ice-lite\r\nm=audio 3484 UDP/TLS/RTP/SAVPF 111 126\r\nc=IN IP4 163.70.144.130\r\na=rtcp:9 IN IP4 0.0.0.0\r\na=candidate:707619806 1 udp 2122260223 163.70.144.130 3484 typ host generation 0 network-cost 50\r\na=candidate:1267757827 1 udp 2122262783 2a03:2880:f288:1d4:face:b00c:0:699c 3484 typ host generation 0 network-cost 50\r\na=ice-ufrag:VyVkdwnqGUZtqVON\r\na=ice-pwd:sGUUAvS/fOjzPtIoL72o2g==\r\na=fingerprint:sha-256 8E:64:08:0B:8F:CE:73:ED:E2:44:9C:FB:EA:0B:20:D5:41:B6:93:06:F9:79:6C:48:78:1A:A2:41:AD:9C:EA:68\r\na=setup:actpass\r\na=mid:audio\r\na=sendrecv\r\na=msid:1a8be36a-9a9c-4322-8636-f2247cfdf1b9 WhatsAppTrack1\r\na=rtcp-mux\r\na=rtpmap:111 opus/48000/2\r\na=rtcp-fb:111 transport-cc\r\na=fmtp:111 maxaveragebitrate=20000;maxplaybackrate=16000;minptime=20;sprop-maxcapturerate=16000;useinbandfec=1\r\na=rtpmap:126 telephone-event/8000\r\na=maxptime:20\r\na=ptime:20\r\na=ssrc:972010428 cname:WhatsAppAudioStream1\r\n",
   //       sdp_type:"offer"
   //     }
-  //   }
+  //   },
+  //   channelId: 'wacfb:8745876899',
   // }
-  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from, cata.event_data); }, 10000);
+  // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from, cata.event_data, cata.channelId); }, 10000);
 });
 
 onUnmounted(() => {
@@ -229,28 +230,11 @@ onUnmounted(() => {
 });
 </script>
 
+
 <template>
   <div class="container">
     <div class="webrtc-client" style="max-width: 310px;">
-      <div class="status-bar">
-        <div class="status-left"></div>
-        <div class="status-right">
-          <div class="connection-status">
-            <div v-if="connectionStatus === 'disconnected'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M22 16v-.5a2.5 2.5 0 0 0-5 0v.5c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h5c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 0h-3v-.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5zM18 5.83v5.43c.47-.16.97-.26 1.5-.26c.17 0 .33.03.5.05V1L1 20h13v-2H5.83z"/>
-              </svg>
-            </div>
-            <div v-else-if="connectionStatus === 'connected'">
-              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24">
-                <path fill="currentColor" d="M19.5 10c.17 0 .33.03.5.05V1L1 20h13v-3c0-.89.39-1.68 1-2.23v-.27c0-2.48 2.02-4.5 4.5-4.5m2.5 6v-1.5a2.5 2.5 0 0 0-5 0V16c-.55 0-1 .45-1 1v4c0 .55.45 1 1 1h5c.55 0 1-.45 1-1v-4c0-.55-.45-1-1-1m-1 0h-3v-1.5c0-.83.67-1.5 1.5-1.5s1.5.67 1.5 1.5z"/>
-              </svg>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Incoming Call Modal -->
+      
       <!-- <div v-if="incomingCall.show" class="incoming-call-overlay">
         <div class="incoming-call-modal">
           <h3>Incoming WhatsApp Call</h3>
@@ -270,13 +254,15 @@ onUnmounted(() => {
         </div>
       </div> -->
 
-      <div v-if="activeCall.show" class="active-call-status">
-        <h4>WhatsApp Call Active</h4>
-        <p>Connected to: {{ activeCall.remoteNumber }}</p>
-        <p v-if="activeCall.startTime">Duration: {{ callDuration }}</p>
+      <div v-if="activeCall.show" class="incoming-call-overlay">
+        <div class="active-call-status">
+          <h4>Active Call</h4>
+          <p>{{ activeCall.remoteNumber }}</p>
+          <p v-if="activeCall.startTime">Duration: {{ callDuration }}</p>
 
-        <div class="call-controls">
-          <button @click="endCall(true)" class="btn btn-danger">❌ Hang Up</button>
+          <div class="call-controls">
+            <button @click="endCall(true)" class="btn btn-danger">❌</button>
+          </div>
         </div>
       </div>
 
@@ -322,14 +308,14 @@ onUnmounted(() => {
         </div>
 
         <div class="action-buttons">
-          <button class="action-button call-button" @click="handleCall" 
+          <button class="action-button call-button" @click="handleCall" style="color: white;"
                   :disabled="callState === 'ringing' || !dialedNumber">
-            📞 Call
+            📞
           </button>
-          <button class="action-button hangup-button" @click="endCall(true)" 
+          <!-- <button class="action-button hangup-button" @click="endCall(true)" 
                   :disabled="callState === 'idle'">
             📱 Hang Up
-          </button>
+          </button> -->
         </div>
       </div>
 
@@ -356,477 +342,286 @@ onUnmounted(() => {
 </template>
 
 <style>
-.btn-success {
-  background-color: #28a745;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px; /* More square, slightly rounded */
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(40, 167, 69, 0.2);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
 
-.btn-success:hover {
-  background-color: #24913e;
-  box-shadow: 0 3px 6px rgba(40, 167, 69, 0.25);
-}
-
-.btn-danger {
-  background-color: #a70414;
-  color: white;
-  border: none;
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-size: 16px;
-  cursor: pointer;
-  box-shadow: 0 2px 4px rgba(220, 53, 69, 0.2);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.btn-danger:hover {
-  background-color: #860a0a;
-  box-shadow: 0 3px 6px rgba(220, 53, 69, 0.25);
-}
-
+/* Base Layout */
 .container {
   display: flex;
   justify-content: center;
   align-items: center;
-
   height: 100vh;
-}
-.registration-status {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  margin-left: 8px;
-  font-size: 12px;
-  font-weight: 500;
-}
-.status-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 16px;
-  background-color: #fff;
-  font-size: 14px;
-  font-weight: 500;
-  color: #333;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  background: linear-gradient(180deg, #f7f9fb, #e9edf3);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-.status-left {
-  display: flex;
-  align-items: center;
-}
-
-.status-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.connection-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 2px;
-  margin-right: 4px;
-}
-
-.bar {
-  width: 3px;
-  background-color: #333;
-  border-radius: 1px;
-}
-
-.bar:nth-child(1) {
-  height: 4px;
-}
-.bar:nth-child(2) {
-  height: 6px;
-}
-.bar:nth-child(3) {
-  height: 8px;
-}
-.bar:nth-child(4) {
-  height: 10px;
-}
-
-.wifi-icon {
-  width: 16px;
-  height: 16px;
-  margin-left: 8px;
-}
-
-.battery {
-  display: flex;
-  align-items: center;
-  font-size: 12px;
-  margin-left: 8px;
-}
-
-.battery-icon {
-  width: 20px;
-  height: 12px;
-  border: 1px solid #333;
-  border-radius: 2px;
-  margin-left: 4px;
-  position: relative;
-}
-
-.battery-level {
-  background-color: #4caf50;
-  height: 100%;
-  width: 44%;
-  border-radius: 1px;
-}
-
-.battery-tip {
-  position: absolute;
-  right: -3px;
-  top: 3px;
-  width: 2px;
-  height: 6px;
-  background-color: #333;
-  border-radius: 0 1px 1px 0;
-}
-
-.search-container {
-  padding: 16px;
-  background-color: #f5f5f5;
-}
-
-.search-bar {
-  display: flex;
-  align-items: center;
-  background-color: #e8eaf6;
+.webrtc-client {
+  width: 320px;
+  background: rgba(255, 255, 255, 0.85);
   border-radius: 25px;
-  padding: 12px 16px;
-  gap: 12px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
 }
 
-.search-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.6;
-}
-
-.search-input {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 16px;
-  color: #333;
-  outline: none;
-}
-
-.search-input::placeholder {
-  color: #666;
-  opacity: 0.8;
-}
-
-.voice-icon,
-.menu-icon {
-  width: 20px;
-  height: 20px;
-  opacity: 0.6;
-  cursor: pointer;
-}
-.tab-nav-container {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  width: 100%;
-  margin: 0;
-  padding: 10px 0;
-  background: #ededf7;
-  box-sizing: border-box;
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  border-bottom-right-radius: 40px;
-  border-bottom-left-radius: 40px;
-  list-style: none;
-  position: relative;
-  bottom: 0;
-  left: 0;
-}
-
-.tab {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  flex: 1;
-  padding: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.tab:hover {
-  opacity: 0.7;
-}
-
-.icon-placeholder {
-  justify-content: center;
-  align-items: center;
-  display: flex;
-  width: 56px;
-  height: 30px;
-  margin-bottom: 6px;
-  background-color: #ededf7;
-  border-radius: 16px;
-  opacity: 0.6;
-}
-
-.tab p {
-  font-family: "Roboto", sans-serif;
-  font-size: 12px;
-  font-weight: 500;
-  color: #666;
-  margin: 0;
-  text-align: center;
-}
-.active {
-  background-color: #dce0f9;
-}
-.call-history {
-  /* margin-top: 30px; */
-  width: 360px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
-.call-history ul {
-  list-style: none;
-  padding: 0;
-}
-
-.call-history li {
-  padding: 5px 0;
-  border-bottom: 1px solid #eee;
-}
-.active-call-status {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 5px;
-  margin: 20px 0;
-}
-.call-controls {
-  display: flex;
-  gap: 10px;
-  margin-top: 15px;
-}
-.sip-client {
-  max-width: 360px;
-  margin: 0 auto;
-  padding: 20px;
-}
-
+/* Incoming / Active Call */
 .incoming-call-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.8);
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
   display: flex;
   justify-content: center;
   align-items: center;
-  z-index: 1000;
+  z-index: 10;
 }
 
 .incoming-call-modal {
-  background: white;
+  background: #fff;
+  border-radius: 20px;
   padding: 30px;
-  border-radius: 10px;
+  width: 90%;
+  max-width: 340px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
   text-align: center;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease;
+}
+
+.incoming-call-modal h3 {
+  font-weight: 600;
+  color: #222;
+  margin-bottom: 8px;
 }
 
 .caller-info {
-  font-size: 18px;
-  margin: 15px 0;
+  font-size: 16px;
+  color: #444;
 }
 
 .call-actions {
   display: flex;
-  gap: 20px;
+  justify-content: center;
+  gap: 25px;
+  margin-top: 25px;
+}
+
+/* Buttons */
+.btn {
+  border: none;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.btn-success {
+  background: linear-gradient(145deg, #4cd964, #34c759);
+  color: #fff;
+}
+
+.btn-success:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(76, 217, 100, 0.4);
+}
+
+.btn-danger {
+  background: linear-gradient(145deg, #ff3b30, #d9342c);
+  color: #fff;
+}
+
+.btn-danger:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 18px rgba(255, 59, 48, 0.4);
+}
+
+/* Active Call Card */
+.active-call-status {
+  background: #fefefe;
+  border-radius: 16px;
+  padding: 20px;
+  margin: 20px;
+  text-align: center;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.active-call-status h4 {
+  margin-bottom: 8px;
+  color: #222;
+}
+
+.call-controls {
+  display: flex;
   justify-content: center;
   margin-top: 20px;
 }
+
+/* Dialer */
 .dialer-container {
-  max-width: 320px;
-  margin: 0 auto;
-  padding: 20px;
-  background: #f5f5f5;
-  border-radius: 15px;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f6f6f6;
+  padding: 25px 20px 30px;
 }
 
 .display {
   background: #fff;
-  border-radius: 10px;
-  margin-bottom: 20px;
-  padding: 20px;
+  border-radius: 15px;
   text-align: center;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 18px;
+  margin-bottom: 15px;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .number-display {
   font-size: 24px;
   font-weight: 500;
-  color: #333;
-  margin-bottom: 10px;
+  color: #222;
   min-height: 30px;
   word-break: break-all;
 }
 
-.status-display {
-  font-size: 14px;
-  font-weight: 500;
-  padding: 5px 10px;
-  border-radius: 15px;
-  transition: all 0.3s ease;
-}
-
-.status-idle {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.status-ringing {
-  background: #fff3e0;
-  color: #f57c00;
-  animation: pulse 1.5s infinite;
-}
-
-.status-talking {
-  background: #e8f5e8;
-  color: #2e7d32;
-}
-
-@keyframes pulse {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.7;
-  }
-}
-
 .keypad {
-  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 15px 0 20px;
 }
 
 .keypad-row {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
+  gap: 8px;
   margin-bottom: 10px;
 }
 
 .key-button {
-  width: 90px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border: none;
-  border-radius: 10px;
+  border-radius: 50%;
   background: #fff;
-  font-size: 18px;
-  font-weight: 600;
-  color: #333;
+  font-size: 24px;
+  font-weight: 500;
+  color: #111;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
 }
 
 .key-button:hover:not(:disabled) {
-  background: #f0f0f0;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: #f5f5f5;
+  transform: scale(1.05);
 }
 
 .key-button:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.key-button:disabled {
-  background: #e0e0e0;
-  color: #999;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transform: scale(0.95);
 }
 
 .backspace {
-  background: #ffebee !important;
-  color: #d32f2f !important;
-}
-
-.backspace:hover:not(:disabled) {
-  background: #ffcdd2 !important;
+  background: #fff0f0 !important;
+  color: #e53935 !important;
 }
 
 .action-buttons {
   display: flex;
-  justify-content: space-between;
-  gap: 15px;
+  justify-content: center;
+  gap: 20px;
 }
 
-.action-button {
-  padding: 10px;
-  flex: 1;
-  height: 50px;
+.call-button,
+.hangup-button {
   border: none;
-  border-radius: 25px;
-  font-size: 16px;
-  font-weight: 600;
+  border-radius: 50%;
+  width: 70px;
+  height: 70px;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
   cursor: pointer;
   transition: all 0.3s ease;
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.15);
 }
 
 .call-button {
-  background: #4caf50;
-  color: white;
-}
-
-.call-button:hover:not(:disabled) {
-  background: #45a049;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(76, 175, 80, 0.3);
-}
-
-.call-button:disabled {
-  background: #c8e6c9;
-  color: #81c784;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  background: linear-gradient(145deg, #4cd964, #34c759);
+  box-shadow: 0 4px 15px rgba(76, 217, 100, 0.3);
 }
 
 .hangup-button {
-  background: #f44336;
-  color: white;
+  background: linear-gradient(145deg, #ff3b30, #d9342c);
+  box-shadow: 0 4px 15px rgba(255, 59, 48, 0.3);
 }
 
-.hangup-button:hover:not(:disabled) {
-  background: #da190b;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(244, 67, 54, 0.3);
+.call-button:hover,
+.hangup-button:hover {
+  transform: scale(1.08);
 }
 
-.hangup-button:disabled {
-  background: #ffcdd2;
-  color: #ef9a9a;
-  cursor: not-allowed;
-  transform: none;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+/* Bottom Navigation */
+.tab-nav-container {
+  display: none;
+  justify-content: space-around;
+  align-items: center;
+  background: #f1f3f6;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding: 15px 0;
+  margin: 0px;
 }
 
-.action-button:active:not(:disabled) {
-  transform: translateY(0);
+.tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.icon-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 46px;
+  height: 30px;
+  border-radius: 14px;
+  color: #666;
+}
+
+.active {
+  background: #d9e1ff;
+  color: #2b52e0;
+}
+
+.tab p {
+  font-size: 12px;
+  margin: 4px 0 0;
+  color: #666;
+}
+
+.tab:hover {
+  opacity: 0.75;
+}
+
+/* Call History */
+.call-history {
+  padding: 20px;
+  text-align: left;
+}
+
+.call-history h4 {
+  color: #222;
+  margin-bottom: 10px;
+}
+
+.call-history li {
+  padding: 8px 0;
+  border-bottom: 1px solid #eee;
+  color: #444;
+  font-size: 14px;
+}
+
+/* ===== Animation ===== */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 </style>
