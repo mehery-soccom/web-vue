@@ -23,23 +23,9 @@ const formList = ref([])
 
 const campaignData = ref({
   title: '',
-  code: '',
   description: '',
   formId: null,
-  isActive: true,
 })
-
-watch(
-  () => campaignData.value.title,
-  newTitle => {
-    if (newTitle && !isEditMode) {
-      campaignData.value.code = newTitle
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, '_')
-        .replace(/^_|_$/g, '')
-    }
-  }
-)
 
 const fetchForms = async () => {
   isFetchingForms.value = true
@@ -56,33 +42,25 @@ const fetchForms = async () => {
   }
 }
 
-const fetchCampaign = async (id) => {
-  isLoading.value = true
-  try {
-    const data = await campaignStore.fetchCampaign(id)
-    if (!data) throw new Error('Campaign not found')
+onMounted(() => {
+  fetchForms()
+  if (isEditMode) {
+    isLoading.value = true
+    const data = campaignStore.getCampaignById(PARAM_ID)
+
+    if (!data) {
+      show({ message: 'Campaign data not found. Please return to the list.', color: 'error' })
+      router.push({ name: 'admin-campaigns-list' })
+      return
+    }
 
     campaignData.value = {
       title: data.title ?? '',
-      code: data.code ?? '',
       description: data.description ?? '',
-      formId: data.form?.id || data.form?._id || data.formId || null,
-      isActive: data.isActive ?? true,
+      formId: data.form?.id || data.form?._id || null,
     }
-  } catch (error) {
-    console.error(error)
-    const errorMessage =
-      error.response?.data?.message || error.message || 'Failed to fetch campaign data'
-    show({ message: errorMessage, color: 'error' })
-    router.push({ name: 'admin-campaigns-list' })
-  } finally {
     isLoading.value = false
   }
-}
-
-onMounted(() => {
-  fetchForms()
-  if (isEditMode) fetchCampaign(PARAM_ID)
 })
 
 const submitForm = async () => {
@@ -102,13 +80,11 @@ const submitForm = async () => {
 
   const payload = {
     title: campaignData.value.title,
-    code: campaignData.value.code,
     description: campaignData.value.description,
     formId: campaignData.value.formId,
     formTitle: selectedForm.title,
     formCode: selectedForm.code,
-    isActive: campaignData.value.isActive,
-    byUser,
+    byUser: byUser,
   }
 
   try {
@@ -133,8 +109,8 @@ const submitForm = async () => {
 </script>
 
 <template>
-  <VRow>
-    <VCol cols="12">
+  <VRow class="justify-center">
+    <VCol cols="12" md="8">
       <VForm ref="formRef" @submit.prevent="submitForm">
         <VCard>
           <VCardItem>
@@ -151,16 +127,6 @@ const submitForm = async () => {
                   label="Campaign Title"
                   placeholder="Enter Campaign Title"
                   :rules="[requiredValidator]"
-                />
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <AppTextField
-                  v-model="campaignData.code"
-                  label="Code"
-                  placeholder="Enter Campaign Code"
-                  :rules="[requiredValidator]"
-                  :disabled="isEditMode"
                 />
               </VCol>
 
@@ -185,10 +151,6 @@ const submitForm = async () => {
                   :loading="isFetchingForms"
                   :disabled="isEditMode"
                 />
-              </VCol>
-
-              <VCol cols="12" md="6">
-                <VSwitch v-model="campaignData.isActive" label="Active" />
               </VCol>
             </VRow>
           </VCardText>

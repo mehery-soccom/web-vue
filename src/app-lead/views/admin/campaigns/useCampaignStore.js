@@ -5,7 +5,16 @@ export const useCampaignStore = defineStore("CampaignStore", {
     state: () => ({
         campaigns: [],
     }),
-    getters: {},
+    getters: {
+    /**
+     * Finds a campaign by its ID from the state.
+     * @param {object} state - The store's state.
+     * @returns {Function} A function that takes an ID and returns the campaign object or undefined.
+     */
+    getCampaignById: (state) => (id) => {
+      return state.campaigns.find(c => c._id === id);
+    },
+  },
     actions: {
         async fetchCampaigns(params) {
             const response = await DataService.axios.get("/campaign/get", { params, toast: false });
@@ -13,15 +22,9 @@ export const useCampaignStore = defineStore("CampaignStore", {
             if (response.data.error) {
                 throw { response: { data: response.data } };
             }
-            return response.data;
-        },
 
-        async fetchCampaign(id) {
-            const response = await DataService.axios.get(`/campaign/get/${id}`, { toast: false });
-            
-            if (response.data.error) {
-                throw { response: { data: response.data } };
-            }
+            this.campaigns = response.data.results || [];
+
             return response.data;
         },
 
@@ -43,13 +46,14 @@ export const useCampaignStore = defineStore("CampaignStore", {
             return response.data;
         },         
 
-        async deactivateCampaign(id) {
-            const response = await DataService.axios.post(`/campaign/deactivate/${id}`, {}, { toast: false });
+        async deactivateCampaign(id, byUser) {
+          const payload = { byUser } 
+          const response = await DataService.axios.post(`/campaign/deactivate/${id}`, payload, { toast: false });
 
-            if (response.data.error) {
-                throw { response: { data: response.data } };
-            }
-            return response.data;
+          if (response.data.error) {
+              throw { response: { data: response.data } };
+          }
+          return response.data;
         },
     }
 })

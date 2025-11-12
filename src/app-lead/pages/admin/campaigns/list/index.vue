@@ -24,10 +24,13 @@ const headers = [
   { title: 'Campaign', key: 'title' },
   { title: 'Description', key: 'description' },
   { title: 'Form', key: 'form.title' },
-  { title: 'Created By', key: 'byUser' },
-  { title: 'Status', key: 'isActive' },
+  { title: 'Created By', key: 'createdAt.byUser' },
+  { title: 'isActive', key: 'isActive' },
   { title: 'Actions', key: 'actions', sortable: false },
 ]
+
+const isConfirmDialogOpen = ref(false)
+const selectedItem = ref(null)
 
 const copyLink = async (link) => {
   try {
@@ -71,20 +74,41 @@ const fetchCampaigns = async (options = pagination) => {
   }
 }
 
-const deactivateCampaign = async (id, dialogCloseRef) => {
+const openConfirmDialog = (item) => {
+  selectedItem.value = item
+  isConfirmDialogOpen.value = true
+}
+
+const toggleCampaignStatus = async () => {
+  if (!selectedItem.value) return
+
   isLoading.value = true
+  const item = selectedItem.value
+  const newStatus = !item.isActive
+
   try {
-    await campaignStore.deactivateCampaign(id)
+    let message = ''
+    if (newStatus === false) {
+      await campaignStore.deactivateCampaign(item._id, byUser)
+      message = 'Campaign deactivated successfully'
+    } else {
+      const payload = { isActive: true, byUser }
+      await campaignStore.updateCampaign({ id: item._id, payload })
+      message = 'Campaign activated successfully'
+    }
+
     await fetchCampaigns()
-    if (dialogCloseRef) dialogCloseRef.value = false
-    show({ message: 'Campaign deactivated successfully', color: 'success' })
+    isConfirmDialogOpen.value = false
+    show({ message, color: 'success' })
   } catch (error) {
-    console.error('Deactivation failed:', error)
+    console.error('Toggle status failed:', error)
+    const action = newStatus ? 'activate' : 'deactivate'
     const errorMessage =
-      error.response?.data?.message || error.message || 'Failed to deactivate campaign'
+      error.response?.data?.message || error.message || `Failed to ${action} campaign`
     show({ message: errorMessage, color: 'error' })
   } finally {
     isLoading.value = false
+    selectedItem.value = null
   }
 }
 
@@ -132,14 +156,14 @@ fetchCampaigns()
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
     >
-      <!-- Status chip -->
       <template #item.isActive="{ item }">
-        <VChip :color="item.raw.isActive ? 'success' : 'error'" size="small" label>
-          {{ item.raw.isActive ? 'Active' : 'Inactive' }}
-        </VChip>
+        <VSwitch
+          :model-value="item.raw.isActive"
+          readonly
+          @click="openConfirmDialog(item.raw)"
+        />
       </template>
 
-      <!-- Actions -->
       <template #item.actions="{ item }">
 
         <VTooltip location="top">
@@ -159,31 +183,27 @@ fetchCampaigns()
         >
           <VIcon icon="tabler-edit" />
         </IconBtn>
-
-        <IconBtn v-if="item.raw.isActive">
-          <VIcon icon="tabler-trash" />
-          <VDialog activator="parent" max-width="400">
-            <template #default="{ isActive }">
-              <VCard
-                title="Confirm Deactivation"
-                text="Are you sure you want to deactivate this campaign?"
-              >
-                <template #actions>
-                  <VSpacer />
-                  <VBtn text="Cancel" @click="isActive.value = false" />
-                  <VBtn
-                    color="error"
-                    variant="tonal"
-                    text="Deactivate"
-                    :loading="isLoading"
-                    @click="deactivateCampaign(item.raw._id, isActive)"
-                  />
-                </template>
-              </VCard>
-            </template>
-          </VDialog>
-        </IconBtn>
       </template>
     </MyDataTable>
+
+    <VDialog v-model="isConfirmDialogOpen" max-width="400" persistent>
+      <VCard
+        v-if="selectedItem"
+        :title="selectedItem.isActive ? 'Confirm Deactivation' : 'Confirm Activation'"
+        :text="`Are you sure you want to ${selectedItem.isActive ? 'deactivate' : 'activate'} this campaign?`"
+      >
+        <template #actions>
+          <VSpacer />
+          <VBtn text="Cancel" @click="isConfirmDialogOpen = false" />
+          <VBtn
+            :color="selectedItem.isActive ? 'error' : 'success'"
+            variant="tonal"
+            :text="selectedItem.isActive ? 'Deactivate' : 'Activate'"
+            :loading="isLoading"
+            @click="toggleCampaignStatus"
+          />
+        </template>
+      </VCard>
+    </VDialog>
   </VCard>
 </template>
