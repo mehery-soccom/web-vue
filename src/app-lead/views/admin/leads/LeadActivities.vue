@@ -33,7 +33,6 @@ const newActivity = ref({
   dueDate: null,
 });
 
-// State for editing an existing followup
 const editingFollowupId = ref(null);
 const editedFollowupData = ref({
   title: '',
@@ -41,23 +40,46 @@ const editedFollowupData = ref({
   dueDate: null
 });
 
-// We only have IDs and dates from the prop, so we'll display that.
-// The edit form will be pre-filled with placeholders for now.
 const sortedFollowups = computed(() => {
   if (!props.followups) return [];
   return [...props.followups].sort((a, b) => b.addedAt.stamp - a.addedAt.stamp);
 });
 
-// Helper to format the timestamp
-const formatTimestamp = (timestampObj) => {
-  if (!timestampObj || !timestampObj.stamp) return 'Date N/A';
-  const date = new Date(timestampObj.stamp);
+const formatTimestamp = (objOrIso) => {
+  if (!objOrIso) return 'Date N/A';
+  let date;
+  if (typeof objOrIso === 'object' && objOrIso.stamp) {
+    date = new Date(objOrIso.stamp);
+  } else {
+    date = new Date(objOrIso);
+  }
+  if (isNaN(date)) return 'Date N/A';
   const options = { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
 
+const formatActivityTimestamp = (item) => {
+  const options = { month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false };
+  const createdIso = item.details?.createdAt || item.details?.created_at;
+  const updatedIso = item.details?.updatedAt || item.details?.updated_at;
+  if (createdIso) {
+    const createdDate = new Date(createdIso);
+    if (isNaN(createdDate)) return '';
+    const formatted = new Intl.DateTimeFormat('en-GB', options).format(createdDate).replace(',', ' ');
+    const prefix = (updatedIso && updatedIso !== createdIso) ? 'Edited on' : 'Created on';
+    const byUser = item.details?.creator?.name || item.addedAt?.byUser || item.details?.creator?.code || 'Unknown';
+    return `${prefix} ${formatted} by ${byUser}`;
+  }
+  if (item.addedAt?.stamp) {
+    const date = new Date(item.addedAt.stamp);
+    if (isNaN(date)) return '';
+    const formatted = new Intl.DateTimeFormat('en-GB', options).format(date).replace(',', ' ');
+    const byUser = item.addedAt?.byUser || 'Unknown';
+    return `Created on ${formatted} by ${byUser}`;
+  }
+  return '';
+};
 
-// --- CRUD Functions ---
 
 const resetAndCloseForm = () => {
   isAddingActivity.value = false;
@@ -75,7 +97,6 @@ const handleSaveActivity = async () => {
       title: newActivity.value.title,
       description: newActivity.value.description,
       dueDate: newActivity.value.dueDate,
-      customerId: "wa918698105281_918689909204", // Hardcoded as requested
       timezone: "Asia/Kolkata",
       leadId: props.leadId,
       leadName: props.contact.name,
@@ -87,7 +108,7 @@ const handleSaveActivity = async () => {
     await leadsStore.createLeadFollowup({ leadId: props.leadId, payload: payload });
     show({ message: 'Activity added successfully!', color: 'success' });
     resetAndCloseForm();
-    emit('activity-added'); // Tell parent to refetch lead data (which includes followup list)
+    emit('activity-added');
   } catch (error) {
     console.error("Failed to save activity:", error);
     show({ message: 'Failed to save activity.', color: 'error' });
@@ -98,14 +119,15 @@ const handleSaveActivity = async () => {
 
 const handleEditFollowup = (followup) => {
   editingFollowupId.value = followup.followupId;
-  // Since we don't have existing data, we prefill with placeholders.
-  // In a real scenario, you'd fetch this data first.
   editedFollowupData.value = {
-    title: `Edit: ${followup.followupId}`,
-    description: 'Enter new description',
-    dueDate: new Date(followup.addedAt.stamp).toISOString().slice(0, 16) // Default to added date
+    title: followup.details?.title || '',
+    description: followup.details?.description || '',
+    dueDate: followup.details?.startDate
+      ? new Date(followup.details.startDate).toISOString().slice(0, 16)
+      : (followup.addedAt?.stamp ? new Date(followup.addedAt.stamp).toISOString().slice(0, 16) : null)
   };
 };
+
 
 const cancelEdit = () => {
   editingFollowupId.value = null;
@@ -124,13 +146,14 @@ const handleUpdateFollowup = async () => {
     };
 
     await leadsStore.updateLeadFollowup({ 
+      leadId: props.leadId,
       followupId: editingFollowupId.value, 
       payload: payload 
     });
     
     show({ message: 'Activity updated successfully!', color: 'success' });
     cancelEdit();
-    emit('activity-added'); // Refetch
+    emit('activity-added');
   } catch (error) {
     show({ message: 'Failed to update activity.', color: 'error' });
   } finally {
@@ -142,12 +165,13 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
   isSaving.value = true;
   try {
     await leadsStore.cancelLeadFollowup({ 
+      leadId: props.leadId,
       followupId: followupId, 
-      payload: { byUser: byUser } // Send user, and other required fields
+      payload: { byUser: byUser }
     });
     show({ message: 'Activity cancelled successfully!', color: 'success' });
     if (dialogActive) dialogActive.value = false;
-    emit('activity-added'); // Refetch
+    emit('activity-added');
   } catch (error) {
     show({ message: 'Failed to cancel activity.', color: 'error' });
   } finally {
@@ -170,7 +194,6 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
       </template>
     </VCardItem>
 
-    <!-- New Activity Form -->
     <VCardText v-if="isAddingActivity">
       <VForm @submit.prevent="handleSaveActivity">
         <VTextField
@@ -215,16 +238,18 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
 
     <VDivider v-if="sortedFollowups.length > 0" />
     
-    <!-- List of Existing Follow-ups -->
     <VList v-if="sortedFollowups.length > 0" class="py-0">
       <template v-for="item in sortedFollowups" :key="item.followupId">
-        <VListItem class="pa-4 list-item-hover">
+        <VListItem
+          class="pa-4 pb-4 list-item-hover"
+          :class="{ 'cancelled-activity': item.details?.status === 'Cancelled' }"
+          :disabled="item.details?.status === 'Cancelled'"
+        >
           <template #prepend>
             <VIcon icon="tabler-calendar-event" class="mt-1" />
           </template>
 
-          <!-- Edit Mode -->
-          <div v-if="editingFollowupId === item.followupId" class="py-2">
+          <div v-if="editingFollowupId === item.followupId" class="py-2" style="width: 100%;">
             <VTextField
               v-model="editedFollowupData.title"
               label="Title"
@@ -236,6 +261,7 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
             <AppDateTimePicker
               v-model="editedFollowupData.dueDate"
               label="Due Date"
+              prepend-inner-icon="tabler-calendar"
               :rules="[requiredValidator]"
               :config="{ enableTime: true, dateFormat: 'Y-m-d H:i' }"
               placeholder="Select date and time"
@@ -254,16 +280,37 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
             </div>
           </div>
           
-          <!-- Display Mode -->
           <div v-else>
-            <VListItemTitle class="mb-1">Activity</VListItemTitle>
+            <VListItemTitle class="mb-1 font-weight-medium d-flex align-center">
+              <span>{{ item.details?.title || 'Activity' }}</span>
+              <VChip
+                v-if="item.details?.status === 'Cancelled'"
+                color="error"
+                variant="tonal"
+                size="x-small"
+                class="ms-2"
+              >
+                Cancelled
+              </VChip>
+            </VListItemTitle>
+            <VListItemSubtitle v-if="item.details?.description" class="mb-2">
+              {{ item.details.description }}
+            </VListItemSubtitle>
             <VListItemSubtitle>
-              Added on {{ formatTimestamp(item.addedAt) }} by {{ item.addedAt.byUser }}
+              <VIcon icon="tabler-clock" size="16" class="me-1" />
+              Due: {{ formatTimestamp(item.details?.endDate) }}
             </VListItemSubtitle>
           </div>
 
-          <!-- Actions -->
-          <div class="list-item-actions" v-if="editingFollowupId !== item.followupId">
+          <div class="list-item-timestamp" v-if="editingFollowupId !== item.followupId">
+            <VIcon icon="tabler-clock" size="16" class="me-1" />
+            <span class="text-caption">{{ formatActivityTimestamp(item) }}</span>
+          </div>
+
+          <div
+            class="list-item-actions"
+            v-if="editingFollowupId !== item.followupId && item.details?.status !== 'Cancelled'"
+          >
             <IconBtn size="x-small" @click="handleEditFollowup(item)">
               <VIcon icon="tabler-pencil" />
             </IconBtn>
@@ -303,7 +350,6 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
   </VCard>
 </template>
 
-<!-- Add this style block, same as in LeadDocs -->
 <style scoped>
 .list-item-hover {
   position: relative; 
@@ -322,4 +368,22 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
 .list-item-hover:hover .list-item-actions {
   opacity: 1;
 }
+
+.list-item-timestamp {
+  position: absolute;
+  bottom: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  color: rgba(var(--v-theme-on-surface), var(--v-disabled-opacity));
+}
+
+/* .cancelled-activity {
+  opacity: 0.6;
+  filter: blur(0.5px);
+  background-color: #f8f8f8;
+} */
+/* .v-theme--dark .cancelled-activity {
+   background-color: #333333;
+} */
 </style>

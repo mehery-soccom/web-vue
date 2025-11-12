@@ -16,7 +16,11 @@ const props = defineProps({
   initialClosingDate: {
     type: Number,
     default: null,
-  }
+  },
+  initialAgentId: {
+      type: String,
+      default: null,
+   }
 });
 
 const emit = defineEmits(['stage-updated']);
@@ -26,8 +30,10 @@ const leadsStore = useLeadsStore();
 const { show } = inject("snackbar");
 
 const allStages = ref([]);
+const allAgents = ref([]);
 const isLoading = ref(true); 
 const isUpdating = ref(false);
+const isAgentLoading = ref(false);
 const byUser = window.CONST?.USER?.user || null;
 
 const tsToDate = (ts) => (ts ? new Date(ts) : null);
@@ -35,14 +41,31 @@ const tsToDate = (ts) => (ts ? new Date(ts) : null);
 const stageForm = ref({
   selectedStageId: props.currentStageId,
   closingDate: tsToDate(props.initialClosingDate),
+  assignedAgentId: props.initialAgentId,
 });
 
 const originalStageForm = ref({
   selectedStageId: props.currentStageId,
   closingDate: tsToDate(props.initialClosingDate),
+  assignedAgentId: props.initialAgentId,
 });
 
+const fetchAgentOptions = async () => {
+  isAgentLoading.value = true;
+  try {
+    const response = await leadsStore.fetchAgents();
+    // console.log("Fetched agents:", response);
+    allAgents.value = Array.isArray(response.results) ? response.results : [];
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Could not load agents.'
+    show({ message: errorMessage, color: 'error' });
+  } finally {
+    isAgentLoading.value = false;
+  }
+}
+
 onMounted(async () => {
+  fetchAgentOptions();
   try {
     const response = await stagesStore.fetchStages();
     allStages.value = response.data || [];
@@ -54,10 +77,16 @@ onMounted(async () => {
   }
 });
 
-watch(() => props.initialClosingDate, (newTs) => {
-  const newDate = tsToDate(newTs);
-  stageForm.value.closingDate = newDate;
-  originalStageForm.value.closingDate = newDate;
+watch(() => props.initialAgentId, (newId) => {
+  stageForm.value.assignedAgentId = newId;
+  originalStageForm.value.assignedAgentId = newId;
+});
+
+const filteredAgents = computed(() => {
+  if (!allAgents.value) return [];
+  return allAgents.value
+    .filter(agent => agent.admin === true || agent.moderator === true)
+    .sort((a, b) => a.name.localeCompare(b.name));
 });
 
 const sortedStages = computed(() => {
@@ -79,35 +108,71 @@ const probability = computed(() => {
 
 const isFormEdited = computed(() => {
   return stageForm.value.selectedStageId !== originalStageForm.value.selectedStageId ||
-         stageForm.value.closingDate !== originalStageForm.value.closingDate;
+         stageForm.value.closingDate !== originalStageForm.value.closingDate ||
+         stageForm.value.assignedAgentId !== originalStageForm.value.assignedAgentId;
 });
 
 const handleCancel = () => {
   stageForm.value.selectedStageId = originalStageForm.value.selectedStageId;
   stageForm.value.closingDate = originalStageForm.value.closingDate;
+  stageForm.value.assignedAgentId = originalStageForm.value.assignedAgentId;
 };
 
 const handleSubmit = async () => {
-  if (!isFormEdited.value) return;
+  if (!isFormEdited.value) return;
 
-  isUpdating.value = true;
-  try {
-    const payload = {
-      leadStage: stageForm.value.selectedStageId,
-      closingDate: stageForm.value.closingDate ? new Date(stageForm.value.closingDate).getTime() : null,
-      byUser: byUser,
-    };
-    await leadsStore.updateLead({ id: props.leadId, data: payload });
-    show({ message: 'Lead stage updated successfully!', color: 'success' });
-    
-    emit('stage-updated');
+  isUpdating.value = true;
 
-  } catch (error) {
-    const errorMessage = error.response?.data?.message || error.message || 'Failed to update lead stage.'
+  const stageOrDateChanged = stageForm.value.selectedStageId !== originalStageForm.value.selectedStageId ||
+                         stageForm.value.closingDate !== originalStageForm.value.closingDate;
+  
+  const agentChanged = stageForm.value.assignedAgentId !== originalStageForm.value.assignedAgentId;
+
+  let success = true;
+  let errorMessage = '';
+
+  try {
+    // 1. Update Stage and/or Closing Date
+    if (stageOrDateChanged) {
+      const stagePayload = {
+        leadStage: stageForm.value.selectedStageId,
+        closingDate: stageForm.value.closingDate ? new Date(stageForm.value.closingDate).getTime() : null,
+        byUser: byUser,
+      };
+      await leadsStore.updateLead({ id: props.leadId, data: stagePayload });
+    }
+
+    // 2. Update Assigned Agent
+    if (agentChanged && stageForm.value.assignedAgentId) {
+      const selectedAgent = allAgents.value.find(a => a.id === stageForm.value.assignedAgentId);
+      
+      if (selectedAgent) {
+        const assignPayload = {
+          leadIds: [props.leadId],
+          assignedTo: selectedAgent.code,
+          byUser: byUser,
+        };
+        await leadsStore.assignLead(assignPayload);
+      } else {
+         throw new Error('Selected agent not found.');
+      }
+    }
+
+    show({ message: 'Lead updated successfully!', color: 'success' });
+    
+    originalStageForm.value.selectedStageId = stageForm.value.selectedStageId;
+    originalStageForm.value.closingDate = stageForm.value.closingDate;
+    originalStageForm.value.assignedAgentId = stageForm.value.assignedAgentId;
+
+    emit('stage-updated');
+
+  } catch (error) {
+    success = false;
+    errorMessage = error.response?.data?.message || error.message || 'Failed to update lead.'
     show({ message: errorMessage, color: 'error' });
-  } finally {
-    isUpdating.value = false;
-  }
+  } finally {
+    isUpdating.value = false;
+  }
 };
 </script>
 
@@ -115,6 +180,7 @@ const handleSubmit = async () => {
   <VCard border elevation="2">
     <VCardText>
       <p class="text-h6 mb-4">Lead Progress</p>
+
       <div v-if="!isLoading && sortedStages.length">
         <VTimeline
           direction="horizontal"
@@ -128,13 +194,17 @@ const handleSubmit = async () => {
             size="small"
             fill-dot
           >
-            <div class="text-center" :class="{ 'font-weight-bold text-primary': index === currentStageIndex }">
+            <div
+              class="text-center"
+              :class="{ 'font-weight-bold text-primary': index === currentStageIndex }"
+            >
               <p class="mb-0 text-caption">{{ stage.title }}</p>
               <small class="text-disabled">{{ stage.probability }}%</small>
             </div>
           </VTimelineItem>
         </VTimeline>
       </div>
+
       <div v-else-if="isLoading" class="text-center">
         <VProgressCircular indeterminate />
       </div>
@@ -142,15 +212,19 @@ const handleSubmit = async () => {
       <VDivider class="my-6" />
 
       <VForm @submit.prevent="handleSubmit">
-        
         <VRow align="center">
           <VCol cols="12" md="4">
             <VLabel>Assigned Agent</VLabel>
           </VCol>
-          <VCol cols="12" md="8">
-            <AppTextField
-              placeholder="-"
-              disabled
+          <VCol cols="12" md="6">
+            <AppSelect
+              v-model="stageForm.assignedAgentId"
+              :items="filteredAgents"
+              item-title="name"
+              item-value="id"
+              placeholder="Select an agent"
+              :loading="isAgentLoading"
+              clearable
             />
           </VCol>
         </VRow>
@@ -159,7 +233,7 @@ const handleSubmit = async () => {
           <VCol cols="12" md="4">
             <VLabel>Stage</VLabel>
           </VCol>
-          <VCol cols="12" md="8">
+          <VCol cols="12" md="6">
             <AppSelect
               v-model="stageForm.selectedStageId"
               :items="allStages"
@@ -172,28 +246,15 @@ const handleSubmit = async () => {
 
         <VRow align="center">
           <VCol cols="12" md="4">
-            <VLabel>Probability</VLabel>
-          </VCol>
-          <VCol cols="12" md="8">
-            <AppTextField
-              :model-value="probability"
-              readonly
-              suffix="%"
-            />
-          </VCol>
-        </VRow>
-
-        <VRow align="center">
-          <VCol cols="12" md="4">
             <VLabel>Closing Date</VLabel>
           </VCol>
-          <VCol cols="12" md="8">
+          <VCol cols="12" md="6">
             <AppDateTimePicker
-               v-model="stageForm.closingDate"
-               placeholder="Select a closing date"
-               :config="{ minDate: 'today' }"
-               prepend-inner-icon="tabler-calendar"
-             />
+              v-model="stageForm.closingDate"
+              placeholder="Select a closing date"
+              :config="{ minDate: 'today' }"
+              prepend-inner-icon="tabler-calendar"
+            />
           </VCol>
         </VRow>
 
@@ -208,6 +269,7 @@ const handleSubmit = async () => {
             >
               Cancel
             </VBtn>
+
             <VBtn
               type="submit"
               :loading="isUpdating"
@@ -221,4 +283,3 @@ const handleSubmit = async () => {
     </VCardText>
   </VCard>
 </template>
-

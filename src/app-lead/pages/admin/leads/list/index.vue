@@ -1,5 +1,5 @@
 <script setup>
-import { ref, reactive, inject } from 'vue'
+import { ref, reactive, inject, onMounted, computed } from 'vue'
 import debounce from 'lodash/debounce'
 import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore'
 import { useRouter } from 'vue-router'
@@ -7,6 +7,14 @@ import { useRouter } from 'vue-router'
 const { show } = inject('snackbar')
 const leadsStore = useLeadsStore()
 const router = useRouter()
+
+const selectedLeads = ref([])
+const isAssignModalVisible = ref(false)
+const isAgentLoading = ref(false)
+const isAssigning = ref(false)
+const allAgents = ref([])
+const selectedAgentId = ref(null)
+const byUser = window.CONST?.USER?.user || null
 
 const isLoading = ref(false)
 const leads = ref([])
@@ -21,10 +29,11 @@ const pagination = reactive({
 })
 
 const headers = [
+  { key: 'data-table-select', sortable: false },
   { title: 'Name', key: 'name', sortable: false },
   { title: 'Stage', key: 'stage', sortable: false },
   { title: 'Campaign', key: 'campaign', sortable: false },
-  { title: 'Assigned Agent', key: 'agent', sortable: false },
+  { title: 'Assigned Agent', key: 'assignedTo', sortable: false },
   { title: 'Closing Date', key: 'closingDate', sortable: false },
   { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
 ]
@@ -111,7 +120,66 @@ const handleRowClick = (event, { item }) => {
   }
 }
 
-fetchLeads()
+const fetchAgentOptions = async () => {
+  isAgentLoading.value = true
+  try {
+    const response = await leadsStore.fetchAgents()
+    allAgents.value = Array.isArray(response.results) ? response.results : []
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Could not load agents.'
+    show({ message: errorMessage, color: 'error' })
+  } finally {
+    isAgentLoading.value = false
+  }
+}
+
+const filteredAgents = computed(() => {
+  if (!allAgents.value) return []
+  return allAgents.value
+    .filter(agent => agent.admin === true || agent.moderator === true)
+    .sort((a, b) => a.name.localeCompare(b.name))
+})
+
+const closeAssignModal = () => {
+  isAssignModalVisible.value = false
+  selectedAgentId.value = null
+}
+
+const handleAssign = async () => {
+  if (!selectedAgentId.value || selectedLeads.value.length === 0) return
+
+  isAssigning.value = true
+  try {
+    const selectedAgent = allAgents.value.find(a => a.id === selectedAgentId.value)
+    if (!selectedAgent) {
+      throw new Error('Selected agent not found.')
+    }
+
+    const payload = {
+      leadIds: selectedLeads.value,
+      assignedTo: selectedAgent.code,
+      byUser: byUser,
+    }
+
+    await leadsStore.assignLead(payload)
+    show({ message: 'Leads assigned successfully!', color: 'success' })
+    
+    closeAssignModal()
+    selectedLeads.value = []
+    fetchLeads(pagination)
+
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to assign leads.'
+    show({ message: errorMessage, color: 'error' })
+  } finally {
+    isAssigning.value = false
+  }
+}
+
+onMounted(() => {
+  fetchLeads()
+  fetchAgentOptions()
+})
 </script>
 
 <template>
@@ -119,17 +187,81 @@ fetchLeads()
     <VCardText class="d-flex align-center flex-wrap gap-4">
       <h5 class="text-h5">Leads</h5>
       <VSpacer />
+
       <div class="d-flex align-center flex-wrap gap-4">
         <VBtn
           icon
           @click="() => fetchLeads(pagination)"
           :loading="isLoading"
           variant="text"
-          size="small"
           aria-label="Refresh Leads"
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
+
+        <VDialog v-model="isAssignModalVisible" max-width="500px" persistent>
+          <template #activator="{ props }">
+            <VBtn
+              v-bind="props"
+              prepend-icon="tabler-user-check"
+              :disabled="selectedLeads.length === 0"
+              variant="tonal"
+            >
+              Assign ({{ selectedLeads.length }})
+            </VBtn>
+          </template>
+
+          <VCard>
+            <VCardTitle class="py-4">
+              Assign Selected Leads
+            </VCardTitle>
+    
+            <VDivider />
+
+            <VCardText class="py-4">
+              <p class="mb-4">
+                Assign
+                <span class="font-weight-bold text-primary">{{ selectedLeads.length }}</span>
+                {{ selectedLeads.length === 1 ? 'lead' : 'leads' }} to:
+              </p>
+    
+              <AppSelect
+                v-model="selectedAgentId"
+                :items="filteredAgents"
+                item-title="name"
+                item-value="id"
+                :loading="isAgentLoading"
+                variant="outlined"
+                density="compact"
+                clearable
+              />
+            </VCardText>
+            
+            <VDivider />
+    
+            <VCardActions class="pa-4">
+              <VSpacer />
+              <VBtn
+                variant="tonal"
+                color="secondary"
+                @click="closeAssignModal"
+                :disabled="isAssigning"
+              >
+                Cancel
+              </VBtn>
+              <VBtn
+                color="primary"
+                :loading="isAssigning"
+                :disabled="!selectedAgentId"
+                @click="handleAssign"
+                class="ml-3"
+              >
+                Assign
+              </VBtn>
+            </VCardActions>
+          </VCard>
+        </VDialog>
+
         <VBtn
           prepend-icon="tabler-plus"
           :to="{ name: 'admin-leads-add-id?', params: { id: 'add' } }"
@@ -151,6 +283,9 @@ fetchLeads()
       @update:options="onUpdateOptionsDebounced"
       @click:row="handleRowClick"
       hover
+      v-model="selectedLeads"
+      show-select
+      item-value="_id"
     >
       <template #item.name="{ item }">
         <div class="d-flex flex-column">
@@ -166,8 +301,8 @@ fetchLeads()
         {{ item.raw.form?.title || item.raw.formTitle || '-' }}
       </template>
 
-      <template #item.agent>
-        -
+      <template #item.assignedTo="{ item }">
+        {{ item.raw.assignedTo || '-' }}
       </template>
 
       <template #item.closingDate="{ item }">
@@ -179,20 +314,18 @@ fetchLeads()
           <VIcon icon="tabler-trash" />
           <VDialog activator="parent" max-width="400">
             <template #default="{ isActive }">
-              <VCard
-                title="Confirm Deletion"
-                text="Are you sure you want to delete this lead?"
-              >
+              <VCard title="Confirm Deletion" text="Are you sure you want to delete this lead?">
                 <template #actions>
                   <VSpacer />
-                  <VBtn text="Cancel" @click="isActive.value = false" />
+                  <VBtn text @click="isActive.value = false">Cancel</VBtn>
                   <VBtn
                     color="error"
                     variant="tonal"
-                    text="Delete"
                     :loading="isLoading"
                     @click="() => { deleteLead(item.raw._id); isActive.value = false }"
-                  />
+                  >
+                    Delete
+                  </VBtn>
                 </template>
               </VCard>
             </template>

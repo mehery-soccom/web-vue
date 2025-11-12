@@ -9,6 +9,7 @@ import LeadTimeline from "@/app-lead/views/admin/leads/LeadTimeline.vue";
 import LeadStageData from '@/app-lead/views/admin/leads/LeadStageData.vue';
 import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue';
 import LeadActivities from '@/app-lead/views/admin/leads/LeadActivities.vue';
+import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -31,7 +32,8 @@ const followups = ref([]);
 const currentLeadStageId = ref(null);
 const originalLeadData = ref(null);
 const closingDate = ref(null);
-
+const assignedTo = ref(null);
+const maxDocSize = 5 * 1024 * 1024;
 
 const phoneValidator = value => {
   if (!value) return true
@@ -129,6 +131,7 @@ const fetchLeadData = async () => {
       followups.value = leadDetails.followups || [];
       currentLeadStageId.value = leadDetails.leadStage;
       closingDate.value = leadDetails.closingDate || null;
+      assignedTo.value = leadDetails.assignedTo || null;
 
       selectedFormId.value = leadDetails.form?.id || leadDetails.formId;
     } else {
@@ -226,8 +229,8 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
 </script>
 
 <template>
-  <VRow class="justify-center">
-    <VCol cols="12" md="8">
+  <VRow>
+    <VCol cols="12">
       <VCard>
         <VCardItem>
           <VCardTitle>{{ leadId ? 'Overview' : 'Create Lead' }}</VCardTitle>
@@ -251,6 +254,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                     :lead-id="leadId"
                     :initial-closing-date="closingDate"
                     @stage-updated="fetchLeadData"
+                    :initial-agent-id="assignedTo"
                   />
                 </VCol>
 
@@ -276,26 +280,27 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                         <VDivider class="my-4" v-if="selectedFormStructure" />
 
                         <div v-if="selectedFormStructure">
-
-                          <VRow 
-                            v-for="field in fieldsToRender" 
-                            :key="field._id" 
-                            align="center"
-                          >
-                            <VCol cols="12" md="4">
-                              <VLabel>
+                          <VRow>
+                            <VCol
+                              v-for="field in fieldsToRender"
+                              :key="field._id"
+                              cols="12"
+                              md="6"
+                            >
+                              <VLabel v-if="field.inputType !== 'BOOLEAN'">
                                 {{ field.title }}
                                 <span v-if="field.optional === false" class="text-error">*</span>
                               </VLabel>
-                            </VCol>
-                            <VCol cols="12" md="8">
+
                               <VTextField
                                 v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :placeholder="field.desc"
                                 variant="outlined"
                                 :rules="getRules(field)"
+                                class="mt-2"
                               />
+
                               <AppSelect
                                 v-else-if="field.inputType === 'OPTIONS'"
                                 v-model="leadData[field.path.split('.')[1]]"
@@ -304,27 +309,59 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 item-value="code"
                                 :placeholder="field.desc"
                                 :rules="getRules(field)"
+                                class="mt-2"
                               />
+
                               <AppDateTimePicker
                                 v-else-if="field.inputType === 'DATE'"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :placeholder="field.desc"
                                 prepend-inner-icon="tabler-calendar"
                                 :rules="getRules(field)"
+                                class="mt-2"
                               />
-                              <VFileInput
+
+                              <MyPdfUpload
                                 v-else-if="field.inputType === 'DOCUMENT'"
-                                v-model="leadData[field.path.split('.')[1]]"
-                                :label="field.desc || 'Upload'"
-                                variant="outlined"
-                                :rules="getRules(field)"
+                                :model-value="leadData[field.path.split('.')[1]]?.url || null"
+                                :max-size="maxDocSize"
+                                class="mt-2"
+                                @upload-complete="payload => {
+                                  leadData[field.path.split('.')[1]] = {
+                                    name: payload.name,
+                                    path: payload.path,
+                                    url: payload.url,
+                                    contentType: payload.contentType,
+                                    contentLength: payload.contentLength,
+                                    title: payload.title,
+                                  }
+                                }"
+                                @update:modelValue="value => {
+                                  if (value === null) {
+                                    leadData[field.path.split('.')[1]] = null
+                                  }
+                                }"
                               />
-                              <VSwitch
+                              
+                              <div
                                 v-else-if="field.inputType === 'BOOLEAN'"
-                                v-model="leadData[field.path.split('.')[1]]"
-                                :label="field.title"
-                                :rules="getRules(field)"
-                              />
+                                class="d-flex align-center justify-space-between mt-4 pa-2 border rounded bg-surface"
+                              >
+                                <div class="d-flex flex-column">
+                                  <span class="font-weight-medium">
+                                    {{ field.title }}
+                                    <span v-if="field.optional === false" class="text-error">*</span>
+                                  </span>
+                                </div>
+
+                                <VSwitch
+                                  v-model="leadData[field.path.split('.')[1]]"
+                                  :rules="getRules(field)"
+                                  color="primary"
+                                  hide-details
+                                />
+                              </div>
+
                               <VTextField
                                 v-else
                                 v-model="leadData[field.path?.split('.')?.[1] || field.code]"
@@ -333,6 +370,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 disabled
                                 hint="Unsupported field type"
                                 :rules="getRules(field)"
+                                class="mt-2"
                               />
                             </VCol>
                           </VRow>
@@ -365,15 +403,16 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                 <VCol v-if="leadId" cols="12">
                   <LeadDocs :lead-id="leadId" />
                 </VCol>
-              </VRow>
 
-              <!-- <VCol v-if="leadId" cols="12">
-                <LeadActivities 
-                  :lead-id="leadId"
-                  :followups="followups"
-                  @activity-added="fetchLeadData" 
-                />
-              </VCol> -->
+                <VCol v-if="leadId" cols="12">
+                  <LeadActivities 
+                    :lead-id="leadId"
+                    :followups="followups"
+                    :contact="leadData"
+                    @activity-added="fetchLeadData" 
+                  />
+                </VCol>
+              </VRow>
             </VWindowItem>
 
             <VWindowItem value="timeline">

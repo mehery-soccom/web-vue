@@ -31,6 +31,7 @@ const newDocument = ref({
   url: '',
   fileDetails: null
 });
+const maxDocSize = 5 * 1024 * 1024;
 
 const documents = computed(() => {
   return allDocs.value
@@ -50,6 +51,9 @@ const formatFileSize = (bytes) => {
 
 const editingNoteId = ref(null);
 const editedNoteData = ref({ title: '', content: '' });
+
+const editingDocId = ref(null);
+const editedDocData = ref({ title: '' });
 
 const fetchDocsAndNotes = async () => {
   isLoading.value = true;
@@ -175,7 +179,6 @@ const handleDocumentUploadComplete = async () => {
   const uploadedUrl = newDocument.value.url;
   const fileDetails = newDocument.value.fileDetails;
 
-  // Add validation
   if (!uploadedUrl || !fileDetails) {
     show({ message: 'Please upload a file first.', color: 'warning' });
     return;
@@ -183,7 +186,6 @@ const handleDocumentUploadComplete = async () => {
 
   isSavingDoc.value = true;
   try {
-    // Use the real file details
     const documentInfo = {
       fileName: fileDetails.name || uploadedUrl.split('/').pop(),
       fileSize: fileDetails.contentLength || 0,
@@ -192,20 +194,19 @@ const handleDocumentUploadComplete = async () => {
     };
 
     const payload = {
-      // Use a better title fallback based on the real file name
       title: newDocument.value.title || documentInfo.fileName.split('.').slice(0, -1).join('.') || 'Document', 
       type: 'DOCUMENT',
-      content: uploadedUrl, // The URL from v-model
+      content: uploadedUrl,
       leadId: props.leadId,
-      byUser: byUser, // Use the byUser const from top of script
-      documentInfo: documentInfo, // Use the new object
+      byUser: byUser,
+      documentInfo: documentInfo,
     };
 
     await docStore.createDoc({ payload });
     show({ message: 'Document saved successfully!', color: 'success' });
     
     await fetchDocsAndNotes();
-    resetAndCloseDocForm(); // Close form after successful save
+    resetAndCloseDocForm();
 
   } catch (error) {
     console.error("Failed to save document:", error);
@@ -216,17 +217,66 @@ const handleDocumentUploadComplete = async () => {
   }
 };
 
-// 5. Add handler for deleting documents (similar to notes)
 const handleDeleteDocument = async (docId) => {
-  // Use isSavingDoc state to show loading on button maybe? Or add a specific one.
+  isSavingDoc.value = true;
   try {
     await docStore.deleteDoc({ id: docId });
     show({ message: 'Document deleted successfully', color: 'success' });
     await fetchDocsAndNotes();
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || 'Failed to delete document.'
-    show({ message: errorMessage, color: 'error' });
-  } 
+    show({ message: errorMessage, color: 'error' });
+  } finally {
+    isSavingDoc.value = false;
+  }
+};
+
+const handleEditDoc = (doc) => {
+  editingDocId.value = doc._id;
+  editedDocData.value = { title: doc.title };
+};
+
+const cancelEditDoc = () => {
+  editingDocId.value = null;
+  editedDocData.value = { title: '' };
+};
+
+const handleUpdateDoc = async () => {
+  if (!editedDocData.value.title) {
+    show({ message: 'Document title cannot be empty.', color: 'warning' });
+    return;
+  }
+  isSavingDoc.value = true;
+  try {
+    const originalDoc = allDocs.value.find(d => d._id === editingDocId.value);
+    if (!originalDoc) {
+      throw new Error("Original document not found.");
+    }
+
+    const payload = {
+      ...originalDoc,
+      title: editedDocData.value.title,
+      byUser: byUser,
+    };
+    
+    delete payload._id; 
+    delete payload.createdAt;
+    delete payload.updatedAt;
+
+    await docStore.updateDoc({
+      id: editingDocId.value,
+      payload: payload,
+    });
+
+    show({ message: 'Document updated successfully!', color: 'success' });
+    await fetchDocsAndNotes();
+    cancelEditDoc();
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to update document.'
+    show({ message: errorMessage, color: 'error' });
+  } finally {
+    isSavingDoc.value = false;
+  }
 };
 
 const formatTimestamp = (note) => {
@@ -411,6 +461,7 @@ const formatTimestamp = (note) => {
             label="Select Document"
             v-model="newDocument.url"
             @upload-complete="newDocument.fileDetails = $event"
+            :max-size="maxDocSize"
           />
           <div class="d-flex gap-4 mt-4">
               <VSpacer />
@@ -435,26 +486,53 @@ const formatTimestamp = (note) => {
 
         <VList v-if="documents.length > 0" class="py-0">
           <template v-for="doc in documents" :key="doc._id">
-            <VListItem 
-              class="list-item-hover pa-4 pb-5" 
-            >
+            <VListItem class="list-item-hover pa-4 pb-5">
+
               <template #prepend>
                 <VIcon icon="tabler-file" class="mt-n1" />
               </template>
 
-              <VListItemTitle class="mb-1">{{ doc.title }}</VListItemTitle>
-              <VListItemSubtitle>
-                {{ doc.documentInfo.fileName || 'N/A' }} 
-                ({{ formatFileSize(doc.documentInfo.fileSize) }})
-              </VListItemSubtitle>
+              <div v-if="editingDocId === doc._id" class="py-2">
+                <VTextField
+                  v-model="editedDocData.title"
+                  label="Document Title"
+                  variant="outlined"
+                  density="compact"
+                  autofocus
+                  @keyup.enter="handleUpdateDoc"
+                  @keyup.esc="cancelEditDoc"
+                />
 
-              <div class="list-item-timestamp">
+                <div class="d-flex gap-4 mt-2">
+                  <VSpacer />
+                  <VBtn size="small" variant="text" @click="cancelEditDoc">
+                    Cancel
+                  </VBtn>
+                  <VBtn size="small" :loading="isSavingDoc" @click="handleUpdateDoc">
+                    Update
+                  </VBtn>
+                </div>
+              </div>
+
+              <div v-else>
+                <VListItemTitle class="mb-1">{{ doc.title }}</VListItemTitle>
+                <VListItemSubtitle>
+                  {{ doc.documentInfo.fileName || 'N/A' }}
+                  ({{ formatFileSize(doc.documentInfo.fileSize) }})
+                </VListItemSubtitle>
+              </div>
+
+              <div v-if="editingDocId !== doc._id" class="list-item-timestamp">
                 <VIcon icon="tabler-clock" size="16" class="me-1" />
                 <span class="text-caption">{{ formatTimestamp(doc) }}</span>
               </div>
 
               <template #append>
-                <div class="list-item-actions">
+                <div v-if="editingDocId !== doc._id" class="list-item-actions">
+                  <IconBtn size="x-small" @click="handleEditDoc(doc)">
+                    <VIcon icon="tabler-pencil" />
+                  </IconBtn>
+
                   <IconBtn
                     size="x-small"
                     :href="doc.content"
@@ -463,30 +541,33 @@ const formatTimestamp = (note) => {
                   >
                     <VIcon icon="tabler-eye" />
                   </IconBtn>
+
                   <IconBtn size="x-small">
                     <VIcon icon="tabler-trash" />
                     <v-dialog activator="parent" max-width="400">
-                        <template v-slot:default="{ isActive }">
-                          <v-card
-                            title="Confirm Deletion"
-                            text="Are you sure you want to delete this document?"
-                          >
-                            <template v-slot:actions>
-                              <VSpacer />
-                              <v-btn text="Cancel" @click="isActive.value = false" />
-                              <v-btn
-                                color="error"
-                                variant="tonal"
-                                text="Delete"
-                                @click="() => { handleDeleteDocument(doc._id); isActive.value = false; }"
-                              />
-                            </template>
-                          </v-card>
-                        </template>
-                      </v-dialog>
+                      <template v-slot:default="{ isActive }">
+                        <v-card
+                          title="Confirm Deletion"
+                          text="Are you sure you want to delete this document? This action cannot be undone."
+                        >
+                          <template v-slot:actions>
+                            <VSpacer />
+                            <v-btn text="Cancel" @click="isActive.value = false" />
+                            <v-btn
+                              color="error"
+                              variant="tonal"
+                              text="Delete"
+                              :loading="isSavingDoc" 
+                              @click="() => { handleDeleteDocument(doc._id); isActive.value = false; }"
+                            />
+                          </template>
+                        </v-card>
+                      </template>
+                    </v-dialog>
                   </IconBtn>
                 </div>
               </template>
+
             </VListItem>
             <VDivider />
           </template>
@@ -506,32 +587,26 @@ const formatTimestamp = (note) => {
 
 <style scoped>
 .list-item-hover {
-  /* This allows us to position child elements relative to the list item */
   position: relative; 
 }
 
 .list-item-actions {
-  /* Position the actions to the top right */
   position: absolute;
   top: 16px;
   right: 16px;
   display: flex;
   gap: 0.25rem;
-  background-color: rgb(var(--v-theme-surface)); /* Add a small background to prevent text overlap */
+  background-color: rgb(var(--v-theme-surface));
   border-radius: 4px;
-
-  /* Hide actions by default */
   opacity: 0;
   transition: opacity 0.2s ease-in-out;
 }
 
 .list-item-hover:hover .list-item-actions {
-  /* Show actions on hover */
   opacity: 1;
 }
 
 .list-item-timestamp {
-  /* Position the timestamp to the bottom right */
   position: absolute;
   bottom: 16px;
   right: 16px;

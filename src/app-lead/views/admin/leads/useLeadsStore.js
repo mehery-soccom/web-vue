@@ -56,21 +56,37 @@ export const useLeadsStore = defineStore("LeadsStore", {
             return response.data
         },
 
-        async updateLeadFollowup({ followupId, payload }) {
-            const response = await DataService.axios.post(`/followups/lead/${followupId}/update`, payload, { toast: false })
+        async updateLeadFollowup({ leadId, followupId, payload }) {
+            const response = await DataService.axios.post(`profile/followups/${leadId}/${followupId}/update`, payload, { toast: false })
             if (response.data.error) {
                 throw { response: { data: response.data } }
             }
             return response.data
         },
 
-        async cancelLeadFollowup({ followupId, payload }) {
-            const response = await DataService.axios.post(`/followups/lead/${followupId}/cancel`, payload, { toast: false })
+        async cancelLeadFollowup({ leadId, followupId, payload }) {
+            const response = await DataService.axios.post(`profile/followups/${leadId}/${followupId}/cancel`, payload, { toast: false })
             if (response.data.error) {
                 throw { response: { data: response.data } }
             }
             return response.data
         },
+
+        async fetchAgents() {
+            const response = await DataService.axios.get("admin/api/admins/agent", {
+                skipApiContext: true,
+                toast: false,
+            });
+            return response.data;
+        },
+
+        async assignLead(payload) {
+            const response = await DataService.axios.post("/profile/bulk-assign", payload, { toast: false });
+            if (response.data.error) {
+                throw { response: { data: response.data } };
+            }
+            return response.data;
+        },
 
     }
 });

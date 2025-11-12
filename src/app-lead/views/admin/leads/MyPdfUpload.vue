@@ -12,11 +12,11 @@ const props = defineProps({
   },
   label: {
     type: String,
-    default: 'Upload PDF',
+    default: null,
   },
   maxSize: {
     type: Number,
-    default: 20 * 1024 * 1024, // 20 MB default
+    default: 5 * 1024 * 1024,
   },
   existingUuid: {
     type: String,
@@ -31,6 +31,7 @@ const fileInput = ref(null);
 
 const fileUrl = ref(props.modelValue);
 const displayName = ref(props.modelValue ? props.modelValue.split('/').pop().split('?')[0] : null);
+const formattedMaxSize = computed(() => formatSize(props.maxSize));
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) {
@@ -111,19 +112,42 @@ watch(() => props.modelValue, (newVal) => {
 
 <template>
   <VRow no-gutters align="end">
-    <VCol v-if="fileUrl" cols="11">
-      <VLabel class="mb-1 text-body-2 text-high-emphasis" :text="label" />
+    <VCol v-if="fileUrl" cols="12">
+      <VLabel v-if="label" class="mb-1 text-body-2 text-high-emphasis" :text="label" />
       <VTextField
         :model-value="displayName"
         variant="outlined"
         class="flex-grow-1"
         prepend-inner-icon="mdi-file-pdf-box"
         readonly
-      />
+      >
+        <template #append-inner>
+          <div class="d-flex">
+            <VBtn
+              icon
+              variant="text"
+              :href="fileUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click.stop
+            >
+              <VIcon>mdi-eye</VIcon>
+            </VBtn>
+
+            <VBtn 
+              icon 
+              variant="text" 
+              @click="clearUpload" 
+            >
+              <VIcon>mdi-trash</VIcon>
+            </VBtn>
+          </div>
+        </template>
+      </VTextField>
     </VCol>
 
     <VCol v-else cols="12">
-      <VLabel class="mb-1 text-body-2 text-high-emphasis" :text="label" />
+      <VLabel v-if="label" class="mb-1 text-body-2 text-high-emphasis" :text="label" />
       <VFileInput
         :loading="uploading"
         color="primary"
@@ -134,6 +158,7 @@ watch(() => props.modelValue, (newVal) => {
         placeholder="Select or drop a PDF file"
         prepend-inner-icon="mdi-file-pdf-box"
         prepend-icon=""
+        :hint="`Max file size: ${formattedMaxSize}`"  persistent-hint
       >
         <template #selection="{ fileNames }">
           <template v-for="fileName in fileNames" :key="fileName">
@@ -149,12 +174,5 @@ watch(() => props.modelValue, (newVal) => {
         </template>
       </VFileInput>
     </VCol>
-
-    <VCol v-if="fileUrl" cols="1" class="d-flex align-center justify-end">
-      <VBtn icon variant="text" @click="clearUpload">
-        <VIcon>mdi-trash</VIcon>
-      </VBtn>
-    </VCol>
   </VRow>
 </template>
-
