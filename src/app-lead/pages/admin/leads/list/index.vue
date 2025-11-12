@@ -50,6 +50,12 @@ const fetchLeads = async (options = pagination) => {
         activeFilters[key] = options.filters[key]
       }
     }
+
+    const userRoles = window.CONST?.USER?.role || []
+    if (userRoles.includes('ADMIN')) {
+      activeFilters['assignedTo'] = byUser 
+    }
+
     const apiParams = {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
