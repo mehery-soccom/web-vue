@@ -70,8 +70,12 @@ const fetchFields = async (options = pagination) => {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
       search: activeFilters,
-      sortBy: options.sortBy,
     };
+
+    if (options.sortBy && options.sortBy.length > 0) {
+      const sortItem = options.sortBy[0];
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
+    }
 
     const response = await fieldsStore.fetchFields(apiParams);
     fields.value = response.results;

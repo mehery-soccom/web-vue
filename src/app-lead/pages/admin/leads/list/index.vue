@@ -29,13 +29,13 @@ const pagination = reactive({
 })
 
 const headers = [
-  { key: 'data-table-select', sortable: false },
-  { title: 'Name', key: 'name', sortable: false },
-  { title: 'Stage', key: 'stage', sortable: false },
-  { title: 'Campaign', key: 'campaign', sortable: false },
-  { title: 'Assigned Agent', key: 'assignedTo', sortable: false },
-  { title: 'Closing Date', key: 'closingDate', sortable: false },
-  { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
+  { key: 'data-table-select', sortable: false },
+  { title: 'Name', key: 'name', sortable: true },
+  { title: 'Stage', key: 'stage', sortable: false },
+  { title: 'Campaign', key: 'campaign', sortable: true },
+  { title: 'Assigned Agent', key: 'assignedTo', sortable: true },
+  { title: 'Closing Date', key: 'closingDate', sortable: true },
+  { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
 ]
 
 const fetchLeads = async (options = pagination) => {
@@ -61,6 +61,11 @@ const fetchLeads = async (options = pagination) => {
       pageSize: options.itemsPerPage,
       search: activeFilters,
     }
+    if (options.sortBy && options.sortBy.length > 0) {
+      const sortItem = options.sortBy[0];
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
+    }
+
     const response = await leadsStore.fetchLeads(apiParams)
     leads.value = response.results
     pagination.itemsLength = response.pagination?.total || 0

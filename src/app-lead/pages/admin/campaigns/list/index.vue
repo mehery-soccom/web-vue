@@ -56,6 +56,11 @@ const fetchCampaigns = async (options = pagination) => {
       search: activeFilters,
     }
 
+    if (options.sortBy && options.sortBy.length > 0) {
+      const sortItem = options.sortBy[0];
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
+    }
+
     const response = await campaignStore.fetchCampaigns(apiParams)
     campaigns.value = response.results
     pagination.itemsLength = response.pagination?.total || 0
