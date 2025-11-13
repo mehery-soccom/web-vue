@@ -47,7 +47,7 @@ const onUpdateOptions = (options) => {
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
 
 const headers = [
-  { title: "Label", key: "title" },
+  { title: "Label", key: "title", sortable: true },
   { title: "Code", key: "code" },
   { title: "Description", key: "desc" },
   { title: "Type", key: "inputType" },
@@ -70,6 +70,7 @@ const fetchFields = async (options = pagination) => {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
       search: activeFilters,
+      sortBy: options.sortBy,
     };
 
     const response = await fieldsStore.fetchFields(apiParams);

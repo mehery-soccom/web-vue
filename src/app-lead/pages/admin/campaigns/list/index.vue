@@ -168,7 +168,7 @@ fetchCampaigns()
 
         <VTooltip location="top">
           <template #activator="{ props }">
-            <IconBtn v-bind="props" @click="copyLink(item.raw.link)">
+            <IconBtn v-bind="props" @click="copyLink(item.raw.link)" :disabled="!item.raw.isActive">
               <VIcon icon="tabler-link" />
             </IconBtn>
           </template>
