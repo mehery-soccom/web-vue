@@ -48,16 +48,16 @@ onMounted(async () => {
         return {
           ...masterField, 
           access: {
-            contact: field.access?.contact || 'H',
-            moderator: field.access?.moderator || 'H',
-            agent: field.access?.agent || 'H'
+            contact: field.access?.contact || 'W',
+            moderator: field.access?.moderator || 'W',
+            agent: field.access?.agent || 'W'
           },
           label: masterField.title, 
         };
       });
     }else {
       const defaultCodes = ['name', 'email', 'phone'];
-      const defaultAccess = { contact: 'R', moderator: 'R', agent: 'R' };
+      const defaultAccess = { contact: 'W', moderator: 'W', agent: 'W' };
 
       const fieldsToAdd = defaultCodes.map(code => {
         return availableFields.value.find(f => f.code === code);
