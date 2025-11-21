@@ -147,6 +147,7 @@ onMounted(async () => {
           dateFormat: 'd-m-Y',
           position: 'auto right',
           onChange: onDateSelect,
+          maxDate: 'today',
           onValueUpdate: onDateUpdate,
           onClose: onDateClosed,
           plugins: [customPlugin],

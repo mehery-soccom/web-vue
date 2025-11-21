@@ -906,6 +906,7 @@ onMounted(async () => {
           position: 'auto right',
           onChange: onDateSelect,
           onValueUpdate: onDateUpdate,
+          maxDate: 'today',
           onClose: onDateClosed,
           plugins: [customPlugin],
         }"

@@ -227,5 +227,9 @@ export const useProjectStore = defineStore("ProjectStore", {
       }
       return axios.get(url);
     },
+    fetchChatSessions(start, end, type) {
+      let url = `/api/v1/dashboard/chat-sessions?dateRange1=${start}&dateRange2=${end}&type=${type}`;
+      return axios.get(url);
+    },
   },
 });

@@ -187,6 +187,7 @@ onMounted(async () => {
         :config="{
           mode: 'range',
           dateFormat: 'd-m-Y',
+          maxDate: 'today',
           position: 'auto right',
           onClose: onDateClosed,
           plugins: [customPlugin],
