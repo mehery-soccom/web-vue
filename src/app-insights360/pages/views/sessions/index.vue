@@ -14,6 +14,10 @@ const isLoading = ref(false);
 const selectedType = ref("Active");
 const typeOptions = ["All", "Open", "Active"];
 
+const isDrawerOpen = ref(false);
+const isDrawerLoading = ref(false);
+const selectedSession = ref({});
+
 const oldDates = ref([]);
 const today = new Date();
 const oneWeekAgo = new Date();
@@ -29,6 +33,7 @@ const headers = [
   { title: "Contact Type", key: "contactType", searchable: true, sortable: true },
   { title: "Status", key: "status", searchable: true, sortable: true },
   { title: "Start@", key: "startStamp", sortable: true },
+  { title: "Actions", key: "actions", sortable: false },
 ];
 
 const fetchSessions = async (start, end) => {
@@ -60,6 +65,40 @@ const fetchSessions = async (start, end) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const openSessionDetails = async (sessionId) => {
+  isDrawerOpen.value = true;
+  isDrawerLoading.value = true;
+  selectedSession.value = {};
+
+  try {
+    const response = await projectStore.fetchSession(sessionId);
+    
+    if (response?.data?.results && response.data.results.length > 0) {
+      let sessionData = response.data.results[0];
+      
+      if (!sessionData.sessionId && sessionData._id) {
+        sessionData.sessionId = sessionData._id;
+      }
+
+      selectedSession.value = sessionData;
+    }
+  } catch (error) {
+    console.error("Error fetching single session", error);
+  } finally {
+    isDrawerLoading.value = false;
+  }
+};
+
+const getSentimentLabel = (score) => {
+  const map = { 2: "Very Happy", 1: "Happy", 0: "Satisfied", "-1": "Not Happy", "-2": "Disappointed" };
+  return map[score] || '-';
+};
+
+const calcDiff = (start, end) => {
+  if (!start || !end) return '-';
+  return formatDuration(start, end);
 };
 
 const onTypeChange = () => {
@@ -256,8 +295,128 @@ const formatDuration = (start, end) => {
              <span>{{ formatCustomDate(item.raw.startStamp) }}</span>
         </template>
 
+        <template #item.actions="{ item }">
+          <VBtn icon variant="text" color="default" size="small" @click="openSessionDetails(item.raw.sessionId)">
+            <VIcon icon="tabler-eye" />
+          </VBtn>
+        </template>
+
       </DemoDataTableKitchenSink>
     </VCol>
+
+    <VNavigationDrawer
+      v-model="isDrawerOpen"
+      location="right"
+      temporary
+      width="400"
+      class="scrollable-content drawer-rounded"
+    >
+      <div class="px-4 py-2 border-b d-flex justify-space-between align-center">
+        <h3 class="text-h6">Session Details</h3>
+        <VBtn icon variant="text" @click="isDrawerOpen = false">
+          <VIcon>mdi-close</VIcon>
+        </VBtn>
+      </div>
+
+      <div v-if="isDrawerLoading" class="pa-4 d-flex justify-center">
+        <VProgressCircular indeterminate color="primary" />
+      </div>
+
+      <div v-else-if="selectedSession.sessionId || selectedSession._id" class="pa-4">
+        <VList lines="two" density="compact">
+          
+          <VListItemSubtitle class="mb-2 text-uppercase text-xs font-weight-bold">Contact Info</VListItemSubtitle>
+          
+          <div class="mb-4 detail-grid">
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Contact Name</span>
+               <span class="text-body-2 font-weight-medium">{{ selectedSession.contact?.name || '-' }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Email ID</span>
+               <span class="text-body-2">{{ selectedSession.contact?.email || '-' }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Mobile Number</span>
+               <span class="text-body-2">{{ selectedSession.contact?.phone || '-' }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Contact ID</span>
+               <span class="text-body-2">{{ selectedSession.contact?.contactId || '-' }}</span>
+             </div>
+          </div>
+
+          <VDivider class="mb-4" />
+
+          <VListItemSubtitle class="mb-2 text-uppercase text-xs font-weight-bold">Session Info</VListItemSubtitle>
+          
+          <div class="mb-4 detail-grid">
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Session ID</span>
+               <span class="text-body-2">{{ selectedSession.sessionId }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Channel ID</span>
+               <span class="text-body-2">{{ selectedSession.channel }}:{{ selectedSession.lane }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Channel Type</span>
+               <span class="text-body-2">{{ selectedSession.contactType }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Assigned Agent</span>
+               <span class="text-body-2">{{ selectedSession.assignedToAgent || '-' }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Closed By</span>
+               <span class="text-body-2">{{ selectedSession.summary?.assignedToAtResolve || '-' }}</span>
+             </div>
+          </div>
+
+          <VDivider class="mb-4" />
+
+          <VListItemSubtitle class="mb-2 text-uppercase text-xs font-weight-bold">Metrics</VListItemSubtitle>
+          
+          <div class="mb-4 detail-grid">
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Chat Start</span>
+               <span class="text-body-2">{{ formatTimeDay(selectedSession.startSessionStamp) }} ({{ formatDateOnly(selectedSession.startSessionStamp) }})</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Session End</span>
+               <span class="text-body-2">{{ formatTimeDay(selectedSession.resolveSessionStamp) }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">First Reply Duration</span>
+               <span class="text-body-2">{{ calcDiff(selectedSession.stamps?.sessionStart, selectedSession.stamps?.firstOutBound_AGENT) }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Resolution Time</span>
+               <span class="text-body-2">{{ calcDiff(selectedSession.startSessionStamp, selectedSession.resolveSessionStamp) }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Feedback Score</span>
+               <span class="text-body-2">{{ selectedSession.feedback?.score || '-' }}</span>
+             </div>
+             <div class="mb-2">
+               <span class="text-caption text-medium-emphasis d-block">Sentiment</span>
+               <VChip 
+                v-if="selectedSession.insights" 
+                size="x-small" 
+                :color="selectedSession.insights.sentimentScore >= 0 ? 'success' : 'error'" 
+                class="mt-1"
+              >
+                {{ getSentimentLabel(selectedSession.insights.sentimentScore) }}
+              </VChip>
+             </div>
+          </div>
+
+        </VList>
+      </div>
+      <div v-else class="pa-4 text-center text-medium-emphasis">
+        No details available.
+      </div>
+    </VNavigationDrawer>
   </VRow>
 </template>
 
@@ -274,4 +433,18 @@ const formatDuration = (start, end) => {
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
 }
+
+.detail-grid {
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 12px;
+}
+
+.drawer-rounded {
+  border-top-left-radius: 12px;
+  border-bottom-left-radius: 12px;
+  overflow: hidden;
+}
+
+
 </style>

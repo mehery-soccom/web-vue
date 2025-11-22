@@ -231,5 +231,8 @@ export const useProjectStore = defineStore("ProjectStore", {
       let url = `/api/v1/dashboard/chat-sessions?dateRange1=${start}&dateRange2=${end}&type=${type}`;
       return axios.get(url);
     },
+    fetchSession(sessionId) {
+      return axios.get(`/api/v1/dashboard/session?sessionId=${sessionId}`);
+    },
   },
 });
