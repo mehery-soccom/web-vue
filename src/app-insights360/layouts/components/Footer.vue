@@ -20,10 +20,10 @@
     </span>
     <!-- 👉 Footer: right content -->
     <span class="d-md-flex gap-x-4 text-primary d-none">
-      <a
+      <!-- <a
         href="#"
         target="noopener noreferrer"
-      >License</a>
+      >License</a> -->
       <!-- <a
         href="#"
         target="noopener noreferrer"
