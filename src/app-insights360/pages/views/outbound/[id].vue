@@ -140,7 +140,7 @@ const exportToExcel = () => {
     By: item.agent,
     // Created: formatTimestamp(item.stamps.CRTD),
     Status: item.status,
-    Error: item.logs[0],
+    Error: item.logs?.[0] || '-',
     Sent: formatTimestamp(item.stamps.SENT),
     Delivered: formatTimestamp(item.stamps.DLVRD),
     Read: formatTimestamp(item.stamps.READ),
