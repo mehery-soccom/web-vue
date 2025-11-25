@@ -1,0 +1,208 @@
+<script setup>
+import { ref, computed, watch, inject } from 'vue';
+import { useDocStore } from '@/app-lead/views/admin/leads/useDocStore';
+
+const { show } = inject("snackbar");
+const docStore = useDocStore();
+
+const props = defineProps({
+  modelValue: {
+    type: String,
+    default: null,
+  },
+  label: {
+    type: String,
+    default: null,
+  },
+  maxSize: {
+    type: Number,
+    default: 5 * 1024 * 1024,
+  },
+  existingUuid: {
+    type: String,
+    default: null,
+  },
+  formId: {
+    type: String,
+    required: true, 
+  }
+});
+
+const emit = defineEmits(["update:modelValue", "upload-complete"]);
+
+const uploading = ref(false);
+const fileInput = ref(null);
+
+const fileUrl = ref(props.modelValue);
+const displayName = ref(props.modelValue ? props.modelValue.split('/').pop().split('?')[0] : null);
+const formattedMaxSize = computed(() => formatSize(props.maxSize));
+
+function formatSize(bytes) {
+  if (bytes < 1024 * 1024) {
+    return `${Math.round(bytes / 1024)} KB`;
+  } else {
+    return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+  }
+}
+
+const handleFileUpload = async (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  if (file.type !== 'application/pdf') {
+    show({ message: 'Only PDF files are allowed.', color: 'error' });
+    fileInput.value = null;
+    return;
+  }
+  
+  if (props.maxSize && file.size > props.maxSize) {
+    show({ message: `File size exceeds ${formatSize(props.maxSize)} limit.`, color: "error" });
+    fileInput.value = null;
+    return;
+  }
+
+  if (!props.formId) {
+    show({ message: 'Form ID is missing. Cannot upload.', color: "error" });
+    fileInput.value = null;
+    return;
+  }
+
+  uploading.value = true;
+  try {
+    const formData = new FormData();
+    
+    formData.append("file", file); 
+
+    const metaData = {
+        module: 'lead',
+        dir: 'forms',
+        dir_id: props.formId,
+        sub_dir: 'main'
+    };
+    formData.append("data", new Blob([JSON.stringify(metaData)], { type: "application/json" }));
+
+    if (props.existingUuid) {
+        formData.append("uuId", props.existingUuid);
+        formData.append("uploadType", "update");
+    } else {
+        formData.append("uploadType", "insert");
+    }
+
+    const response = await docStore.uploadModuleDocument({
+      formData: formData
+    });
+
+    const payload = response.result || response; 
+    
+   if (!payload.url) {
+        if (response.results && response.results[0]) {
+             payload = response.results[0];
+        } 
+        else if (payload.results && payload.results[0]) {
+             payload = payload.results[0];
+        }
+        else {
+             throw new Error("Upload response did not include a URL.");
+        }
+    }
+
+    fileUrl.value = payload.url;
+    emit("update:modelValue", payload.url);
+    emit("upload-complete", payload);
+    displayName.value = payload.name || payload.url.split('/').pop().split('?')[0];
+    show({ message: "File uploaded successfully!", color: "success" });
+
+  } catch (error) {
+    console.error("handleFileUpload", error);
+    show({
+      message: "Failed to upload file. Please try again.",
+      color: "error",
+    });
+    fileUrl.value = null;
+    emit("update:modelValue", null);
+  } finally {
+    uploading.value = false;
+    fileInput.value = null;
+  }
+};
+
+function clearUpload() {
+  fileUrl.value = null;
+  displayName.value = null;
+  emit("update:modelValue", null);
+}
+
+watch(() => props.modelValue, (newVal) => {
+  if (newVal !== fileUrl.value) {
+    fileUrl.value = newVal;
+    displayName.value = newVal ? newVal.split('/').pop().split('?')[0] : null;
+  }
+});
+</script>
+
+<template>
+  <VRow no-gutters align="end">
+    <VCol v-if="fileUrl" cols="12">
+      <VLabel v-if="label" class="mb-1 text-body-2 text-high-emphasis" :text="label" />
+      <VTextField
+        :model-value="displayName"
+        variant="outlined"
+        class="flex-grow-1"
+        prepend-inner-icon="mdi-file-pdf-box"
+        readonly
+      >
+        <template #append-inner>
+          <div class="d-flex">
+            <VBtn
+              icon
+              variant="text"
+              :href="fileUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              @click.stop
+            >
+              <VIcon>mdi-eye</VIcon>
+            </VBtn>
+
+            <VBtn 
+              icon 
+              variant="text" 
+              @click="clearUpload" 
+            >
+              <VIcon>mdi-trash</VIcon>
+            </VBtn>
+          </div>
+        </template>
+      </VTextField>
+    </VCol>
+
+    <VCol v-else cols="12">
+      <VLabel v-if="label" class="mb-1 text-body-2 text-high-emphasis" :text="label" />
+      <VFileInput
+        :loading="uploading"
+        color="primary"
+        variant="outlined"
+        accept="application/pdf"
+        @change="handleFileUpload"
+        v-model="fileInput"
+        placeholder="Select or drop a PDF file"
+        prepend-inner-icon="mdi-file-pdf-box"
+        prepend-icon=""
+        :hint="`Max file size: ${formattedMaxSize}`"  persistent-hint
+      >
+        <template #selection="{ fileNames }">
+          <template v-for="fileName in fileNames" :key="fileName">
+            <VChip
+              size="small"
+              label
+              color="primary"
+              class="me-2"
+            >
+              {{ fileName }}
+            </VChip>
+          </template>
+        </template>
+      </VFileInput>
+    </VCol>
+  </VRow>
+</template>

@@ -10,6 +10,7 @@ import LeadStageData from '@/app-lead/views/admin/leads/LeadStageData.vue';
 import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue';
 import LeadActivities from '@/app-lead/views/admin/leads/LeadActivities.vue';
 import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
+import LeadDocUpload from '@/app-lead/views/admin/leads/LeadDocUplaod.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -342,6 +343,29 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                   }
                                 }"
                               />
+                              <!-- <LeadDocUpload
+                                v-else-if="field.inputType === 'DOCUMENT'"
+                                :model-value="leadData[field.path.split('.')[1]]?.url || null"
+                                :max-size="maxDocSize"
+                                :form-id="selectedFormId"
+                                class="mt-2"
+                                :label="field.title" 
+                                @upload-complete="payload => {
+                                  leadData[field.path.split('.')[1]] = {
+                                    name: payload.name,
+                                    path: payload.path,
+                                    url: payload.url,
+                                    contentType: payload.contentType,
+                                    contentLength: payload.contentLength,
+                                    title: payload.title,
+                                  }
+                                }"
+                                @update:modelValue="value => {
+                                  if (value === null) {
+                                    leadData[field.path.split('.')[1]] = null
+                                  }
+                                }"
+                              /> -->
                               
                               <div
                                 v-else-if="field.inputType === 'BOOLEAN'"

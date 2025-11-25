@@ -57,6 +57,18 @@ export const useDocStore = defineStore("DocStore", {
             
             return response.data;
         },
+        async uploadModuleDocument({ formData }) {
+            const url = '/pub/scriptus/module/upload';
+
+            const response = await DataService.axios.post(url, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+                skipApiContext: true,
+            });
+            
+            return response.data;
+        },
     }
 });
 
