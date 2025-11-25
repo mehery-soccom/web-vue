@@ -97,7 +97,7 @@ const handleSaveActivity = async () => {
       title: newActivity.value.title,
       description: newActivity.value.description,
       dueDate: newActivity.value.dueDate,
-      timezone: "Asia/Kolkata",
+      timezone: getDomainTimezone(),
       leadId: props.leadId,
       leadName: props.contact.name,
       leadEmail: props.contact.email,
@@ -116,6 +116,12 @@ const handleSaveActivity = async () => {
     isSaving.value = false;
   }
 };
+
+const getDomainTimezone = () => {
+  const offset = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET
+  const index = offset?.indexOf(':')
+  return (offset && index > -1 ? offset.slice(0, index) : null) || Intl.DateTimeFormat().resolvedOptions().timeZone
+}
 
 const handleEditFollowup = (followup) => {
   editingFollowupId.value = followup.followupId;
@@ -141,7 +147,7 @@ const handleUpdateFollowup = async () => {
       title: editedFollowupData.value.title,
       description: editedFollowupData.value.description,
       dueDate: editedFollowupData.value.dueDate,
-      timezone: "Asia/Kolkata",
+      timezone: getDomainTimezone(),
       byUser: byUser,
     };
 

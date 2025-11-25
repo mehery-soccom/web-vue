@@ -28,15 +28,26 @@ const pagination = reactive({
   },
 })
 
-const headers = [
-  { key: 'data-table-select', sortable: false },
-  { title: 'Name', key: 'name', sortable: true },
-  { title: 'Stage', key: 'stage', sortable: false },
-  { title: 'Campaign', key: 'campaign', sortable: true },
-  { title: 'Assigned Agent', key: 'assignedTo', sortable: true },
-  { title: 'Closing Date', key: 'closingDate', sortable: true },
-  { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
-]
+const userRoles = window.CONST?.USER?.role || []
+const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('AGENT')
+
+const headers = computed(() => {
+  const list = [
+    { title: 'Name', key: 'name', sortable: true },
+    { title: 'Stage', key: 'stage', sortable: false },
+    { title: 'Campaign', key: 'campaign', sortable: true },
+    { title: 'Assigned Agent', key: 'assignedTo', sortable: true },
+    { title: 'Closing Date', key: 'closingDate', sortable: true },
+    { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
+  ]
+  
+  // Only add the checkbox column if the user is allowed to assign
+  if (canAssign) {
+    list.unshift({ key: 'data-table-select', sortable: false })
+  }
+
+  return list
+})
 
 const fetchLeads = async (options = pagination) => {
   isLoading.value = true
@@ -53,6 +64,11 @@ const fetchLeads = async (options = pagination) => {
 
     // const userRoles = window.CONST?.USER?.role || []
     // if (userRoles.includes('ADMIN')) {
+    //   activeFilters['assignedTo'] = byUser 
+    // }
+
+    // const userRoles = window.CONST?.USER?.role || []
+    // if (userRoles.includes('MODERATOR') || userRoles.includes('AGENT')) {
     //   activeFilters['assignedTo'] = byUser 
     // }
 
@@ -210,7 +226,7 @@ onMounted(() => {
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
 
-        <VDialog v-model="isAssignModalVisible" max-width="500px" persistent>
+        <VDialog v-if="canAssign" v-model="isAssignModalVisible" max-width="500px" persistent>
           <template #activator="{ props }">
             <VBtn
               v-bind="props"
@@ -293,6 +309,7 @@ onMounted(() => {
       :server-side="true"
       @update:options="onUpdateOptionsDebounced"
       @click:row="handleRowClick"
+      :show-select="canAssign"
       hover
       v-model="selectedLeads"
       show-select
