@@ -24,7 +24,13 @@ const phoneValidator = (value) => {
 
 const getRules = (field) => {
   const rules = []
-  if (field.optional === false) rules.push(requiredValidator)
+  if (field.optional === false) {
+    if (field.inputType === 'BOOLEAN') {
+      rules.push(value => (value !== null && value !== undefined) || 'This Field is required');
+    } else {
+      rules.push(requiredValidator);
+    }
+  }
   if (field.inputType === "EMAIL") rules.push(emailValidator)
   if (field.inputType === "PHONE") rules.push(phoneValidator)
   return rules
@@ -67,7 +73,11 @@ onMounted(async () => {
 
     const initialValues = {}
     formStructure.value.fields.forEach((field) => {
-      initialValues[field.path || field.code] = null
+      if (field.inputType === 'BOOLEAN') {
+        initialValues[field.path || field.code] = false
+      } else {
+        initialValues[field.path || field.code] = null
+      }
     })
     formValues.value = initialValues
   } catch (error) {

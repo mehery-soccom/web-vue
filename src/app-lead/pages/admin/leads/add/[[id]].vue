@@ -45,7 +45,11 @@ const phoneValidator = value => {
 const getRules = (field) => {
   const rules = [];
   if (field.optional === false) {
-    rules.push(requiredValidator);
+    if (field.inputType === 'BOOLEAN') {
+      rules.push(value => (value !== null && value !== undefined) || 'Field is required');
+    } else {
+      rules.push(requiredValidator);
+    }
   }
   if (field.inputType === 'EMAIL') {
     rules.push(emailValidator);
@@ -74,10 +78,23 @@ const loadFormStructure = async (formId) => {
         const masterField = formDetails.masterFields[field.field_id];
         if (masterField && masterField.path) {
           const modelKey = masterField.path.split('.')[1];
-          newLeadData[modelKey] = leadData.value[modelKey] === undefined ? null : leadData.value[modelKey];
+          let currentValue = leadData.value[modelKey];
+
+          if (masterField.inputType === 'BOOLEAN') {
+            if (currentValue === undefined || currentValue === null) {
+              currentValue = false;
+            }
+          } else {
+            if (currentValue === undefined) {
+              currentValue = null;
+            }
+          }
+
+          newLeadData[modelKey] = currentValue;
         }
       });
     }
+
     if (!leadId.value) {
         leadData.value = newLeadData;
         console.log("Initialized leadData for create mode:", JSON.parse(JSON.stringify(newLeadData)));
@@ -288,7 +305,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                               cols="12"
                               md="6"
                             >
-                              <VLabel v-if="field.inputType !== 'BOOLEAN'">
+                              <VLabel>
                                 {{ field.title }}
                                 <span v-if="field.optional === false" class="text-error">*</span>
                               </VLabel>
@@ -367,24 +384,14 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 }"
                               /> -->
                               
-                              <div
+                              <VSwitch
                                 v-else-if="field.inputType === 'BOOLEAN'"
-                                class="d-flex align-center justify-space-between mt-4 pa-2 border rounded bg-surface"
-                              >
-                                <div class="d-flex flex-column">
-                                  <span class="font-weight-medium">
-                                    {{ field.title }}
-                                    <span v-if="field.optional === false" class="text-error">*</span>
-                                  </span>
-                                </div>
-
-                                <VSwitch
-                                  v-model="leadData[field.path.split('.')[1]]"
-                                  :rules="getRules(field)"
-                                  color="primary"
-                                  hide-details
-                                />
-                              </div>
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :rules="getRules(field)"
+                                color="primary"
+                                class="mt-5"
+                                style="transform: scale(1.6); transform-origin: left center;"
+                              />
 
                               <VTextField
                                 v-else

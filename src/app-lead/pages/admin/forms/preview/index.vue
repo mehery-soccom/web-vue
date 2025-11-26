@@ -15,7 +15,9 @@ const phoneValidator = value => {
 const getRules = (field) => {
   const rules = [];
 
-  if (field.optional === false) {
+  if (field.inputType === 'BOOLEAN') {
+    rules.push(value => (value !== null && value !== undefined) || 'Field is required');
+  } else {
     rules.push(requiredValidator);
   }
   if (field.inputType === 'EMAIL') {
@@ -37,14 +39,16 @@ onMounted(() => {
       const initialValues = {};
 
       if (formStructure.value && formStructure.value.fields) {
-        formStructure.value.fields.forEach(field => {
-          if(field.path) {
-              initialValues[field.path] = null;
-          } else {
-              initialValues[field.code] = null;
-          }
-        });
-      }
+        formStructure.value.fields.forEach(field => {
+          const key = field.path || field.code;
+          
+          if (field.inputType === 'BOOLEAN') {
+            initialValues[key] = false;
+          } else {
+            initialValues[key] = null;
+          }
+        });
+      }
       formValues.value = initialValues;
 
     } catch (e) {
@@ -139,8 +143,10 @@ const submitForm = () => {
               <VSwitch
                 v-else-if="field.inputType === 'BOOLEAN'"
                 v-model="formValues[field.path || field.code]"
-                :label="field.title"
                 :rules="getRules(field)"
+                color="primary"
+                class="mt-2"
+                style="transform: scale(1.6); transform-origin: left center;"
               />
 
               <VTextField
