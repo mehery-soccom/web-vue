@@ -23,6 +23,7 @@ const pagination = reactive({
   multiSort: true,
   filters: {
     name: null,
+    contactType: null,
     channelId: null,
     templateName: null,
     status: null,
