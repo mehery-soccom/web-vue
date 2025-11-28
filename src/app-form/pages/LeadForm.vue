@@ -36,6 +36,10 @@ const getRules = (field) => {
   return rules
 }
 
+const isReadOnly = (field) => {
+  return field.access?.contact === 'R' || field.access?.external === 'R';
+}
+
 onMounted(async () => {
   isLoading.value = true
 
@@ -59,8 +63,19 @@ onMounted(async () => {
     if (!formDef) throw new Error("No form definition found in API response.")
 
     const mappedFields = formDef.formFields
-      .map((f) => formDef.masterFields[f.field_id] || null)
-      .filter((f) => f !== null)
+      .map((f) => {
+        const master = formDef.masterFields[f.field_id] || null;
+        if (!master) return null;
+        return { ...master, access: f.access };
+      })
+      .filter((f) => {
+         if (!f) return false;
+         
+         const accessCode = f.access?.contact || f.access?.external;
+         if (accessCode === 'H') return false;
+
+         return true;
+      })
 
     formCode.value = formDef.code;
     formTitle.value = formDef.title;
@@ -181,6 +196,7 @@ const submitForm = async () => {
                     :placeholder="field.desc"
                     variant="outlined"
                     :rules="getRules(field)"
+                    :disabled="isReadOnly(field)"
                   />
                 </VCol>
               </VRow>
@@ -195,6 +211,7 @@ const submitForm = async () => {
                     :placeholder="field.desc"
                     :rules="getRules(field)"
                     variant="outlined"
+                    :disabled="isReadOnly(field)"
                   />
                 </VCol>
               </VRow>
@@ -206,6 +223,7 @@ const submitForm = async () => {
                     :placeholder="field.desc"
                     prepend-inner-icon="tabler-calendar"
                     :rules="getRules(field)"
+                    :disabled="isReadOnly(field)"
                   />
                 </VCol>
               </VRow>
@@ -218,6 +236,7 @@ const submitForm = async () => {
                     variant="outlined"
                     chips
                     :rules="getRules(field)"
+                    :disabled="isReadOnly(field)"
                   />
                 </VCol>
               </VRow>
@@ -226,6 +245,7 @@ const submitForm = async () => {
                 v-else-if="field.inputType === 'BOOLEAN'"
                 v-model="formValues[field.path || field.code]"
                 :rules="getRules(field)"
+                :disabled="isReadOnly(field)"
               />
 
               <VTextField
@@ -234,6 +254,7 @@ const submitForm = async () => {
                 variant="outlined"
                 disabled
                 hint="Unsupported field type"
+                :disabled="isReadOnly(field)"
               />
             </VCardText>
           </VCard>

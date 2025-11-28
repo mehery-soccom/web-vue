@@ -60,6 +60,18 @@ const getRules = (field) => {
   return rules;
 }
 
+const isModerator = computed(() => {
+  const userRoles = window.CONST?.USER?.role || [];
+  return userRoles.includes('MODERATOR');
+});
+
+const isReadOnly = (field) => {
+  if (isModerator.value && field.access?.moderator === 'R') {
+    return true;
+  }
+  return false;
+};
+
 const loadFormStructure = async (formId) => {
 
   if (!formId) {
@@ -238,8 +250,24 @@ const fieldsToRender = computed(() => {
   }
 
   return selectedFormStructure.value.formFields
-    .map(field => selectedFormStructure.value.masterFields[field.field_id])
-    .filter(masterField => !!masterField);
+    .map(formField => {
+      const masterField = selectedFormStructure.value.masterFields[formField.field_id];
+      if (!masterField) return null;
+      
+      return { 
+        ...masterField, 
+        access: formField.access 
+      };
+    })
+    .filter(field => {
+      if (!field) return false;
+
+      if (isModerator.value && field.access?.moderator === 'H') {
+        return false;
+      }
+      
+      return true;
+    });
 });
 
 const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true');
@@ -317,6 +345,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 variant="outlined"
                                 :rules="getRules(field)"
                                 class="mt-2"
+                                :disabled="isReadOnly(field)"
                               />
 
                               <AppSelect
@@ -328,6 +357,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 :placeholder="field.desc"
                                 :rules="getRules(field)"
                                 class="mt-2"
+                                :disabled="isReadOnly(field)"
                               />
 
                               <AppDateTimePicker
@@ -337,6 +367,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 prepend-inner-icon="tabler-calendar"
                                 :rules="getRules(field)"
                                 class="mt-2"
+                                :disabled="isReadOnly(field)"
                               />
 
                               <MyPdfUpload
@@ -344,6 +375,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 :model-value="leadData[field.path.split('.')[1]]?.url || null"
                                 :max-size="maxDocSize"
                                 class="mt-2"
+                                :disabled="isReadOnly(field)"
                                 @upload-complete="payload => {
                                   leadData[field.path.split('.')[1]] = {
                                     name: payload.name,
@@ -367,6 +399,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 :form-id="selectedFormId"
                                 class="mt-2"
                                 :label="field.title" 
+                                :disabled="isReadOnly(field)"
                                 @upload-complete="payload => {
                                   leadData[field.path.split('.')[1]] = {
                                     name: payload.name,
@@ -390,6 +423,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 :rules="getRules(field)"
                                 color="primary"
                                 class="mt-5"
+                                :disabled="isReadOnly(field)"
                                 style="transform: scale(1.6); transform-origin: left center;"
                               />
 
@@ -402,6 +436,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                                 hint="Unsupported field type"
                                 :rules="getRules(field)"
                                 class="mt-2"
+                                :disabled="isReadOnly(field)"
                               />
                             </VCol>
                           </VRow>

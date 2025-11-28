@@ -93,8 +93,26 @@ const filteredAgents = computed(() => {
 
 const sortedStages = computed(() => {
   if (!allStages.value) return [];
-  return [...allStages.value].sort((a, b) => Number(a.probability) - Number(b.probability));
+  return [...allStages.value].sort((a, b) => {
+    if (a.code === 'lost') return 1;
+    if (b.code === 'lost') return -1;
+    
+    return Number(a.probability) - Number(b.probability);
+  });
 });
+
+const getDotColor = (stage, index) => {
+  const savedStage = allStages.value.find(s => s._id === props.currentStageId);
+  const isLostActive = savedStage?.code === 'lost';
+
+  if (isLostActive) {
+    return stage.code === 'lost' ? 'error' : 'grey-lighten-1';
+  }
+
+  if (stage.code === 'lost') return 'grey-lighten-1';
+
+  return index <= currentStageIndex.value ? 'primary' : 'grey-lighten-1';
+};
 
 const currentStageIndex = computed(() => {
   return sortedStages.value.findIndex(stage => stage._id === props.currentStageId);
@@ -192,13 +210,16 @@ const handleSubmit = async () => {
           <VTimelineItem
             v-for="(stage, index) in sortedStages"
             :key="stage._id"
-            :dot-color="index <= currentStageIndex ? 'primary' : 'grey-lighten-1'"
+            :dot-color="getDotColor(stage, index)" 
             size="small"
             fill-dot
           >
             <div
               class="text-center"
-              :class="{ 'font-weight-bold text-primary': index === currentStageIndex }"
+              :class="{ 
+                'font-weight-bold text-primary': index === currentStageIndex && stage.code !== 'lost',
+                'font-weight-bold text-error': index === currentStageIndex && stage.code === 'lost'
+              }"
             >
               <p class="mb-0 text-caption">{{ stage.title }}</p>
               <small class="text-disabled">{{ stage.probability }}%</small>
