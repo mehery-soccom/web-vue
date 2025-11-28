@@ -50,6 +50,14 @@ const addOption = () => {
 const removeOption = index => {
   props.data.options.splice(index, 1)
 }
+
+watch(newOptionLabel, (val) => {
+  if (val) {
+    newOptionCode.value = val.replace(/ /g, '_').toLowerCase()
+  } else {
+    newOptionCode.value = ''
+  }
+})
 </script>
 
 <template>

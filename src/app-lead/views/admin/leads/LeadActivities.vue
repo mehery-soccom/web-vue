@@ -54,7 +54,7 @@ const formatTimestamp = (objOrIso) => {
     date = new Date(objOrIso);
   }
   if (isNaN(date)) return 'Date N/A';
-  const options = { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true };
+  const options = { month: 'short', day: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
   return new Intl.DateTimeFormat('en-US', options).format(date);
 };
 
@@ -96,7 +96,7 @@ const handleSaveActivity = async () => {
     const payload = {
       title: newActivity.value.title,
       description: newActivity.value.description,
-      dueDate: newActivity.value.dueDate,
+      dueDate: newActivity.value.dueDate.replace(' ', 'T'),
       timezone: getDomainTimezone(),
       leadId: props.leadId,
       leadName: props.contact.name,
@@ -125,15 +125,22 @@ const getDomainTimezone = () => {
 
 const handleEditFollowup = (followup) => {
   editingFollowupId.value = followup.followupId;
+  
+  let dateStr = null;
+  const rawDate = followup.details?.startDate || followup.addedAt?.stamp;
+  
+  if (rawDate) {
+    const d = new Date(rawDate);
+    const pad = (n) => String(n).padStart(2, '0');
+    dateStr = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
   editedFollowupData.value = {
     title: followup.details?.title || '',
     description: followup.details?.description || '',
-    dueDate: followup.details?.startDate
-      ? new Date(followup.details.startDate).toISOString().slice(0, 16)
-      : (followup.addedAt?.stamp ? new Date(followup.addedAt.stamp).toISOString().slice(0, 16) : null)
+    dueDate: dateStr
   };
 };
-
 
 const cancelEdit = () => {
   editingFollowupId.value = null;
@@ -146,7 +153,7 @@ const handleUpdateFollowup = async () => {
     const payload = {
       title: editedFollowupData.value.title,
       description: editedFollowupData.value.description,
-      dueDate: editedFollowupData.value.dueDate,
+      dueDate: editedFollowupData.value.dueDate.replace(' ', 'T'),
       timezone: getDomainTimezone(),
       byUser: byUser,
     };
@@ -213,7 +220,7 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
           v-model="newActivity.dueDate"
           label="Due Date"
           :rules="[requiredValidator]"
-          :config="{ enableTime: true, dateFormat: 'Y-m-d H:i', minDate: 'today' }"
+          :config="{ enableTime: true,time_24hr: true, dateFormat: 'Y-m-d H:i', minDate: 'today' }"
           placeholder="Select date and time"
           class="mb-4"
         />
@@ -269,7 +276,7 @@ const handleCancelFollowup = async (followupId, dialogActive) => {
               label="Due Date"
               prepend-inner-icon="tabler-calendar"
               :rules="[requiredValidator]"
-              :config="{ enableTime: true, dateFormat: 'Y-m-d H:i' }"
+              :config="{ enableTime: true,time_24hr: true, dateFormat: 'Y-m-d H:i' }"
               placeholder="Select date and time"
               class="mb-4"
             />

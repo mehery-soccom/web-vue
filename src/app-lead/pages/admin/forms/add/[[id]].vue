@@ -32,8 +32,9 @@ watch(() => formData.value.title, (newTitle) => {
 onMounted(async () => {
   isFetching.value = true;
   try {
-    availableFields.value = await formsStore.fetchFieldsForDropdown();
-
+    availableFields.value = (await formsStore.fetchFieldsForDropdown())
+      .filter(field => field.isActive !== false);
+      
     if (formId.value) {
       const existingForm = await formsStore.fetchForm(formId.value);
       
