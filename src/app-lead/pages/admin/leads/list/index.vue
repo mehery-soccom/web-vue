@@ -203,6 +203,34 @@ const handleAssign = async () => {
   }
 }
 
+const openChat = (rawItem) => {
+  const contact = rawItem.contact || {};
+  const name = contact.name || '';
+  const number = contact.phone || '';
+  const email = contact.email || '';
+
+  const codeSuffix = Math.floor(1000 + Math.random() * 9000);
+  const code = name 
+    ? `${name.toLowerCase().replace(/\s+/g, '')}${codeSuffix}` 
+    : `guest${codeSuffix}`;
+
+  if (!email && !number) {
+    show({ message: 'Cannot initiate chat. Email or phone number is required.', color: 'error' });
+    return;
+  }
+
+  let paramString = `code=${code};`;
+  if (name) paramString += `name=${name};`;
+  if (number) paramString += `number=${number};`;
+  if (email) paramString += `email=${email};`;
+  console.log('Chat Params:', paramString);
+
+  const encodedParams = btoa(paramString);
+  
+  const url = `/agent/app/home/CHATBOX/chat_to_customer/${encodedParams}`;
+  window.open(url, '_blank');
+}
+
 onMounted(() => {
   fetchLeads()
   fetchAgentOptions()
@@ -338,6 +366,17 @@ onMounted(() => {
       </template>
 
       <template #item.actions="{ item }">
+        <IconBtn 
+          @click.stop="openChat(item.raw)"
+          :disabled="!item.raw.contact?.phone && !item.raw.contact?.email"
+        >
+          <VIcon icon="tabler-message-circle" />
+          
+          <VTooltip activator="parent" location="top">
+            Chat
+          </VTooltip>
+        </IconBtn>
+
         <IconBtn @click.stop>
           <VIcon icon="tabler-trash" />
           <VDialog activator="parent" max-width="400">
