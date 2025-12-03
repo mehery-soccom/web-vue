@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, inject } from 'vue';
-import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
+// import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
+import LeadDocUpload from '@/app-lead/views/admin/leads/LeadDocUpload.vue';
 import { useDocStore } from '@/app-lead/views/admin/leads/useDocStore';
 
 const props = defineProps({
@@ -8,6 +9,10 @@ const props = defineProps({
     type: String,
     required: true,
   },
+  formId: {
+    type: String,
+    required: true, 
+  }
 });
 
 const docStore = useDocStore();
@@ -457,11 +462,19 @@ const formatTimestamp = (note) => {
             variant="outlined"
             class="mb-4"
           />
-          <MyPdfUpload
+          <!-- <MyPdfUpload
             label="Select Document"
             v-model="newDocument.url"
             @upload-complete="newDocument.fileDetails = $event"
             :max-size="maxDocSize"
+          /> -->
+          <LeadDocUpload
+            label="Select Document"
+            v-model="newDocument.url"
+            @upload-complete="newDocument.fileDetails = $event"
+            :max-size="maxDocSize"
+            :form-id="props.formId"
+            sub-dir="profile"
           />
           <div class="d-flex gap-4 mt-4">
               <VSpacer />

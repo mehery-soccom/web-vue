@@ -2,7 +2,7 @@
 import { ref, computed, watch, inject } from 'vue';
 import { useDocStore } from '@/app-lead/views/admin/leads/useDocStore';
 
-const { show } = inject("snackbar");
+// const { show } = inject("snackbar");
 const docStore = useDocStore();
 
 const props = defineProps({
@@ -25,6 +25,10 @@ const props = defineProps({
   formId: {
     type: String,
     required: true, 
+  },
+  subDir: {
+    type: String,
+    default: 'main',
   }
 });
 
@@ -36,6 +40,18 @@ const fileInput = ref(null);
 const fileUrl = ref(props.modelValue);
 const displayName = ref(props.modelValue ? props.modelValue.split('/').pop().split('?')[0] : null);
 const formattedMaxSize = computed(() => formatSize(props.maxSize));
+
+const showSnackbar = inject("snackbar", null);
+
+const show = (options) => {
+  if (showSnackbar && typeof showSnackbar.show === 'function') {
+    showSnackbar.show(options);
+  } else if (typeof showSnackbar === 'function') {
+    showSnackbar(options);
+  } else {
+    console.warn("Snackbar not available:", options.message);
+  }
+};
 
 function formatSize(bytes) {
   if (bytes < 1024 * 1024) {
@@ -72,14 +88,10 @@ const handleFileUpload = async (event) => {
     const formData = new FormData();
     
     formData.append("file", file); 
-
-    const metaData = {
-        module: 'lead',
-        dir: 'forms',
-        dir_id: props.formId,
-        sub_dir: 'main'
-    };
-    formData.append("data", new Blob([JSON.stringify(metaData)], { type: "application/json" }));
+    formData.append("module", 'lead');
+    formData.append("dir", 'forms');
+    formData.append("dir_id", props.formId);
+    formData.append("sub_dir", props.subDir);
 
     if (props.existingUuid) {
         formData.append("uuId", props.existingUuid);
@@ -92,9 +104,9 @@ const handleFileUpload = async (event) => {
       formData: formData
     });
 
-    const payload = response.result || response; 
+    let payload = response.result || response; 
     
-   if (!payload.url) {
+    if (!payload.url) {
         if (response.results && response.results[0]) {
              payload = response.results[0];
         } 
@@ -167,18 +179,43 @@ watch(() => props.modelValue, (newVal) => {
             <VBtn 
               icon 
               variant="text" 
-              @click="clearUpload" 
+              color="error"
             >
               <VIcon>mdi-trash</VIcon>
-            </VBtn>
+              
+              <VDialog activator="parent" max-width="400">
+                <template v-slot:default="{ isActive }">
+                  <VCard title="Confirm Deletion">
+                    <VCardText>
+                      Are you sure you want to remove this file?
+                    </VCardText>
+                    
+                    <VCardActions>
+                      <VSpacer />
+                      <VBtn 
+                        text="Cancel" 
+                        variant="text" 
+                        @click="isActive.value = false" 
+                      />
+                      <VBtn
+                        color="error"
+                        variant="elevated"
+                        text="Delete"
+                        @click="() => { clearUpload(); isActive.value = false; }"
+                      />
+                    </VCardActions>
+                  </VCard>
+                </template>
+              </VDialog>
+              </VBtn>
           </div>
         </template>
       </VTextField>
     </VCol>
 
     <VCol v-else cols="12">
-      <VLabel v-if="label" class="mb-1 text-body-2 text-high-emphasis" :text="label" />
-      <VFileInput
+       <VLabel v-if="label" class="mb-1 text-body-2 text-high-emphasis" :text="label" />
+       <VFileInput
         :loading="uploading"
         color="primary"
         variant="outlined"
