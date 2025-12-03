@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router"
 import { useFormStore } from "@/app-form/views/useFormStore"
 import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { emailValidator, requiredValidator } from "@app-lead/@core/utils/validators"
+import LeadDocUpload from "@/app-lead/views/admin/leads/LeadDocUpload.vue"
 
 const route = useRoute()
 const router = useRouter();
@@ -15,6 +16,7 @@ const formCode = ref(null);
 const formTitle = ref(null);
 const formValues = ref({})
 const isLoading = ref(true)
+const maxDocSize = 5 * 1024 * 1024;
 
 const phoneValidator = (value) => {
   if (!value) return true
@@ -230,13 +232,31 @@ const submitForm = async () => {
 
               <VRow v-else-if="field.inputType === 'DOCUMENT'">
                 <VCol md="6">
-                  <VFileInput
-                    v-model="formValues[field.path || field.code]"
-                    :label="field.desc || 'Upload a file'"
-                    variant="outlined"
-                    chips
-                    :rules="getRules(field)"
+                  <LeadDocUpload
+                    :model-value="formValues[field.path || field.code]?.url || null"
+                    :form-id="route.params.formId"
+                    sub-dir="main"
+                    :max-size="maxDocSize"
                     :disabled="isReadOnly(field)"
+                    @upload-complete="payload => {
+                      formValues[field.path || field.code] = {
+                        name: payload.name,
+                        path: payload.path,
+                        url: payload.url,
+                        contentType: payload.contentType,
+                        contentLength: payload.contentLength,
+                        title: payload.title,
+                      }
+                    }"
+                    @update:modelValue="value => {
+                      if (value === null) {
+                        formValues[field.path || field.code] = null
+                      }
+                    }"
+                  />
+                  <input 
+                    type="hidden" 
+                    v-model="formValues[field.path || field.code]" 
                   />
                 </VCol>
               </VRow>
