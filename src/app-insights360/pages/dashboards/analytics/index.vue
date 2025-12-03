@@ -977,9 +977,6 @@ onMounted(async () => {
   </VRow>
 </template>
 
-<style lang="scss">
-@use "@app-insights360/@core/scss/template/libs/apex-chart.scss";
-</style>
 <style>
 .flatpickr-custom-btn {
   font-size: 12px;

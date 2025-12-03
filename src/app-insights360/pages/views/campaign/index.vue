@@ -6,6 +6,7 @@ import { useProjectStore } from "@app-insights360/views/dashboards/analytics/use
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { smartFormatDate } from "@/app-insights360/@core/utils/formatters";
 import debounce from "lodash/debounce";
 
 const { customPlugin } = useDatePickerFilters();
@@ -31,12 +32,13 @@ const pagination = reactive({
 });
 const headers = [
   { title: "Campaign", key: "name" },
-  { title: "Channel Type", key: "contactType" },
+  { title: "Channel", key: "contactType" },
   { title: "Template", key: "templateName" },
+  { title: "Time", key: "scheduledStamp" },
   { title: "Status", key: "status" },
   { title: "Total", key: "total", sortable: true },
   { title: "Sent", key: "sent", sortable: true },
-  { title: "Delivered", key: "delivered", sortable: true },
+  { title: "Deli", key: "delivered", sortable: true },
   { title: "Read", key: "read", sortable: true },
   { title: "Replied", key: "responded", sortable: true },
   { title: "Failed", key: "failed", sortable: true },
@@ -101,6 +103,17 @@ const onDateClosed = (selectedDates, dateStr) => {
     fetchCampaignBlock(start.getTime(), endDate.getTime(), "All Channels", false, selectedStatuses.value);
   }
 };
+const formatStamp = (stamp) => {
+  if(!stamp) return null;
+  const d = new Date(stamp);
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mm = String(d.getMinutes()).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const year = String(d.getFullYear()).slice(-2);
+
+  return `${hh}:${mm} ${day}/${month}/${year}`;
+}
 const onUpdateOptions = (options) => {
   pagination.itemsLength = options.itemsLength;
   pagination.page = options.page;
@@ -290,15 +303,7 @@ onMounted(async () => {
         :title="'Campaign Statistics'"
       />
     </VCol>
-    <!-- <VCol v-for="(campaign, index) in campCharts" :key="index" cols="12" :sm="campCharts.length === 3 ? 4 : 6">
-      <AnalyticsMonthlyCampaignState :statistics="campaign" :title="`${campaign.title} `" />
-    </VCol> -->
     <VCol cols="12">
-      <!-- <DemoDataTableKitchenSink
-        :headers="headers"
-        :productList="campTable"
-        :title="'Campaign Data'"
-      > -->
       <MyDataTable :headers="headers" :items="campTable" :loading="isLoading" 
         :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <template #item.name="{ item }">
@@ -312,15 +317,9 @@ onMounted(async () => {
             {{ item.raw.name }}
           </RouterLink>
         </template>
-        <!-- <IconBtn
-          :to="{
-            name: 'admin-push-notification-templates-edit-id',
-            params: { id: item.raw._id },
-          }"
-        >
-          <VIcon icon="mdi-pencil-outline" />
-          <VTooltip activator="parent">Edit</VTooltip>
-        </IconBtn> -->
+        <template #item.scheduledStamp="{ item }">
+          {{ formatStamp(item.raw.scheduledStamp) || formatStamp(item.raw.createdStamp) }}
+        </template>
         <template #item.total="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
