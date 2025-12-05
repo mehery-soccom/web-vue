@@ -227,12 +227,17 @@ export const useProjectStore = defineStore("ProjectStore", {
       }
       return axios.get(url);
     },
-    fetchChatSessions(start, end, type) {
-      let url = `/api/v1/dashboard/chat-sessions?dateRange1=${start}&dateRange2=${end}&type=${type}`;
-      return axios.get(url);
+    fetchChatSessions(dateRange1, dateRange2, chatType) {
+        let url = `/api/v1/dashboard/chat-sessions-v2?&dateRange1=${dateRange1}&dateRange2=${dateRange2}`;
+        
+        if (chatType) {
+          url += `&chatType=${chatType}`;
+        }
+        
+        return axios.get(url);
     },
-    fetchSession(sessionId) {
-      return axios.get(`/api/v1/dashboard/session?sessionId=${sessionId}`);
+    fetchSessionTags() {
+      return axios.get('/api/v1/dashboard/session-tags');
     },
   },
 });

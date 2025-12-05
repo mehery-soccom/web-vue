@@ -7,6 +7,7 @@ const { show } = inject("snackbar");
 const stagesStore = useStagesStore(); 
 
 const isLoading = ref(false);
+const isCreatingDefaults = ref(false);
 const stages = ref([]); 
 const pagination = reactive({
   itemsLength: 0,
@@ -54,17 +55,21 @@ const fetchStages = async (options = pagination) => {
 
     const missingStages = defaultStages.filter(ds => !fetchedCodes.has(ds.code));
 
-    if (missingStages.length > 0) {
-      show({ message: `Creating missing default stages: ${missingStages.map(s => s.title).join(', ')}...`, color: 'info' });
+    if (missingStages.length > 0 && !isCreatingDefaults.value) {
+      show({ message: `Creating default stages: ${missingStages.map(s => s.title).join(', ')}...`, color: 'info' });
       shouldRefetch = true;
+      isCreatingDefaults.value = true; 
+
       try {
         await Promise.all(missingStages.map(stage => stagesStore.createStage({ payload: stage })));
         show({ message: 'Default stages created.', color: 'success' });
       } catch (createError) {
         console.error("Error creating default stages:", createError);
         const createErrorMessage = createError.response?.data?.message || createError.message || 'Unknown error'
-        show({ message: `Failed to create some default stages: ${createErrorMessage}`, color: 'error' });
+        show({ message: `Failed to create some default stages: ${createErrorMessage}`, color: 'error' });
         shouldRefetch = false;
+      } finally {
+        isCreatingDefaults.value = false; 
       }
     }
 

@@ -22,8 +22,8 @@ const formatDate = (timestampObj) => {
   const timeOptions = { hour: '2-digit', minute: '2-digit', hour12: true };
 
   return {
-    date: new Intl.DateTimeFormat('en-US', dateOptions).format(date), // "Oct 17, 2025"
-    time: new Intl.DateTimeFormat('en-US', timeOptions).format(date).toUpperCase() // "02:51 PM"
+    date: new Intl.DateTimeFormat('en-US', dateOptions).format(date), 
+    time: new Intl.DateTimeFormat('en-US', timeOptions).format(date).toUpperCase()
   };
 };
 
@@ -34,10 +34,13 @@ const processedHistory = computed(() => {
     const { date, time } = formatDate(item.timestamp);
     const previousStage = index > 0 ? props.history[index - 1] : null;
 
+    const prevProb = previousStage ? previousStage.probability : '0';
+    const currProb = item.probability;
+
     const entry = {
       raw: item,
       time,
-      probabilityText: `Probability (%) was updated from a to b`,
+      probabilityText: `Probability (%) was updated from ${prevProb} to ${currProb}`,
       stageText: `Stage was updated from ${previousStage ? previousStage.stagetitle : 'Start'} to ${item.stagetitle}`
     };
 

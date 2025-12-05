@@ -1,7 +1,7 @@
 <script setup>
 import DemoDataTableKitchenSink from "@/app-insights360/views/tables/DemoDataTableKitchenSink.vue";
 import { useProjectStore } from "@app-insights360/views/dashboards/analytics/useProjectStore";
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
@@ -9,179 +9,41 @@ import AppDateTimePicker from "@/app-insights360/@core/components/app-form-eleme
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
 
-const tempTable = ref([]);
+const tableData = ref([]);
 const isLoading = ref(false);
-const selectedType = ref("Active");
-const typeOptions = ["All", "Open", "Active"];
-
 const isDrawerOpen = ref(false);
-const isDrawerLoading = ref(false);
 const selectedSession = ref({});
+const sessionTagsMap = ref({});
+
+const selectedChatType = ref("I"); 
+const chatTypeOptions = [
+  { title: 'Inbound', value: 'I' },
+  { title: 'Outbound', value: 'O' },
+  { title: 'All', value: 'All' },
+];
 
 const oldDates = ref([]);
 const today = new Date();
-const oneWeekAgo = new Date();
-const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-");
-const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
-const dates = `${formattedStart} to ${formattedEnd}`;
-const dateRange = ref(dates);
+const formattedToday = today.toLocaleDateString("en-GB").split("/").join("-");
+const dateRange = ref(formattedToday);
 
 const headers = [
   { title: "Assigned To", key: "assignedTo", sortable: false },
-  { title: "Channel ID", key: "channelId", searchable: true, sortable: true },
-  { title: "Contact ID", key: "contactId", searchable: true, sortable: true },
-  { title: "Contact Type", key: "contactType", searchable: true, sortable: true },
-  { title: "Status", key: "status", searchable: true, sortable: true },
-  { title: "Start@", key: "startStamp", sortable: true },
+  { title: "Customer Name", key: "contactName", sortable: true, searchable: true },
+  { title: "Customer Number", key: "contactPhone", sortable: true, searchable: true },
+  { title: "Channel", key: "contactType", sortable: true, searchable: true },
+  { title: "Status", key: "status", sortable: true, searchable: true },
+  { title: "Start @", key: "startStamp", sortable: true },
   { title: "Actions", key: "actions", sortable: false },
 ];
 
-const fetchSessions = async (start, end) => {
-  isLoading.value = true;
-  try {
-    const typePayload = selectedType.value.toLowerCase();
-    const response = await projectStore.fetchChatSessions(start, end, typePayload);
-    
-    if (response?.data) {
-      const results = response.data.results || response.data || [];
-
-      tempTable.value = results.map((item) => ({
-        ...item,
-        status: item.info?.status ? item.info.status : 'OPEN',
-        assignedAgent: item.info?.assignedTo?.agent || '-',
-        assignedTeam: item.info?.assignedTo?.team,
-        assignedQueue: item.info?.assignedTo?.queue,
-        startStamp: item.info?.start?.stamp || null,
-        resolvedStamp: item.info?.resolved?.stamp || null,
-        resolvedBy: item.info?.resolved?.by || '-',
-        satisfactionScore: item.info?.satisfactionScore
-      }));
-      
-      console.log("Chat Sessions Data:", tempTable.value);
-    }
-  } catch (error) {
-    console.error("Error fetching chat sessions:", error);
-    tempTable.value = [];
-  } finally {
-    isLoading.value = false;
-  }
-};
-
-const openSessionDetails = async (sessionId) => {
-  isDrawerOpen.value = true;
-  isDrawerLoading.value = true;
-  selectedSession.value = {};
-
-  try {
-    const response = await projectStore.fetchSession(sessionId);
-    
-    if (response?.data?.results && response.data.results.length > 0) {
-      let sessionData = response.data.results[0];
-      
-      if (!sessionData.sessionId && sessionData._id) {
-        sessionData.sessionId = sessionData._id;
-      }
-
-      selectedSession.value = sessionData;
-    }
-  } catch (error) {
-    console.error("Error fetching single session", error);
-  } finally {
-    isDrawerLoading.value = false;
-  }
-};
-
-const getSentimentLabel = (score) => {
-  const map = { 2: "Very Happy", 1: "Happy", 0: "Satisfied", "-1": "Not Happy", "-2": "Disappointed" };
-  return map[score] || '-';
-};
-
-const calcDiff = (start, end) => {
-  if (!start || !end) return '-';
-  return formatDuration(start, end);
-};
-
-const onTypeChange = () => {
-  const { start, end } = getDatesFromRange(dateRange.value);
-  fetchSessions(start, end);
-};
-
-const onDateClosed = (selectedDates) => {
-  if (selectedDates.length === 2) {
-    oldDates.value = selectedDates;
-    const start = new Date(selectedDates[0]);
-    start.setHours(0, 0, 0, 0);
-    const endDate = new Date(selectedDates[1]);
-    endDate.setHours(23, 59, 59, 999);
-    
-    fetchSessions(start.getTime(), endDate.getTime());
-  }
-};
-
-const formatCustomDate = (dateInput) => {
-  if (!dateInput) return '-';
+const formatDateForApi = (dateInput) => {
   const d = new Date(dateInput);
-  if (isNaN(d.getTime())) return dateInput; 
-
-  const time = d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
-  const date = d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
-  
-  return `${time} ${date}`;
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
 };
-
-const getDatesFromRange = (rangeStr) => {
-  let startStr = "";
-  let endStr = "";
-  
-  if (rangeStr.includes(" to ")) {
-    [startStr, endStr] = rangeStr.split(" to ");
-  } else {
-    startStr = endStr = rangeStr;
-  }
-
-  const [startDay, startMonth, startYear] = startStr.split("-").map(Number);
-  let endDay, endMonth, endYear;
-  if(endStr) {
-     [endDay, endMonth, endYear] = endStr.split("-").map(Number);
-  } else {
-     [endDay, endMonth, endYear] = [startDay, startMonth, startYear];
-  }
-
-  const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
-  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
-  
-  return { start: startDate.getTime(), end: endDate.getTime() };
-};
-
-const exportToExcel = () => {
-  const formattedData = tempTable.value.map((item) => ({
-    "ContactId": item.contactId || '-',
-    "SessionId": item.sessionId || '-',
-    "Channel Id": item.channelId || '-',
-    "ChannelType": item.contactType || '-',
-    "Chat Start Time": formatTimeDay(item.startStamp),
-    "Chat Start Date": formatDateOnly(item.startStamp),
-    "Assigned Agent Name": item.assignedAgent,
-    "Session End Time": item.resolvedStamp ? new Date(item.resolvedStamp).toLocaleString() : '-',
-    "Close By Agent Name": item.resolvedBy,
-    "Chat Resolution Time": formatDuration(item.startStamp, item.resolvedStamp),
-    "Feedback Score": item.satisfactionScore || '-'
-  }));
-
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "ChatSessions");
-  
-  const fileName = `Chat-Sessions-${selectedType.value}-${dateRange.value}.xlsx`.replaceAll(" ", "-");
-  XLSX.writeFile(workbook, fileName);
-};
-
-onMounted(() => {
-  const now = new Date();
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  fetchSessions(start.getTime(), now.getTime());
-});
 
 const formatTimeDay = (val) => {
   if (!val) return '-';
@@ -197,24 +59,184 @@ const formatDateOnly = (val) => {
   if (!val) return '-';
   const date = new Date(val);
   if (isNaN(date.getTime())) return '-';
-  // Format: 17/10/2025
   return date.toLocaleDateString('en-GB');
 };
 
-const formatDuration = (start, end) => {
-  if (!start || !end) return '-';
-  const s = new Date(start).getTime();
-  const e = new Date(end).getTime();
-  if (isNaN(s) || isNaN(e)) return '-';
-  
-  const diff = Math.abs(e - s) / 1000;
+const formatDuration = (ms) => {
+  if (!ms && ms !== 0) return '-';
+  const diff = Math.abs(ms) / 1000;
   const h = Math.floor(diff / 3600);
   const m = Math.floor((diff % 3600) / 60);
   const sec = Math.floor(diff % 60);
-  
-  // Format: 0:08:14
   return `${h}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 };
+
+const calcDiff = (start, end) => {
+  if (!start || !end) return '-';
+  return formatDuration(end - start);
+};
+
+const getSentimentLabel = (score) => {
+  if (score === "NA" || score === null || score === undefined) return '-';
+  const numScore = Number(score);
+  const map = { 2: "Very Happy", 1: "Happy", 0: "Satisfied", "-1": "Not Happy", "-2": "Disappointed" };
+  return map[numScore] || '-';
+};
+
+const fetchSessions = async (startMs, endMs) => {
+  isLoading.value = true;
+  try {
+    const startStr = formatDateForApi(startMs);
+    const endStr = formatDateForApi(endMs);
+    
+    const typePayload = selectedChatType.value === 'All' ? null : selectedChatType.value;
+
+    console.log(`Fetching: ${startStr} to ${endStr}, Type: ${typePayload}`);
+
+    const response = await projectStore.fetchChatSessions(startStr, endStr, typePayload);
+    
+    if (response?.data) {
+        const results = response.data.results || response.data || [];
+
+        tableData.value = results.map(item => ({
+            ...item,
+            
+            assignedAgent: item.summaries?.[0]?.assignedToAgent,
+            assignedTeam: item.summaries?.[0]?.assignedToDept,
+            assignedQueue: item.summaries?.[0]?.assignedToQueue,
+            contactName: item.contact?.name || '-',
+            contactPhone: item.contact?.phone || item.contact?.mobile || '-',
+            contactType: item.contactType,
+            status: item.info?.status || 'OPEN',
+            startStamp: item.info?.start?.stamp,
+            
+            resolvedStamp: item.info?.resolved?.stamp || null,
+            resolvedBy: item.info?.resolved?.by || '-',
+        }));
+    }
+  } catch (error) {
+    console.error("Error fetching chat sessions:", error);
+    tableData.value = [];
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const onTypeChange = () => {
+  const [day, month, year] = dateRange.value.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  
+  const start = new Date(d);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(d);
+  end.setHours(23, 59, 59, 999);
+  
+  fetchSessions(start.getTime(), end.getTime());
+};
+
+const onDateClosed = (selectedDates) => {
+  if (selectedDates.length === 1) {
+    oldDates.value = selectedDates;
+    
+    const start = new Date(selectedDates[0]);
+    start.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(selectedDates[0]);
+    endDate.setHours(23, 59, 59, 999);
+    
+    fetchSessions(start.getTime(), endDate.getTime());
+  }
+};
+
+const openSessionDetails = (item) => {
+  selectedSession.value = item; 
+  isDrawerOpen.value = true;
+};
+
+const formatDurationHHMMSS = (ms) => {
+  if (!ms && ms !== 0) return '-';
+  if (isNaN(ms)) return '-';
+  const diff = Math.abs(ms) / 1000;
+  const h = Math.floor(diff / 3600);
+  const m = Math.floor((diff % 3600) / 60);
+  const sec = Math.floor(diff % 60);
+  // Format: 00:08:14
+  return `${h.toString().padStart(2, '0')}.${m.toString().padStart(2, '0')}.${sec.toString().padStart(2, '0')}`;
+};
+
+const exportToExcel = () => {
+  const formattedData = tableData.value.map((item) => {
+    const endStamp = item.info?.resolved?.stamp || item.info?.closed?.stamp || item.info?.expired?.stamp;
+    
+    let resolutionTime = '-';
+    const firstMsgStamp = item.summaries?.[0]?.firstMessageStamp;
+    if (endStamp && firstMsgStamp) {
+       resolutionTime = formatDurationHHMMSS(endStamp - firstMsgStamp);
+    }
+
+    let closedBy = item.resolvedBy || '-';
+    if (item.status === 'EXPIRED') {
+        closedBy = 'SYSTEM';
+    }
+
+    const row = {
+      "Name": item.contactName || '-',
+      "Phone": item.contactPhone || '-',
+      "Email": item.contact?.email || '-', 
+      "Department": item.assignedTeam || '-',
+      "Served By": item.assignedAgent || '-',
+      "Channel": item.contactType || '-',
+      "Start At": item.summaries?.[0]?.firstMessageStamp ? formatTimeDay(item.summaries[0].firstMessageStamp) : '-',
+      "First Message Type": item.summaries?.[0]?.firstMessageType || '-',
+      "Agent Handover Time": item.summaries?.[0]?.assignedStamp ? formatTimeDay(item.summaries[0].assignedStamp) : '-',
+      "LastMessageType": item.summaries?.[0]?.lastMessageType || '-',
+      "Last Message At": item.summaries?.[0]?.lastMessageStamp ? formatTimeDay(item.summaries[0].lastMessageStamp) : '-',
+      "Status": item.status || '-',
+      "SessionId": item.sessionId || '-',
+      "Closed by": closedBy,
+      "Closedstamp": endStamp ? formatTimeDay(endStamp) : '-',
+      "First Reaction Time": item.summaries?.[0]?.firstReactionTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstReactionTime) : 'NA',
+      "Resolution Time": resolutionTime
+    };
+
+    const tags = item.info?.sessionTags || [];
+    tags.forEach((tagId, index) => {
+      const tagDetails = sessionTagsMap.value[tagId];
+      if (tagDetails) {
+        const colName = `Cat/Tag ${index + 1}`;
+        row[colName] = `${tagDetails.category} / ${tagDetails.title}`;
+      }
+    });
+
+    return row;
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet(formattedData);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "ChatSessions");
+  
+  const fileName = `Chat-Summary-${selectedChatType.value}-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+  XLSX.writeFile(workbook, fileName);
+};
+
+onMounted(async () => {
+  const now = new Date();
+  const start = new Date();
+  start.setHours(0, 0, 0, 0);
+
+  const [_, tagsResponse] = await Promise.all([
+    fetchSessions(start.getTime(), now.getTime()),
+    projectStore.fetchSessionTags()
+  ]);
+
+  if (tagsResponse?.data?.results) {
+    tagsResponse.data.results.forEach(tag => {
+      sessionTagsMap.value[tag._id] = { title: tag.title, category: tag.category };
+    });
+  }
+});
+
+
 </script>
 
 <template>
@@ -232,13 +254,15 @@ const formatDuration = (start, end) => {
       </VBtn>
 
       <VSelect
-        v-model="selectedType"
-        :items="typeOptions"
+        v-model="selectedChatType"
+        :items="chatTypeOptions"
+        item-title="title"
+        item-value="value"
         density="compact"
         variant="outlined"
         hide-details
         style="width: 150px"
-        label="Type"
+        label="Chat Type"
         @update:modelValue="onTypeChange"
       ></VSelect>
 
@@ -247,12 +271,11 @@ const formatDuration = (start, end) => {
         v-model="dateRange"
         prepend-inner-icon="tabler-calendar"
         :config="{
-          mode: 'range',
+          mode: 'single', 
           dateFormat: 'd-m-Y',
           position: 'auto right',
           maxDate: 'today',
-          onClose: onDateClosed,
-          plugins: [customPlugin],
+          onClose: onDateClosed
         }"
       />
     </div>
@@ -261,8 +284,8 @@ const formatDuration = (start, end) => {
       <DemoDataTableKitchenSink
         :headers="headers"
         :loading="isLoading"
-        :productList="tempTable"
-        :title="'Chat Sessions'"
+        :productList="tableData"
+        :title="'Chat Summary'"
       >
         <template #item.assignedTo="{ item }">
           <span>
@@ -275,28 +298,28 @@ const formatDuration = (start, end) => {
             </span>
           </span>
         </template>
-        <template #item.channelId="{ item }">
-          <span style="font-weight: 500;">{{ item.raw.channelId }}</span>
-        </template>
-
-        <template #item.contactId="{ item }">
-          <span>{{ item.raw.contactId }}</span>
-        </template>
 
         <template #item.contactType="{ item }">
-           <span>{{ item.raw.contactType }}</span>
+           <VChip size="small" color="primary" variant="tonal">
+             {{ item.raw.contactType }}
+           </VChip>
         </template>
 
         <template #item.status="{ item }">
-            <span>{{ item.raw.status }}</span>
+           <VChip 
+             size="small" 
+             :color="item.raw.status === 'OPEN' ? 'success' : 'default'"
+           >
+             {{ item.raw.status }}
+           </VChip>
         </template>
-        
+
         <template #item.startStamp="{ item }">
-             <span>{{ formatCustomDate(item.raw.startStamp) }}</span>
+            <span>{{ formatTimeDay(item.raw.startStamp) }}</span>
         </template>
 
         <template #item.actions="{ item }">
-          <VBtn icon variant="text" color="default" size="small" @click="openSessionDetails(item.raw.sessionId)">
+          <VBtn icon variant="text" color="default" size="small" @click="openSessionDetails(item.raw)">
             <VIcon icon="tabler-eye" />
           </VBtn>
         </template>
@@ -318,30 +341,26 @@ const formatDuration = (start, end) => {
         </VBtn>
       </div>
 
-      <div v-if="isDrawerLoading" class="pa-4 d-flex justify-center">
-        <VProgressCircular indeterminate color="primary" />
-      </div>
-
-      <div v-else-if="selectedSession.sessionId || selectedSession._id" class="pa-4">
+      <div v-if="selectedSession.sessionId || selectedSession._id" class="pa-4">
         <VList lines="two" density="compact">
           
           <VListItemSubtitle class="mb-2 text-uppercase text-xs font-weight-bold">Contact Info</VListItemSubtitle>
           
-          <div class="mb-4 detail-grid">
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Contact Name</span>
+          <div class="mb-4">
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Contact Name:</span>
                <span class="text-body-2 font-weight-medium">{{ selectedSession.contact?.name || '-' }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Email ID</span>
-               <span class="text-body-2">{{ selectedSession.contact?.email || '-' }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Email ID:</span>
+               <span class="text-body-2">-</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Mobile Number</span>
-               <span class="text-body-2">{{ selectedSession.contact?.phone || '-' }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Mobile Number:</span>
+               <span class="text-body-2">{{ selectedSession.contact?.phone || selectedSession.contact?.mobile || '-' }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Contact ID</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Contact ID:</span>
                <span class="text-body-2">{{ selectedSession.contact?.contactId || '-' }}</span>
              </div>
           </div>
@@ -350,26 +369,28 @@ const formatDuration = (start, end) => {
 
           <VListItemSubtitle class="mb-2 text-uppercase text-xs font-weight-bold">Session Info</VListItemSubtitle>
           
-          <div class="mb-4 detail-grid">
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Session ID</span>
+          <div class="mb-4">
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Session ID:</span>
                <span class="text-body-2">{{ selectedSession.sessionId }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Channel ID</span>
-               <span class="text-body-2">{{ selectedSession.channel }}:{{ selectedSession.lane }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Channel ID:</span>
+               <span class="text-body-2">{{ selectedSession.contact?.channelType }}:{{ selectedSession.contact?.lane }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Channel Type</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Channel Type:</span>
                <span class="text-body-2">{{ selectedSession.contactType }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Assigned Agent</span>
-               <span class="text-body-2">{{ selectedSession.assignedToAgent || '-' }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Assigned Agent:</span>
+               <span class="text-body-2">{{ selectedSession.summaries?.[0]?.assignedToAgent || '-' }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Closed By</span>
-               <span class="text-body-2">{{ selectedSession.summary?.assignedToAtResolve || '-' }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Closed By:</span>
+               <span class="text-body-2">
+                 {{ selectedSession.info?.resolved?.by || selectedSession.info?.closed?.by || selectedSession.info?.expired?.by || '-' }}
+               </span>
              </div>
           </div>
 
@@ -377,37 +398,48 @@ const formatDuration = (start, end) => {
 
           <VListItemSubtitle class="mb-2 text-uppercase text-xs font-weight-bold">Metrics</VListItemSubtitle>
           
-          <div class="mb-4 detail-grid">
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Chat Start</span>
-               <span class="text-body-2">{{ formatTimeDay(selectedSession.startSessionStamp) }} ({{ formatDateOnly(selectedSession.startSessionStamp) }})</span>
+          <div class="mb-4">
+             <div class="d-flex mb-2 align-center">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Chat Start:</span>
+               <span class="text-body-2">
+                 {{ formatTimeDay(selectedSession.info?.start?.stamp) }} 
+                 <span class="text-xs text-disabled">({{ formatDateOnly(selectedSession.info?.start?.stamp) }})</span>
+               </span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Session End</span>
-               <span class="text-body-2">{{ formatTimeDay(selectedSession.resolveSessionStamp) }}</span>
+             <div class="d-flex mb-2 align-center">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Session End:</span>
+               <span class="text-body-2">
+                 {{ formatTimeDay(selectedSession.info?.resolved?.stamp || selectedSession.info?.closed?.stamp || selectedSession.info?.expired?.stamp) }}
+               </span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">First Reply Duration</span>
-               <span class="text-body-2">{{ calcDiff(selectedSession.stamps?.sessionStart, selectedSession.stamps?.firstOutBound_AGENT) }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">First Reply:</span>
+               <span class="text-body-2">
+                 {{ selectedSession.summaries?.[0]?.firstResponseTime ? formatDuration(selectedSession.summaries[0].firstResponseTime) : '-' }}
+               </span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Resolution Time</span>
-               <span class="text-body-2">{{ calcDiff(selectedSession.startSessionStamp, selectedSession.resolveSessionStamp) }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Resolution Time:</span>
+               <span class="text-body-2">
+                 {{ calcDiff(selectedSession.info?.start?.stamp, (selectedSession.info?.resolved?.stamp || selectedSession.info?.closed?.stamp)) }}
+               </span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Feedback Score</span>
-               <span class="text-body-2">{{ selectedSession.feedback?.score || '-' }}</span>
+             <div class="d-flex mb-2">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Feedback Score:</span>
+               <span class="text-body-2">{{ selectedSession.info?.satisfactionScore|| '-' }}</span>
              </div>
-             <div class="mb-2">
-               <span class="text-caption text-medium-emphasis d-block">Sentiment</span>
-               <VChip 
-                v-if="selectedSession.insights" 
-                size="x-small" 
-                :color="selectedSession.insights.sentimentScore >= 0 ? 'success' : 'error'" 
-                class="mt-1"
-              >
-                {{ getSentimentLabel(selectedSession.insights.sentimentScore) }}
-              </VChip>
+             <div class="d-flex mb-2 align-center">
+               <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">Sentiment:</span>
+               <div class="text-body-2">
+                 <VChip 
+                  v-if="selectedSession.aiSentimentScore !== 'NA'" 
+                  size="x-small" 
+                  :color="Number(selectedSession.aiSentimentScore) >= 0 ? 'success' : 'error'" 
+                >
+                  {{ getSentimentLabel(selectedSession.aiSentimentScore) }}
+                </VChip>
+                <span v-else>-</span>
+               </div>
              </div>
           </div>
 
@@ -433,18 +465,9 @@ const formatDuration = (start, end) => {
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
 }
-
-.detail-grid {
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 12px;
-}
-
 .drawer-rounded {
   border-top-left-radius: 12px;
   border-bottom-left-radius: 12px;
   overflow: hidden;
 }
-
-
 </style>
