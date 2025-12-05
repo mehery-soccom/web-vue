@@ -4,7 +4,9 @@ import { PerfectScrollbar } from "vue3-perfect-scrollbar";
 
 const router = useRouter();
 // const ability = useAppAbility();
-const userData = JSON.parse(localStorage.getItem("userData") || "null");
+// const userData = JSON.parse(localStorage.getItem("userData") || "null");
+const userData = window.CONST.USER || {};
+// console.log("User Data in Lead UserProfile:", userData);
 
 const logout = async () => {
   try {
@@ -74,15 +76,13 @@ const userProfileList = [
               </VListItemAction>
             </template>
 
-            <VListItemTitle
-              class="font-weight-medium"
-              v-if="userData && userData.fullName"
-            >
-              {{ userData.fullName || userData.username }}
+            <VListItemTitle class="font-weight-medium">
+              {{ userData?.user || 'User' }}
             </VListItemTitle>
-            <VListItemSubtitle v-if="userData && userData.role">{{
-              userData.role
-            }}</VListItemSubtitle>
+            
+            <VListItemSubtitle>
+              {{ Array.isArray(userData?.role) ? userData.role[0] : userData?.role }}
+            </VListItemSubtitle>
           </VListItem>
 
           <PerfectScrollbar :options="{ wheelPropagation: false }">
