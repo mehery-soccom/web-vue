@@ -91,6 +91,8 @@ function formatKey(key) {
 
 const oldDates = ref([]);
 const today = new Date();
+var tonight = new Date();
+tonight.setHours(23, 59, 59, 999);
 var oneWeekAgo = new Date();
 oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-");
@@ -112,7 +114,7 @@ const onDateClosed = (selectedDates, dateStr) => {
     const start = new Date(selectedDates[0]);
     start.setHours(0, 0, 0, 0);
     const endDate = new Date(selectedDates[1]);
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 998);
     fetchMetaTemplateData(start.getTime(),endDate.getTime());
   }
 };
@@ -147,7 +149,7 @@ onMounted(async () => {
           dateFormat: 'd-m-Y',
           position: 'auto right',
           onChange: onDateSelect,
-          maxDate: 'today',
+          maxDate: tonight,
           onValueUpdate: onDateUpdate,
           onClose: onDateClosed,
           plugins: [customPlugin],

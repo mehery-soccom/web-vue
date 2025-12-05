@@ -18,6 +18,8 @@ const isLoading = ref(false);
 const oldDates = ref([]);
 const today = new Date();
 var oneWeekAgo = new Date();
+var tonight = new Date();
+tonight.setHours(23, 59, 59, 999);
 // oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 const formattedStart = oneWeekAgo
   .toLocaleDateString("en-GB")
@@ -701,7 +703,7 @@ const onDateClosed = (selectedDates, dateStr) => {
     const start = new Date(selectedDates[0]);
     start.setHours(0, 0, 0, 0);
     const endDate = new Date(selectedDates[1]);
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 998);
     allAnalytics(
       start.getTime(),
       endDate.getTime(),
@@ -730,7 +732,7 @@ const allAnalyticsWithoutDate = () => {
   const [endDay, endMonth, endYear] = endStr.split("-").map(Number);
 
   const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
-  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 998);
   console.log("no date", startDate, endDate);
   allAnalytics(
     startDate.getTime(),
@@ -906,7 +908,7 @@ onMounted(async () => {
           position: 'auto right',
           onChange: onDateSelect,
           onValueUpdate: onDateUpdate,
-          maxDate: 'today',
+          maxDate: tonight,
           onClose: onDateClosed,
           plugins: [customPlugin],
         }"

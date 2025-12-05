@@ -67,6 +67,8 @@ const statsCamp = ref([
 
 const oldDates = ref([]);
 const today = new Date();
+var tonight = new Date();
+tonight.setHours(23, 59, 59, 999);
 var oneWeekAgo = new Date();
 oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 const formattedStart = oneWeekAgo
@@ -91,7 +93,7 @@ const onDateClosed = (selectedDates, dateStr) => {
     const start = new Date(selectedDates[0]);
     start.setHours(0, 0, 0, 0);
     const endDate = new Date(selectedDates[1]);
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 998);
     fetchCampaignData(
       start.getTime(),
       endDate.getTime(),
@@ -130,7 +132,7 @@ const onUpdateOptions = (options) => {
   const [endDay, endMonth, endYear] = endStr.split("-");
 
   const startDate = new Date(`${startMonth}-${startDay}-${startYear}`).getTime();
-  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999).getTime();
+  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 998).getTime();
   console.log("daa", startStr, endStr, startDate, endDate)
   fetchCampaignData(startDate, endDate, selectedChannelItem.value, false, selectedStatuses.value, pagination );
 };
@@ -203,7 +205,7 @@ const allAnalytics = () => {
   const [endDay, endMonth, endYear] = endStr.split("-").map(Number);
 
   const startDate = new Date(startYear, startMonth - 1, startDay, 0, 0, 0, 0);
-  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 999);
+  const endDate = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 998);
   console.log("no date", startDate, endDate);
   fetchCampaignData(
     startDate.getTime(),
@@ -290,7 +292,7 @@ onMounted(async () => {
           dateFormat: 'd-m-Y',
           position: 'auto right',
           onChange: onDateSelect,
-          maxDate: 'today',
+          maxDate: tonight,
           onValueUpdate: onDateUpdate,
           onClose: onDateClosed,
           plugins: [customPlugin],
