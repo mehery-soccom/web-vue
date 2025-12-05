@@ -45,6 +45,8 @@ const fetchAgentData = async (start, end) => {
 
 const oldDates = ref([]);
 const today = new Date();
+var tonight = new Date();
+tonight.setHours(23, 59, 59, 999);
 var oneWeekAgo = new Date();
 // oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 const formattedStart = oneWeekAgo
@@ -69,7 +71,7 @@ const onDateClosed = (selectedDates, dateStr) => {
     const start = new Date(selectedDates[0]);
     start.setHours(0, 0, 0, 0);
     const endDate = new Date(selectedDates[1]);
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 998);
     fetchAgentData(start.getTime(), endDate.getTime());
   }
 };
@@ -187,7 +189,7 @@ onMounted(async () => {
         :config="{
           mode: 'range',
           dateFormat: 'd-m-Y',
-          maxDate: 'today',
+          maxDate: tonight,
           position: 'auto right',
           onClose: onDateClosed,
           plugins: [customPlugin],

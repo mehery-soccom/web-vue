@@ -24,6 +24,8 @@ const chatTypeOptions = [
 
 const oldDates = ref([]);
 const today = new Date();
+var tonight = new Date();
+tonight.setHours(23, 59, 59, 999);
 const formattedToday = today.toLocaleDateString("en-GB").split("/").join("-");
 const dateRange = ref(formattedToday);
 
@@ -129,7 +131,7 @@ const onTypeChange = () => {
   const start = new Date(d);
   start.setHours(0, 0, 0, 0);
   const end = new Date(d);
-  end.setHours(23, 59, 59, 999);
+  end.setHours(23, 59, 59, 998);
   
   fetchSessions(start.getTime(), end.getTime());
 };
@@ -142,7 +144,7 @@ const onDateClosed = (selectedDates) => {
     start.setHours(0, 0, 0, 0);
     
     const endDate = new Date(selectedDates[0]);
-    endDate.setHours(23, 59, 59, 999);
+    endDate.setHours(23, 59, 59, 998);
     
     fetchSessions(start.getTime(), endDate.getTime());
   }
@@ -274,7 +276,7 @@ onMounted(async () => {
           mode: 'single', 
           dateFormat: 'd-m-Y',
           position: 'auto right',
-          maxDate: 'today',
+          maxDate: tonight,
           onClose: onDateClosed
         }"
       />
