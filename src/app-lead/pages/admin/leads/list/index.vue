@@ -79,7 +79,8 @@ const fetchLeads = async (options = pagination) => {
     }
     if (options.sortBy && options.sortBy.length > 0) {
       const sortItem = options.sortBy[0];
-      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
+      const sortKey = sortItem.key === 'name' ? 'contact.name' : sortItem.key;
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortKey}`;
     }
 
     const response = await leadsStore.fetchLeads(apiParams)
