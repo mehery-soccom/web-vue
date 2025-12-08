@@ -45,7 +45,7 @@ const template = reactive({
     message: "",
     category: null,
 
-    image_url: "",
+    image_url: [""],
     logo_url: "",
 
     /** styled */
@@ -120,6 +120,9 @@ onMounted(async () => {
           //   data: {}
           // },
         });
+        if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
+        if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+        console.log("add", JSON.parse(JSON.stringify(template)), JSON.parse(JSON.stringify(_template)), template.style.image_url, typeof(template.style.image_url))
         let _buttonGroupValue = {};
         _template.options.buttons.map((b) => {
           _buttonGroupValue[b.button_text] = b.button_url;
@@ -184,6 +187,7 @@ const onCreate = async () => {
     delete template._id;
     delete template.__v;
     if (template.type === "simple") {
+      if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
       payload = {
         ...template,
         options: {
@@ -245,6 +249,7 @@ const onUpdate = async () => {
 
     let payload = {};
     if (template.type === "simple") {
+      if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
       payload = {
         ...template,
         options: {
@@ -417,10 +422,26 @@ watch(
                       </VCol>
 
                       <VCol cols="12">
-                        <MyFileInputUpload
+                        <div v-for="(img, index) in template.style.image_url">
+                          <div style="margin-bottom: 20px;">
+                            <MyFileInputUpload
+                              v-model="template.style.image_url[index]"
+                              :key="index"
+                              :label="`Upload Image ${index + 1}`"
+                              :max-size="10240"
+                            />
+                          </div>
+                        </div>
+                        <VBtn v-if="template.style.image_url.length < 3" @click="template.style.image_url.push('')">
+                          Add Image
+                        </VBtn>
+                        <VBtn v-if="template.style.image_url.length > 1" @click="template.style.image_url.pop()" color="error" style="margin-left: 1rem;">
+                          Remove Image
+                        </VBtn>
+                        <!-- <MyFileInputUpload
                           v-model="template.style.image_url"
                           label="Upload Image" :max-size="10240"
-                        />
+                        /> -->
                       </VCol>
 
                       <VCol cols="12" md="6">
