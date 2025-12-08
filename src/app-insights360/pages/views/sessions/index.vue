@@ -65,7 +65,7 @@ const formatDateOnly = (val) => {
 };
 
 const formatDuration = (ms) => {
-  if (!ms && ms !== 0) return '-';
+  if (!ms && ms !== 0 || ms === 'NA' || isNaN(ms)) return '-';
   const diff = Math.abs(ms) / 1000;
   const h = Math.floor(diff / 3600);
   const m = Math.floor((diff % 3600) / 60);
@@ -417,7 +417,7 @@ onMounted(async () => {
              <div class="d-flex mb-2">
                <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">First Reply:</span>
                <span class="text-body-2">
-                 {{ selectedSession.summaries?.[0]?.firstResponseTime ? formatDuration(selectedSession.summaries[0].firstResponseTime) : '-' }}
+                 {{ selectedSession.summaries?.[0]?.firstReactionTime ? formatDuration(selectedSession.summaries[0].firstReactionTime) : '-' }}
                </span>
              </div>
              <div class="d-flex mb-2">
