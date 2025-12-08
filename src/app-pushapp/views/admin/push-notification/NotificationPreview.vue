@@ -28,13 +28,20 @@ const backgroundStyle = computed(() => {
   }
   return r;
 });
-
+const currentSlide = ref(0);
+let interval = null;
 onMounted(() => {
   initClock();
   loadNotification();
+  if(Array.isArray(props.template.style.image_url)){
+    interval = setInterval(() => {
+      currentSlide.value = (currentSlide.value + 1) % props.template.style.image_url.length;
+    }, 3000);
+  }
 });
 
 onUnmounted(() => {
+  clearInterval(interval);
   clearInterval(intervalId.value);
 });
 
@@ -181,7 +188,7 @@ watch(
                       template.view.mode === 'collapse'
                     "
                     class="notification-previ-image"
-                    :src="template.style.image_url"
+                    :src="template.style.image_url[0] || template.style.image_url"
                     alt=""
                   />
                 </div>
@@ -192,10 +199,23 @@ watch(
           <!-- Long preview -->
           <div v-if="template.view.mode === 'expand'" class="long-preview mt-4">
             <img
-              v-if="template.style.image_url"
+              v-if="typeof(template.style.image_url) === 'string'"
               :src="template.style.image_url"
               alt=""
             />
+            <div class="media-preview" v-else>
+              <div class="carousel-wrapper">
+                <div class="media-carousel">
+                  <template v-for="(item, index) in template.style.image_url" :key="item + index">
+                    <img
+                      :src="item"
+                      class="media-item"
+                      :style="{ display: index === currentSlide ? 'block' : 'none' }"
+                    />
+                  </template>
+                </div>
+              </div>
+            </div>
           </div>
 
           <!-- Expanded content for Android -->
