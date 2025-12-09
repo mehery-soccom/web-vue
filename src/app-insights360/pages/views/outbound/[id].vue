@@ -115,7 +115,12 @@ const fetchCampaignData = async (id, pagination) => {
     if(response?.data?.pagination) pagination.itemsLength = response.data.pagination.total;
     console.log("sa", pagination.itemsLength, response.data.pagination.total)
     if (response?.data?.data != null) {
-      campTable.value = response?.data?.results;
+      const createdBy = response.data.data.createdBy || '-';
+
+      campTable.value = (response?.data?.results || []).map(item => ({
+        ...item,
+        agent: item.agent || createdBy
+      }));
       if (response?.data?.data && response?.data?.data?.stats) {
         const laneFromResult = response?.data?.results && response.data.results.length
           ? response.data.results[0]?.contact?.lane
