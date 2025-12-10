@@ -35,11 +35,19 @@ watch(
   }
 );
 const backgroundStyle = computed(() => {
-  let r = props.template.style.bg_color;
-  if (props.template.style.bg_color_gradient_dir) {
-    r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
+  const style = props.template.style;
+  if (style.bg_image_url) {
+    return `url(${style.bg_image_url}) center/cover no-repeat`;
   }
-  return r;
+  if (style.bg_color_gradient_dir) {
+    return `linear-gradient(${style.bg_color_gradient_dir}, ${style.bg_color}, ${style.bg_color_gradient})`;
+  }
+  return style.bg_color;
+  // let r = props.template.style.bg_color;
+  // if (props.template.style.bg_color_gradient_dir) {
+  //   r = `linear-gradient(${props.template.style.bg_color_gradient_dir}, ${props.template.style.bg_color}, ${props.template.style.bg_color_gradient})`;
+  // }
+  // return r;
 });
 
 const hasMedia = computed(() =>
@@ -104,7 +112,9 @@ onBeforeUnmount(() => {
         direction: props.template.style.align === 'right' ? 'rtl' : 'ltr',
       }"
     >
-      <div class="close-btn">&times;</div>
+      <div class="close-btn" :style="{ backgroundColor: props.template.style.cross_bg_color, 
+      color: props.template.style.cross_color, 
+      borderColor: props.template.style.cross_border_color }">&times;</div>
       <div class="pop-up-vertical-content">
         <div class="text-block-road"
             :style="{
