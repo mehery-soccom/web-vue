@@ -16,5 +16,11 @@ export const usePhoneStore = defineStore("PhoneStore", {
     terminateCallToMeta(params) {
       return DataService.axios.post("/whatsapp/calling/terminate", params);
     },
+    sendOfferToMeta(params) {
+      return DataService.axios.post("/whatsapp/calling/initiate", params);
+    },
+    askPermissionToMeta(params) {
+      return DataService.axios.post("/whatsapp/calling/user-permission", params);
+    },
   },
 });
