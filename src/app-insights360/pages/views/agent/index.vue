@@ -166,7 +166,7 @@ onMounted(async () => {
   const oneWeekAgo = new Date();
   // oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
   oneWeekAgo.setHours(0, 0, 0, 0);
-  fetchAgentData(oneWeekAgo.getTime(), now.getTime());
+  fetchAgentData(oneWeekAgo.getTime(), now.setHours(23,59,59,998));
 });
 </script>
 
