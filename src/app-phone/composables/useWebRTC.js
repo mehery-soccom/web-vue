@@ -9,7 +9,8 @@ export function useWebRTC() {
   const connectionStatus = ref("disconnected"); // 'disconnected', 'connecting', 'connected', 'error'
   const errorMessage = ref("");
   const callDuration = ref("00:00");
-  const callData = ref({})
+  const callData = ref({});
+  const agentCode = ref("");
   let pc = null;
   let localStream = null;
   let channelId = ref('');
@@ -230,7 +231,7 @@ export function useWebRTC() {
   /**
    * Create SDP offer for outgoing call
    */
-  const createOffer = async (remoteNumber = "") => {
+  const createOfferr = async (remoteNumber = "") => {
     if (!pc) {
       await initWebRTC();
     }
@@ -246,6 +247,8 @@ export function useWebRTC() {
       });
       
       await pc.setLocalDescription(offer);
+      callData.value.sdp_type = "offer";
+      callData.value.sdp = offer.sdp;
       
       activeCall.value = {
         show: true,
@@ -257,6 +260,7 @@ export function useWebRTC() {
       playRingbacktone();
       
       console.log("SDP Offer created, waiting for answer...");
+      await sendOffer(callData.value, channelId.value, currentPeerNumber.value);
       // Return the local description for sending to Meta API
       return getLocalSDPData();
 
@@ -264,6 +268,29 @@ export function useWebRTC() {
       console.error("Failed to create offer:", error);
       errorMessage.value = error.message;
       callState.value = "idle";
+      throw error;
+    }
+  };
+
+  // const askIfPermissionPresent = async (answerData, callDatas, channelId) => {
+  //   try {
+  //     const payload = { callData: callData.value, channelId: channelId, sdpAnswer: answerData.sdp };
+  //     const response = await PhoneStore.askPermissionToMeta(payload);
+  //     console.log("Meta API response:", response.data);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+  //     throw error;
+  //   }
+  // };
+  const sendOffer = async (callDat, channelId, phone) => {
+    try {
+      const payload = { contact: { phone: phone }, channelId: channelId, session: callDat, agent: agentCode.value };
+      const response = await PhoneStore.sendOfferToMeta(payload);
+      console.log("Meta API response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
       throw error;
     }
   };
@@ -495,14 +522,24 @@ export function useWebRTC() {
     });
   };
 
-  const makeCall = async (remoteNumber) => {
+  const makeCall = async (channel_id, remoteNumber, agent) => {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
     }
+    channelId.value = channel_id;
+    currentPeerNumber.value = remoteNumber;
+    agentCode.value = agent;
+    incomingCall.value = {
+      show: true,
+      remoteNumber: remoteNumber,
+      timestamp: new Date(),
+    };
+    callState.value = "ringing";
+    playRingtone();
 
     try {
-      const offerSDP = await createOffer(remoteNumber);
-      return offerSDP;
+      const offerSDP = await createOfferr(remoteNumber);
+      console.log("ss",offerSDP);
 
     } catch (error) {
       console.error("Failed to make call:", error);

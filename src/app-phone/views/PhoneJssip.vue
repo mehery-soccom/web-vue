@@ -191,7 +191,7 @@ const setupMessageHandlers = () => {
           break;
 
         case "make-call":
-          await handleCall(data.event_data.dialed_number);
+          await makeCall(data.channelId, data.event_data.dialed_number, data.event_data.agentCode);
           break;
       }
     } catch (err) {
@@ -223,6 +223,15 @@ onMounted(async () => {
   //   channelId: 'wacfb:8745876899',
   // }
   // setTimeout(() => { handleIncomingCall(cata.event_data.session, cata.event_data.from, cata.event_data, cata.channelId); }, 10000);
+  // const cata = { 
+  //   event:"make-call",
+  //   event_data:{
+  //     dialed_number:"918691945760",
+  //     agentCode: 'bhavik'
+  //   },
+  //   channelId: 'wacfb:919619723759',
+  // }
+  // setTimeout(() => { makeCall(cata.channelId, cata.event_data.dialed_number, cata.event_data.agentCode ); }, 10000);
 });
 
 onUnmounted(() => {
