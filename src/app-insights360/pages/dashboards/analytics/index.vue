@@ -820,10 +820,10 @@ onMounted(async () => {
     .join("-");
   const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
   dateRange.value = `${formattedStart} to ${formattedEnd}`;
-  console.log("before mount", now.getTime(), today.getTime());
+  console.log("before mount", now.getTime(), today.setHours(23,59,59,998));
   allAnalytics(
     now.getTime(),
-    today.getTime(),
+    today.setHours(23,59,59,998),
     selectedChannelItem.value,
     selectedAgentTeamItem.value.dept_id
       ? selectedAgentTeamItem.value.code

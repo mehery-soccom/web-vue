@@ -237,7 +237,7 @@ onMounted(async () => {
   const now = new Date();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  fetchCampaignBlock(today.getTime(), now.getTime(), "All Channels", false, selectedStatuses.value);
+  fetchCampaignBlock(today.getTime(), now.setHours(23,59,59,998), "All Channels", false, selectedStatuses.value);
 });
 </script>
 
