@@ -110,7 +110,7 @@ const fetchSessions = async (startMs, endMs) => {
             contactPhone: item.contact?.phone || item.contact?.mobile || '-',
             contactType: item.contactType,
             status: item.info?.status || 'OPEN',
-            startStamp: item.info?.start?.stamp,
+            startStamp: item.summaries?.[0]?.firstMessageStamp,
             
             resolvedStamp: item.info?.resolved?.stamp || null,
             resolvedBy: item.info?.resolved?.by || '-',
