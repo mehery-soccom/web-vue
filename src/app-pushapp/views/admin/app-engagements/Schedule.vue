@@ -46,6 +46,48 @@ const summary = computed(() => ({
     : "Global impression limits will be applied to this campaign.",
 }));
 
+const startPickerRef = ref(null)
+const endPickerRef = ref(null)
+const pad = n => String(n).padStart(2, '0')
+
+watch(() => form.startDate, (start) => {
+    const fp = endPickerRef.value?.refFlatPicker?.fp
+    if (!fp) return
+    if (!start) {
+      fp.set('minDate', now)
+      fp.set('minTime', undefined)
+      return
+    }
+
+    const startDate = new Date(start)
+    fp.set('minDate', startDate)
+    const selectedDate = fp.selectedDates[0]
+    const sameDay = selectedDate && selectedDate.toDateString() === startDate.toDateString()
+
+    if (sameDay) fp.set('minTime', `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`)
+    else fp.set('minTime', undefined)
+  }
+)
+watch(() => form.endDate, (end) => {
+    const fp = startPickerRef.value?.refFlatPicker?.fp
+    if (!fp) return
+
+    if (!end) {
+      fp.set('maxDate', undefined)
+      fp.set('maxTime', undefined)
+      return
+    }
+
+    const endDate = new Date(end)
+    fp.set('maxDate', endDate)
+    const selectedDate = fp.selectedDates[0]
+    const sameDay = selectedDate && selectedDate.toDateString() === endDate.toDateString()
+
+    if (sameDay) fp.set('maxTime', `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`)
+    else fp.set('maxTime', undefined)
+  }
+)
+
 const isValid = async (silent = false) => {
   const e = {};
 
@@ -108,8 +150,8 @@ defineExpose({ isValid });
           <div class="d-flex flex-column gap-2">
             <div class="d-flex flex-wrap align-center gap-2">
               <span>At specific date/time</span>
-              <AppDateTimePicker
-                :key="form.durationType + errors.startDate"
+              <AppDateTimePicker ref="startPickerRef"
+                :key="form.durationType + errors.startDate + '1'"
                 v-model="form.startDate"
                 placeholder="Select Date"
                 class="flex-grow-1 tiny-input"
@@ -117,11 +159,11 @@ defineExpose({ isValid });
                 :error="!!errors.startDate"
                 @update:modelValue="clearError('startDate')"
                 :disabled="form.durationType !== 'specific'"
-                :config="{ enableTime: true, minDate: 'today', minTime }"
+                :config="{ enableTime: true, minDate: now }"
               />
               <span>ending on</span>
-              <AppDateTimePicker
-                :key="form.durationType + errors.endDate"
+              <AppDateTimePicker ref="endPickerRef"
+                :key="form.durationType + errors.endDate + '2'"
                 v-model="form.endDate"
                 placeholder="Select Date"
                 class="flex-grow-1 tiny-input"
@@ -129,7 +171,7 @@ defineExpose({ isValid });
                 :error="!!errors.endDate"
                 @update:modelValue="clearError('endDate')"
                 :disabled="form.durationType !== 'specific'"
-                :config="{ enableTime: true, minDate: 'today', minTime }"
+                :config="{ enableTime: true, minDate: now }"
               />
             </div>
           </div>
