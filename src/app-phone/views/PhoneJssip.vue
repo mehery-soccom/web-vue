@@ -187,7 +187,7 @@ const setupMessageHandlers = () => {
           break;
         
         case "webrtc-answer":
-          await setRemoteDescription(data.event_data.answerSDP);
+          await setRemoteDescription(data.event_data.session.sdp);
           break;
 
         case "make-call":
