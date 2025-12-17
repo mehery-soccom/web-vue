@@ -163,7 +163,7 @@ const formatDurationHHMMSS = (ms) => {
   const m = Math.floor((diff % 3600) / 60);
   const sec = Math.floor(diff % 60);
   // Format: 00:08:14
-  return `${h.toString().padStart(2, '0')}.${m.toString().padStart(2, '0')}.${sec.toString().padStart(2, '0')}`;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 };
 
 const exportToExcel = () => {
@@ -197,7 +197,7 @@ const exportToExcel = () => {
       "SessionId": item.sessionId || '-',
       "Closed by": closedBy,
       "Closedstamp": endStamp ? formatTimeDay(endStamp) : '-',
-      "First Reaction Time": item.summaries?.[0]?.firstReactionTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstReactionTime) : 'NA',
+      "First Reaction Time": item.summaries?.[0]?.firstReactionTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstReactionTime) : '-',
       "Resolution Time": resolutionTime
     };
 
