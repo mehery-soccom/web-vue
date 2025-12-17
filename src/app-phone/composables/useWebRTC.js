@@ -545,7 +545,7 @@ export function useWebRTC() {
       timestamp: new Date(),
     };
     callState.value = "ringing";
-    playRingtone();
+    // playRingtone();
 
     try {
       const offerSDP = await createOfferr(remoteNumber);
