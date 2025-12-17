@@ -387,6 +387,16 @@ export function useWebRTC() {
         }
       }
       console.log("Remote description set successfully");
+      activeCall.value = {
+        show: true,
+        remoteNumber: currentPeerNumber.value,
+        startTime: null,
+      };
+      console.log("answered call");
+      setTimeout(()=>{
+        stopRingbacktone();
+        updateCallHistory("answered");
+      },5000);
     } catch (error) {
       console.error("Failed to set remote description:", error);
       throw error;
