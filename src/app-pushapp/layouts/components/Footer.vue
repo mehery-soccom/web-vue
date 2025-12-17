@@ -19,19 +19,19 @@
       >Mehery</a>
     </span>
     <!-- 👉 Footer: right content -->
-    <span class="d-md-flex gap-x-4 text-primary d-none">
+    <!-- <span class="d-md-flex gap-x-4 text-primary d-none">
       <a
         href="#"
         target="noopener noreferrer"
       >License</a>
-      <!-- <a
+      <a
         href="#"
         target="noopener noreferrer"
-      >More Themes</a> -->
+      >More Themes</a>
       <a
         href="#"
         target="noopener noreferrer"
       >Documentation</a>
-    </span>
+    </span> -->
   </div>
 </template>
