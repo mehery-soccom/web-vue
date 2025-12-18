@@ -388,7 +388,7 @@ export function useWebRTC() {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
         }
       }
-      console.log("Remote description set successfully");
+      console.log("Remote description set successfully", remoteSDPData);
       activeCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
@@ -566,7 +566,7 @@ export function useWebRTC() {
   };
   const gotAnswer = (answer) => {
     receivedAnswer.value = answer;
-    receivedSdpAnswer.value = answer.event_data.session.sdp;
+    receivedSdpAnswer.value = answer.event_data.session;
   }
 
   onUnmounted(() => {
