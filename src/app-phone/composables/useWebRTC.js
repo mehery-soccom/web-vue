@@ -12,7 +12,7 @@ export function useWebRTC() {
   const callData = ref({});
   const agentCode = ref("");
   const receivedAnswer = ref({});
-  const receivedSdpAnswer = ref("");
+  const receivedSdpAnswer = ref(null);
   let pc = null;
   let localStream = null;
   let channelId = ref('');
@@ -379,16 +379,23 @@ export function useWebRTC() {
       throw new Error("WebRTC not initialized");
     }
 
+    const sdpData = remoteSDPData?.value ?? remoteSDPData;
+    if (!sdpData?.sdp) {
+      console.warn("No SDP found in remote description", sdpData);
+      return;
+    }
     try {
-      if (remoteSDPData.sdp) {
-        await pc.setRemoteDescription(new RTCSessionDescription(remoteSDPData.sdp));
-      }
-      if (remoteSDPData.ice && Array.isArray(remoteSDPData.ice)) {
-        for (const candidate of remoteSDPData.ice) {
-          await pc.addIceCandidate(new RTCIceCandidate(candidate));
-        }
-      }
-      console.log("Remote description set successfully", remoteSDPData);
+      const remoteDesc = {
+        type: sdpData.sdp_type || "answer",
+        sdp: sdpData.sdp
+      };
+      await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
+      // if (remoteSDPData.ice && Array.isArray(remoteSDPData.ice)) {
+      //   for (const candidate of remoteSDPData.ice) {
+      //     await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      //   }
+      // }
+      console.log("Remote description set successfully", remoteSDPData, sdpData, remoteDesc);
       activeCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
