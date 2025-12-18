@@ -11,6 +11,8 @@ export function useWebRTC() {
   const callDuration = ref("00:00");
   const callData = ref({});
   const agentCode = ref("");
+  const receivedAnswer = ref({});
+  const receivedSdpAnswer = ref("");
   let pc = null;
   let localStream = null;
   let channelId = ref('');
@@ -562,6 +564,10 @@ export function useWebRTC() {
     isConnected.value = false;
     connectionStatus.value = "disconnected";
   };
+  const gotAnswer = (answer) => {
+    receivedAnswer.value = answer;
+    receivedSdpAnswer.value = answer.event_data.session.sdp;
+  }
 
   onUnmounted(() => {
     disconnect();
@@ -577,6 +583,8 @@ export function useWebRTC() {
     callState,
     callDuration,
     callHistory,
+    receivedSdpAnswer,
+    receivedAnswer,
 
     initWebRTC,
     disconnect,
@@ -587,5 +595,6 @@ export function useWebRTC() {
     handleIncomingCall,
     setRemoteDescription,
     getLocalSDPData,
+    gotAnswer,
   };
 }
