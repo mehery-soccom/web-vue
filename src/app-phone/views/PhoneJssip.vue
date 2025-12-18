@@ -13,12 +13,15 @@ const {
   callState,
   callDuration,
   callHistory,
+  receivedSdpAnswer,
+  receivedAnswer,
   makeCall,
   answerCall,
   rejectCall,
   endCall,
   handleIncomingCall,
   setRemoteDescription,
+  gotAnswer,
 } = useWebRTC();
 
 const dialedNumber = ref("");
@@ -187,7 +190,11 @@ const setupMessageHandlers = () => {
           break;
         
         case "webrtc-answer":
-          await setRemoteDescription(data.event_data.session.sdp);
+          gotAnswer(data);
+          break;
+        
+        case "accepted-call":
+          await setRemoteDescription(receivedSdpAnswer);
           break;
 
         case "make-call":
