@@ -274,17 +274,17 @@ export function useWebRTC() {
     }
   };
 
-  // const askIfPermissionPresent = async (answerData, callDatas, channelId) => {
-  //   try {
-  //     const payload = { callData: callData.value, channelId: channelId, sdpAnswer: answerData.sdp };
-  //     const response = await PhoneStore.askPermissionToMeta(payload);
-  //     console.log("Meta API response:", response.data);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error("Error sending answer to Meta API:", error.response?.data || error.message);
-  //     throw error;
-  //   }
-  // };
+  const askIfPermissionPresent = async (num, channelId) => {
+    try {
+      const payload = { contact: { phone: num }, channelId: channelId };
+      const response = await PhoneStore.askPermissionToMeta(payload);
+      console.log("Meta API response:", response.data);
+      return response.data;
+    } catch (error) {
+      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      throw error;
+    }
+  };
   const sendOffer = async (callDat, channelId, phone) => {
     try {
       const payload = { contact: { phone: phone }, channelId: channelId, session: callDat, agent: agentCode.value };
@@ -340,7 +340,7 @@ export function useWebRTC() {
 
     try {
       callState.value = "ringing";
-      // playRingtone();
+      playRingtone();
 
       // Set remote offer
       const remoteDesc = {
@@ -533,6 +533,8 @@ export function useWebRTC() {
     if (remoteAudio) remoteAudio.srcObject = null;
     if (localAudio) localAudio.srcObject = null;
 
+    receivedSdpAnswer.value = null;
+    callData.value = {};
     channelId.value = '';
     updateCallHistory("ended");
     sendPostMessage("call-ended", {
@@ -545,24 +547,34 @@ export function useWebRTC() {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
     }
-    channelId.value = channel_id;
-    currentPeerNumber.value = remoteNumber;
-    agentCode.value = agent;
-    incomingCall.value = {
-      show: true,
-      remoteNumber: remoteNumber,
-      timestamp: new Date(),
-    };
-    callState.value = "ringing";
-    // playRingtone();
+    let resp = {};
+    try{
+      resp = await askIfPermissionPresent(remoteNumber, channel_id);
+      console.log("asked perm vue3", resp)
+    }catch(e){
+      console.error("Failed to make call:", e);
+    }
 
-    try {
-      const offerSDP = await createOfferr(remoteNumber);
-      console.log("ss",offerSDP);
+    if(resp.success){
+      channelId.value = channel_id;
+      currentPeerNumber.value = remoteNumber;
+      agentCode.value = agent;
+      incomingCall.value = {
+        show: true,
+        remoteNumber: remoteNumber,
+        timestamp: new Date(),
+      };
+      callState.value = "ringing";
+      playRingtone();
 
-    } catch (error) {
-      console.error("Failed to make call:", error);
-      throw error;
+      try {
+        const offerSDP = await createOfferr(remoteNumber);
+        console.log("ss",offerSDP);
+
+      } catch (error) {
+        console.error("Failed to make call:", error);
+        throw error;
+      }
     }
   };
 
@@ -574,6 +586,8 @@ export function useWebRTC() {
   const gotAnswer = (answer) => {
     receivedAnswer.value = answer;
     receivedSdpAnswer.value = answer.event_data.session;
+    callData.value = answer.event_data;
+    console.log(" got ans", answer);
   }
 
   onUnmounted(() => {
