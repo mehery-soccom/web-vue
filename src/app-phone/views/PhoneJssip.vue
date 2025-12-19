@@ -84,13 +84,12 @@ const handleCall = async () => {
   if (!dialedNumber.value) return;
 
   try {
-    const offerSDP = await makeCall(dialedNumber.value);
-    sendPostMessage("webrtc-offer", {
-      dialedNumber: dialedNumber.value,
-      offerSDP: offerSDP
+    // const offerSDP = await makeCall(dialedNumber.value);
+    sendPostMessage("webrtc-offer-creation", {
+      dialedNumber: dialedNumber.value
     });
     
-    console.log("WebRTC offer created and then send to Meta API");
+    // console.log("WebRTC offer created and then send to Meta API");
 
   } catch (error) {
     console.error("Call failed:", error);
