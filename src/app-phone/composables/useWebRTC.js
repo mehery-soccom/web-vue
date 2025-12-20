@@ -402,10 +402,8 @@ export function useWebRTC() {
         startTime: null,
       };
       console.log("answered call");
-      setTimeout(()=>{
-        stopRingbacktone();
-        updateCallHistory("answered");
-      },5000);
+      stopRingbacktone();
+      updateCallHistory("answered");
     } catch (error) {
       console.error("Failed to set remote description:", error);
       throw error;
@@ -487,6 +485,7 @@ export function useWebRTC() {
     stopRingtone();
     updateCallHistory("rejected");
     channelId.value = '';
+    // callData.value = {};
     
     sendPostMessage("call-rejected", {
       remoteNumber: currentPeerNumber.value,
