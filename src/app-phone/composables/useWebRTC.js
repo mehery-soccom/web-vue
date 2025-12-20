@@ -541,7 +541,9 @@ export function useWebRTC() {
       timestamp: new Date().toISOString(),
     });
   };
-
+  const getAction = (actions = [], name) => {
+    return actions.find(a => a.action_name === name);
+  };
   const makeCall = async (channel_id, remoteNumber, agent) => {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
@@ -550,30 +552,45 @@ export function useWebRTC() {
     try{
       resp = await askIfPermissionPresent(remoteNumber, channel_id);
       console.log("asked perm vue3", resp)
+      const { permission, actions } = resp.data;
+      const status = permission?.status;
+
+      if (status === "permanent" || status === "temporary") {
+          const startCallAction = getAction(actions, "start_call");
+
+          if (startCallAction?.can_perform_action) {
+              channelId.value = channel_id;
+              currentPeerNumber.value = remoteNumber;
+              agentCode.value = agent;
+              incomingCall.value = {
+                show: true,
+                remoteNumber: remoteNumber,
+                timestamp: new Date(),
+              };
+              callState.value = "ringing";
+              playRingtone();
+
+              try {
+                const offerSDP = await createOfferr(remoteNumber);
+                console.log("ss",offerSDP);
+
+              } catch (error) {
+                console.error("Failed to make call:", error);
+                throw error;
+              }
+          } else {
+              // this.$toast.error("Call limit reached. You cannot place a call right now.");
+              console.error("Call limit reached. You cannot place a call right now.");
+          }
+          return;
+      }
+      else {
+          // this.$toast.error('Access denied, Request user permission by sending template.');
+          console.error("Access denied, Request user permission by sending template.");
+      }
     }catch(e){
       console.error("Failed to make call:", e);
-    }
-
-    if(resp.success){
-      channelId.value = channel_id;
-      currentPeerNumber.value = remoteNumber;
-      agentCode.value = agent;
-      incomingCall.value = {
-        show: true,
-        remoteNumber: remoteNumber,
-        timestamp: new Date(),
-      };
-      callState.value = "ringing";
-      playRingtone();
-
-      try {
-        const offerSDP = await createOfferr(remoteNumber);
-        console.log("ss",offerSDP);
-
-      } catch (error) {
-        console.error("Failed to make call:", error);
-        throw error;
-      }
+      // this.$toast.error('Access denied, Request user permission to call.');
     }
   };
 
