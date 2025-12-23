@@ -14,6 +14,7 @@ import StagesList from "@/app-lead/pages/admin/stages/list/index.vue";
 import StagesAdd from "@/app-lead/pages/admin/stages/add/[[id]].vue";
 import CampaignsList from "@/app-lead/pages/admin/campaigns/list/index.vue";
 import CampaignsAdd from "@/app-lead/pages/admin/campaigns/add/[[id]].vue";
+import TasksList from "@/app-lead/pages/admin/tasks/list/index.vue";
 
 const baseRoutes = [
   {
@@ -128,6 +129,19 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "admin-leads-add-id?",
           component: LeadsAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/tasks/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-tasks-list",
+          component: TasksList,
           props: true,
           meta: { layout: "default" },
         },
