@@ -114,7 +114,7 @@ onBeforeUnmount(() => {
     >
       <div class="close-btn" :style="{ backgroundColor: props.template.style.cross_bg_color, 
       color: props.template.style.cross_color, 
-      borderColor: props.template.style.cross_border_color }">&times;</div>
+      border: `0.5px solid ${props.template.style.cross_border_color}` }">&times;</div>
       <div class="pop-up-vertical-content">
         <div class="text-block-road"
             :style="{

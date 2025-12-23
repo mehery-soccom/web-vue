@@ -22,8 +22,12 @@ const {
   handleIncomingCall,
   setRemoteDescription,
   gotAnswer,
+  getChannelList,
 } = useWebRTC();
 
+const channelsList = ref([])
+const showChannelSelector = ref(false);
+const selectedChannel = ref(null);
 const dialedNumber = ref("");
 const isCallHistory = ref(false);
 const isDialer = ref(true);
@@ -79,21 +83,23 @@ const handleKeydown = (event) => {
   }
 };
 
+const startCallWithChannel = (channel) => {
+  showChannelSelector.value = false;
+  selectedChannel.value = channel;
+  sendPostMessage("webrtc-offer-creation", {
+    dialedNumber: dialedNumber.value,
+    channelId: channel.channelId
+  });
+};
+
 // Call handling
 const handleCall = async () => {
   if (!dialedNumber.value) return;
 
-  try {
-    // const offerSDP = await makeCall(dialedNumber.value);
-    sendPostMessage("webrtc-offer-creation", {
-      dialedNumber: dialedNumber.value
-    });
-    
-    // console.log("WebRTC offer created and then send to Meta API");
-
-  } catch (error) {
-    console.error("Call failed:", error);
-    alert("Failed to make call: " + error.message);
+  if (channelsList.value.length === 1) {
+    startCallWithChannel(channelsList.value[0]);
+  } else {
+    showChannelSelector.value = true;
   }
 };
 
@@ -212,6 +218,10 @@ onMounted(async () => {
   setupMessageHandlers();
   
   sendPostMessage("webrtc-ready", { status: "initialized" });
+  const res = await getChannelList();
+  const channels = res?.results || [];
+  channelsList.value = channels.filter(c => c.channelType === "wacfb" && !c.disabled && !c.deleted );
+  console.log("channel list", channelsList.value)
   // const cata = { 
   //   event:"response-to-call",
   //   event_data:{
@@ -245,7 +255,6 @@ onUnmounted(() => {
 });
 </script>
 
-
 <template>
   <div class="container">
     <div class="webrtc-client" style="max-width: 310px;">
@@ -278,6 +287,19 @@ onUnmounted(() => {
           <div class="call-controls">
             <button @click="endCall(true)" class="btn btn-danger">❌</button>
           </div>
+        </div>
+      </div>
+
+      <div v-if="showChannelSelector" class="channel-selector-overlay">
+        <div class="channel-selector">
+          <h4>Select number to call from</h4>
+          <div class="channel-list">
+            <div v-for="channel in channelsList" :key="channel.channelId" class="channel-item" @click="startCallWithChannel(channel)">
+              <div class="channel-name">{{ channel.name }}</div>
+              <div class="channel-lane">📞 {{ channel.lane }}</div>
+            </div>
+          </div>
+          <button class="cancel-btn" @click="showChannelSelector = false">Cancel</button>
         </div>
       </div>
 
@@ -652,5 +674,82 @@ html, body {
 
 ::-webkit-scrollbar {
   display: none !important;
+}
+
+/* numbers list */
+.channel-selector-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  z-index: 20;
+}
+.channel-selector {
+  width: 100%;
+  max-width: 310px;
+  background: #fff;
+  border-radius: 18px 18px 0 0;
+  padding: 14px;
+  padding-top: 0;
+}
+.channel-selector h4 {
+  margin-bottom: 10px;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: center;
+}
+.channel-list {
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.channel-item {
+  height: 65px;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #f6f7f9;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-right: 5px;
+}
+.channel-item:hover {
+  background: #e9ecff;
+}
+.channel-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #222;
+}
+.channel-lane {
+  font-size: 13px;
+  color: #555;
+}
+.cancel-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 10px;
+  border-radius: 12px;
+  border: none;
+  background: #eee;
+  font-size: 14px;
+  cursor: pointer;
+}
+.channel-list::-webkit-scrollbar {
+  width: 6px;
+  display: block !important;
+}
+.channel-list::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+.channel-list::-webkit-scrollbar-track {
+  background: transparent;
 }
 </style>
