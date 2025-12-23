@@ -1,5 +1,6 @@
 // composables/useWebRTC.js
 import { ref, reactive, onUnmounted } from "vue";
+import { toast } from "vue3-toastify";
 import { usePhoneStore } from "../views/usePhoneStore";
 const PhoneStore = usePhoneStore();
 
@@ -544,6 +545,17 @@ export function useWebRTC() {
   const getAction = (actions = [], name) => {
     return actions.find(a => a.action_name === name);
   };
+  const formatPermissionLimits = (limits = []) => {
+      return limits.map(l => {
+          const remaining = Math.max(0,l.max_allowed - l.current_usage);
+
+          let periodLabel = l.time_period;
+          if (l.time_period === "PT24H") periodLabel = "today";
+          if (l.time_period === "P7D") periodLabel = "this week";
+
+          return `${remaining} ${periodLabel}`;
+      });
+  };
   const makeCall = async (channel_id, remoteNumber, agent) => {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
@@ -579,13 +591,21 @@ export function useWebRTC() {
                 throw error;
               }
           } else {
-              // this.$toast.error("Call limit reached. You cannot place a call right now.");
+              toast.error("Call limit reached. You cannot place a call right now.");
               console.error("Call limit reached. You cannot place a call right now.");
           }
           return;
-      }
-      else {
+      } else {
           // this.$toast.error('Access denied, Request user permission by sending template.');
+          const requestAction = getAction(actions,"send_call_permission_request");
+          if (!requestAction) {
+              toast.error("Permission request action not available.");
+              return;
+          }
+
+          const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
+          if (requestAction.can_perform_action) toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
+          else toast.error(`You cannot send a permission request right now.\nLimits: ${limitSummary}.`,{ timeout: 0 });
           console.error("Access denied, Request user permission by sending template.");
       }
     }catch(e){
