@@ -542,6 +542,14 @@ export function useWebRTC() {
       timestamp: new Date().toISOString(),
     });
   };
+  const getChannelList = async () => {
+    try{
+      const resp = await PhoneStore.getChannels();
+      return resp.data;
+    }catch(e){
+      console.error("channels list", e)
+    }
+  }
   const getAction = (actions = [], name) => {
     return actions.find(a => a.action_name === name);
   };
@@ -653,5 +661,6 @@ export function useWebRTC() {
     setRemoteDescription,
     getLocalSDPData,
     gotAnswer,
+    getChannelList,
   };
 }
