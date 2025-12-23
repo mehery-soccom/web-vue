@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import DataService from "@/@common/services/DataService";
+import axios from "axios";
 
 export const usePhoneStore = defineStore("PhoneStore", {
   state: () => ({
@@ -21,6 +22,9 @@ export const usePhoneStore = defineStore("PhoneStore", {
     },
     askPermissionToMeta(params) {
       return DataService.axios.post("/whatsapp/calling/user-permission", params);
+    },
+    getChannels(params) {
+      return DataService.axios.get("/options/channels", params);
     },
   },
 });
