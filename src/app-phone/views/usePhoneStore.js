@@ -24,7 +24,7 @@ export const usePhoneStore = defineStore("PhoneStore", {
       return DataService.axios.post("/whatsapp/calling/user-permission", params);
     },
     getChannels(params) {
-      return DataService.axios.get("/options/channels", params);
+      return DataService.axios.get("/agent/pub/options/channels", { skipApiContext: true, params });
     },
   },
 });
