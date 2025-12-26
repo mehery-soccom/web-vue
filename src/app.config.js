@@ -1,5 +1,7 @@
 const AppConfig = require("@/@common/AppConfig");
-const { form } = require("./app-pushapp/views/demos/components/dialog/demoCodeDialog");
+const {
+  form,
+} = require("./app-pushapp/views/demos/components/dialog/demoCodeDialog");
 
 module.exports = AppConfig.extend({
   apps: {
@@ -44,6 +46,12 @@ module.exports = AppConfig.extend({
       context: "/nexus/form",
       entry: "./src/main.js",
       plugins: () => import("@/app-form/plugins"),
+    },
+    tikat: {
+      component: () => import("@/app-tikat/AppTikat.vue"),
+      context: "/tikat",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-tikat/plugins"),
     },
   },
 });
