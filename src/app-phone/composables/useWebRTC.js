@@ -2,9 +2,9 @@
 import { ref, reactive, onUnmounted } from "vue";
 import { toast } from "vue3-toastify";
 import { usePhoneStore } from "../views/usePhoneStore";
-const PhoneStore = usePhoneStore();
 
 export function useWebRTC() {
+  const PhoneStore = usePhoneStore();
   const isConnected = ref(false);
   const isConnecting = ref(false);
   const connectionStatus = ref("disconnected"); // 'disconnected', 'connecting', 'connected', 'error'
