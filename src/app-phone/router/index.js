@@ -56,7 +56,7 @@ export default BootRouter.route({
     //   ],
     // },
   ],
-  autoRoutes: true,
+  autoRoutes: false,
   beforeEach: function (to, from, next) {
     console.log("[phone] [router] beforeEach");
 
