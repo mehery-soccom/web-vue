@@ -633,6 +633,10 @@ export function useWebRTC() {
     callData.value = answer.event_data;
     console.log(" got ans", answer);
   }
+  const getCallsSuggestion = async (val) => {
+    const resp = await PhoneStore.getCallSuggestion({ pageNo: 1, pageSize: 10, search: {contactWaId: val}})
+    console.log("rsults", resp.results)
+  };
 
   onUnmounted(() => {
     disconnect();
@@ -662,5 +666,6 @@ export function useWebRTC() {
     getLocalSDPData,
     gotAnswer,
     getChannelList,
+    getCallsSuggestion,
   };
 }

@@ -1,7 +1,7 @@
 import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@/@common/constants";
 import { routes } from "vue-router/auto-routes";
-import Call from "@/app-phone/pages/call/index.vue";
+import Call from "@/app-phone/pages/call/[id].vue";
 import Dialer from "@/app-phone/pages/dialer/index.vue";
 import BlankLayout from "@/app-phone/layouts/blank.vue";
 
@@ -30,18 +30,31 @@ export default BootRouter.route({
       ],
     },
     {
-      path: "/call",
+      path: "/call/:id",
       component: BlankLayout,
       children: [
         {
           path: "",
-          name: "call",
+          name: "call-id",
           component: Call,
           props: true, 
           meta: { layout: "blank" },
         },
       ],
     },
+    // {
+    //   path: "/call",
+    //   component: BlankLayout,
+    //   children: [
+    //     {
+    //       path: "",
+    //       name: "call",
+    //       component: Call,
+    //       props: true, 
+    //       meta: { layout: "blank" },
+    //     },
+    //   ],
+    // },
     // {
     //   path: "/views/cta/:id", 
     //   component: DefaultLayout,
