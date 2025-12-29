@@ -1,5 +1,5 @@
 <script setup>
-import { onMounted, onUnmounted, ref, computed } from "vue";
+import { onMounted, onUnmounted, ref, computed, watch } from "vue";
 import { useWebRTC } from "@/app-phone/composables/useWebRTC";
 import { REMOTE_JS_URL } from "@/@common/constants";
 
@@ -23,6 +23,7 @@ const {
   setRemoteDescription,
   gotAnswer,
   getChannelList,
+  getCallsSuggestion
 } = useWebRTC();
 
 const channelsList = ref([])
@@ -58,20 +59,22 @@ const openDialer = () => {
 };
 
 // Keypad functions
-const addDigit = (digit) => {
-  if (callState.value === "talking") {
-    // DTMF tones could be implemented here
-    console.log("DTMF input:", digit);
-  } else if (callState.value === "idle") {
-    dialedNumber.value = `${dialedNumber.value}${digit}`;
-  }
-};
+// const addDigit = (digit) => {
+//   if (callState.value === "talking") {
+//     // DTMF tones could be implemented here
+//     console.log("DTMF input:", digit);
+//   } else if (callState.value === "idle") {
+//     dialedNumber.value = `${dialedNumber.value}${digit}`;
+//   }
+// };
 
-const removeDigit = () => {
-  if (callState.value === "idle" && dialedNumber.value.length > 0) {
-    dialedNumber.value = dialedNumber.value.slice(0, -1);
-  }
-};
+// const removeDigit = () => {
+//   if (callState.value === "idle" && dialedNumber.value.length > 0) {
+//     dialedNumber.value = dialedNumber.value.slice(0, -1);
+//   }
+// };
+const addDigit = (digit) => { if (callState.value === "idle") dialedNumber.value += digit; };
+const removeDigit = () => { dialedNumber.value = dialedNumber.value.slice(0, -1);};
 
 const handleKeydown = (event) => {
   const allowedKeys = ["Backspace", "Delete"];
@@ -212,15 +215,20 @@ const setupMessageHandlers = () => {
   });
 };
 
+watch(dialedNumber, (newVal, oldVal) => {
+  console.log("Dialed number changed:", newVal);
+  if(newVal.length > 3) getCallsSuggestion(newVal);
+});
+
 onMounted(async () => {
   await loadElements(audioElements);
-  window.addEventListener("keydown", handleKeydown);
+  // window.addEventListener("keydown", handleKeydown);
   setupMessageHandlers();
   
   sendPostMessage("webrtc-ready", { status: "initialized" });
   const res = await getChannelList();
   const channels = res?.results || [];
-  channelsList.value = channels.filter(c => c.channelType === "wacfb" && !c.disabled && !c.deleted );
+  channelsList.value = channels.filter(c => c.channelType === "wacfb" && !c.disabled && !c.deleted); // && !!c.wacfb.configcall 
   console.log("channel list", channelsList.value)
   // const cata = { 
   //   event:"response-to-call",
@@ -251,7 +259,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  window.removeEventListener("keydown", handleKeydown);
+  // window.removeEventListener("keydown", handleKeydown);
 });
 </script>
 
@@ -315,7 +323,8 @@ onUnmounted(() => {
 
       <div class="dialer-container" v-if="isDialer">
         <div class="display">
-          <div class="number-display">{{ dialedNumber }}</div>
+          <!-- <div class="number-display">{{ dialedNumber }}</div> -->
+           <input class="number-display-input" type="tel" v-model="dialedNumber" />
         </div>
 
         <div class="keypad">
@@ -525,6 +534,16 @@ html, body {
   color: #222;
   min-height: 30px;
   word-break: break-all;
+}
+.number-display-input {
+  width: 100%;
+  font-size: 24px;
+  font-weight: 500;
+  text-align: center;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #222;
 }
 
 .keypad {

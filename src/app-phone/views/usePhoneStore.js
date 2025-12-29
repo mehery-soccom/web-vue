@@ -26,5 +26,8 @@ export const usePhoneStore = defineStore("PhoneStore", {
     getChannels(params) {
       return DataService.axios.get("/agent/pub/options/channels", { skipApiContext: true, params });
     },
+    getCallSuggestion(params) {
+      return DataService.axios.get("/whatsapp/calling/logs", { params });
+    },
   },
 });
