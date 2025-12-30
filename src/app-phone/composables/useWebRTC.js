@@ -634,8 +634,9 @@ export function useWebRTC() {
     console.log(" got ans", answer);
   }
   const getCallsSuggestion = async (val) => {
-    const resp = await PhoneStore.getCallSuggestion({ pageNo: 1, pageSize: 10, search: {contactWaId: val}})
-    console.log("rsults", resp.results)
+    const resp = await PhoneStore.getCallSuggestion({ pageNo: 1, pageSize: 10, agentCode: window.CONST.APP_USER, contactWaId: val})
+    console.log("rsults", resp.data.results)
+    return resp.data.results;
   };
 
   onUnmounted(() => {

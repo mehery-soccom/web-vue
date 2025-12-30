@@ -29,12 +29,22 @@ const {
 const channelsList = ref([])
 const showChannelSelector = ref(false);
 const selectedChannel = ref(null);
+const contactedNumbers = ref([]);
 const dialedNumber = ref("");
 const isCallHistory = ref(false);
 const isDialer = ref(true);
 const canUseKeypad = computed(() => {
   return callState.value === "idle" || callState.value === "talking";
 });
+const uniqueContactedNumbers = computed(() => {
+  const map = new Map();
+  (contactedNumbers.value || []).forEach(item => { if (!map.has(item.contactWaId)) map.set(item.contactWaId, item); });
+  return [...map.values()];
+});
+const selectSuggestion = (item) => {
+  dialedNumber.value = item.contactWaId;
+  contactedNumbers.value = [];
+};
 
 // Utility function
 const sendPostMessage = (event_type, data) => {
@@ -215,9 +225,20 @@ const setupMessageHandlers = () => {
   });
 };
 
-watch(dialedNumber, (newVal, oldVal) => {
+watch(dialedNumber, async(newVal, oldVal) => {
   console.log("Dialed number changed:", newVal);
-  if(newVal.length > 3) getCallsSuggestion(newVal);
+  // if(newVal.length > 3) contactedNumbers.value = fetchSuggestion(newVal);
+  if ((!newVal || newVal.length <= 1) || newVal.length > 11) {
+    contactedNumbers.value = [];
+    return;
+  }
+  try {
+    const resp = await getCallsSuggestion(newVal);
+    contactedNumbers.value = Array.isArray(resp) ? resp : [];
+  } catch (err) {
+    console.error("Suggestion fetch failed", err);
+    contactedNumbers.value = [];
+  }
 });
 
 onMounted(async () => {
@@ -322,9 +343,17 @@ onUnmounted(() => {
       </div>
 
       <div class="dialer-container" v-if="isDialer">
-        <div class="display">
-          <!-- <div class="number-display">{{ dialedNumber }}</div> -->
-           <input class="number-display-input" type="tel" v-model="dialedNumber" />
+        <div class="display-wrapper">
+          <div class="display">
+            <!-- <div class="number-display">{{ dialedNumber }}</div> -->
+            <input class="number-display-input" type="tel" v-model="dialedNumber" />
+          </div>
+          <div v-if="uniqueContactedNumbers?.length" class="suggestions-box floating">
+            <div v-for="item in uniqueContactedNumbers" :key="item.contactWaId" class="suggestion-item" @click="selectSuggestion(item)">
+              <span class="suggestion-number">{{ item.contactWaId }} </span>
+              <span class="suggestion-name"> ({{ item.contactName || "Unknown" }})</span>
+            </div>
+          </div>
         </div>
 
         <div class="keypad">
@@ -415,7 +444,8 @@ html, body {
   border-radius: 25px;
   backdrop-filter: blur(8px);
   box-shadow: 10px 10px 25px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
+  position: relative;
+  overflow: visible;
 }
 
 /* Incoming / Active Call */
@@ -769,6 +799,51 @@ html, body {
   border-radius: 10px;
 }
 .channel-list::-webkit-scrollbar-track {
+  background: transparent;
+}
+.display-wrapper {
+  position: relative;
+}
+.suggestions-box {
+  position: absolute;
+  bottom: 85%;
+  left: 0;
+  width: 100%;
+  margin-bottom: 8px;
+  z-index: 50;
+  background: #fff;
+  border-radius: 12px;
+  max-height: 100px;
+  overflow-y: auto;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.suggestion-item {
+  padding: 6px 10px;
+  padding-top: 4px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.suggestion-item:hover {
+  background: #f2f4ff;
+}
+.suggestion-name {
+  font-size: 14px;
+  color: #222;
+}
+.suggestion-number {
+  font-size: 15px;
+  color: #555;
+  font-weight: 500;
+}
+.suggestions-box::-webkit-scrollbar {
+  width: 6px;
+  display: block;
+}
+.suggestions-box::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 10px;
+}
+.suggestions-box::-webkit-scrollbar-track {
   background: transparent;
 }
 </style>
