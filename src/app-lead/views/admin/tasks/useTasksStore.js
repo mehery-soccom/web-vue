@@ -8,8 +8,6 @@ export const useTaskStore = defineStore("TaskStore", {
     getters: {},
     actions: {
         async fetchTasks(params) {
-            // URL derived from: http://localhost:8090/scriptus/lead/profile/followups/get
-            // Assuming DataService handles the base domain/prefix
             const response = await DataService.axios.get("/profile/followups/get", { 
                 params, 
                 toast: false 
