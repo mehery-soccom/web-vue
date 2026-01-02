@@ -186,6 +186,7 @@ const exportToExcel = () => {
       "Phone": item.contactPhone || '-',
       "Email": item.contact?.email || '-', 
       "Department": item.assignedTeam || '-',
+      "Last Assigned Queue": item.assignedQueue || '-',
       "Served By": item.assignedAgent || '-',
       "Channel": item.contactType || '-',
       "Start At": item.summaries?.[0]?.firstMessageStamp ? formatTimeDay(item.summaries[0].firstMessageStamp) : '-',
@@ -197,7 +198,7 @@ const exportToExcel = () => {
       "SessionId": item.sessionId || '-',
       "Closed by": closedBy,
       "Closedstamp": endStamp ? formatTimeDay(endStamp) : '-',
-      "First Reaction Time": item.summaries?.[0]?.firstReactionTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstReactionTime) : '-',
+      "First Reaction Time": item.summaries?.[0]?.firstResponseTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstResponseTime) : '-',
       "Resolution Time": resolutionTime
     };
 
@@ -417,7 +418,7 @@ onMounted(async () => {
              <div class="d-flex mb-2">
                <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">First Reply:</span>
                <span class="text-body-2">
-                 {{ selectedSession.summaries?.[0]?.firstReactionTime ? formatDuration(selectedSession.summaries[0].firstReactionTime) : '-' }}
+                 {{ selectedSession.summaries?.[0]?.firstResponseTime ? formatDuration(selectedSession.summaries[0].firstResponseTime) : '-' }}
                </span>
              </div>
              <div class="d-flex mb-2">
