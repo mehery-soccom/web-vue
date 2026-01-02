@@ -4,6 +4,7 @@ import { routes } from "vue-router/auto-routes";
 import Call from "@/app-phone/pages/call/[id].vue";
 import Dialer from "@/app-phone/pages/dialer/index.vue";
 import BlankLayout from "@/app-phone/layouts/blank.vue";
+import Index from "../pages/call/index.vue";
 
 console.log("phone routes", routes)
 export default BootRouter.route({
@@ -28,6 +29,11 @@ export default BootRouter.route({
           meta: { layout: "blank" },
         },
       ],
+    },
+    {
+      path:"/call",
+      component: Index,
+      name: "call"
     },
     {
       path: "/call/:id",
