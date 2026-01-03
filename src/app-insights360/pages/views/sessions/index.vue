@@ -189,16 +189,21 @@ const exportToExcel = () => {
       "Last Assigned Queue": item.assignedQueue || '-',
       "Served By": item.assignedAgent || '-',
       "Channel": item.contactType || '-',
+      "SessionId": item.sessionId || '-',
+      "Channel Id": item.channelId || '-',
+      "Contact Id": item.contactId || '-',
       "Start At": item.summaries?.[0]?.firstMessageStamp ? formatTimeDay(item.summaries[0].firstMessageStamp) : '-',
+      "Chat Start Date": firstMsgStamp ? formatDateOnly(firstMsgStamp) : '-',
       "First Message Type": item.summaries?.[0]?.firstMessageType || '-',
       "Agent Handover Time": item.summaries?.[0]?.assignedStamp ? formatTimeDay(item.summaries[0].assignedStamp) : '-',
       "LastMessageType": item.summaries?.[0]?.lastMessageType || '-',
       "Last Message At": item.summaries?.[0]?.lastMessageStamp ? formatTimeDay(item.summaries[0].lastMessageStamp) : '-',
       "Status": item.status || '-',
-      "SessionId": item.sessionId || '-',
       "Closed by": closedBy,
       "Closedstamp": endStamp ? formatTimeDay(endStamp) : '-',
       "First Reaction Time": item.summaries?.[0]?.firstResponseTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstResponseTime) : '-',
+      "Feedback Score": item.info?.satisfactionScore || '-',
+      "Sentiment": getSentimentLabel(item.aiSentimentScore),
       "Resolution Time": resolutionTime
     };
 
