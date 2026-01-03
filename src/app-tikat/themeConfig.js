@@ -15,7 +15,7 @@ import logo from "@app-tikat/assets/images/logo.svg?raw";
 
 export const { themeConfig, layoutConfig } = defineThemeConfig({
   app: {
-    title: "Tikat Management",
+    title: "Service Management",
     // logo: h("div", {
     //   innerHTML: logo,
     //   style: "line-height:0; color: rgb(var(--v-global-theme-primary))",

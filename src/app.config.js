@@ -49,7 +49,7 @@ module.exports = AppConfig.extend({
     },
     tikat: {
       component: () => import("@/app-tikat/AppTikat.vue"),
-      context: "/tikat",
+      context: "/nexuz/tikat",
       entry: "./src/main.js",
       plugins: () => import("@/app-tikat/plugins"),
     },

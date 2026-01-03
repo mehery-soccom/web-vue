@@ -165,7 +165,7 @@ const statisticsVertical = {
 
     <div :style="{ width: '100%', textAlign: 'center', marginTop: '300px' }">
       <h3 :style="{ fontSize: '44px' }">
-        <VIcon icon="tabler-settings" /> Tikat Management
+        <VIcon icon="tabler-settings" /> Service Management
         <small>v1.0</small>
       </h3>
     </div>
