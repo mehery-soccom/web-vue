@@ -3,7 +3,7 @@ import { computed, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 const router = useRouter();
-const meetingIdInput = ref('');
+let meetingIdInput = ref('');
 
 const startInstantMeeting = () => {
   const roomId = Math.random().toString(36).substring(2, 9);
