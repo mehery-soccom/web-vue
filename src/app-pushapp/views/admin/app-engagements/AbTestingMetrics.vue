@@ -1,17 +1,19 @@
 <template>
   <VCard flat class="pa-4 ab-metrics">
+    <!-- Campaign stats -->
     <!-- <VRow>
-        <VCol cols="12" md="4">
-          <strong>Total Audience:</strong> {{ stats.total ?? "—" }}
-        </VCol>
-        <VCol cols="12" md="4">
-          <strong>Sent:</strong> {{ stats.sent ?? "—" }}
-        </VCol>
-        <VCol cols="12" md="4">
-          <strong>Dismissed:</strong> {{ stats.dismissed ?? "—" }}
-        </VCol>
-      </VRow> -->
+      <VCol cols="12" md="4">
+        <strong>Total Audience:</strong> {{ stats.total ?? "—" }}
+      </VCol>
+      <VCol cols="12" md="4">
+        <strong>Sent:</strong> {{ stats.sent ?? "—" }}
+      </VCol>
+      <VCol cols="12" md="4">
+        <strong>Dismissed:</strong> {{ stats.dismissed ?? "—" }}
+      </VCol>
+    </VRow> -->
 
+    <!-- CTA Table -->
     <VRow v-if="filteredCta.length">
       <VCol cols="12">
         <h4 class="mb-2">CTA Stats</h4>
@@ -28,6 +30,7 @@
       </VCol>
     </VRow>
 
+    <!-- CTA By Hour Table -->
     <!-- <VRow v-if="ctaByHourEntries.length" class="mt-3">
       <VCol cols="12">
         <h4 class="mb-2">CTA by Hour</h4>
@@ -53,6 +56,7 @@
 
       <!-- GLOBAL FLOW -->
       <template v-if="!abTesting.distributionParameter">
+        <!-- Info -->
         <VRow>
           <VCol cols="12" md="4">
             <strong>State:</strong> {{ abTesting.state || "—" }}
@@ -66,7 +70,6 @@
             {{ abTesting.targetAudienceCount }}
           </VCol>
         </VRow>
-
         <VRow>
           <VCol cols="12" md="4">
             <strong>Sample Size:</strong> {{ abTesting.sampleSize }} %
@@ -76,20 +79,9 @@
           </VCol>
           <VCol cols="12" md="4">
             <strong>Evaluation Window:</strong>
-            {{ abTesting.evaluationWindow }} Minutes
+            {{ abTesting.evaluationWindow }} Minute(s)
           </VCol>
         </VRow>
-
-        <!-- <VRow class="mt-2">
-        <VCol cols="12" md="6">
-          <strong>Split:</strong> A - {{ abTesting.split?.A ?? 0 }}%, B -
-          {{ abTesting.split?.B ?? 0 }}%
-        </VCol>
-        <VCol cols="12" md="6">
-        <strong>Variant Strategy:</strong>
-        {{ abTesting.variantAssignmentStrategy || "—" }}
-      </VCol>
-      </VRow> -->
 
         <!-- Decision Info -->
         <VRow class="mt-3">
@@ -119,11 +111,10 @@
             </VAlert>
           </VCol>
         </VRow>
-
         <!-- Metrics Table -->
         <VRow class="mt-3">
           <VCol cols="12">
-            <h4 class="mb-2">Variant Metrics</h4>
+            <!-- <h4 class="mb-2">Variant Metrics</h4> -->
             <MyDataTable
               :headers="metricHeaders"
               :items="metricRows"
@@ -160,6 +151,19 @@
 
       <!-- PARAMETER DISTRIBUTION FLOW -->
       <template v-else>
+        <!-- Info -->
+        <VRow class="mb-3">
+          <VCol cols="12" md="4">
+            <strong>Sample Size:</strong> {{ abTesting.sampleSize }} %
+          </VCol>
+          <VCol cols="12" md="4">
+            <strong>Evaluation Window:</strong>
+            {{ abTesting.evaluationWindow }} Minute(s)
+          </VCol>
+        </VRow>
+
+        <!-- Parameter Table -->
+        <!-- <h4 class="mb-2">Parameter Metrics</h4> -->
         <MyDataTable
           :headers="distributionHeaders"
           :items="distributionRows"
@@ -172,6 +176,7 @@
           <template #expanded-row="{ item }">
             <tr class="v-data-table__tr">
               <td :colspan="distributionHeaders.length">
+                <!-- Decision Info -->
                 <VAlert
                   :type="
                     {
@@ -204,6 +209,7 @@
                   }}
                 </VAlert>
 
+                <!-- Metrics Table -->
                 <MyDataTable
                   :headers="metricHeaders"
                   :items="metricRowsDistribution(item.raw.param)"
