@@ -309,15 +309,31 @@ onMounted(async () => {
       <MyDataTable :headers="headers" :items="campTable" :loading="isLoading" 
         :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <template #item.name="{ item }">
-          <RouterLink
-            :to="{
-              name: 'views-outbound-id',
-              params: { id: item.raw.campaignCode },
-            }"
-            style="width: 100%; display: inline-block; text-align: center"
-          >
-            {{ item.raw.name }}
-          </RouterLink>
+          <VTooltip location="top">
+            <template #activator="{ props }">
+              <RouterLink
+                v-bind="props"
+                :to="{
+                  name: 'views-outbound-id',
+                  params: { id: item.raw.campaignCode },
+                }"
+                class="ellipsis text-center"
+                style="width: 100%"
+              >
+                {{ item.raw.name }}
+              </RouterLink>
+            </template>
+
+            <span>{{ item.raw.name }}</span>
+          </VTooltip>
+        </template>
+        <template #item.templateName="{ item }">
+          <VTooltip location="top">
+            <template #activator="{ props }">
+              <span v-bind="props" class="ellipsis text-center" style="width: 100%">{{ item.raw.templateName }}</span>
+            </template>
+            <span>{{ item.raw.templateName }}</span>
+          </VTooltip>
         </template>
         <template #item.scheduledStamp="{ item }">
           {{ formatStamp(item.raw.scheduledStamp) || formatStamp(item.raw.createdStamp) }}
