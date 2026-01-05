@@ -188,7 +188,6 @@ const onCreate = async () => {
     delete template.__v;
     if (template.type === "simple") {
       if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
-      if (Array.isArray(template.style.image_url) && !template.style.category) template.style.category = 'CAROUSEL_CATEGORY';
       payload = {
         ...template,
         options: {
@@ -251,7 +250,6 @@ const onUpdate = async () => {
     let payload = {};
     if (template.type === "simple") {
       if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
-      if (Array.isArray(template.style.image_url) && !template.style.category) template.style.category = 'CAROUSEL_CATEGORY';
       payload = {
         ...template,
         options: {
@@ -317,7 +315,10 @@ watch(
 
     if (val === "simple") {
       template.subType = null;
+      template.style.image_url = [""];
     }
+    else template.style.image_url = "";
+
     if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
   }
 );
