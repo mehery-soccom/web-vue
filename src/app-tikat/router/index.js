@@ -5,6 +5,8 @@ import DefaultLayout from "@/app-tikat/layouts/default.vue";
 import Dashboard from "@/app-tikat/pages/dashboards/analytics.vue";
 import FieldsList from "@/app-tikat/pages/setup/fields/list/index.vue";
 import FieldsAdd from "@/app-tikat/pages/setup/fields/add/[[id]].vue";
+import StatusFeedbackList from "@/app-tikat/pages/setup/status/feedback/list/index.vue";
+import StatusFeedbackAdd from "@/app-tikat/pages/setup/status/feedback/add/[[id]].vue";
 
 const baseRoutes = [
   {
@@ -54,6 +56,32 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "setup-fields-add-id?",
           component: FieldsAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/setup/status/feedback/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "setup-status-feedback-list",
+          component: StatusFeedbackList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/setup/status/feedback/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "setup-status-feedback-add-id?",
+          component: StatusFeedbackAdd,
           props: true,
           meta: { layout: "default" },
         },
