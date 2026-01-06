@@ -40,7 +40,7 @@ export const ActionRegistry = {
         required: true,
         cols: 4,
         options:
-          "/common/api/v1/tmpl/hsm?search[contactType]={{data.channelId.contactType}}",
+          "/common/api/v1/tmpl/hsm?search[contactType]={{data.channelId.contactType}}&page=-1",
         optionsPreload: true,
         dependsOn: ["channelId"],
         optionsGenerator: (res) =>

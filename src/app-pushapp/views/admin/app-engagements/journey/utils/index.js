@@ -118,7 +118,7 @@ export function buildJourney(state) {
 
   return {
     enabled: true,
-    code: null,
+    code: crypto.randomUUID(),
     nodes,
   };
 }
