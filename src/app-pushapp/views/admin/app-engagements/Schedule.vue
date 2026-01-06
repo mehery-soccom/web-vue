@@ -1,15 +1,23 @@
 <script setup>
+import Fallback from "./journey/Fallback.vue";
+
 const props = defineProps({
-  modelValue: {
-    type: Object,
-    required: true,
-  },
+  modelValue: { type: Object, required: true },
+  journey: { type: Object, required: true },
 });
-const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits(["update:modelValue", "update:journey"]);
 
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 
+watch(
+  () => props.modelValue,
+  (val) => Object.assign(form, val),
+  { deep: true }
+);
+
 watch(form, (val) => emit("update:modelValue", val), { deep: true });
+
+const journeyRef = ref(null);
 
 const now = new Date();
 const minTime = `${now.getHours()}:${now.getMinutes()}`;
@@ -46,47 +54,60 @@ const summary = computed(() => ({
     : "Global impression limits will be applied to this campaign.",
 }));
 
-const startPickerRef = ref(null)
-const endPickerRef = ref(null)
-const pad = n => String(n).padStart(2, '0')
-
-watch(() => form.startDate, (start) => {
-    const fp = endPickerRef.value?.refFlatPicker?.fp
-    if (!fp) return
+const startPickerRef = ref(null);
+const endPickerRef = ref(null);
+const pad = (n) => String(n).padStart(2, "0");
+watch(
+  () => form.startDate,
+  (start) => {
+    const fp = endPickerRef.value?.refFlatPicker?.fp;
+    if (!fp) return;
     if (!start) {
-      fp.set('minDate', now)
-      fp.set('minTime', undefined)
-      return
+      fp.set("minDate", now);
+      fp.set("minTime", undefined);
+      return;
     }
 
-    const startDate = new Date(start)
-    fp.set('minDate', startDate)
-    const selectedDate = fp.selectedDates[0]
-    const sameDay = selectedDate && selectedDate.toDateString() === startDate.toDateString()
+    const startDate = new Date(start);
+    fp.set("minDate", startDate);
+    const selectedDate = fp.selectedDates[0];
+    const sameDay =
+      selectedDate && selectedDate.toDateString() === startDate.toDateString();
 
-    if (sameDay) fp.set('minTime', `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`)
-    else fp.set('minTime', undefined)
+    if (sameDay)
+      fp.set(
+        "minTime",
+        `${pad(startDate.getHours())}:${pad(startDate.getMinutes())}`
+      );
+    else fp.set("minTime", undefined);
   }
-)
-watch(() => form.endDate, (end) => {
-    const fp = startPickerRef.value?.refFlatPicker?.fp
-    if (!fp) return
+);
+watch(
+  () => form.endDate,
+  (end) => {
+    const fp = startPickerRef.value?.refFlatPicker?.fp;
+    if (!fp) return;
 
     if (!end) {
-      fp.set('maxDate', undefined)
-      fp.set('maxTime', undefined)
-      return
+      fp.set("maxDate", undefined);
+      fp.set("maxTime", undefined);
+      return;
     }
 
-    const endDate = new Date(end)
-    fp.set('maxDate', endDate)
-    const selectedDate = fp.selectedDates[0]
-    const sameDay = selectedDate && selectedDate.toDateString() === endDate.toDateString()
+    const endDate = new Date(end);
+    fp.set("maxDate", endDate);
+    const selectedDate = fp.selectedDates[0];
+    const sameDay =
+      selectedDate && selectedDate.toDateString() === endDate.toDateString();
 
-    if (sameDay) fp.set('maxTime', `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`)
-    else fp.set('maxTime', undefined)
+    if (sameDay)
+      fp.set(
+        "maxTime",
+        `${pad(endDate.getHours())}:${pad(endDate.getMinutes())}`
+      );
+    else fp.set("maxTime", undefined);
   }
-)
+);
 
 const isValid = async (silent = false) => {
   const e = {};
@@ -113,7 +134,12 @@ const isValid = async (silent = false) => {
   }
 
   if (!silent) errors.value = e;
-  return Object.keys(e).length === 0;
+
+  const journeyValid = props.journey.enabled
+    ? await journeyRef.value?.isValid(silent)
+    : true;
+
+  return Object.keys(e).length === 0 && journeyValid;
 };
 
 defineExpose({ isValid });
@@ -150,7 +176,8 @@ defineExpose({ isValid });
           <div class="d-flex flex-column gap-2">
             <div class="d-flex flex-wrap align-center gap-2">
               <span>At specific date/time</span>
-              <AppDateTimePicker ref="startPickerRef"
+              <AppDateTimePicker
+                ref="startPickerRef"
                 :key="form.durationType + errors.startDate + '1'"
                 v-model="form.startDate"
                 placeholder="Select Date"
@@ -162,7 +189,8 @@ defineExpose({ isValid });
                 :config="{ enableTime: true, minDate: now }"
               />
               <span>ending on</span>
-              <AppDateTimePicker ref="endPickerRef"
+              <AppDateTimePicker
+                ref="endPickerRef"
                 :key="form.durationType + errors.endDate + '2'"
                 v-model="form.endDate"
                 placeholder="Select Date"
@@ -178,6 +206,33 @@ defineExpose({ isValid });
         </template>
       </VRadio>
     </VRadioGroup>
+
+    <!-- Fallback Journey -->
+    <VDivider class="my-6" />
+    <div class="d-flex align-center mb-3">
+      <h3>Campaign Fallback Journey</h3>
+      <div>
+        <VSwitch
+          v-model="journey.enabled"
+          @update:modelValue="
+            (v) => emit('update:journey', { ...journey, enabled: v })
+          "
+          hide-details
+          inset
+          color="primary"
+          class="ml-2"
+        />
+        <!-- <VTooltip activator="parent" location="right">
+          Configure a fallback communication
+        </VTooltip> -->
+      </div>
+    </div>
+    <Fallback
+      v-if="journey.enabled"
+      :model-value="journey"
+      @update:modelValue="(val) => emit('update:journey', val)"
+      ref="journeyRef"
+    />
 
     <!-- Repeat Campaign -->
     <template v-if="false">

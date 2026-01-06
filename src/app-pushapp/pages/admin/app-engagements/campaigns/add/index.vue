@@ -68,6 +68,11 @@ const campaign = reactive({
     repeatCount: null,
     repeatAfterDays: null,
   },
+  journey: {
+    enabled: false,
+    code: "",
+    nodes: [],
+  },
 });
 watch(
   campaign,
@@ -359,7 +364,11 @@ const create = async () => {
 
       <!-- tab-schedule -->
       <VWindowItem>
-        <Schedule ref="scheduleRef" v-model="campaign.schedule" />
+        <Schedule
+          ref="scheduleRef"
+          v-model="campaign.schedule"
+          v-model:journey="campaign.journey"
+        />
       </VWindowItem>
 
       <!-- tab-goals -->
