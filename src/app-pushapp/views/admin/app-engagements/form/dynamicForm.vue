@@ -132,7 +132,7 @@ defineExpose({ validate });
         :thumbnail-url="get(local, f.thumbnail)"
         @update:thumbnailUrl="val => set(local, f.thumbnail, val)"
         :rules="f.required ? [required] : []" :enableThumbnail="true"
-        :label="f.label" :max-size="f.maxSize"
+        :label="f.label" :max-size="f.maxSize" :helper-text="f.helperText"
       />
       <MyColorPicker
         v-if="f.type === 'color'"

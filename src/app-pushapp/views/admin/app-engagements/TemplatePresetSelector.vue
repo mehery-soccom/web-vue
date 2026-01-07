@@ -9,9 +9,9 @@ const { TYPES, SUB_TYPES } = useAppEngagements();
 
 const router = useRouter();
 const selectedType = ref(SUB_TYPES[0]?.type || '');
-const props = defineProps({
-  embedded: { type: Boolean, default: false },
-});
+// const props = defineProps({
+//   embedded: { type: Boolean, default: false },
+// });
 
 const types = computed(() => {
   const uniqueTypes = new Map();
@@ -34,19 +34,19 @@ const previews = computed(() => {
   return SUB_TYPES.filter((s) => s.type === selectedType.value && s.preview?.dummy).map((s) => s.preview.dummy);
 });
 
-const temp = ref(null);
-const templateList = ref([])
-const fetchTemplateList = async () => {
-  try{
-    const response = await AppEngagementsStore.fetchTemplates({ page: 0, itemsPerPage: 100 })
-    templateList.value = response.data.results.map((r) => ({
-      ...r,
-      id: r._id,
-    }));
-  }catch(e){
-    console.log("templates error",e)
-  }
-}
+// const temp = ref(null);
+// const templateList = ref([])
+// const fetchTemplateList = async () => {
+//   try{
+//     const response = await AppEngagementsStore.fetchTemplates({ page: 0, itemsPerPage: 100 })
+//     templateList.value = response.data.results.map((r) => ({
+//       ...r,
+//       id: r._id,
+//     }));
+//   }catch(e){
+//     console.log("templates error",e)
+//   }
+// }
 
 const emit = defineEmits(['selectTemplate']);
 const handlePreviewClick = (template) => {
@@ -57,7 +57,7 @@ const handlePreviewClick = (template) => {
 };
 
 onMounted(async () => {
-  await fetchTemplateList();
+  // await fetchTemplateList();
 })
 </script>
 
@@ -65,7 +65,7 @@ onMounted(async () => {
   <v-row>
     <!-- Sidebar with Types -->
     <v-col cols="3">
-        <div v-if="embedded" style="margin-bottom: 10px;">
+        <!-- <div v-if="embedded" style="margin-bottom: 10px;">
           <AppSelect
             v-model="temp"
             :items="templateList"
@@ -75,7 +75,7 @@ onMounted(async () => {
             prepend-inner-icon="mdi-shape"
             @update:modelValue="handlePreviewClick(temp)"
           />
-        </div>
+        </div> -->
         <v-list nav dense>
           <v-list-item
             v-for="type in types"
