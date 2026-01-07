@@ -41,9 +41,13 @@ const fetchField = async id => {
 
 onMounted(() => {
   if (PARAM_ID) {
-    fetchField(PARAM_ID)
+    if (fieldsStore.currentField && fieldsStore.currentField._id === PARAM_ID) {
+      fieldData.value = { ...fieldsStore.currentField };
+    } else {
+      fetchField(PARAM_ID);
+    }
   }
-})
+});
 
 const submitForm = async () => {
   if (!formRef.value) return

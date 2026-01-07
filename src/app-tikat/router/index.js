@@ -7,6 +7,9 @@ import FieldsList from "@/app-tikat/pages/setup/fields/list/index.vue";
 import FieldsAdd from "@/app-tikat/pages/setup/fields/add/[[id]].vue";
 import StatusFeedbackList from "@/app-tikat/pages/setup/status/feedback/list/index.vue";
 import StatusFeedbackAdd from "@/app-tikat/pages/setup/status/feedback/add/[[id]].vue";
+import FormsFeedbackList from "@/app-tikat/pages/setup/forms/feedback/list/index.vue";
+import FormsFeedbackAdd from "@/app-tikat/pages/setup/forms/feedback/add/[[id]].vue";
+import FormsFeedbackPreview from "@/app-tikat/pages/setup/forms/feedback/preview/index.vue";
 
 const baseRoutes = [
   {
@@ -82,6 +85,45 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "setup-status-feedback-add-id?",
           component: StatusFeedbackAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/setup/forms/feedback/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "setup-forms-feedback-list",
+          component: FormsFeedbackList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/setup/forms/feedback/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "setup-forms-feedback-add-id?",
+          component: FormsFeedbackAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/setup/forms/feedback/preview",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "setup-forms-feedback-preview",
+          component: FormsFeedbackPreview,
           props: true,
           meta: { layout: "default" },
         },

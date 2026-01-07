@@ -4,6 +4,7 @@ import DataService from "@/@common/services/DataService";
 export const useFieldsStore = defineStore("FieldsStore", {
     state: () => ({
         fields: [],
+        currentField: null,
     }),
     getters: {},
     actions: {
@@ -15,6 +16,10 @@ export const useFieldsStore = defineStore("FieldsStore", {
             }
             return response.data;
         },
+
+        setCurrentField(field) {
+            this.currentField = JSON.parse(JSON.stringify(field));
+        },
 
         async createField(params) {
             const response = await DataService.axios.post("api/feedback/master/fields", params, { toast: false });

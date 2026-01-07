@@ -6,6 +6,13 @@ export default [
     to: "setup-fields-list",
   },
   {
+    title: "Forms",
+    icon: { icon: "tabler-clipboard-text" },
+    children: [
+      { title: "Feedback", to: "setup-forms-feedback-list" },
+    ],
+  },
+  {
     title: "Stages",
     icon: { icon: "tabler-chart-bar-popular" },
     children: [

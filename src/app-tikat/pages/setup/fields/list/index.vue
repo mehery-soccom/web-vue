@@ -1,12 +1,14 @@
 <script setup>
 import { ref, inject, reactive } from 'vue';
 import debounce from "lodash/debounce";
+import { useRouter } from 'vue-router'
 import { useFieldsStore } from "@/app-tikat/views/setup/fields/useFieldsStore";
 
 const { show } = inject("snackbar");
 const fieldsStore = useFieldsStore();
 const isLoading = ref(false);
 const fields = ref([]);
+const router = useRouter()
 
 const pagination = reactive({
   itemsLength: 0,
@@ -28,7 +30,7 @@ const defaultFields = [
 const defaultFieldCodes = defaultFields.map(f => f.key);
 
 const isDefaultField = (field) => {
-  return defaultFieldCodes.includes(field.code);
+  return defaultFieldCodes.includes(field.key);
 };
 
 const onUpdateOptions = (options) => {
@@ -43,7 +45,7 @@ const onUpdateOptions = (options) => {
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
 
 const headers = [
-  { title: "Label", key: "label", sortable: true }, // Key is now label
+  { title: "Label", key: "label", sortable: true },
   { title: "Code", key: "key" },
   { title: "Description", key: "desc" },
   { title: "Type", key: "inputType" },
@@ -78,7 +80,6 @@ const fetchFields = async (options = pagination) => {
     fields.value = response.results;
     pagination.itemsLength = response.pagination.total || 0;
 
-    // Handle initial setup if no fields exist
     if (pagination.itemsLength === 0 && !Object.keys(activeFilters).length) {
       show({ message: 'No fields found. Creating default fields...', color: 'info' });
       try {
@@ -120,6 +121,15 @@ const deleteField = async (id, dialogCloseRef) => {
     isLoading.value = false;
   }
 };
+
+const editField = (field) => {
+  fieldsStore.setCurrentField(field);
+  router.push({ 
+    name: 'setup-fields-add-id?', 
+    params: { id: field._id } 
+  });
+};
+
 </script>
 
 <template>
@@ -174,11 +184,8 @@ const deleteField = async (id, dialogCloseRef) => {
 
       <template #item.actions="{ item }">
           <IconBtn
-           :to="{
-             name: 'setup-fields-add-id?',
-             params: {id: item.raw._id}
-           }"
-           :disabled="isDefaultField(item.raw)"
+            :disabled="isDefaultField(item.raw)"
+            @click="editField(item.raw)" 
           >
             <VIcon icon="tabler-edit" />
           </IconBtn>
