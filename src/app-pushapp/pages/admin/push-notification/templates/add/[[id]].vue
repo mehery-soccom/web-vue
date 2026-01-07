@@ -432,6 +432,7 @@ watch(
                               :key="index"
                               :label="`Upload Image ${index + 1}`"
                               :max-size="10240"
+                              helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 10 kb"
                             />
                           </div>
                         </div>
@@ -565,6 +566,7 @@ watch(
                         <MyFileInputUpload
                           v-model="template.style.image_url"
                           label="Upload Image" :max-size="10240"
+                          helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 10 kb"
                         />
                       </VCol>
 

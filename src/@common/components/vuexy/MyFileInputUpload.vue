@@ -27,6 +27,10 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  helperText: {
+    type: String,
+    default: "",
+  },
 });
 
 const emit = defineEmits(["update:modelValue","update:thumbnailUrl"]);
@@ -219,6 +223,9 @@ watch(url, (val) => {
           readonly
         />
       </div>
+      <div v-if="helperText" class="file-helper-text">
+        {{ helperText }}
+      </div>
     </VCol>
     <VCol v-if="url" cols="1" class="d-flex align-center justify-end">
       <VBtn icon variant="text" @click="clearUpload">
@@ -279,5 +286,10 @@ watch(url, (val) => {
     max-height: 17px;
     padding: 2px;
   }
+}
+.file-helper-text {
+  margin-top: 4px;
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
 }
 </style>

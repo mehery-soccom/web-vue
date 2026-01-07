@@ -16,7 +16,7 @@ const { show } = inject("snackbar");
 
 const props = defineProps({
   edit: { type: String },
-  embedded: { type: Boolean, default: false },
+  // embedded: { type: Boolean, default: false },
 });
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -26,7 +26,7 @@ const route = useRoute();
 const IS_PAGE = route.name?.includes("admin-app-engagements-templates-add");
 const PARAM_ID = route.params.id;
 const QUERY_COPY = route.query.t_copy;
-const QUERY_EDIT = route.query.t_edit; // stop using
+// const QUERY_EDIT = route.query.t_edit; // stop using
 
 const router = useRouter();
 
@@ -317,13 +317,13 @@ const fetchDetails = async (val, isCopy = false) => {
 };
 
 onMounted(async () => {
-  if (PARAM_ID || QUERY_COPY || QUERY_EDIT) isPreStep.value = false;
+  if (PARAM_ID || QUERY_COPY) isPreStep.value = false;
   if (PARAM_ID) await fetchDetails(PARAM_ID);
-  else if (QUERY_EDIT) await fetchDetails(QUERY_EDIT);
   else {
     if (QUERY_COPY) await fetchDetails(QUERY_COPY, true);
     else isInitialLoad.value = false;
   }
+  setInterval(()=> console.log("id page", isPreStep.value), 10000);
 });
 function goToPreStep() {
   isPreStep.value = true;
@@ -334,18 +334,16 @@ function onPresetSelect({ type, subType }) {
   isPreStep.value = false;
 }
 async function handlePreviewTemplate(templateFromPreview) {
-  isInitialLoad.value = true;
   Object.assign(template, structuredClone(templateFromPreview));
   isPreStep.value = false;
   await nextTick();
-  isInitialLoad.value = false;
 }
 
 watch(
   () => template.type,
   (val) => {
     formRefVersion.value += 1;
-    if (!isInitialLoad.value) template.subType = null;
+    if (!!isInitialLoad.value) template.subType = null;
   }
 );
 
@@ -367,14 +365,18 @@ watch(
 
 watch(
   () => props.edit,
-  (val) => {
-    console.log("props.edit updated", val);
-    // fetch full template and set state
+  async (val) => {
+    console.log("props.edit updated", val, isPreStep.value);
+    if(!!val) {
+      isPreStep.value = false;
+      // fetch full template and set state
+      await fetchDetails(val);
+    }
   },
   { immediate: true }
 );
 
-defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
+defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
 </script>
 
 <template>
@@ -382,7 +384,6 @@ defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
     <v-col cols="12" md="12">
       <TemplatePresetSelector
         @select="onPresetSelect"
-        :embedded="embedded"
         @selectTemplate="handlePreviewTemplate"
       />
     </v-col>
@@ -403,7 +404,7 @@ defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
             <v-col class="pa-0" cols="auto">
               <div>
                 <div class="text-h6">
-                  {{ PARAM_ID ? "Edit" : QUERY_EDIT ? "" : "Create" }} Template
+                  {{ PARAM_ID ? "Edit" : props.edit ? "" : "Create" }} Template
                 </div>
                 <div class="text-subtitle-2">
                   This template will be used for In-App Engagements
@@ -413,7 +414,7 @@ defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
             <v-col
               class="pa-0"
               cols="auto"
-              v-if="!(PARAM_ID || QUERY_COPY || QUERY_EDIT)"
+              v-if="!(PARAM_ID || QUERY_COPY || props.edit)"
             >
               <v-btn variant="outlined" color="primary" @click="goToPreStep">
                 ← Back to pre step
@@ -482,7 +483,7 @@ defineExpose({ isValid, _onCreate, _onUpdate, saveTemplate });
                             label="Template Name"
                             placeholder="Enter name"
                             :rules="[required]"
-                            :disabled="!!(PARAM_ID || QUERY_EDIT)"
+                            :disabled="!!(PARAM_ID || props.edit)"
                             prepend-inner-icon="mdi-text-box"
                           />
                         </VCol>
