@@ -10,7 +10,11 @@ const props = defineProps({
   maxSize: {
     type: Number,
     default: null
-  }
+  },
+  helperText: {
+    type: String,
+    default: "",
+  },
 })
 
 const emit = defineEmits(['update:modelValue', 'update:thumbnailUrl'])
@@ -76,11 +80,11 @@ function addFileInput() {
         @update:thumbnailUrl="val => {
           fileObj.thumbnailUrl = val;
           emit('update:thumbnailUrl', val)
-        }"
+        }" :helper-text="props.helperText"
       />
       <MyFileInputUpload v-else
         v-model="fileObj.value" :label="`${props.label || 'File'} ${index + 1}`"
-        :placeholder="props.placeholder" :max-size="props.maxSize"
+        :placeholder="props.placeholder" :max-size="props.maxSize" :helper-text="props.helperText"
       />
       <!-- <MyFileInputUpload
         v-model="fileObj.value"

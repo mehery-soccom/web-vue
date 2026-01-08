@@ -360,7 +360,7 @@ onMounted (async () => {
             <VRow>
               <VCol cols="12" md="4"></VCol>
               <VCol cols="12" md="4">
-                <AppSelect style="margin: 15px 0 25px;"
+                <AppAutocomplete style="margin: 15px 0 25px;"
                   v-model="temp"
                   :items="templateList"
                   placeholder="Select Template"
@@ -386,7 +386,7 @@ onMounted (async () => {
             <VRow>
               <VCol cols="12" md="4"></VCol>
               <VCol cols="12" md="4">
-                <AppSelect style="margin: 15px 0 25px;"
+                <AppAutocomplete style="margin: 15px 0 25px;"
                   v-model="tempB"
                   :items="templateList"
                   placeholder="Select Template"
