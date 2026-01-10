@@ -30,7 +30,9 @@ const headers = [
 const fetchForms = async (options = pagination) => {
   isLoading.value = true;
   try {
-    const activeFilters = {};
+    const activeFilters = {
+      isActive: "true"
+    };
     for (const key in options.filters) {
       if (options.filters[key]) {
         activeFilters[key] = options.filters[key];
@@ -114,9 +116,9 @@ const onUpdateOptions = (options) => {
 
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
 
-onMounted(() => {
-  fetchForms();
-});
+// onMounted(() => {
+//   fetchForms();
+// });
 </script>
 
 <template>

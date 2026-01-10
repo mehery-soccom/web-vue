@@ -10,6 +10,8 @@ import StatusFeedbackAdd from "@/app-tikat/pages/setup/status/feedback/add/[[id]
 import FormsFeedbackList from "@/app-tikat/pages/setup/forms/feedback/list/index.vue";
 import FormsFeedbackAdd from "@/app-tikat/pages/setup/forms/feedback/add/[[id]].vue";
 import FormsFeedbackPreview from "@/app-tikat/pages/setup/forms/feedback/preview/index.vue";
+import FeedbackList from "@/app-tikat/pages/admin/feedbacks/list/index.vue";
+import FeedbackAdd from "@/app-tikat/pages/admin/feedbacks/add/[[id]].vue";
 
 const baseRoutes = [
   {
@@ -33,6 +35,32 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "dashboards-analytics",
           component: Dashboard,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/feedbacks/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-feedbacks-list",
+          component: FeedbackList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/feedbacks/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-feedbacks-add-id?",
+          component: FeedbackAdd,
           props: true,
           meta: { layout: "default" },
         },

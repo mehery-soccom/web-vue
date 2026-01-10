@@ -41,7 +41,6 @@ const headers = computed(() => {
     { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
   ]
   
-  // Only add the checkbox column if the user is allowed to assign
   if (canAssign) {
     list.unshift({ key: 'data-table-select', sortable: false })
   }
@@ -61,11 +60,6 @@ const fetchLeads = async (options = pagination) => {
         activeFilters[key] = options.filters[key]
       }
     }
-
-    // const userRoles = window.CONST?.USER?.role || []
-    // if (userRoles.includes('ADMIN')) {
-    //   activeFilters['assignedTo'] = byUser 
-    // }
 
     const userRoles = window.CONST?.USER?.role || []
     if (userRoles.includes('MODERATOR') || userRoles.includes('AGENT')) {

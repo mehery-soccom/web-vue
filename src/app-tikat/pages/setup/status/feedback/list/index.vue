@@ -45,7 +45,10 @@ const fetchStatuses = async (options = pagination) => {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
       sort: options.sortBy.length ? `${options.sortBy[0].key},${options.sortBy[0].order}` : 'createdAt',
-      ...options.filters,
+      search: {
+        ...options.filters,
+        isActive: true
+      }
     };
 
     const response = await statusStore.fetchStatuses(apiParams);
@@ -110,9 +113,9 @@ const onUpdateOptions = (options) => {
 
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
 
-onMounted(() => {
-  fetchStatuses();
-});
+// onMounted(() => {
+//   fetchStatuses();
+// });
 </script>
 
 <template>
