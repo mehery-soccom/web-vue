@@ -209,42 +209,57 @@ onMounted(() => {
   fetchAgentOptions()
 })
 
-const exportToExcel = () => {
-  const contactKeys = new Set();
-  const responseKeys = new Set();
-  
-  feedbacks.value.forEach(item => {
-    Object.keys(item.contact || {}).forEach(k => contactKeys.add(k));
-    Object.keys(item.response || {}).forEach(k => responseKeys.add(k));
-  });
+const exportToExcel = async () => {
+  isLoading.value = true
+  try {
+    const response = await feedbackStore.fetchFeedbacksDownload()
+    const allData = response.results || []
 
-  const formattedData = feedbacks.value.map((item) => {
-    const row = {
-      "Form Title": item.form?.title || '-',
-      "Status": item.status || '-',
-      "Date of Feedback": formatDate(item.createdAt),
-      "Assigned to": item.assignee?.name || '-',
-    };
+    if (allData.length === 0) {
+      show({ message: 'No data available to download', color: 'warning' })
+      return
+    }
 
-    contactKeys.forEach(key => {
-      row[key.charAt(0).toUpperCase() + key.slice(1)] = item.contact?.[key] || '-';
-    });
+    const contactKeys = new Set()
+    const responseKeys = new Set()
+    
+    allData.forEach(item => {
+      Object.keys(item.contact || {}).forEach(k => contactKeys.add(k))
+      Object.keys(item.response || {}).forEach(k => responseKeys.add(k))
+    })
 
-    responseKeys.forEach(key => {
-      const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-      row[label] = item.response?.[key] || '-';
-    });
+    const formattedData = allData.map(item => {
+      const row = {
+        "Form Title": item.form?.title || '-',
+        "Status": item.status || '-',
+        "Date of Feedback": formatDate(item.createdAt),
+        "Assigned to": item.assignee?.name || '-',
+      }
 
-    return row;
-  });
+      contactKeys.forEach(key => {
+        const label = key.charAt(0).toUpperCase() + key.slice(1)
+        row[label] = item.contact?.[key] || '-'
+      })
 
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Feedbacks");
-  
-  const fileName = `Feedback-Export-${new Date().getTime()}.xlsx`;
-  XLSX.writeFile(workbook, fileName);
-};
+      responseKeys.forEach(key => {
+        const label = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
+        row[label] = item.response?.[key] || '-'
+      })
+
+      return row
+    })
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData)
+    const workbook = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Feedbacks")
+    
+    XLSX.writeFile(workbook, `Feedback-Full-Export-${new Date().getTime()}.xlsx`)
+  } catch (error) {
+    show({ message: 'Failed to prepare download', color: 'error' })
+  } finally {
+    isLoading.value = false
+  }
+}
 
 </script>
 
@@ -261,7 +276,7 @@ const exportToExcel = () => {
         <VBtn 
           icon 
           @click="exportToExcel" 
-          :disabled="isLoading || feedbacks.length === 0" 
+          :loading="isLoading" 
           variant="text"
           color="primary"
         >

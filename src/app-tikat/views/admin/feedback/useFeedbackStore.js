@@ -12,6 +12,15 @@ export const useFeedbackStore = defineStore("FeedbackStore", {
       return response.data;
     },
 
+    async fetchFeedbacksDownload() {
+      const params = { download: true };
+      const response = await DataService.axios.get('/api/feedback', { params, toast: false });
+      if (response.data.error) {
+        throw { response: { data: response.data } };
+      }
+      return response.data;
+    },
+
     async fetchFeedback(id) {
       const response = await DataService.axios.get(`/api/feedback`, { params: { id }, toast: false });
       if (response.data.error) throw { response: { data: response.data } };
