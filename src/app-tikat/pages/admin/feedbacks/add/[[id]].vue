@@ -211,7 +211,7 @@ onMounted(fetchFeedbackData);
 
         <VTabs v-if="feedbackId" v-model="tab">
           <VTab value="details">Details</VTab>
-          <VTab value="timeline">Timeline</VTab>
+          <!-- <VTab value="timeline">Timeline</VTab> -->
         </VTabs>
         <VDivider v-if="feedbackId" />
 
@@ -382,13 +382,13 @@ onMounted(fetchFeedbackData);
               </VRow>
             </VWindowItem>
 
-            <VWindowItem value="timeline">
+            <!-- <VWindowItem value="timeline">
               <div class="pa-4 text-center">
                 <VIcon size="48" icon="tabler-clock" color="disabled" class="mb-2" />
                 <p class="text-h6">Hi</p>
                 <p class="text-body-2">Timeline tracking will be implemented soon.</p>
               </div>
-            </VWindowItem>
+            </VWindowItem> -->
           </VWindow>
         </VCardText>
       </VCard>
