@@ -13,7 +13,7 @@ export default [
     ],
   },
   {
-    title: "Stages",
+    title: "Status",
     icon: { icon: "tabler-chart-bar-popular" },
     children: [
       { title: "Feedback", to: "setup-status-feedback-list" },

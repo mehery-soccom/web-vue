@@ -8,6 +8,7 @@ import { emailValidator, requiredValidator } from '@app-tikat/@core/utils/valida
 import TikatDocUpload from '@/app-tikat/views/admin/feedback/TikatDocUpload.vue';
 import TikatDocs from '@/app-tikat/views/admin/feedback/TikatDocs.vue';
 import FeedbackStatusData from '@/app-tikat/views/admin/feedback/FeedbackStatusData.vue';
+import TikatFollowups from '@/app-tikat/views/admin/feedback/TikatFollowups.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -16,6 +17,7 @@ const feedbackStore = useFeedbackStore();
 const formsStore = useFormsStore();
 const feedbackNotes = ref([]);
 const feedbackDocs = ref([]);
+const feedbackFollowups = ref([]);
 const assigneeId = ref(null);
 const currentStatus = ref(null);
 
@@ -116,10 +118,10 @@ const fetchFeedbackData = async () => {
 
     if (feedbackId.value) {
       const response = await feedbackStore.fetchFeedback(feedbackId.value)
-      const data = response[0] || response
+      const data = response.results ? response.results[0] : response 
 
-      assigneeId.value = data.assignee?.code || null;
-      currentStatus.value = data.status;
+      assigneeId.value = data.assignee?.code || null
+      currentStatus.value = data.status
 
       feedbackData.value = { 
         ...(data.response || {}), 
@@ -127,9 +129,9 @@ const fetchFeedbackData = async () => {
       }
       originalFeedbackData.value = JSON.parse(JSON.stringify(feedbackData.value))
 
-      feedbackNotes.value = data.notes || [];
-      feedbackDocs.value = data.documents || [];
-      
+      feedbackNotes.value = data.notes || []
+      feedbackDocs.value = data.documents || []
+      feedbackFollowups.value = data.followups || []
       
       selectedFormId.value = data.form?.id
       await loadFormStructure(selectedFormId.value)
@@ -333,7 +335,6 @@ onMounted(fetchFeedbackData);
                                   active-color="warning"
                                   :disabled="isReadOnly(field)"
                                 />
-                                <span class="text-body-2">({{ feedbackData[field.key] || 0 }})</span>
                               </div>
 
                               <VTextField
@@ -376,6 +377,15 @@ onMounted(fetchFeedbackData);
                     :form-id="selectedFormId" 
                     :notes="feedbackNotes"
                     :documents="feedbackDocs"
+                    @refresh="fetchFeedbackData"
+                  />
+                </VCol>
+
+                <VCol v-if="feedbackId" cols="12" class="mt-4">
+                  <TikatFollowups 
+                    :feedback-id="feedbackId"
+                    :followups="feedbackFollowups"
+                    :contact="feedbackData"
                     @refresh="fetchFeedbackData"
                   />
                 </VCol>

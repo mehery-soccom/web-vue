@@ -45,9 +45,9 @@ const fetchStatuses = async (options = pagination) => {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
       sort: options.sortBy.length ? `${options.sortBy[0].key},${options.sortBy[0].order}` : 'createdAt',
+      isActive: true, 
       search: {
         ...options.filters,
-        isActive: true
       }
     };
 

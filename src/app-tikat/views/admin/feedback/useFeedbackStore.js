@@ -22,9 +22,9 @@ export const useFeedbackStore = defineStore("FeedbackStore", {
     },
 
     async fetchFeedback(id) {
-      const response = await DataService.axios.get(`/api/feedback`, { params: { id }, toast: false });
+      const response = await DataService.axios.get(`/api/feedback/${id}`, { params: { includeFollowups: true }, toast: false });
       if (response.data.error) throw { response: { data: response.data } };
-      return response.data.results;
+      return response.data;
     },
 
     async createFeedback(payload) {
@@ -88,7 +88,25 @@ export const useFeedbackStore = defineStore("FeedbackStore", {
       });
             
       return response.data;
-    },    
+    }, 
+    
+    async createFollowup({ feedbackId, payload }) {
+      const response = await DataService.axios.post(`/api/feedback/${feedbackId}/followup`, payload, { toast: false });
+      if (response.data.error) throw { response: { data: response.data } };
+      return response.data;
+    },
+
+    async updateFollowup({ feedbackId, followupId, payload }) {
+      const response = await DataService.axios.put(`/api/feedback/${feedbackId}/followup/${followupId}`, payload, { toast: false });
+      if (response.data.error) throw { response: { data: response.data } };
+      return response.data;
+    },
+
+    async deleteFollowup({ feedbackId, followupId }) {
+      const response = await DataService.axios.delete(`/api/feedback/${feedbackId}/followup/${followupId}`, { toast: false });
+      if (response.data.error) throw { response: { data: response.data } };
+      return response.data;
+    },
     
   }
 });
