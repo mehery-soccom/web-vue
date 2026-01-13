@@ -60,7 +60,8 @@ onBeforeUnmount(() => {
         }"
       >
         <div class="tooltip-content">
-          <div class="line1 road"
+          <div class="line1 road" v-if="props.template.style.richline_1" v-html="props.template.style.richline_1"></div>
+          <div class="line1 road" v-else
             :style="{
               color: template.style.line1_font_color,
               fontSize: (template.style.line1_font_size * scale) + 'px',
@@ -158,5 +159,10 @@ onBeforeUnmount(() => {
 
 .road.line1, .road.line2{
   color: black;
+}
+</style>
+<style>
+.road.line1 > p{
+  margin-block-end: 4px !important;
 }
 </style>
