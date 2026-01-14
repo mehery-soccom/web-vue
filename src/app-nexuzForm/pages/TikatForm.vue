@@ -193,7 +193,6 @@ const handleSubmit = async () => {
                     <VRating
                       v-model="formValues[field.key]"
                       hover
-                      half-increments
                       color="warning"
                       active-color="warning"
                       size="large"

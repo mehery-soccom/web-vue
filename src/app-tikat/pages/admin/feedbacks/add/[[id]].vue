@@ -330,7 +330,6 @@ onMounted(fetchFeedbackData);
                                 <VRating
                                   v-model="feedbackData[field.key]"
                                   hover
-                                  half-increments
                                   color="warning"
                                   active-color="warning"
                                   :disabled="isReadOnly(field)"

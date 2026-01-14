@@ -160,18 +160,15 @@ const submitForm = () => {
               <VRow v-else-if="field.inputType === 'RATING'">
                 <VCol cols="12">
                     <VRating
-                    v-model="formValues[field.key]"
-                    :length="5"
-                    :size="42"
-                    color="warning"
-                    active-color="warning"
-                    hover
-                    density="comfortable"
-                    :rules="getRules(field)"
+                      v-model="formValues[field.key]"
+                      :length="5"
+                      :size="42"
+                      color="warning"
+                      active-color="warning"
+                      hover
+                      density="comfortable"
+                      :rules="getRules(field)"
                     />
-                    <span class="ms-3 text-body-1 font-weight-bold" v-if="formValues[field.key]">
-                    ({{ formValues[field.key] }} / 5)
-                    </span>
                 </VCol>
               </VRow>
 
