@@ -213,11 +213,16 @@ onMounted(() => {
 const exportToExcel = async () => {
   isLoading.value = true
   try {
-    const response = await feedbackStore.fetchFeedbacksDownload()
-    const allData = response.results || []
+    const downloadParams = {
+      rating: pagination.filters.rating?.length > 0 ? pagination.filters.rating.join(',') : undefined
+    }
+
+    const response = await feedbackStore.fetchFeedbacksDownload(downloadParams)
+    
+    const allData = Array.isArray(response) ? response : (response.results || [])
 
     if (allData.length === 0) {
-      show({ message: 'No data available to download', color: 'warning' })
+      show({ message: 'No data available for selected filters', color: 'warning' })
       return
     }
 
