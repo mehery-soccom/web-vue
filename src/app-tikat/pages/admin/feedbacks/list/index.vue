@@ -57,6 +57,7 @@ const fetchFeedbacks = async (options = pagination) => {
     
     for (const key in options.filters) {
       if (options.filters[key]) {
+        if (key === 'rating') continue;
         let apiKey = key
         if (key === 'name') apiKey = 'contact.name'
         if (key === 'assignedTo') apiKey = 'assignee.name'
@@ -69,6 +70,7 @@ const fetchFeedbacks = async (options = pagination) => {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
       search: activeFilters,
+      rating: options.filters.rating?.length > 0 ? options.filters.rating.join(',') : undefined
     }
 
     if (options.sortBy?.length > 0) {
@@ -80,8 +82,7 @@ const fetchFeedbacks = async (options = pagination) => {
     feedbacks.value = response.results || []
     pagination.itemsLength = response.pagination?.total || 0
   } catch (error) {
-    const errorMessage = error.response?.data?.message || 'Failed to load feedbacks.'
-    show({ message: errorMessage, color: 'error' })
+    show({ message: 'Failed to load feedbacks.', color: 'error' })
   } finally {
     isLoading.value = false
   }
@@ -268,10 +269,39 @@ const exportToExcel = async () => {
     <VCardText class="d-flex align-center flex-wrap gap-4">
       <h5 class="text-h5">Feedbacks</h5>
       <VSpacer />
-      <div class="d-flex align-center flex-wrap gap-4">
+      <div class="d-flex align-center flex-wrap gap-2">
         <VBtn icon @click="fetchFeedbacks(pagination)" :loading="isLoading" variant="text">
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
+
+        <VMenu :close-on-content-click="false" location="bottom end">
+          <template #activator="{ props }">
+            <VBtn icon v-bind="props" variant="text">
+              <VIcon :color="pagination.filters.rating?.length > 0 ? 'primary' : ''">tabler-filter</VIcon>
+              <VTooltip activator="parent" location="top">Filter Rating</VTooltip>
+            </VBtn>
+          </template>
+
+          <VCard min-width="380">
+            <VCardText>
+              <AppSelect
+                v-model="pagination.filters.rating"
+                :items="[1, 2, 3, 4, 5]"
+                label="Select Rating"
+                multiple
+                chips
+                clearable
+                closable-chips
+                collapse-chips
+                placeholder="Ratings"
+              />
+            </VCardText>
+            <VCardActions>
+              <VSpacer />
+              <VBtn color="primary" size="small" @click="fetchFeedbacks(pagination)">Apply</VBtn>
+            </VCardActions>
+          </VCard>
+        </VMenu>
 
         <VBtn 
           icon 

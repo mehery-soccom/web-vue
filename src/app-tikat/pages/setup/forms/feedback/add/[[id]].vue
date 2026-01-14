@@ -62,7 +62,7 @@ onMounted(async () => {
         };
       });
     }else {
-      const defaultKeys = ['name', 'email', 'phone'];
+      const defaultKeys = ['name', 'email', 'phone', 'rating'];
       const defaultAccess = { contact: 'W', moderator: 'W', agent: 'W' };
 
       const fieldsToAdd = defaultKeys.map(k => {

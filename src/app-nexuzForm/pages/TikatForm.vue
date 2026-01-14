@@ -189,7 +189,7 @@ const handleSubmit = async () => {
 
               <VRow v-else-if="field.inputType === 'RATING'">
                 <VCol cols="12">
-                  <div class="d-flex align-center gap-2 py-2">
+                  <div class="d-flex align-center gap-2 py-1">
                     <VRating
                       v-model="formValues[field.key]"
                       hover

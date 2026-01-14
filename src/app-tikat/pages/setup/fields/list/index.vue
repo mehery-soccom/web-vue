@@ -1,5 +1,5 @@
 <script setup>
-import { ref, inject, reactive } from 'vue';
+import { ref, inject, reactive,onMounted } from 'vue';
 import debounce from "lodash/debounce";
 import { useRouter } from 'vue-router'
 import { useFieldsStore } from "@/app-tikat/views/setup/fields/useFieldsStore";
@@ -25,6 +25,7 @@ const defaultFields = [
   { label: 'Name', key: 'name', desc: 'Name', inputType: 'TEXT', optional: false, isActive: true },
   { label: 'Phone', key: 'phone', desc: 'Phone Number', inputType: 'PHONE', optional: false, isActive: true },
   { label: 'Email', key: 'email', desc: 'Email ID', inputType: 'EMAIL', optional: false, isActive: true },
+  { label: 'Rating', key: 'rating', desc: 'Rating', inputType: 'RATING', optional: false, isActive: true },
 ];
 
 const defaultFieldCodes = defaultFields.map(f => f.key);
@@ -80,20 +81,20 @@ const fetchFields = async (options = pagination) => {
     fields.value = response.results;
     pagination.itemsLength = response.pagination.total || 0;
 
-    if (pagination.itemsLength === 0 && !Object.keys(activeFilters).length) {
-      show({ message: 'No fields found. Creating default fields...', color: 'info' });
-      try {
-        await Promise.all(defaultFields.map(field => fieldsStore.createField(field)));
-        show({ message: 'Default fields created successfully.', color: 'success' });
-        
-        const finalResponse = await fieldsStore.fetchFields(apiParams);
-        fields.value = finalResponse.results;
-        pagination.itemsLength = finalResponse.pagination.total || 0;
-      } catch (createError) {
-        console.error("Error creating default fields:", createError);
-        const createErrorMessage = createError.response?.data?.message || 'Failed to create default fields'
-        show({ message: createErrorMessage, color: 'error' });
-      }
+    const currentKeys = new Set(fields.value.map(f => f.key));
+    const missingFields = defaultFields.filter(df => !currentKeys.has(df.key));
+
+    if (missingFields.length > 0 && !Object.keys(activeFilters).length) {
+      show({ message: `Syncing ${missingFields.length} default fields...`, color: 'info' });
+      
+      await Promise.all(missingFields.map(field => 
+        fieldsStore.createField({ ...field, byUser: window.CONST?.USER?.user })
+      ));
+
+      const finalResponse = await fieldsStore.fetchFields(apiParams);
+      fields.value = finalResponse.results;
+      pagination.itemsLength = finalResponse.pagination.total || 0;
+      show({ message: 'Default fields synchronized.', color: 'success' });
     }
 
   } catch (error) {
@@ -130,6 +131,9 @@ const editField = (field) => {
   });
 };
 
+onMounted(() => {
+  fetchFields();
+});
 </script>
 
 <template>
