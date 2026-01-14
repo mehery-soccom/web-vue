@@ -116,9 +116,22 @@ const onUpdateOptions = (options) => {
 
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
 
-// onMounted(() => {
-//   fetchForms();
-// });
+const copyLink = async (id) => {
+  try {
+    const origin = window.location.origin; 
+    
+    const tnt = origin.split('.')[0].replace('https://', '');
+    
+    const domainPart = origin.split('.').slice(1).join('.');
+    const finalLink = `https://nexuz.${domainPart}/nexuz/form/${id}?tnt=${tnt}`;
+
+    await navigator.clipboard.writeText(finalLink);
+    show({ message: "Link copied to clipboard!", color: "success" });
+  } catch (error) {
+    show({ message: "Failed to copy link.", color: "error" });
+  }
+};
+
 </script>
 
 <template>
@@ -156,6 +169,11 @@ const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
       @update:options="onUpdateOptionsDebounced"
     >
       <template #item.actions="{ item }">
+        <IconBtn @click="copyLink(item.raw._id)">
+          <VIcon icon="tabler-link" />
+          <VTooltip activator="parent" location="top">Copy Link</VTooltip>
+        </IconBtn>
+
         <IconBtn @click="cloneForm(item.raw._id)" :loading="isLoading">
           <VIcon icon="tabler-copy" />
           <VTooltip activator="parent" location="top">Clone Form</VTooltip>

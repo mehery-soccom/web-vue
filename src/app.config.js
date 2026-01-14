@@ -47,6 +47,12 @@ module.exports = AppConfig.extend({
       entry: "./src/main.js",
       plugins: () => import("@/app-form/plugins"),
     },
+    nexuzForm: {
+      component: () => import("@/app-nexuzForm/AppNexuzForm.vue"),
+      context: "/nexuz/form",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-nexuzForm/plugins"),
+    },
     tikat: {
       component: () => import("@/app-tikat/AppTikat.vue"),
       context: "/nexuz/tikat",
