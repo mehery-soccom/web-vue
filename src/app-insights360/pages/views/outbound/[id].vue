@@ -138,7 +138,19 @@ const fetchCampaignData = async (id, pagination) => {
 const getErrorInfo = (code) => {
   return errorList.find(e => e.Code === Number(code))
 }
-
+const downloadReport = async () => {
+  isLoading.value = true;
+  try {
+    const response = await projectStore.downloadReports({
+      meta: { bulkSessionId: route.params.id },
+      type: 'campaign-reports'
+    });
+  } catch (error) {
+    console.error("report error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
 const exportToExcel = () => {
   const formattedData = campTable.value.map((item) => ({
     Contact: item.contact.phone || item.contact.email,
@@ -195,9 +207,18 @@ function formatTimestamp(ts) {
         </RouterLink>
       </div>
       <VBtn
+        @click="downloadReport"
+        color="primary"
+        style="width: 45px; height: 45px; min-width: 40px;"
+        class="pa-0"
+        variant="flat"
+      >
+        <VIcon>mdi-file-download</VIcon>
+      </VBtn>
+      <VBtn
         @click="exportToExcel"
         color="primary"
-        style="width: 40px; height: 40px; min-width: 40px; margin-right: 12px"
+        style="width: 45px; height: 45px; min-width: 40px; margin-right: 12px"
         class="pa-0 ml-3"
         variant="flat"
       >

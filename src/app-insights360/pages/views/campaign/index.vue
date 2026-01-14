@@ -15,6 +15,8 @@ const channelItems = ref();
 const selectedChannelItem = ref("All Channels");
 const campCharts = ref([]);
 const campTable = ref([]);
+const startTime = ref();
+const endTime = ref();
 const isLoading = ref(false);
 const pagination = reactive({
   itemsLength: 0,
@@ -147,6 +149,8 @@ const fetchCampaignData = async (start, end, chan, bool, stats, pagination) => {
     console.log("sa", pagination.itemsLength, response.data.pagination.total)
     campTable.value = response?.data?.results;
     if (!bool) channelItems.value = [ "All Channels", ...Object.keys(response?.data?.data || {}) ];
+    startTime.value = start;
+    endTime.value = end;
   } catch (error) {
     console.error("analytics error", error);
   }finally{
@@ -172,7 +176,20 @@ const fetchCampaignBlock = async (start, end, chan, bool, stats) => {
     console.error("analytics error b", error);
   }
 };
-
+const downloadReport = async () => {
+  isLoading.value = true;
+  try {
+    const response = await projectStore.downloadReports({
+      start: startTime.value,
+      end: endTime.value,
+      type: 'campaign-reports'
+    });
+  } catch (error) {
+    console.error("analytics error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
 const exportToExcel = () => {
   const formattedData = campTable.value.map((item) => ({
     Campaign: item.name,
@@ -244,6 +261,15 @@ onMounted(async () => {
 <template>
   <VRow>
     <div style="width: 100%; display: flex; justify-content: flex-end">
+      <VBtn
+        @click="downloadReport"
+        color="primary"
+        style="width: 45px; height: 45px; min-width: 40px; margin: 0 12px;"
+        class="pa-0"
+        variant="flat"
+      >
+        <VIcon>mdi-file-download</VIcon>
+      </VBtn>
       <VSelect
         v-model="selectedStatuses"
         :items="statusOptions"
@@ -277,7 +303,7 @@ onMounted(async () => {
       <VBtn
         @click="exportToExcel"
         color="primary"
-        style="width: 40px; height: 40px; min-width: 40px"
+        style="width: 45px; height: 45px; min-width: 40px"
         class="pa-0 ml-3"
         variant="flat"
       >

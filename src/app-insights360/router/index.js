@@ -8,6 +8,7 @@ import Agent from "@/app-insights360/pages/views/agent/index.vue";
 import Meta from "@/app-insights360/pages/views/meta/index.vue";
 import Sessions from "@/app-insights360/pages/views/sessions/index.vue";
 import Campaign from "@/app-insights360/pages/views/campaign/index.vue";
+import Reports from "@/app-insights360/pages/views/reports/index.vue";
 import Outbound from "@/app-insights360/pages/views/outbound/[id].vue";
 import Cta from "@/app-insights360/pages/views/cta/[id].vue";
 import DefaultLayout from "@/app-insights360/layouts/default.vue";
@@ -95,6 +96,19 @@ export default BootRouter.route({
           path: "",
           name: "views-meta",
           component: Meta,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/views/reports",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "views-reports",
+          component: Reports,
           props: true,
           meta: { layout: "default" },
         },

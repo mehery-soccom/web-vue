@@ -8,6 +8,7 @@ export default [
       { title: "Campaign", to: "views-campaign" },
       { title: "Chat Summary", to: "views-sessions" },
       { title: "Meta", to: "views-meta" },
+      { title: "Reports", to: "views-reports" },
     ],
   },
 ];
