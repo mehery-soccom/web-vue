@@ -73,32 +73,32 @@ const fetchFields = async (options = pagination) => {
 
     if (options.sortBy && options.sortBy.length > 0) {
       const sortItem = options.sortBy[0];
-      const sortKey = sortItem.key; 
-      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortKey}`;
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
     }
 
     const response = await fieldsStore.fetchFields(apiParams);
-    fields.value = response.results;
-    pagination.itemsLength = response.pagination.total || 0;
+    fields.value = response.results || [];
+    pagination.itemsLength = response.pagination?.total || 0;
 
-    const currentKeys = new Set(fields.value.map(f => f.key));
-    const missingFields = defaultFields.filter(df => !currentKeys.has(df.key));
-
-    if (missingFields.length > 0 && !Object.keys(activeFilters).length) {
-      show({ message: `Syncing ${missingFields.length} default fields...`, color: 'info' });
+    if (pagination.itemsLength === 0 && !Object.keys(activeFilters).length) {
+      show({ message: 'Initializing default fields...', color: 'info' });
       
-      await Promise.all(missingFields.map(field => 
-        fieldsStore.createField({ ...field, byUser: window.CONST?.USER?.user })
-      ));
+      try {
+        await Promise.all(defaultFields.map(field => 
+          fieldsStore.createField({ ...field, byUser: window.CONST?.USER?.user })
+        ));
 
-      const finalResponse = await fieldsStore.fetchFields(apiParams);
-      fields.value = finalResponse.results;
-      pagination.itemsLength = finalResponse.pagination.total || 0;
-      show({ message: 'Default fields synchronized.', color: 'success' });
+        const finalResponse = await fieldsStore.fetchFields(apiParams);
+        fields.value = finalResponse.results || [];
+        pagination.itemsLength = finalResponse.pagination?.total || 0;
+        show({ message: 'Default fields created.', color: 'success' });
+      } catch (createError) {
+        console.error("Error creating default fields:", createError);
+      }
     }
 
   } catch (error) {
-      const errorMessage = error.response?.data?.message || error.message || "Something went wrong while fetching fields."
+      const errorMessage = error.response?.data?.message || error.message || "Failed to fetch fields.";
       show({ message: errorMessage, color: "error" });
       fields.value = [];
       pagination.itemsLength = 0;

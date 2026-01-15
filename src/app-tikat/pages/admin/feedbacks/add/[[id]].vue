@@ -380,9 +380,10 @@ onMounted(fetchFeedbackData);
                   />
                 </VCol>
 
-                <VCol v-if="feedbackId" cols="12" class="mt-4">
+                <VCol v-if="feedbackId && selectedFormId" cols="12" class="mt-4">
                   <TikatFollowups 
                     :feedback-id="feedbackId"
+                    :form-id="selectedFormId"
                     :followups="feedbackFollowups"
                     :contact="feedbackData"
                     @refresh="fetchFeedbackData"

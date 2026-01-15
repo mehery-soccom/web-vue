@@ -5,7 +5,7 @@ import { useFeedbackStore } from '@/app-tikat/views/admin/feedback/useFeedbackSt
 
 const props = defineProps({
   feedbackId: { type: String, required: true },
-  formId: { type: String, required: true },
+  formId: { type: String, default: null }, 
   notes: { type: Array, default: () => [] },
   documents: { type: Array, default: () => [] }
 });
@@ -17,7 +17,6 @@ const { show } = inject("snackbar");
 const isLoading = ref(false);
 const byUser = window.CONST?.USER?.user || 'system';
 
-// States
 const isAddingNote = ref(false);
 const isAddingDoc = ref(false);
 const newNote = ref({ title: '', content: '' });
@@ -30,7 +29,6 @@ const editedDocData = ref({ title: '' });
 
 const maxDocSize = 5 * 1024 * 1024;
 
-// --- Helper Functions ---
 const formatFileSize = (bytes) => {
   if (!bytes) return '0 KB';
   return bytes < 1024 * 1024 
@@ -52,7 +50,6 @@ const formatTimestamp = (item) => {
   return `${prefix} ${formattedDate} by ${userName || 'N/A'}`;
 };
 
-// --- Actions ---
 const handleSaveNote = async () => {
   if (!newNote.value.content) return;
   isLoading.value = true;
