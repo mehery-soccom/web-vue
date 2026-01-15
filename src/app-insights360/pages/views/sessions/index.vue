@@ -5,6 +5,7 @@ import { ref, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { toast } from "vue3-toastify";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -42,15 +43,33 @@ const headers = [
   { title: "Start @", key: "startStamp", sortable: true },
   { title: "Actions", key: "actions", sortable: false },
 ];
+window.stillDownloadReport = async (val) => {
+  toast.clearAll()
+  await downloadReport(val)
+}
 
-const downloadReport = async () => {
+const downloadReport = async (val=false) => {
   isLoading.value = true;
   try {
-    const response = await projectStore.downloadReports({
+    let params = {
       dateRange1: startTime.value,
       dateRange2: endTime.value,
       type: 'conversation-summary'
-    });
+    }
+    if(!!val) params.force = true;
+    const response = await projectStore.downloadReports(params);
+    if(response.data.data == 'EXISTS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Download already in progress.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 180px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Still download
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    }
   } catch (error) {
     console.error("analytics error", error);
   }finally{

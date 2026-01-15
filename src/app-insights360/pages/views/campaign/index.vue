@@ -8,6 +8,7 @@ import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytic
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { smartFormatDate } from "@/app-insights360/@core/utils/formatters";
 import debounce from "lodash/debounce";
+import { toast } from "vue3-toastify";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -176,14 +177,34 @@ const fetchCampaignBlock = async (start, end, chan, bool, stats) => {
     console.error("analytics error b", error);
   }
 };
-const downloadReport = async () => {
+window.stillDownloadReport = async (val) => {
+  toast.clearAll()
+  await downloadReport(val)
+}
+
+const downloadReport = async (val=false) => {
   isLoading.value = true;
   try {
-    const response = await projectStore.downloadReports({
+    let params = {
       start: startTime.value,
       end: endTime.value,
       type: 'campaign-reports'
-    });
+    }
+    if(!!val) params.force = true;
+    const response = await projectStore.downloadReports(params);
+    console.log("sad", response.data)
+    if(response.data.data == 'EXISTS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Download already in progress.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 180px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Still download
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    }
   } catch (error) {
     console.error("analytics error", error);
   }finally{
@@ -262,7 +283,7 @@ onMounted(async () => {
   <VRow>
     <div style="width: 100%; display: flex; justify-content: flex-end">
       <VBtn
-        @click="downloadReport"
+        @click="downloadReport(false)"
         color="primary"
         style="width: 45px; height: 45px; min-width: 40px; margin: 0 12px;"
         class="pa-0"
