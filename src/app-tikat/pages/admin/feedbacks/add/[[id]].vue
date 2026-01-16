@@ -92,10 +92,16 @@ const isModerator = computed(() => {
   return userRoles.includes('MODERATOR');
 });
 
+const isUserRole = computed(() => {
+  const userRoles = window.CONST?.USER?.role || [];
+  return userRoles.includes('USER');
+});
+
 const isReadOnly = (field) => {
-  if (isModerator.value && field.access?.moderator === 'R') {
-    return true;
-  }
+  if (isModerator.value && field.access?.moderator === 'R') return true;
+  
+  if (isUserRole.value && field.access?.agent === 'R') return true;
+  
   return false;
 };
 
@@ -196,7 +202,12 @@ const fieldsToRender = computed(() => {
   return selectedFormStructure.value.formFields.map(ff => {
     const master = masterFieldsArr.find(m => m.field_id === ff.id);
     return master ? { ...master, access: ff.access } : null;
-  }).filter(f => f !== null);
+  }).filter(f => {
+    if (!f) return false;
+    if (isModerator.value && f.access?.moderator === 'H') return false;
+    if (isUserRole.value && f.access?.agent === 'H') return false;
+    return true;
+  });
 });
 
 onMounted(fetchFeedbackData);
