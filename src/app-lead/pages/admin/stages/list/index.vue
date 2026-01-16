@@ -13,15 +13,15 @@ const pagination = reactive({
   itemsLength: 0,
   page: 1,
   itemsPerPage: 10,
-  sortBy: [],
+  sortBy: [{ key: 'probability', order: 'asc' }],
   filters: {},
 });
 
 const headers = [
-  { title: "Stage", key: "title", }, 
-  { title: "Description", key: "desc" },
-  { title: "Probability (%)", key: "probability" },
-  { title: "Actions", key: "actions" },
+  { title: "Stage", key: "title", sortable: true },
+  { title: "Description", key: "desc", sortable: true },
+  { title: "Probability (%)", key: "probability", sortable: true },
+  { title: "Actions", key: "actions", sortable: false },
 ];
 
 const defaultStages = [
@@ -42,12 +42,15 @@ const fetchStages = async (options = pagination) => {
 
   try {
     const apiParams = {
-      page: options.page,
+      pageNo: options.page,
       pageSize: options.itemsPerPage,
       search: options.filters,
-      sortBy: options.sortBy.length ? options.sortBy[0].key : null,
-      sortOrder: options.sortBy.length ? options.sortBy[0].order : null,
     };
+
+    if (options.sortBy && options.sortBy.length > 0) {
+      const sortItem = options.sortBy[0];
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
+    }
 
     const response = await stagesStore.fetchStages(apiParams);
     const fetchedStages = response.data || [];

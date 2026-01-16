@@ -114,7 +114,7 @@ const fetchFeedbackData = async () => {
   isFetching.value = true
   try {
     const formsResponse = await formsStore.fetchFormsForDropdown()
-    formList.value = formsResponse.results
+    formList.value = formsResponse.results.filter(form => form.isActive !== "false")
 
     if (feedbackId.value) {
       const response = await feedbackStore.fetchFeedback(feedbackId.value)
