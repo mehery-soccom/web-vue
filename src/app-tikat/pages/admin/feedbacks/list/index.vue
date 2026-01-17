@@ -26,10 +26,12 @@ const pagination = reactive({
   itemsPerPage: 10,
   sortBy: [],
   filters: {
-    name: null,     
-    assignedTo: null,
-    formTitle: null,
+    'contact.name': null,
+    'assignee.name': null,
+    'form.title': null,
+    'response.rating': null, 
     status: null,
+    rating: [], 
   },
 })
 
@@ -38,11 +40,11 @@ const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('AGENT
 
 const headers = computed(() => {
   const list = [
-    { title: 'Name', key: 'name', sortable: true },
-    { title: 'Form', key: 'formTitle', sortable: false },
+    { title: 'Name', key: 'contact.name', sortable: true },
+    { title: 'Form', key: 'form.title', sortable: false },
+    { title: 'Rating', key: 'response.rating', sortable: true }, 
     { title: 'Status', key: 'status', sortable: true },
-    // { title: 'Follow up', key: 'followup', sortable: false },
-    { title: 'Assigned To', key: 'assignedTo', sortable: true },
+    { title: 'Assigned To', key: 'assignee.name', sortable: true },
     { title: 'Created on', key: 'createdAt', sortable: true },
     { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
   ]
@@ -58,11 +60,7 @@ const fetchFeedbacks = async (options = pagination) => {
     for (const key in options.filters) {
       if (options.filters[key]) {
         if (key === 'rating') continue;
-        let apiKey = key
-        if (key === 'name') apiKey = 'contact.name'
-        if (key === 'assignedTo') apiKey = 'assignee.name'
-        
-        activeFilters[apiKey] = options.filters[key]
+        activeFilters[key] = options.filters[key]
       }
     }
 
@@ -372,12 +370,18 @@ const exportToExcel = async () => {
       v-bind="pagination"
     >
 
-      <template #item.name="{ item }">
+      <template #item.contact.name="{ item }">
         <span class="font-weight-medium">{{ item.raw.contact?.name || '-' }}</span>
       </template>
 
-      <template #item.formTitle="{ item }">
+      <template #item.form.title="{ item }">
         {{ item.raw.form?.title || '-' }}
+      </template>
+
+      <template #item.response.rating="{ item }">
+        <div class="d-flex align-center">
+          <span class="font-weight-bold">{{ item.raw.response?.rating || '-' }}</span>
+        </div>
       </template>
 
       <template #item.createdAt="{ item }">
@@ -388,7 +392,7 @@ const exportToExcel = async () => {
         <span class="text-disabled">-</span>
       </template> -->
 
-      <template #item.assignedTo="{ item }">
+      <template #item.assignee.name="{ item }">
         {{ item.raw.assignee?.name || '-' }}
       </template>
 

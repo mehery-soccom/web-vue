@@ -252,7 +252,7 @@ onMounted(fetchFeedbackData);
                               :items="formList"
                               item-title="name"
                               item-value="_id"
-                              label="Form"
+                              label="Customer Data"
                               placeholder="Choose a form to generate fields"
                               :rules="[requiredValidator]"
                               :readonly="!!feedbackId"

@@ -1,7 +1,7 @@
 export default [
   { heading: "Admin" },
   {
-    title: "Feedbacks",
+    title: "Feedback",
     icon: { icon: "tabler-user-scan" },
     to: "admin-feedbacks-list",
   },

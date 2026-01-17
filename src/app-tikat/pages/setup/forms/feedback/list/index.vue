@@ -21,9 +21,9 @@ const pagination = reactive({
 });
 
 const headers = [
-  { title: "Title", key: "name" },
-  { title: "Key", key: "key" },
-  { title: "Description", key: "desc" },
+  { title: "Title", key: "name", sortable: true },
+  { title: "Key", key: "key", sortable: true },
+  { title: "Description", key: "desc", sortable: true },
   { title: "Actions", key: "actions", sortable: false },
 ];
 
@@ -47,7 +47,7 @@ const fetchForms = async (options = pagination) => {
 
     if (options.sortBy && options.sortBy.length > 0) {
       const sortItem = options.sortBy[0];
-      apiParams.sort = `${sortItem.key},${sortItem.order}`;
+      apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`;
     }
 
     const response = await formsStore.fetchForms(apiParams);

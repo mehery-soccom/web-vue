@@ -110,7 +110,7 @@ const filteredStatuses = computed(() => {
 <template>
   <VCard border elevation="2" class="mb-4">
     <VCardText>
-      <p class="text-h6 mb-4">Customer Data</p>
+      <p class="text-h6 mb-4">Status & Assignment</p>
       
       <VForm @submit.prevent="handleSubmit">
         <VRow align="center">
