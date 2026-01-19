@@ -29,7 +29,7 @@ const pagination = reactive({
 })
 
 const userRoles = window.CONST?.USER?.role || []
-const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('AGENT')
+const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('USER')
 
 const headers = computed(() => {
   const list = [
