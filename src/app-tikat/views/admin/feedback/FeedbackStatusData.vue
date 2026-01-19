@@ -21,6 +21,8 @@ const isLoading = ref(true);
 const isUpdating = ref(false);
 const isAgentLoading = ref(false);
 const byUser = window.CONST?.USER?.user || 'system';
+const userRoles = window.CONST?.USER?.role || [];
+const isAgentDisabled = userRoles.includes('MODERATOR') || userRoles.includes('USER');
 
 const form = ref({
   status: props.initialStatusId,
@@ -136,6 +138,7 @@ const filteredStatuses = computed(() => {
                 placeholder="Assign an agent"
                 :loading="isAgentLoading"
                 clearable
+                :disabled="isAgentDisabled"
             />
           </VCol>
 
