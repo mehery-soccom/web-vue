@@ -55,6 +55,10 @@ export const ALIGNMENT = [
   { title: "Vertical", value: "vertical" },
   { title: "Horizontal", value: "horizontal" }
 ]
+export const ICONS_PLACEMENT = [
+  { title: "Prepend", value: "prepend" },
+  { title: "Append", value: "append" }
+]
 export const ICONS_LIST = [
   { icon:"", title:"None", value:"" },
   { icon: "❤️", title: "Heart", value: "&#10084;" },
@@ -3269,6 +3273,34 @@ export const SUB_TYPES = [
           menubar: false,
           toolbar: 'undo redo | fontfamily fontsize | forecolor backcolor bold italic underline strikethrough',
           plugins: ['lists', 'link', 'autolink'],
+        },
+        {
+          id: "road-line1-icon-position",
+          name: "",
+          path: "style.line1_icon_position",
+          type: "select",
+          label: "Icon Placement",
+          optionsPath: ICONS_PLACEMENT,
+          placeholder: "",
+          cols: 6,
+          clearable: true,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
+          id: "road-line1-icon",
+          name: "",
+          path: "style.line1_icon",
+          type: "select",
+          label: "Icon",
+          optionsPath: ICONS_LIST,
+          placeholder: "",
+          cols: 6,
+          clearable: true,
+          required: false,
+          readonly: false,
+          defaultValue: null,
         },
         // {
         //   id: "road-line1",
