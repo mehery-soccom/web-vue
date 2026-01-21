@@ -119,9 +119,12 @@ onMounted(async () => {
               <div class="text-ellipsis">
                 {{ configValue(item.raw.value) }}
               </div>
-              <VTooltip activator="parent" location="top">{{
-                configValue(item.raw.value)
-              }}</VTooltip>
+              <VTooltip
+                v-if="configValue(item.raw.value)"
+                activator="parent"
+                location="top"
+                >{{ configValue(item.raw.value) }}</VTooltip
+              >
             </template>
             <template #item.actions="{ item }">
               <VIcon

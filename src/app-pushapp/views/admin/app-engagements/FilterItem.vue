@@ -12,16 +12,22 @@ const emit = defineEmits(["remove", "update"]);
 
 const hasError = ref(false);
 
+const furtherGroupRef = ref(null);
+
 // === Constants ===
 const {
+  FILTER_OPTION_TYPES,
   FILTER_OPTIONS_MAP,
   FILTER_EVENT_OPTIONS,
   FILTER_ATTRIBUTE_OPTIONS,
+  FILTER_PROFILE_ATTRIBUTE_OPTIONS,
+  FILTER_PROFILE_COHORT_OPTIONS,
   eventOperators,
   attributeOperators,
+  profileAttributeOperators,
   freqOperators,
   freqPeriods,
-} = useAppEngagements();
+} = useAppEngagements(props.element);
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
@@ -30,12 +36,12 @@ const clearErrorAndUpdate = () => {
 };
 
 // === Validation ===
-const isValid = (silent = false) => {
+const isValid = async (silent = false) => {
   const el = props.element;
   let valid = true;
 
   if (el.type === "group") {
-    //TODO
+    valid = await furtherGroupRef.value?.isValid(silent);
   } else {
     if (!el.field) valid = false;
     if (
@@ -52,6 +58,7 @@ const isValid = (silent = false) => {
   }
 
   if (!valid && !silent) hasError.value = true;
+
   return valid;
 };
 
@@ -83,7 +90,7 @@ defineExpose({ isValid });
       <!-- Type -->
       <AppSelect
         v-model="element.filterType"
-        :items="['event', 'attribute']"
+        :items="FILTER_OPTION_TYPES"
         placeholder="Select Type"
         density="compact"
         class="filter-entity filter-type"
@@ -100,10 +107,26 @@ defineExpose({ isValid });
         @update:modelValue="clearErrorAndUpdate"
       />
       <AppSelect
-        v-else
+        v-else-if="element.filterType === 'attribute'"
         v-model="element.field"
         :items="FILTER_ATTRIBUTE_OPTIONS"
         placeholder="Select Attribute"
+        class="filter-entity field"
+        @update:modelValue="clearErrorAndUpdate"
+      />
+      <AppSelect
+        v-else-if="element.filterType === 'additionalInfo'"
+        v-model="element.field"
+        :items="FILTER_PROFILE_ATTRIBUTE_OPTIONS"
+        placeholder="Select Profile Attribute"
+        class="filter-entity field"
+        @update:modelValue="clearErrorAndUpdate"
+      />
+      <AppSelect
+        v-else-if="element.filterType === 'cohort'"
+        v-model="element.field"
+        :items="FILTER_PROFILE_COHORT_OPTIONS"
+        placeholder="Select Profile Cohort"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
       />
@@ -117,6 +140,9 @@ defineExpose({ isValid });
             ? eventOperators
             : element.filterType === 'attribute'
             ? attributeOperators
+            : element.filterType === 'additionalInfo' ||
+              element.filterType === 'cohort'
+            ? profileAttributeOperators
             : []
         "
         placeholder="Operator"
@@ -221,6 +247,7 @@ defineExpose({ isValid });
     <!-- Nested Group -->
     <FilterBuilder
       v-else
+      ref="furtherGroupRef"
       :model-value="element"
       :level="level + 1"
       @update:model-value="emit('update', $event)"
@@ -234,7 +261,7 @@ defineExpose({ isValid });
   border: 1px solid red !important;
 }
 .filter-type {
-  max-width: 120px;
+  max-width: 180px;
 }
 .field {
   max-width: 220px;

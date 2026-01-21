@@ -1,7 +1,6 @@
 <script setup>
 import { ref, nextTick } from "vue";
 import FilterItem from "./FilterItem.vue";
-const { show } = inject("snackbar");
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -49,85 +48,39 @@ const removeChild = (index) => {
   emit("update:modelValue", props.modelValue);
 };
 
+// util
+async function asyncEvery(array, predicate) {
+  for (const [index, element] of array.entries()) {
+    // Await the result of the async predicate
+    const result = await predicate(element, index);
+    if (!result) {
+      return false; // Stop immediately if any element fails the test
+    }
+  }
+  return true; // All elements passed the test
+}
+
 // Recursive validation + auto-scroll to first invalid
 const isValid = async (silent = false) => {
   let firstInvalid = null;
-  const allValid = props.modelValue.children.every((child, idx) => {
-    const refComp = childRefs.value[idx];
-    if (!refComp) return false;
-    const valid = refComp.isValid(silent);
-    if (!valid && !firstInvalid) firstInvalid = refComp;
-    return valid;
-  });
+  const allValid = await asyncEvery(
+    props.modelValue.children,
+    async (child, idx) => {
+      const refComp = childRefs.value[idx];
+      if (!refComp) return false;
+      const valid = await refComp.isValid(silent);
+      if (!valid && !firstInvalid) firstInvalid = refComp;
+      return valid;
+    }
+  );
 
   if (!allValid && firstInvalid && !silent) {
     await nextTick();
     firstInvalid.$el.scrollIntoView({ behavior: "smooth", block: "center" });
   }
 
-  let structureValid = true;
-  try {
-    validateFilterStructure(props.modelValue);
-  } catch (error) {
-    structureValid = false;
-    show({ message: error.message, color: "error" });
-  }
-
-  return allValid && structureValid;
+  return allValid;
 };
-
-function validateFilterStructure(
-  node,
-  parentConjunction = null,
-  isRoot = true
-) {
-  if (!node) throw new Error("Empty filter node");
-
-  if (node.type === "group") {
-    const { conjunction, children } = node;
-    if (!Array.isArray(children) || children.length === 0) {
-      throw new Error("Group must have children");
-    }
-
-    // Check: If group has multiple event filters as direct children, it must be OR
-    const directEventChildren = children.filter(
-      (c) => c.type === "filter" && c.filterType === "event"
-    );
-    if (directEventChildren.length > 1 && conjunction !== "or") {
-      throw new Error(
-        "Groups containing multiple event filters must use 'or' conjunction"
-      );
-    }
-
-    // If root AND: cannot directly contain more than one event filter
-    if (isRoot && conjunction === "and" && directEventChildren.length > 1) {
-      throw new Error(
-        "Root AND group cannot contain multiple event filters directly"
-      );
-    }
-
-    // Root must contain one event filter atleast
-    if (isRoot && directEventChildren.length == 0) {
-      throw new Error("Root group must have an event filter");
-    }
-
-    // Recurse into children
-    children.forEach((child) =>
-      validateFilterStructure(child, conjunction, false)
-    );
-    return true;
-  }
-
-  if (node.type === "filter") {
-    // No special checks here — but could enforce supported filterTypes
-    if (!["event", "attribute"].includes(node.filterType)) {
-      throw new Error(`Unsupported filterType: ${node.filterType}`);
-    }
-    return true;
-  }
-
-  throw new Error(`Unsupported node type: ${node.type}`);
-}
 
 defineExpose({ isValid });
 </script>
@@ -181,13 +134,7 @@ defineExpose({ isValid });
       <VBtn size="small" variant="tonal" color="primary" @click="addFilter">
         <VIcon start>mdi-plus</VIcon> Add Filter
       </VBtn>
-      <VBtn
-        size="small"
-        variant="tonal"
-        color="primary"
-        @click="addGroup"
-        v-if="false"
-      >
+      <VBtn size="small" variant="tonal" color="primary" @click="addGroup">
         <VIcon start>mdi-plus</VIcon> Add Group
       </VBtn>
     </div>
