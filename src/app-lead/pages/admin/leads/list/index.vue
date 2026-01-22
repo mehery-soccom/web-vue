@@ -62,7 +62,7 @@ const fetchLeads = async (options = pagination) => {
     }
 
     const userRoles = window.CONST?.USER?.role || []
-    if (userRoles.includes('MODERATOR') || userRoles.includes('AGENT')) {
+    if (userRoles.includes('MODERATOR') || userRoles.includes('USER')) {
       activeFilters['assignedTo'] = byUser 
     }
 

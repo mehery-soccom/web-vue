@@ -64,6 +64,10 @@ const fetchFeedbacks = async (options = pagination) => {
       }
     }
 
+    if (userRoles.includes('MODERATOR') || userRoles.includes('USER')) {
+      activeFilters['assignee.code'] = byUser
+    }
+
     const apiParams = {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
