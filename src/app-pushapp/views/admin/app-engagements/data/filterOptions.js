@@ -1,17 +1,18 @@
-export const optionTypes = [
+export const FILTER_TYPES = [
   { title: "System Event", value: "event" },
   { title: "System Attribute", value: "attribute" },
   { title: "Profile Attribute", value: "additionalInfo" },
   { title: "Profile Cohort", value: "cohort" },
 ];
 
-export const optionsMap = {
+export const FILTER_FIELDS_MAP = {
   /* Events */
   app_open: {
     type: "event",
     title: "App open",
     value: "app_open",
-    freqFieldMeta: {
+    inputFieldMeta: {
+      type: "frequency",
       required: false,
     },
   },
@@ -59,9 +60,15 @@ export const optionsMap = {
   // fetch from api
 };
 
-export const operatorsMaster = [
-  // for type string & number
+export const FILTER_OPERATORS = [
   { value: "EQ", title: "Equals", text: "= (equals)", sign: "=" },
+  {
+    value: "NOT_EQ",
+    title: "Not equals",
+    text: "!= (not equals)",
+    sign: "!=",
+  },
+
   {
     value: "ANY_MATCH",
     title: "Contains",
@@ -77,39 +84,59 @@ export const operatorsMaster = [
     strictApplicableTypes: ["text"],
   },
   {
-    value: "END_WITH",
+    value: "ENDS_WITH",
     title: "Ends With",
     text: "$= (ends with)",
     sign: "$=",
     strictApplicableTypes: ["text"],
   },
 
-  { value: "equals", title: "Equals", text: "= (equals)", sign: "=" },
-  {
-    value: "not_equals",
-    title: "Not equals",
-    text: "!= (not equals)",
-    sign: "!=",
-  },
-  { value: "is", title: "Is", text: "= (is)", sign: "=" },
-  { value: "is_not", title: "Is not", text: "!= (is not)", sign: "!=" },
-  { value: "exactly", title: "Exactly", text: "= (exactly)", sign: "=" },
   {
     value: "less_than",
     title: "Less than",
     text: "< (less than)",
     sign: "<",
-    strictApplicableTypes: ["number"],
+    strictApplicableTypes: ["number", "frequency"],
+  },
+  {
+    value: "less_than_or_equal",
+    title: "Less than or equal",
+    text: "<= (less than or equal)",
+    sign: "<=",
+    strictApplicableTypes: ["number", "frequency"],
   },
   {
     value: "more_than",
     title: "More than",
     text: "> (more than)",
     sign: ">",
-    strictApplicableTypes: ["number"],
+    strictApplicableTypes: ["number", "frequency"],
+  },
+  {
+    value: "more_than_or_equal",
+    title: "More than or equal",
+    text: ">= (more than or equal)",
+    sign: ">=",
+    strictApplicableTypes: ["number", "frequency"],
   },
 
-  // for type date
+  {
+    value: "IN",
+    title: "In",
+    text: "∈ (in list)",
+    sign: "∈",
+    expects: "array",
+    strictApplicableTypes: ["select"],
+  },
+  {
+    value: "NOT_IN",
+    title: "Not In",
+    text: "∉ (not in list)",
+    sign: "∉",
+    expects: "array",
+    strictApplicableTypes: ["select"],
+  },
+
   {
     value: "AFTER",
     title: "After",
@@ -153,25 +180,8 @@ export const operatorsMaster = [
     strictApplicableTypes: ["date"],
   },
 ];
-export const eventOperators = [
-  { title: "Is", value: "is" },
-  { title: "Is not", value: "is_not" },
-];
-export const attributeOperators = [
-  { title: "Equals", value: "equals" },
-  { title: "Not equals", value: "not_equals" },
-];
-export const profileAttributeOperators = [
-  { title: "Equals", value: "equals" },
-  { title: "Not equals", value: "not_equals" },
-];
-export const freqOperators = [
-  { title: "Exactly", value: "exactly" },
-  { title: "Less than", value: "less_than" },
-  { title: "More than", value: "more_than" },
-];
 
-export const freqPeriods = [
+export const FILTER_PERIODS = [
   { title: "Today", value: "today" },
   { title: "Yesterday", value: "yesterday" },
   { title: "In last 7 days", value: "last_7_days" },

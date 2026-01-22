@@ -16,17 +16,11 @@ const furtherGroupRef = ref(null);
 
 // === Constants ===
 const {
-  FILTER_OPTION_TYPES,
-  FILTER_OPTIONS_MAP,
-  FILTER_EVENT_OPTIONS,
-  FILTER_ATTRIBUTE_OPTIONS,
-  FILTER_PROFILE_ATTRIBUTE_OPTIONS,
-  FILTER_PROFILE_COHORT_OPTIONS,
-  eventOperators,
-  attributeOperators,
-  profileAttributeOperators,
-  freqOperators,
-  freqPeriods,
+  FILTER_TYPES,
+  FILTER_FIELDS,
+  FILTER_FIELDS_MAP,
+  FILTER_OPERATORS,
+  FILTER_PERIODS,
 } = useAppEngagements(props.element);
 
 // === Clear error on change ===
@@ -45,13 +39,18 @@ const isValid = async (silent = false) => {
   } else {
     if (!el.field) valid = false;
     if (
-      FILTER_OPTIONS_MAP[el.field]?.inputFieldMeta &&
-      (!el.operator || !el.value)
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta &&
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.required !== false &&
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type !== "frequency" &&
+      (!el.operator ||
+        !el.value ||
+        (Array.isArray(el.value) && !el.value.length))
     )
       valid = false;
     if (
-      el.filterType === "event" &&
-      FILTER_OPTIONS_MAP[el.field]?.freqFieldMeta?.required &&
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta &&
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.required !== false &&
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "frequency" &&
       (!el.freqOperator || !el.freqCount || !el.freqPeriod)
     )
       valid = false;
@@ -64,8 +63,20 @@ const isValid = async (silent = false) => {
 
 watch(
   () => props.element.filterType,
-  (newType) => {
+  () => {
     props.element.field = null;
+    props.element.operator = null;
+    props.element.value = null;
+    props.element.freqOperator = null;
+    props.element.freqCount = null;
+    props.element.freqPeriod = null;
+
+    clearErrorAndUpdate();
+  }
+);
+watch(
+  () => props.element.field,
+  () => {
     props.element.operator = null;
     props.element.value = null;
     props.element.freqOperator = null;
@@ -90,7 +101,7 @@ defineExpose({ isValid });
       <!-- Type -->
       <AppSelect
         v-model="element.filterType"
-        :items="FILTER_OPTION_TYPES"
+        :items="FILTER_TYPES"
         placeholder="Select Type"
         density="compact"
         class="filter-entity filter-type"
@@ -99,73 +110,43 @@ defineExpose({ isValid });
 
       <!-- Field -->
       <AppSelect
-        v-if="element.filterType === 'event'"
         v-model="element.field"
-        :items="FILTER_EVENT_OPTIONS"
-        placeholder="Select Event"
-        class="filter-entity field"
-        @update:modelValue="clearErrorAndUpdate"
-      />
-      <AppSelect
-        v-else-if="element.filterType === 'attribute'"
-        v-model="element.field"
-        :items="FILTER_ATTRIBUTE_OPTIONS"
-        placeholder="Select Attribute"
-        class="filter-entity field"
-        @update:modelValue="clearErrorAndUpdate"
-      />
-      <AppSelect
-        v-else-if="element.filterType === 'additionalInfo'"
-        v-model="element.field"
-        :items="FILTER_PROFILE_ATTRIBUTE_OPTIONS"
-        placeholder="Select Profile Attribute"
-        class="filter-entity field"
-        @update:modelValue="clearErrorAndUpdate"
-      />
-      <AppSelect
-        v-else-if="element.filterType === 'cohort'"
-        v-model="element.field"
-        :items="FILTER_PROFILE_COHORT_OPTIONS"
-        placeholder="Select Profile Cohort"
+        :items="FILTER_FIELDS"
+        :placeholder="`Select field`"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
       />
 
       <!-- Operator -->
       <AppSelect
-        v-if="FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta"
-        v-model="element.operator"
-        :items="
-          element.filterType === 'event'
-            ? eventOperators
-            : element.filterType === 'attribute'
-            ? attributeOperators
-            : element.filterType === 'additionalInfo' ||
-              element.filterType === 'cohort'
-            ? profileAttributeOperators
-            : []
+        v-if="
+          FILTER_FIELDS_MAP[element.field]?.inputFieldMeta &&
+          FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type !== 'frequency'
         "
+        v-model="element.operator"
+        :items="FILTER_OPERATORS"
         placeholder="Operator"
         class="filter-entity operator"
         @update:modelValue="clearErrorAndUpdate"
       />
 
       <!-- Value -->
-      <template v-if="FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta">
+      <template v-if="FILTER_FIELDS_MAP[element.field]?.inputFieldMeta">
         <AppSelect
           v-if="
-            FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta?.type === 'select'
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
+              'select' ||
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
+              'dropdown'
           "
           v-model="element.value"
           :items="
-            FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta?.options || []
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.options || []
           "
           placeholder="Select Value"
           class="filter-entity value"
-          :multiple="
-            !!FILTER_OPTIONS_MAP[element.field]?.inputFieldMeta?.multiple
-          "
-          :disabled="!element.field"
+          :multiple="true"
+          :clearable="true"
           @update:modelValue="clearErrorAndUpdate"
         >
           <template #item="{ props, item }">
@@ -184,46 +165,61 @@ defineExpose({ isValid });
             </VListItem>
           </template>
         </AppSelect>
+        <div
+          v-else-if="
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
+            'frequency'
+          "
+          class="d-flex align-center gap-2"
+        >
+          <AppSelect
+            v-model="element.freqOperator"
+            :items="FILTER_OPERATORS"
+            class="filter-entity freq-operator"
+            placeholder="Frequency"
+            @update:modelValue="clearErrorAndUpdate"
+          />
+          <AppTextField
+            v-model="element.freqCount"
+            type="number"
+            class="filter-entity freq-count"
+            @update:modelValue="clearErrorAndUpdate"
+          />
+          <span class="text-caption">time(s)</span>
+          <AppSelect
+            v-model="element.freqPeriod"
+            :items="FILTER_PERIODS"
+            class="filter-entity freq-period"
+            placeholder="Period"
+            @update:modelValue="clearErrorAndUpdate"
+          />
+        </div>
+        <MyBooleanPicker
+          v-else-if="
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'boolean'
+          "
+          v-model="element.value"
+          @update:modelValue="clearErrorAndUpdate"
+        />
+        <MyDateTimePicker
+          v-else-if="
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'date'
+          "
+          :mode="element.operator === 'BETWEEN' ? 'range' : 'single'"
+          v-model="element.value"
+          placeholder="Select Date"
+          clearable
+          @update:modelValue="clearErrorAndUpdate"
+          class="filter-entity f-w-value"
+        />
         <AppTextField
           v-else
           v-model="element.value"
           placeholder="Enter Value"
           class="filter-entity value"
-          :disabled="!element.field"
           @update:modelValue="clearErrorAndUpdate"
         />
       </template>
-
-      <!-- Splitted Frequency (only for events) -->
-      <div
-        v-if="
-          element.filterType === 'event' &&
-          !!FILTER_OPTIONS_MAP[element.field]?.freqFieldMeta
-        "
-        class="d-flex align-center gap-2"
-      >
-        <AppSelect
-          v-model="element.freqOperator"
-          :items="freqOperators"
-          class="filter-entity freq-operator"
-          placeholder="Frequency"
-          @update:modelValue="clearErrorAndUpdate"
-        />
-        <AppTextField
-          v-model="element.freqCount"
-          type="number"
-          class="filter-entity freq-count"
-          @update:modelValue="clearErrorAndUpdate"
-        />
-        <span class="text-caption">time(s)</span>
-        <AppSelect
-          v-model="element.freqPeriod"
-          :items="freqPeriods"
-          class="filter-entity freq-period"
-          placeholder="Period"
-          @update:modelValue="clearErrorAndUpdate"
-        />
-      </div>
 
       <!-- Delete -->
       <VTooltip location="top" v-if="index > 0">
@@ -270,7 +266,10 @@ defineExpose({ isValid });
   max-width: 140px;
 }
 .value {
-  max-width: 220px;
+  max-width: 250px;
+}
+.f-w-value {
+  width: 250px;
 }
 .freq-operator {
   width: 140px;

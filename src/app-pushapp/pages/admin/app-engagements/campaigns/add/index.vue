@@ -42,7 +42,7 @@ const campaign = reactive({
         type: "filter",
         filterType: "event",
         field: null,
-        operator: "is",
+        operator: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -120,15 +120,21 @@ const scheduleRef = ref();
 const errors = ref({});
 const temp = ref(null);
 const tempB = ref(null);
-const templateList = ref([])
+const templateList = ref([]);
 const fetchTemplateList = async () => {
-  try{
-    const response = await appEngagementsStore.fetchTemplates({ page: 0, itemsPerPage: 100 })
-    templateList.value = response.data.results.map((r) => ({ ...r, id: r._id }));
-  }catch(e){
-    console.log("templates error",e)
+  try {
+    const response = await appEngagementsStore.fetchTemplates({
+      page: 0,
+      itemsPerPage: 100,
+    });
+    templateList.value = response.data.results.map((r) => ({
+      ...r,
+      id: r._id,
+    }));
+  } catch (e) {
+    console.log("templates error", e);
   }
-}
+};
 
 const onSelectTemplate = (param = "t_edit", id) => {
   router.replace({
@@ -247,7 +253,7 @@ const create = async () => {
 //   },
 //   { immediate: true }
 // );
-onMounted (async () => {
+onMounted(async () => {
   await fetchTemplateList();
   // setInterval(()=> console.log("add page", templateRef?.isPreStep?.value, templateBRef?.isPreStep?.value), 10000);
 });
@@ -354,13 +360,22 @@ onMounted (async () => {
         <div
           v-show="!campaign.abTesting.enabled || activeTemplateVariant === 'A'"
         >
-          <div class="mb-4" v-if="!route.query.t_edit && !!templateRef?.isPreStep" style="width: 100%;text-align: center; border-bottom: 1px dashed black;">
+          <div
+            class="mb-4"
+            v-if="!route.query.t_edit && !!templateRef?.isPreStep"
+            style="
+              width: 100%;
+              text-align: center;
+              border-bottom: 1px dashed black;
+            "
+          >
             <!-- select template -->
             <!-- @click="() => onSelectTemplate('t_edit')" -->
             <VRow>
               <!-- <VCol cols="12" md="4"></VCol> -->
               <VCol cols="12" md="4">
-                <AppAutocomplete style="margin: 15px 0 25px;"
+                <AppAutocomplete
+                  style="margin: 15px 0 25px"
                   v-model="temp"
                   :items="templateList"
                   placeholder="Select Template"
@@ -372,21 +387,27 @@ onMounted (async () => {
               </VCol>
             </VRow>
           </div>
-          <Template
-            ref="templateRef"
-            :edit="route.query.t_edit"
-          />
+          <Template ref="templateRef" :edit="route.query.t_edit" />
         </div>
         <div
           v-show="campaign.abTesting.enabled && activeTemplateVariant === 'B'"
         >
           <!-- select template -->
           <!-- @click="() => onSelectTemplate('t_b_edit')" -->
-          <div class="mb-4" v-if="!route.query.t_b_edit && !!templateBRef?.isPreStep" style="width: 100%;text-align: center; border-bottom: 1px dashed black;">
+          <div
+            class="mb-4"
+            v-if="!route.query.t_b_edit && !!templateBRef?.isPreStep"
+            style="
+              width: 100%;
+              text-align: center;
+              border-bottom: 1px dashed black;
+            "
+          >
             <VRow>
               <!-- <VCol cols="12" md="4"></VCol> -->
               <VCol cols="12" md="4">
-                <AppAutocomplete style="margin: 15px 0 25px;"
+                <AppAutocomplete
+                  style="margin: 15px 0 25px"
                   v-model="tempB"
                   :items="templateList"
                   placeholder="Select Template"
@@ -398,10 +419,7 @@ onMounted (async () => {
               </VCol>
             </VRow>
           </div>
-          <Template
-            ref="templateBRef"
-            :edit="route.query.t_b_edit"
-          />
+          <Template ref="templateBRef" :edit="route.query.t_b_edit" />
         </div>
       </VWindowItem>
 
