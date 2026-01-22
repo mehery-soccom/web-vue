@@ -29,6 +29,7 @@
         </MyDataTable>
       </VCol>
     </VRow>
+    <div style="margin-left: 40px;font-weight: 800;" v-else-if="!filteredCta.length && !abTesting.enabled"> No CTA available</div>
 
     <!-- CTA By Hour Table -->
     <!-- <VRow v-if="ctaByHourEntries.length" class="mt-3">

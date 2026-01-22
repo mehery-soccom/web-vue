@@ -358,7 +358,7 @@ onMounted (async () => {
             <!-- select template -->
             <!-- @click="() => onSelectTemplate('t_edit')" -->
             <VRow>
-              <VCol cols="12" md="4"></VCol>
+              <!-- <VCol cols="12" md="4"></VCol> -->
               <VCol cols="12" md="4">
                 <AppAutocomplete style="margin: 15px 0 25px;"
                   v-model="temp"
@@ -384,7 +384,7 @@ onMounted (async () => {
           <!-- @click="() => onSelectTemplate('t_b_edit')" -->
           <div class="mb-4" v-if="!route.query.t_b_edit && !!templateBRef?.isPreStep" style="width: 100%;text-align: center; border-bottom: 1px dashed black;">
             <VRow>
-              <VCol cols="12" md="4"></VCol>
+              <!-- <VCol cols="12" md="4"></VCol> -->
               <VCol cols="12" md="4">
                 <AppAutocomplete style="margin: 15px 0 25px;"
                   v-model="tempB"

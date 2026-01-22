@@ -326,6 +326,7 @@ onMounted(async () => {
   setInterval(()=> console.log("id page", isPreStep.value), 10000);
 });
 function goToPreStep() {
+  if(props.edit) router.push({ name: "admin-app-engagements-campaigns-add" });
   isPreStep.value = true;
 }
 function onPresetSelect({ type, subType }) {
@@ -414,7 +415,6 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
             <v-col
               class="pa-0"
               cols="auto"
-              v-if="!(PARAM_ID || QUERY_COPY || props.edit)"
             >
               <v-btn variant="outlined" color="primary" @click="goToPreStep">
                 ← Back to pre step

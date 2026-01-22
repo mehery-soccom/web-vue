@@ -718,6 +718,7 @@ export const SUB_TYPES = [
           readonly: false,
           defaultValue: null,
           buttonSize: true,
+          combobox: true,
         }, 
         {
           id: "road-cross-color",
