@@ -156,14 +156,27 @@ const downloadReport = async (val=false) => {
     if(response.data.data == 'EXISTS') {
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
-          <div>Download already in progress.</div>
+          <div>Report already present.</div>
           <button style="border-radius:4px;border:1px solid #fff;width: 180px;max-height: 40px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
-            Still download
+            Download Anyway
           </button>
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
       )
+    } else if(response.data.data == 'IN_PROGRESS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report creation already in progress.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 180px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download Anyway
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else {
+      toast.success('Download Started, Please check after some time.')
     }
   } catch (error) {
     console.error("report error", error);
