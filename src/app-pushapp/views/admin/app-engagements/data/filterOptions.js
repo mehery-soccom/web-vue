@@ -13,7 +13,7 @@ export const FILTER_FIELDS_MAP = {
     value: "app_open",
     inputFieldMeta: {
       type: "frequency",
-      required: false,
+      required: true,
     },
   },
   page_open: {
