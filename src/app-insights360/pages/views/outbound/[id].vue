@@ -143,6 +143,14 @@ window.stillDownloadReport = async (val) => {
   toast.clearAll()
   await downloadReport(val)
 }
+window.downloadFile = (url, name) => {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
 const downloadReport = async (val=false) => {
   isLoading.value = true;
@@ -153,22 +161,26 @@ const downloadReport = async (val=false) => {
     }
     if(!!val) params.force = true;
     const response = await projectStore.downloadReports(params);
-    if(response.data.data == 'EXISTS') {
+    if(response.data?.data?.status === 'EXISTS') {
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
           <div>Report already present.</div>
-          <button style="border-radius:4px;border:1px solid #fff;width: 180px;max-height: 40px;display: flex;align-items: center;
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile(${response.data.data.fileLink},${response.data.data.title})">
+            Download Existing
+          </button>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
             Download Anyway
           </button>
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
       )
-    } else if(response.data.data == 'IN_PROGRESS') {
+    } else if(response.data?.data?.status === 'IN_PROGRESS') {
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
           <div>Report creation already in progress.</div>
-          <button style="border-radius:4px;border:1px solid #fff;width: 180px;max-height: 40px;display: flex;align-items: center;
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
             Download Anyway
           </button>
