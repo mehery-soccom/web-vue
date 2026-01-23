@@ -166,7 +166,7 @@ const downloadReport = async (val=false) => {
         `<div style="display:flex;flex-direction:column;gap:8px;">
           <div>Report already present.</div>
           <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
-            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile(${response.data.data.fileLink},${response.data.data.title})">
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile('${response.data.data.fileLink}','${response.data.data.title}')">
             Download Existing
           </button>
           <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
