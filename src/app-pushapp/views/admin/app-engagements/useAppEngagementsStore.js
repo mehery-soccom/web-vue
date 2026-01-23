@@ -280,20 +280,25 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
   }),
   getters: {},
   actions: {
-    // 👉 Fetch something
-    fetchSomething({ id }) {
-      return DataService.axios.get(`/api/something/${id}`);
+    fetch({ path, options }) {
+      return DataService.axios.get(`${path}`, options);
     },
+
     createTemplate(params) {
       return DataService.axios.post("/api/templates/in-app", params);
     },
-    async fetchTemplates(params){
+    async fetchTemplates(params) {
       let { page, itemsPerPage, sortBy = [], filters } = params;
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
       return DataService.axios.get(`/api/templates/in-app`, {
-        params: { page, limit: itemsPerPage, sort: sort || "-createdAt", search: filters },
+        params: {
+          page,
+          limit: itemsPerPage,
+          sort: sort || "-createdAt",
+          search: filters,
+        },
       });
     },
     fetchTemplate({ id }) {
@@ -305,6 +310,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
     deleteTemplate({ id }) {
       return DataService.axios.delete(`/api/templates/in-app/${id}`);
     },
+
     createFilter(params) {
       return DataService.axios.post(
         "/api/v1/notification/in-app/filter",
@@ -343,6 +349,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
         params
       );
     },
+
     fetchPlaceholders() {
       return DataService.axios.get(`/api/v1/catalog/placeholders/options`);
     },

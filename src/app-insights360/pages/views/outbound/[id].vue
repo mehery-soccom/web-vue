@@ -7,6 +7,7 @@ import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytic
 import debounce from "lodash/debounce";
 import CardStatisticsTransactions from "@app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
 import errorList from '@app-insights360/views/dashboards/analytics/MetaErrorCode.json' 
+import { toast } from "vue3-toastify";
 
 const route = useRoute();
 const isLoading = ref(false);
@@ -115,7 +116,12 @@ const fetchCampaignData = async (id, pagination) => {
     if(response?.data?.pagination) pagination.itemsLength = response.data.pagination.total;
     console.log("sa", pagination.itemsLength, response.data.pagination.total)
     if (response?.data?.data != null) {
-      campTable.value = response?.data?.results;
+      const createdBy = response.data.data.createdBy || '-';
+
+      campTable.value = (response?.data?.results || []).map(item => ({
+        ...item,
+        agent: item.agent || createdBy
+      }));
       if (response?.data?.data && response?.data?.data?.stats) {
         const laneFromResult = response?.data?.results && response.data.results.length
           ? response.data.results[0]?.contact?.lane
@@ -133,7 +139,63 @@ const fetchCampaignData = async (id, pagination) => {
 const getErrorInfo = (code) => {
   return errorList.find(e => e.Code === Number(code))
 }
+window.stillDownloadReport = async (val) => {
+  toast.clearAll()
+  await downloadReport(val)
+}
+window.downloadFile = (url, name) => {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
+const downloadReport = async (val=false) => {
+  isLoading.value = true;
+  try {
+    let params = {
+      meta: { bulkSessionId: route.params.id },
+      type: 'campaign-reports'
+    }
+    if(!!val) params.force = true;
+    const response = await projectStore.downloadReports(params);
+    if(response.data?.data?.status === 'EXISTS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report already present.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile('${response.data.data.fileLink}','${response.data.data.title}')">
+            Download Existing
+          </button>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download Anyway
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else if(response.data?.data?.status === 'IN_PROGRESS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report creation already in progress.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download Anyway
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else {
+      toast.success('Download Started, Please check after some time.')
+    }
+  } catch (error) {
+    console.error("report error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
 const exportToExcel = () => {
   const formattedData = campTable.value.map((item) => ({
     Contact: item.contact.phone || item.contact.email,
@@ -190,9 +252,18 @@ function formatTimestamp(ts) {
         </RouterLink>
       </div>
       <VBtn
+        @click="downloadReport(false)"
+        color="primary"
+        style="width: 45px; height: 45px; min-width: 40px;"
+        class="pa-0"
+        variant="flat"
+      >
+        <VIcon>mdi-file-download</VIcon>
+      </VBtn>
+      <VBtn
         @click="exportToExcel"
         color="primary"
-        style="width: 40px; height: 40px; min-width: 40px; margin-right: 12px"
+        style="width: 45px; height: 45px; min-width: 40px; margin-right: 12px"
         class="pa-0 ml-3"
         variant="flat"
       >

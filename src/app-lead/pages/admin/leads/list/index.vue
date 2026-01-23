@@ -29,7 +29,7 @@ const pagination = reactive({
 })
 
 const userRoles = window.CONST?.USER?.role || []
-const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('AGENT')
+const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('USER')
 
 const headers = computed(() => {
   const list = [
@@ -41,7 +41,6 @@ const headers = computed(() => {
     { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
   ]
   
-  // Only add the checkbox column if the user is allowed to assign
   if (canAssign) {
     list.unshift({ key: 'data-table-select', sortable: false })
   }
@@ -62,13 +61,8 @@ const fetchLeads = async (options = pagination) => {
       }
     }
 
-    // const userRoles = window.CONST?.USER?.role || []
-    // if (userRoles.includes('ADMIN')) {
-    //   activeFilters['assignedTo'] = byUser 
-    // }
-
     const userRoles = window.CONST?.USER?.role || []
-    if (userRoles.includes('MODERATOR') || userRoles.includes('AGENT')) {
+    if (userRoles.includes('MODERATOR') || userRoles.includes('USER')) {
       activeFilters['assignedTo'] = byUser 
     }
 

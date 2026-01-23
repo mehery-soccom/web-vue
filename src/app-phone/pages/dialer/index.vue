@@ -249,7 +249,7 @@ onMounted(async () => {
   sendPostMessage("webrtc-ready", { status: "initialized" });
   const res = await getChannelList();
   const channels = res?.results || [];
-  channelsList.value = channels.filter(c => c.channelType === "wacfb" && !c.disabled && !c.deleted); // && !!c.wacfb.configcall 
+  channelsList.value = channels.filter(c => c.channelType === "wacfb" && !c.disabled && !c.deleted && !!c?.wacfb?.configcall); 
   console.log("channel list", channelsList.value)
   // const cata = { 
   //   event:"response-to-call",

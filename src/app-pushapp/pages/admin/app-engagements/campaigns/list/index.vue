@@ -60,7 +60,7 @@ const headers = [
     filterOptions: [
       { title: "Enabled", value: true },
       { title: "Disabled", value: false },
-    ]
+    ],
   },
   {
     title: "Status",
@@ -327,6 +327,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           mdi-flask
         </VIcon>
+        <VTooltip v-if="item.raw.abTesting?.enabled" activator="parent">{{
+          item.raw.abTesting?.state || "Expand row for more details"
+        }}</VTooltip>
       </template>
 
       <!-- Template codes -->

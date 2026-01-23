@@ -1,41 +1,115 @@
-import { useAppEngagementsStore } from "@app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
-import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
+// import { useAppEngagementsStore } from "@app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
+// import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
 import DataService from "@/@common/services/DataService";
 
 import TYPES from "./data/types";
-import { getSubTypes } from "./data/subTypes";
+import { SUB_TYPES } from "./data/subTypes";
 import {
-  optionsMap,
-  eventOperators,
-  attributeOperators,
-  freqOperators,
-  freqPeriods,
+  FILTER_TYPES,
+  FILTER_FIELDS_MAP as _FILTER_FIELDS_MAP,
+  FILTER_OPERATORS as _FILTER_OPERATORS,
+  FILTER_PERIODS,
 } from "./data/filterOptions";
 
 /* Shared Singleton State ( Make the data global and shared across all components using the composable ) */
-const FILTER_OPTIONS_MAP = reactive(optionsMap);
+const FILTER_FIELDS_MAP = reactive({});
+const localCache = reactive({});
 const isLoaded = ref(false);
 const isLoading = ref(false);
 
-export const useAppEngagements = () => {
-  const route = useRoute();
-  const router = useRouter();
+export const useAppEngagements = (source) => {
+  // const route = useRoute();
+  // const router = useRouter();
 
-  const appEngagementsStore = useAppEngagementsStore();
-  const libraryStore = useLibraryStore();
+  // const appEngagementsStore = useAppEngagementsStore();
+  // const libraryStore = useLibraryStore();
 
-  const SUB_TYPES = getSubTypes();
-  const FILTER_OPTIONS = Object.values(FILTER_OPTIONS_MAP);
-  const FILTER_EVENT_OPTIONS = computed(() => {
-    return FILTER_OPTIONS.filter((o) => o.type === "event");
+  const FILTER_FIELDS = computed(() => {
+    // console.log("FILTER_FIELDS", source?.filterType);
+    if (!source?.filterType) return [];
+    return Object.values(FILTER_FIELDS_MAP).filter(
+      (o) => o.type === source.filterType
+    );
   });
-  const FILTER_ATTRIBUTE_OPTIONS = computed(() => {
-    return FILTER_OPTIONS.filter((o) => o.type === "attribute");
+  const FILTER_OPERATORS = computed(() => {
+    // console.log("FILTER_OPERATORS", source.field);
+    const filterField = FILTER_FIELDS_MAP[source.field];
+    if (!filterField) return [];
+    const filterFieldInputType = filterField.inputFieldMeta?.type;
+    // console.log("FILTER_OPERATORS filterFieldInputType", filterFieldInputType);
+    return _FILTER_OPERATORS.filter((el) => {
+      let r = true;
+      if (el.strictApplicableTypes) {
+        if (
+          !filterFieldInputType ||
+          !el.strictApplicableTypes.includes(filterFieldInputType)
+        ) {
+          r = false;
+        }
+      }
+      return r;
+    });
   });
 
-  async function fetchExternalOptions() {
+  async function fetchFilterFields({ type }) {
+    console.log("fetchFilterFields", type);
+
+    if (!type || localCache[type]) return;
+
+    if (type === "event" || type === "attribute") {
+      const resultsMap = {};
+      const results = Object.values(_FILTER_FIELDS_MAP).filter((o) => {
+        const r = o.type === type;
+        if (r) resultsMap[o.value] = o;
+        return r;
+      });
+      localCache[type] = results;
+      Object.assign(FILTER_FIELDS_MAP, resultsMap);
+
+      if (!isLoaded.value && !isLoading.value) {
+        fetchFilterFieldValues();
+      }
+    }
+
+    if (type === "additionalInfo" || type === "cohort") {
+      isLoading.value = true;
+      try {
+        const response = await DataService.getX(
+          "/api/v1/customer/master/field"
+        );
+        const resultsMap = {};
+        const results = response.map((el) => {
+          const r = {
+            type,
+            title: el.label,
+            value: el.code,
+            inputFieldMeta: {
+              type: { dropdown: "select" }[el.type] || el.type,
+              options: el.possibleOptions?.map((o) => {
+                return {
+                  title: o.label,
+                  value: o.value,
+                };
+              }),
+            },
+          };
+          resultsMap[r.value] = r;
+          return r;
+        });
+        localCache[type] = results;
+        Object.assign(FILTER_FIELDS_MAP, resultsMap);
+      } catch (error) {
+        console.error(`Failed to fetch filter options for ${type}:`, error);
+        localCache[type] = [];
+      } finally {
+        isLoading.value = false;
+      }
+    }
+  }
+
+  async function fetchFilterFieldValues() {
     isLoading.value = true;
-    for (const [key, filter] of Object.entries(FILTER_OPTIONS_MAP)) {
+    for (const [key, filter] of Object.entries(FILTER_FIELDS_MAP)) {
       const meta = filter.inputFieldMeta;
 
       // Skip if no inputFieldMeta
@@ -46,7 +120,7 @@ export const useAppEngagements = () => {
         try {
           const response = await DataService.get(meta.options);
           const { results } = response;
-          FILTER_OPTIONS_MAP[key].inputFieldMeta.options = results.map(
+          FILTER_FIELDS_MAP[key].inputFieldMeta.options = results.map(
             (item) => ({
               title: item.label,
               value: item.code,
@@ -59,7 +133,7 @@ export const useAppEngagements = () => {
         } catch (error) {
           console.error(`Failed to fetch options for ${key}:`, error);
 
-          FILTER_OPTIONS_MAP[key].inputFieldMeta.options = [];
+          FILTER_FIELDS_MAP[key].inputFieldMeta.options = [];
         }
       }
     }
@@ -67,44 +141,26 @@ export const useAppEngagements = () => {
     isLoading.value = false;
   }
 
-  async function fetchOptionsForKey(key) {
-    const filter = FILTER_OPTIONS_MAP[key];
-    if (
-      !filter?.inputFieldMeta?.options ||
-      typeof filter.inputFieldMeta.options !== "string"
-    )
-      return;
+  onMounted(() => {});
 
-    try {
-      const response = await fetch(filter.inputFieldMeta.options);
-      const data = await response.json();
-
-      FILTER_OPTIONS_MAP[key].inputFieldMeta.options = data.map((item) => ({
-        title: item.name,
-        value: item.id,
-      }));
-    } catch (error) {
-      console.error(`Failed to fetch options for "${key}":`, error);
-    }
-  }
-
-  onMounted(() => {
-    // Initialize only once
-    if (!isLoaded.value && !isLoading.value) {
-      fetchExternalOptions();
-    }
-  });
+  if (source)
+    watch(
+      source,
+      (newVal) => {
+        fetchFilterFields({ type: newVal?.filterType });
+      },
+      { immediate: true, deep: true }
+    );
 
   return {
     TYPES,
     SUB_TYPES,
 
-    FILTER_OPTIONS_MAP,
-    FILTER_EVENT_OPTIONS,
-    FILTER_ATTRIBUTE_OPTIONS,
-    eventOperators,
-    attributeOperators,
-    freqOperators,
-    freqPeriods,
+    FILTER_TYPES,
+    FILTER_FIELDS,
+    FILTER_FIELDS_MAP,
+    FILTER_OPERATORS,
+
+    FILTER_PERIODS,
   };
 };

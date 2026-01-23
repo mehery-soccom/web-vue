@@ -8,6 +8,14 @@ const router = useRouter();
 const userData = window.CONST.USER || {};
 // console.log("User Data in Lead UserProfile:", userData);
 
+const moveToAdmin = async () => {
+  try {
+    window.location.href = `${window.location.origin}/admin/app/home`;
+  } catch (e) {
+    console.error("Navigation to Admin failed", e);
+  }
+};
+
 const logout = async () => {
   try {
     window.location.href = `${window.location.origin}/nexus/insights360/auth/logout`;
@@ -17,6 +25,13 @@ const logout = async () => {
 };
 
 const userProfileList = [
+  { type: "divider" },
+  {
+    type: "navItem",
+    icon: "tabler-user-shield",
+    title: "Admin Panel",
+    onClick: moveToAdmin,
+  },
   { type: "divider" },
   {
     type: "navItem",

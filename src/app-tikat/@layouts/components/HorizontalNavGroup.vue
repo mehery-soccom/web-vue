@@ -1,0 +1,114 @@
+<script setup>
+import { useLayouts } from "@app-tikat/@layouts";
+import {
+  HorizontalNavLink,
+  HorizontalNavPopper,
+} from "@app-tikat/@layouts/components";
+import { config } from "@app-tikat/@layouts/config";
+import { isNavGroupActive } from "@app-tikat/@layouts/utils";
+
+const props = defineProps({
+  item: {
+    type: null,
+    required: true,
+  },
+  childrenAtEnd: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+  isSubItem: {
+    type: Boolean,
+    required: false,
+    default: false,
+  },
+});
+
+defineOptions({ name: "HorizontalNavGroup" });
+
+const route = useRoute();
+const router = useRouter();
+const { dynamicI18nProps, isAppRtl } = useLayouts();
+const isGroupActive = ref(false);
+
+watch(
+  () => route.path,
+  () => {
+    const isActive = isNavGroupActive(props.item.children, router);
+
+    isGroupActive.value = isActive;
+  },
+  { immediate: true }
+);
+</script>
+
+<template>
+  <!-- v-if="canViewNavMenuGroup(item)" -->
+  <HorizontalNavPopper
+    :is-rtl="isAppRtl"
+    class="nav-group"
+    tag="li"
+    content-container-tag="ul"
+    :class="[
+      {
+        active: isGroupActive,
+        'children-at-end': childrenAtEnd,
+        'sub-item': isSubItem,
+        disabled: item.disable,
+      },
+    ]"
+    :popper-inline-end="childrenAtEnd"
+  >
+    <div class="nav-group-label">
+      <Component
+        :is="config.app.iconRenderer || 'div'"
+        class="nav-item-icon"
+        v-bind="item.icon || config.verticalNav.defaultNavItemIconProps"
+      />
+      <Component
+        :is="config.app.enableI18n ? 'i18n-t' : 'span'"
+        v-bind="dynamicI18nProps(item.title, 'span')"
+        class="nav-item-title"
+      >
+        {{ item.title }}
+      </Component>
+      <Component
+        v-bind="config.icons.chevronDown"
+        :is="config.app.iconRenderer || 'div'"
+        class="nav-group-arrow"
+      />
+    </div>
+
+    <template #content>
+      <Component
+        :is="'children' in child ? 'HorizontalNavGroup' : HorizontalNavLink"
+        v-for="child in item.children"
+        :key="child.title"
+        :item="child"
+        children-at-end
+        is-sub-item
+      />
+    </template>
+  </HorizontalNavPopper>
+</template>
+
+<style lang="scss">
+.layout-horizontal-nav {
+  .nav-group {
+    .nav-group-label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+
+    .popper-content {
+      z-index: 1;
+
+      > div {
+        overflow-x: hidden;
+        overflow-y: auto;
+      }
+    }
+  }
+}
+</style>

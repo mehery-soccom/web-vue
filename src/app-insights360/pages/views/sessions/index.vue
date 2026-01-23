@@ -5,6 +5,7 @@ import { ref, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { toast } from "vue3-toastify";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -14,6 +15,9 @@ const isLoading = ref(false);
 const isDrawerOpen = ref(false);
 const selectedSession = ref({});
 const sessionTagsMap = ref({});
+const startTime = ref();
+const endTime = ref();
+const datePickerRef = ref(null)
 
 const selectedChatType = ref("I"); 
 const chatTypeOptions = [
@@ -28,6 +32,7 @@ var tonight = new Date();
 tonight.setHours(23, 59, 59, 999);
 const formattedToday = today.toLocaleDateString("en-GB").split("/").join("-");
 const dateRange = ref(formattedToday);
+const dateRange2 = ref(formattedToday);
 
 const headers = [
   { title: "Assigned To", key: "assignedTo", sortable: false },
@@ -38,7 +43,68 @@ const headers = [
   { title: "Start @", key: "startStamp", sortable: true },
   { title: "Actions", key: "actions", sortable: false },
 ];
+window.stillDownloadReport = async (val) => {
+  toast.clearAll()
+  await downloadReport(val)
+}
+window.downloadFile = (url, name) => {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
+const downloadReport = async (val=false) => {
+  isLoading.value = true;
+  try {
+    let params = {
+      dateRange1: startTime.value,
+      dateRange2: endTime.value,
+      type: 'chat-summary'
+    }
+    if(!!val) params.force = true;
+    const response = await projectStore.downloadReports(params);
+    if(response.data?.data?.status === 'EXISTS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report already present.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile('${response.data.data.fileLink}','${response.data.data.title}')">
+            Download Existing
+          </button>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download Anyway
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else if(response.data?.data?.status === 'IN_PROGRESS') {
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report creation already in progress.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download Anyway
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else {
+      toast.success('Download Started, Please check after some time.')
+    }
+  } catch (error) {
+    console.error("analytics error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
+const openReportDatePicker = () => {
+  console.log('ref:', datePickerRef.value)
+  datePickerRef.value?.open()
+}
 const formatDateForApi = (dateInput) => {
   const d = new Date(dateInput);
   const day = String(d.getDate()).padStart(2, '0');
@@ -149,6 +215,17 @@ const onDateClosed = (selectedDates) => {
     fetchSessions(start.getTime(), endDate.getTime());
   }
 };
+const onDateClosedReport = async (selectedDates) => {
+  // oldDates.value = selectedDates;
+  const start = new Date(selectedDates[0]);
+  // start.setHours(0, 0, 0, 0);
+  startTime.value = `${String(start.getDate()).padStart(2,'0')}-${String(start.getMonth()+1).padStart(2,'0')}-${start.getFullYear()}`;
+  const endDate = new Date(selectedDates.length === 1 ? selectedDates[0] : selectedDates[1])
+  // endDate.setHours(23, 59, 59, 998);
+  endTime.value = `${String(endDate.getDate()).padStart(2,'0')}-${String(endDate.getMonth()+1).padStart(2,'0')}-${endDate.getFullYear()}`;
+  console.log("dates", dateRange2, selectedDates, startTime.value, endTime.value)
+  await downloadReport();
+};
 
 const openSessionDetails = (item) => {
   selectedSession.value = item; 
@@ -250,11 +327,31 @@ onMounted(async () => {
 <template>
   <VRow>
     <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-right: 12px;">
-      
+      <VBtn
+        @click="openReportDatePicker"
+        color="primary"
+        style="width: 45px; height: 45px; min-width: 40px;margin-right: -12px;"
+        class="pa-0"
+        variant="flat"
+      >
+        <VIcon>mdi-file-download</VIcon>
+      </VBtn>
+      <AppDateTimePicker
+        v-model="dateRange2" ref="datePickerRef"
+        class="hidden-datepicker"
+        :config="{
+          mode: 'range',
+          dateFormat: 'd-m-Y',
+          position: 'auto right',
+          maxDate: tonight,
+          onClose: onDateClosedReport,
+          plugins: [customPlugin],
+        }"
+      />
       <VBtn
         @click="exportToExcel"
         color="primary"
-        style="width: 40px; height: 40px; min-width: 40px"
+        style="width: 45px; height: 45px; min-width: 40px"
         class="pa-0"
         variant="flat"
       >
@@ -477,5 +574,14 @@ onMounted(async () => {
   border-top-left-radius: 12px;
   border-bottom-left-radius: 12px;
   overflow: hidden;
+}
+</style>
+<style>
+.hidden-datepicker { 
+  position: absolute; 
+  opacity: 0; 
+  pointer-events: none; 
+  width: 0; 
+  height: 0; 
 }
 </style>

@@ -60,7 +60,13 @@ onBeforeUnmount(() => {
         }"
       >
         <div class="tooltip-content">
-          <div class="line1 road"
+          <div class="line1 road" style="display: flex;" v-if="props.template.style.richline_1">
+            <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'prepend'" v-html="template.style.line1_icon" />
+            <span v-html="props.template.style.richline_1"></span>
+            <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'append'" v-html="template.style.line1_icon" />
+          </div>
+          <!-- <div class="line1 road" v-if="props.template.style.richline_1" v-html="props.template.style.richline_1"></div> -->
+          <div class="line1 road" v-else
             :style="{
               color: template.style.line1_font_color,
               fontSize: (template.style.line1_font_size * scale) + 'px',
@@ -158,5 +164,10 @@ onBeforeUnmount(() => {
 
 .road.line1, .road.line2{
   color: black;
+}
+</style>
+<style>
+.road.line1 > span > p{
+  margin-block-end: 4px !important;
 }
 </style>
