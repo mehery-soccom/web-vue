@@ -218,7 +218,7 @@ const schemaErrors = computed(() => {
       seen.add(p.code);
     }
     if (!p.type) errs.push(`Property[${i}] missing "type".`);
-    else if (!["string", "number", "boolean", "select"].includes(p.type))
+    else if (!["string", "number", "boolean", "select", "pages"].includes(p.type))
       errs.push(
         `Property[${i}] type must be one of: string | number | boolean.`
       );
@@ -367,6 +367,10 @@ onMounted(() => {
       .read({ id: PARAM_KEY })
       .then((response) => {
         setItem(response.data.data);
+        if(PARAM_KEY === 'pages') {
+          libraryStore.$state.pageList = response.data.data.options;
+          console.log("res", libraryStore.$state.pageList)
+        }
       })
       .catch((error) => {
         console.log(error);
@@ -652,8 +656,19 @@ onMounted(() => {
                     v-model="optionEditing[field.code]"
                     :label="field.label"
                     :items="field.options"
-                    :rules="[field.required ? requiredValidator : null]"
+                    :rules="[field.required ? requiredValidator : true]"
                     clearable
+                  />
+                </VCol>
+
+                <!-- List of pages -->
+                <VCol v-else-if="field.type === 'pages'" cols="12" md="12">
+                  <AppSelect
+                    v-model="optionEditing[field.code]"
+                    :label="field.label"
+                    :items="libraryStore.$state.pageList || []"
+                    :rules="[field.required ? requiredValidator : true]"
+                    clearable item-title="label" item-value="code"
                   />
                 </VCol>
 
@@ -663,7 +678,7 @@ onMounted(() => {
                     v-model="optionEditing[field.code]"
                     :label="field.label"
                     :type="'number'"
-                    :rules="[field.required ? requiredValidator : null]"
+                    :rules="[field.required ? requiredValidator : true]"
                   />
                 </VCol>
 
