@@ -18,9 +18,9 @@ const pagination = reactive({
 });
 
 const headers = [
-  { title: "Stage", key: "title", sortable: true },
-  { title: "Description", key: "desc", sortable: true },
-  { title: "Probability (%)", key: "probability", sortable: true },
+  { title: "Stage", key: "title", sortable: false },
+  { title: "Description", key: "desc", sortable: false },
+  { title: "Probability (%)", key: "probability", sortable: false },
   { title: "Actions", key: "actions", sortable: false },
 ];
 
@@ -54,6 +54,7 @@ const fetchStages = async (options = pagination) => {
 
     const response = await stagesStore.fetchStages(apiParams);
     const fetchedStages = response.data || [];
+    fetchedStages.sort((a, b) => Number(a.probability) - Number(b.probability));
     const fetchedCodes = new Set(fetchedStages.map(s => s.code));
 
     const missingStages = defaultStages.filter(ds => !fetchedCodes.has(ds.code));
