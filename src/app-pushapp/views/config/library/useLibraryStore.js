@@ -2,7 +2,9 @@ import { defineStore } from "pinia";
 import DataService from "@/@common/services/DataService";
 
 export const useLibraryStore = defineStore("LibraryStore", {
-  state: () => ({}),
+  state: () => ({
+    pageList: [],
+  }),
   getters: {},
   actions: {
     create(params) {
