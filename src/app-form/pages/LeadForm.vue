@@ -5,6 +5,7 @@ import { useFormStore } from "@/app-form/views/useFormStore"
 import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { emailValidator, requiredValidator } from "@app-lead/@core/utils/validators"
 import LeadDocUpload from "@/app-lead/views/admin/leads/LeadDocUpload.vue"
+import PhoneInputWithCountry from "@/app-lead/@core/components/PhoneCodeWithCountry.vue"
 
 const route = useRoute()
 const router = useRouter();
@@ -20,8 +21,8 @@ const maxDocSize = 5 * 1024 * 1024;
 
 const phoneValidator = (value) => {
   if (!value) return true
-  const phoneRegex = /^[+]?[0-9]{10,15}$/
-  return phoneRegex.test(value) || "Please enter a valid phone number"
+  const phoneRegex = /^\+[0-9]{8,15}$/
+  return phoneRegex.test(value) || "Please select a country code and enter a valid phone number"
 }
 
 const getRules = (field) => {
@@ -93,7 +94,7 @@ onMounted(async () => {
       if (field.inputType === 'BOOLEAN') {
         initialValues[field.path || field.code] = false
       } else {
-        initialValues[field.path || field.code] = null
+        initialValues[field.path || field.code] = ''
       }
     })
     formValues.value = initialValues
@@ -191,12 +192,23 @@ const submitForm = async () => {
                 <span v-if="field.optional === false" class="text-error">*</span>
               </VLabel>
 
-              <VRow v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)">
+              <VRow v-if="['TEXT', 'EMAIL'].includes(field.inputType)">
                 <VCol md="8">
                   <VTextField
                     v-model="formValues[field.path || field.code]"
                     :placeholder="field.desc"
                     variant="outlined"
+                    :rules="getRules(field)"
+                    :disabled="isReadOnly(field)"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'PHONE'">
+                <VCol md="8">
+                  <PhoneInputWithCountry
+                    v-model="formValues[field.path || field.code]"
+                    :placeholder="field.desc"
                     :rules="getRules(field)"
                     :disabled="isReadOnly(field)"
                   />

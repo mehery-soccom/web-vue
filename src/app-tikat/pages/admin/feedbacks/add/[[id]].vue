@@ -9,6 +9,7 @@ import TikatDocUpload from '@/app-tikat/views/admin/feedback/TikatDocUpload.vue'
 import TikatDocs from '@/app-tikat/views/admin/feedback/TikatDocs.vue';
 import FeedbackStatusData from '@/app-tikat/views/admin/feedback/FeedbackStatusData.vue';
 import TikatFollowups from '@/app-tikat/views/admin/feedback/TikatFollowups.vue';
+import PhoneCodeWithCountry from '@/app-tikat/@core/components/PhoneCodeWithCountry.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -39,8 +40,8 @@ const byUser = window.CONST?.USER?.user || null;
 
 const phoneValidator = value => {
   if (!value) return true;
-  const phoneRegex = /^[+]?[0-9]{10,15}$/;
-  return phoneRegex.test(value) || 'Please enter a valid phone number';
+  const phoneRegex = /^\+[0-9]{8,15}$/
+  return phoneRegex.test(value) || "Please select a country code and enter a valid phone number"
 };
 
 const getRules = (field) => {
@@ -73,7 +74,7 @@ const loadFormStructure = async (formId) => {
         if (masterField) {
           const modelKey = masterField.key
           if (newData[modelKey] === undefined) {
-            newData[modelKey] = masterField.inputType === 'BOOLEAN' ? false : null
+            newData[modelKey] = masterField.inputType === 'BOOLEAN' ? false : ''
           }
         }
       })
@@ -276,11 +277,19 @@ onMounted(fetchFeedbackData);
                               </VLabel>
 
                               <VTextField
-                                v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)"
+                                v-if="['TEXT', 'EMAIL'].includes(field.inputType)"
                                 v-model="feedbackData[field.key]"
                                 :placeholder="field.label"
                                 :rules="getRules(field)"
                                 variant="outlined"
+                                :disabled="isReadOnly(field)"
+                              />
+
+                              <PhoneCodeWithCountry
+                                v-else-if="field.inputType === 'PHONE'"
+                                v-model="feedbackData[field.key]"
+                                :placeholder="field.label"
+                                :rules="getRules(field)"
                                 :disabled="isReadOnly(field)"
                               />
 
