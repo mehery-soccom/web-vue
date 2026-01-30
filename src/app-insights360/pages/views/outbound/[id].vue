@@ -157,32 +157,39 @@ const downloadReport = async (val=false) => {
   try {
     let params = {
       meta: { bulkSessionId: route.params.id },
-      type: 'campaign-reports'
+      type: 'campaign-reports',
+      agentCode: window.CONST.APP_USER,
     }
     if(!!val) params.force = true;
     const response = await projectStore.downloadReports(params);
     if(response.data?.data?.status === 'EXISTS') {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = '-';
+      if(!!createdAt) { formattedDateTime = new Date(createdAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
-          <div>Report already present.</div>
-          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
-            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile('${response.data.data.fileLink}','${response.data.data.title}')">
-            Download Existing
-          </button>
-          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+          <div>Report created for date range on ${formattedDateTime}. Available in Report Tab.</div>
+          <div>Create fresh report if more campaigns have been run after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;padding-left: 30px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
-            Download Anyway
+            Download
           </button>
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
       )
     } else if(response.data?.data?.status === 'IN_PROGRESS') {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = '-';
+      if(!!createdAt) { formattedDateTime = new Date(createdAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
-          <div>Report creation already in progress.</div>
-          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+          <div>Report creation started for date range on ${formattedDateTime}. Will appear in the Reports tab shortly.</div>
+          <div>Create fresh report if more campaigns have been run after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;padding-left: 30px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
-            Download Anyway
+            Download
           </button>
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
@@ -251,24 +258,34 @@ function formatTimestamp(ts) {
           Campaign Stats
         </RouterLink>
       </div>
-      <VBtn
-        @click="downloadReport(false)"
-        color="primary"
-        style="width: 45px; height: 45px; min-width: 40px;"
-        class="pa-0"
-        variant="flat"
-      >
-        <VIcon>mdi-file-download</VIcon>
-      </VBtn>
-      <VBtn
-        @click="exportToExcel"
-        color="primary"
-        style="width: 45px; height: 45px; min-width: 40px; margin-right: 12px"
-        class="pa-0 ml-3"
-        variant="flat"
-      >
-        <VIcon>mdi-download</VIcon>
-      </VBtn>
+      <VTooltip text="Download customer messaging info across the campaign">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="downloadReport(false)"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px;"
+            class="pa-0"
+            variant="flat"
+          >
+            <VIcon>mdi-file-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
+      <VTooltip text="Download the list of outbound data">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="exportToExcel"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px; margin-right: 12px"
+            class="pa-0 ml-3"
+            variant="flat"
+          >
+            <VIcon>mdi-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
     </div>
     <VCol cols="12">
       <CardStatisticsTransactions :statistics="statsCamp" :title="'Campaign Statistics'"/>

@@ -4,7 +4,8 @@ import { PerfectScrollbar } from "vue3-perfect-scrollbar";
 
 const router = useRouter();
 // const ability = useAppAbility();
-const userData = JSON.parse(localStorage.getItem("userData") || "null");
+// const userData = JSON.parse(localStorage.getItem("userData") || "null");
+const userData = window.CONST.USER || {};
 
 const logout = async () => {
   try {
