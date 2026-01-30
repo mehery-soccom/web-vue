@@ -11,6 +11,7 @@ import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue';
 import LeadActivities from '@/app-lead/views/admin/leads/LeadActivities.vue';
 // import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
 import LeadDocUpload from '@/app-lead/views/admin/leads/LeadDocUpload.vue';
+import PhoneInputWithCountry from '@/app-lead/@core/components/PhoneCodeWithCountry.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -61,8 +62,8 @@ const urlParams = computed(() => {
 
 const phoneValidator = value => {
   if (!value) return true
-  const phoneRegex = /^[+]?[0-9]{10,15}$/;
-  return phoneRegex.test(value) || 'Please enter a valid phone number';
+  const phoneRegex = /^\+[0-9]{8,15}$/; 
+  return phoneRegex.test(value) || 'Please select a country code and enter a valid number';
 }
 
 const getRules = (field) => {
@@ -120,7 +121,7 @@ const loadFormStructure = async (formId) => {
             }
           } else {
             if (currentValue === undefined) {
-              currentValue = null;
+              currentValue = '';
             }
           }
 
@@ -367,10 +368,19 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                               </VLabel>
 
                               <VTextField
-                                v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)"
+                                v-if="['TEXT', 'EMAIL'].includes(field.inputType)"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :placeholder="field.desc"
                                 variant="outlined"
+                                :rules="getRules(field)"
+                                class="mt-2"
+                                :disabled="isReadOnly(field)"
+                              />
+
+                              <PhoneInputWithCountry
+                                v-else-if="field.inputType === 'PHONE'"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :placeholder="field.desc"
                                 :rules="getRules(field)"
                                 class="mt-2"
                                 :disabled="isReadOnly(field)"
