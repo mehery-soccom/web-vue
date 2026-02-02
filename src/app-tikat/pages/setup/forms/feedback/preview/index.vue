@@ -2,14 +2,15 @@
 import { ref, onMounted } from 'vue';
 import AppDateTimePicker from '@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { emailValidator, requiredValidator } from '@app-tikat/@core/utils/validators';
+import PhoneCodeWithCountry from '@/app-tikat/@core/components/PhoneCodeWithCountry.vue';
 
 const formStructure = ref(null);
 const formValues = ref({});
 
 const phoneValidator = value => {
   if (!value) return true;
-  const phoneRegex = /^[+]?[0-9]{10,15}$/;
-  return phoneRegex.test(value) || 'Please enter a valid phone number';
+  const phoneRegex = /^\+[0-9]{8,15}$/;
+  return phoneRegex.test(value) || 'Please select a country code and enter a valid phone number';
 }
 
 const getRules = (field) => {
@@ -50,7 +51,7 @@ onMounted(() => {
             } else if (field.inputType === 'RATING') {
                 initialValues[dataKey] = 0;
             } else {
-                initialValues[dataKey] = null;
+                initialValues[dataKey] = '';
             }
         });
       }
@@ -97,9 +98,19 @@ const submitForm = () => {
                 <span v-if="field.optional === false" class="text-error ms-1">*</span>
               </VLabel>
 
-              <VRow v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)">
+              <VRow v-if="['TEXT', 'EMAIL'].includes(field.inputType)">
                 <VCol cols="12" md="10">
                   <AppTextField
+                    v-model="formValues[field.key]"
+                    :placeholder="field.desc"
+                    :rules="getRules(field)"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'PHONE'">
+                <VCol cols="12" md="10">
+                  <PhoneCodeWithCountry
                     v-model="formValues[field.key]"
                     :placeholder="field.desc"
                     :rules="getRules(field)"

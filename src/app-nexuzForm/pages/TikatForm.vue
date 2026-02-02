@@ -5,6 +5,7 @@ import { useTikatFormStore } from "@/app-nexuzForm/views/useTikatFormStore"
 import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { emailValidator, requiredValidator } from "@app-lead/@core/utils/validators"
 import TikatDocUpload from "@/app-tikat/views/admin/feedback/TikatDocUpload.vue"
+import PhoneCodeWithCountry from '@/app-tikat/@core/components/PhoneCodeWithCountry.vue';
 
 const route = useRoute()
 const router = useRouter()
@@ -19,8 +20,8 @@ const maxDocSize = 5 * 1024 * 1024;
 
 const phoneValidator = (value) => {
   if (!value) return true
-  const phoneRegex = /^[+]?[0-9]{10,15}$/
-  return phoneRegex.test(value) || "Please enter a valid phone number"
+  const phoneRegex = /^\+[0-9]{8,15}$/
+  return phoneRegex.test(value) || "Please select a country code and enter a valid phone number"
 }
 
 const getRules = (field) => {
@@ -70,7 +71,7 @@ onMounted(async () => {
     mappedFields.forEach(f => {
       if (f.inputType === 'BOOLEAN') initialValues[f.key] = false
       else if (f.inputType === 'RATING') initialValues[f.key] = 0
-      else initialValues[f.key] = null
+      else initialValues[f.key] = ''
     })
     formValues.value = initialValues
 
@@ -160,13 +161,24 @@ const handleSubmit = async () => {
                 <span v-if="field.optional === false" class="text-error">*</span>
               </VLabel>
 
-              <VRow v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)">
+              <VRow v-if="['TEXT', 'EMAIL'].includes(field.inputType)">
                 <VCol cols="8">
                   <VTextField
                     v-model="formValues[field.key]"
                     :placeholder="field.label"
                     variant="outlined"
                     density="comfortable"
+                    :rules="getRules(field)"
+                    :disabled="isReadOnly(field)"
+                  />
+                </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'PHONE'">
+                <VCol cols="8">
+                  <PhoneCodeWithCountry
+                    v-model="formValues[field.key]"
+                    :placeholder="field.label"
                     :rules="getRules(field)"
                     :disabled="isReadOnly(field)"
                   />

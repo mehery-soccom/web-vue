@@ -62,32 +62,40 @@ const downloadReport = async (val=false) => {
     let params = {
       dateRange1: startTime.value,
       dateRange2: endTime.value,
-      type: 'chat-summary'
+      type: 'chat-summary',
+      agentCode: window.CONST.APP_USER,
     }
     if(!!val) params.force = true;
     const response = await projectStore.downloadReports(params);
     if(response.data?.data?.status === 'EXISTS') {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = '-';
+      if(!!createdAt) { formattedDateTime = new Date(createdAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
-          <div>Report already present.</div>
-          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
-            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.downloadFile('${response.data.data.fileLink}','${response.data.data.title}')">
-            Download Existing
-          </button>
-          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+          <div>Report created for date range on ${formattedDateTime}. Available in Report Tab.</div>
+          <div>Create fresh report if more campaigns have been run after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;padding-left: 30px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
-            Download Anyway
+            Download
           </button>
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
       )
     } else if(response.data?.data?.status === 'IN_PROGRESS') {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = '-';
+      if(!!createdAt) { formattedDateTime = new Date(createdAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
+        //  by ${response.data.data.doc.agentCode || '-'}
       toast.info(
         `<div style="display:flex;flex-direction:column;gap:8px;">
-          <div>Report creation already in progress.</div>
-          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;display: flex;align-items: center;
+          <div>Report creation started for date range on ${formattedDateTime}. Will appear in the Reports tab shortly.</div>
+          <div>Create fresh report if more campaigns have been run after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;padding-left: 30px;display: flex;align-items: center;
             background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
-            Download Anyway
+            Download
           </button>
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
@@ -243,6 +251,28 @@ const formatDurationHHMMSS = (ms) => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 };
 
+const addApplyButtonToReportPicker = (selectedDates, dateStr, instance) => {
+  if (instance.__applyAdded) return
+  instance.__applyAdded = true
+
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.innerText = 'Apply'
+  btn.className = 'flatpickr-custom-apply-btn'
+
+  btn.onclick = async () => {
+    if (!instance.selectedDates || instance.selectedDates.length === 0) return
+
+    const start = instance.selectedDates[0]
+    const end = instance.selectedDates.length === 1 ? instance.selectedDates[0] : instance.selectedDates[1]
+    startTime.value = `${String(start.getDate()).padStart(2,'0')}-${String(start.getMonth()+1).padStart(2,'0')}-${start.getFullYear()}`
+    endTime.value = `${String(end.getDate()).padStart(2,'0')}-${String(end.getMonth()+1).padStart(2,'0')}-${end.getFullYear()}`
+
+    instance.close()
+    await downloadReport()
+  }
+  instance.calendarContainer.appendChild(btn)
+}
 const exportToExcel = () => {
   const formattedData = tableData.value.map((item) => {
     const endStamp = item.info?.resolved?.stamp || item.info?.closed?.stamp || item.info?.expired?.stamp;
@@ -327,15 +357,20 @@ onMounted(async () => {
 <template>
   <VRow>
     <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-right: 12px;">
-      <VBtn
-        @click="openReportDatePicker"
-        color="primary"
-        style="width: 45px; height: 45px; min-width: 40px;margin-right: -12px;"
-        class="pa-0"
-        variant="flat"
-      >
-        <VIcon>mdi-file-download</VIcon>
-      </VBtn>
+      <VTooltip text="Download the list of Chat summary reports">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="openReportDatePicker"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px;margin-right: -12px;"
+            class="pa-0"
+            variant="flat"
+          >
+            <VIcon>mdi-file-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
       <AppDateTimePicker
         v-model="dateRange2" ref="datePickerRef"
         class="hidden-datepicker"
@@ -344,19 +379,26 @@ onMounted(async () => {
           dateFormat: 'd-m-Y',
           position: 'auto right',
           maxDate: tonight,
-          onClose: onDateClosedReport,
+          closeOnSelect: false,
+          // onClose: onDateClosedReport,
           plugins: [customPlugin],
+          onReady: addApplyButtonToReportPicker,
         }"
       />
-      <VBtn
-        @click="exportToExcel"
-        color="primary"
-        style="width: 45px; height: 45px; min-width: 40px"
-        class="pa-0"
-        variant="flat"
-      >
-        <VIcon>mdi-download</VIcon>
-      </VBtn>
+      <VTooltip text="Download the list of Chats">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="exportToExcel"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px;"
+            class="pa-0"
+            variant="flat"
+          >
+            <VIcon>mdi-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
 
       <VSelect
         v-model="selectedChatType"
@@ -583,5 +625,16 @@ onMounted(async () => {
   pointer-events: none; 
   width: 0; 
   height: 0; 
+}
+.flatpickr-custom-apply-btn {
+  font-size: 12px;
+  background: #1976d2;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: white;
+  margin: 8px;
+  width: calc(100% - 16px);
 }
 </style>
