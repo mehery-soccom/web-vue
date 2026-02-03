@@ -36,11 +36,11 @@ const isDialer = ref(true);
 const canUseKeypad = computed(() => {
   return callState.value === "idle" || callState.value === "talking";
 });
-const uniqueContactedNumbers = computed(() => {
-  const map = new Map();
-  (contactedNumbers.value || []).forEach(item => { if (!map.has(item.contactWaId)) map.set(item.contactWaId, item); });
-  return [...map.values()];
-});
+// const uniqueContactedNumbers = computed(() => {
+//   const map = new Map();
+//   (contactedNumbers.value || []).forEach(item => { if (!map.has(item.contactWaId)) map.set(item.contactWaId, item); });
+//   return [...map.values()];
+// });
 const selectSuggestion = (item) => {
   dialedNumber.value = item.contactWaId;
   contactedNumbers.value = [];
@@ -348,8 +348,8 @@ onUnmounted(() => {
             <!-- <div class="number-display">{{ dialedNumber }}</div> -->
             <input class="number-display-input" type="tel" v-model="dialedNumber" />
           </div>
-          <div v-if="uniqueContactedNumbers?.length" class="suggestions-box floating">
-            <div v-for="item in uniqueContactedNumbers" :key="item.contactWaId" class="suggestion-item" @click="selectSuggestion(item)">
+          <div v-if="contactedNumbers?.length" class="suggestions-box floating">
+            <div v-for="item in contactedNumbers" :key="item.contactWaId" class="suggestion-item" @click="selectSuggestion(item)">
               <span class="suggestion-number">{{ item.contactWaId }} </span>
               <span class="suggestion-name"> ({{ item.contactName || "Unknown" }})</span>
             </div>
@@ -812,7 +812,7 @@ html, body {
   margin-bottom: 8px;
   z-index: 50;
   background: #fff;
-  border-radius: 12px;
+  border-radius: 5px;
   max-height: 100px;
   overflow-y: auto;
   box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
@@ -835,15 +835,15 @@ html, body {
   color: #555;
   font-weight: 500;
 }
-.suggestions-box::-webkit-scrollbar {
+.webrtc-client .suggestions-box::-webkit-scrollbar {
   width: 6px;
-  display: block;
+  display: block !important;
 }
-.suggestions-box::-webkit-scrollbar-thumb {
+.webrtc-client .suggestions-box::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.25);
   border-radius: 10px;
 }
-.suggestions-box::-webkit-scrollbar-track {
+.webrtc-client .suggestions-box::-webkit-scrollbar-track {
   background: transparent;
 }
 </style>
