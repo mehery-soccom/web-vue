@@ -35,7 +35,8 @@ const headers = computed(() => {
   const list = [
     { title: 'Name', key: 'name', sortable: true },
     { title: 'Stage', key: 'stage', sortable: false },
-    { title: 'Campaign', key: 'campaign', sortable: true },
+    { title: 'Form', key: 'form', sortable: true }, 
+    { title: 'Campaign', key: 'source', sortable: true },
     { title: 'Assigned Agent', key: 'assignedTo', sortable: true },
     { title: 'Closing Date', key: 'closingDate', sortable: true },
     { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
@@ -348,8 +349,12 @@ onMounted(() => {
         {{ getCurrentStage(item.raw) }}
       </template>
 
-      <template #item.campaign="{ item }">
-        {{ item.raw.form?.title || item.raw.formTitle || '-' }}
+      <template #item.form="{ item }">
+        {{ item.raw.form?.title || '-' }}
+      </template>
+
+      <template #item.source="{ item }">
+        <span class="text-capitalize">{{ item.raw.source || 'Manual' }}</span>
       </template>
 
       <template #item.assignedTo="{ item }">
