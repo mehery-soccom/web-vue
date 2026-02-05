@@ -12,6 +12,8 @@ import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].
 import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index.vue';
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
+import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
+import LinksPageList from '../pages/config/library/list/index.vue';
 
 console.log("routes", routes)
 const baseRoutes = [
@@ -166,6 +168,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-push-notification-campaigns-list",
           component: CampaignList2,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/library/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-library-add-id?",
+          component: LinksPageAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/library/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-library-list",
+          component: LinksPageList,
           props: true,
           meta: { layout: "default" },
         },

@@ -1,11 +1,19 @@
-export const optionsMap = {
+export const FILTER_TYPES = [
+  { title: "System Event", value: "event" },
+  { title: "System Attribute", value: "attribute" },
+  { title: "Profile Attribute", value: "additionalInfo" },
+  { title: "Profile Cohort", value: "cohort" },
+];
+
+export const FILTER_FIELDS_MAP = {
   /* Events */
   app_open: {
     type: "event",
     title: "App open",
     value: "app_open",
-    freqFieldMeta: {
-      required: false,
+    inputFieldMeta: {
+      type: "frequency",
+      required: true,
     },
   },
   page_open: {
@@ -27,6 +35,9 @@ export const optionsMap = {
     },
   },
 
+  /* Business Events */
+  // fetch from api
+
   /* Attributes */
   platform: {
     type: "attribute",
@@ -41,23 +52,136 @@ export const optionsMap = {
       ],
     },
   },
+
+  /* Profile Attributes */
+  // fetch from api
+
+  /* Profile Cohorts */
+  // fetch from api
 };
 
-export const eventOperators = [
-  { title: "Is", value: "is" },
-  { title: "Is not", value: "is_not" },
-];
-export const attributeOperators = [
-  { title: "Equals", value: "equals" },
-  { title: "Not equals", value: "not_equals" },
-];
-export const freqOperators = [
-  { title: "Exactly", value: "exactly" },
-  { title: "Less than", value: "less_than" },
-  { title: "More than", value: "more_than" },
+export const FILTER_OPERATORS = [
+  { value: "EQ", title: "Equals", text: "= (equals)", sign: "=" },
+  {
+    value: "NOT_EQ",
+    title: "Not equals",
+    text: "!= (not equals)",
+    sign: "!=",
+  },
+
+  {
+    value: "ANY_MATCH",
+    title: "Contains",
+    text: "~ (contains)",
+    sign: "~",
+    strictApplicableTypes: ["text"],
+  },
+  {
+    value: "STARTS_WITH",
+    title: "Starts With",
+    text: "^= (starts with)",
+    sign: "^=",
+    strictApplicableTypes: ["text"],
+  },
+  {
+    value: "ENDS_WITH",
+    title: "Ends With",
+    text: "$= (ends with)",
+    sign: "$=",
+    strictApplicableTypes: ["text"],
+  },
+
+  {
+    value: "less_than",
+    title: "Less than",
+    text: "< (less than)",
+    sign: "<",
+    strictApplicableTypes: ["number", "frequency"],
+  },
+  {
+    value: "less_than_or_equal",
+    title: "Less than or equal",
+    text: "<= (less than or equal)",
+    sign: "<=",
+    strictApplicableTypes: ["number", "frequency"],
+  },
+  {
+    value: "more_than",
+    title: "More than",
+    text: "> (more than)",
+    sign: ">",
+    strictApplicableTypes: ["number", "frequency"],
+  },
+  {
+    value: "more_than_or_equal",
+    title: "More than or equal",
+    text: ">= (more than or equal)",
+    sign: ">=",
+    strictApplicableTypes: ["number", "frequency"],
+  },
+
+  {
+    value: "IN",
+    title: "In",
+    text: "∈ (in list)",
+    sign: "∈",
+    expects: "array",
+    strictApplicableTypes: ["select"],
+  },
+  {
+    value: "NOT_IN",
+    title: "Not In",
+    text: "∉ (not in list)",
+    sign: "∉",
+    expects: "array",
+    strictApplicableTypes: ["select"],
+  },
+
+  {
+    value: "AFTER",
+    title: "After",
+    text: "> (after)",
+    sign: ">",
+    strictApplicableTypes: ["date"],
+  },
+  {
+    value: "BEFORE",
+    title: "Before",
+    text: "< (before)",
+    sign: "<",
+    strictApplicableTypes: ["date"],
+  },
+  {
+    value: "ON",
+    title: "On",
+    text: "~ (yearly on)",
+    sign: "~",
+    strictApplicableTypes: ["date"],
+  },
+  {
+    value: "ON_OR_AFTER",
+    title: "On or After",
+    text: ">= (on or after)",
+    sign: ">=",
+    strictApplicableTypes: ["date"],
+  },
+  {
+    value: "ON_OR_BEFORE",
+    title: "On or Before",
+    text: "<= (on or before)",
+    sign: "<=",
+    strictApplicableTypes: ["date"],
+  },
+  {
+    value: "BETWEEN",
+    title: "Between",
+    text: "<> (between)",
+    sign: "<>",
+    strictApplicableTypes: ["date"],
+  },
 ];
 
-export const freqPeriods = [
+export const FILTER_PERIODS = [
   { title: "Today", value: "today" },
   { title: "Yesterday", value: "yesterday" },
   { title: "In last 7 days", value: "last_7_days" },

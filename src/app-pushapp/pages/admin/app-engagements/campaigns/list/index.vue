@@ -60,7 +60,7 @@ const headers = [
     filterOptions: [
       { title: "Enabled", value: true },
       { title: "Disabled", value: false },
-    ]
+    ],
   },
   {
     title: "Status",
@@ -214,8 +214,9 @@ function formatDate(timestamp) {
   return new Date(timestamp).toLocaleString();
 }
 function formatFieldName(field) {
-  if (!field) return "";
-  const withSpaces = field.replace(/_/g, " ");
+  if (field === null || field === undefined) return "";
+  const str = String(field);
+  const withSpaces = str.replace(/_/g, " ");
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
 
@@ -327,6 +328,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           mdi-flask
         </VIcon>
+        <VTooltip v-if="item.raw.abTesting?.enabled" activator="parent">{{
+          item.raw.abTesting?.state || "Expand row for more details"
+        }}</VTooltip>
       </template>
 
       <!-- Template codes -->
@@ -457,13 +461,13 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <!-- Filter -->
             <section v-if="selectedLogs.raw.filter" class="detail-block">
               <h5>
-                Filter
-                <span v-if="!!selectedLogs.raw.filter.conjuction">
-                  {{ formatFieldName(selectedLogs.raw.filter.conjuction) }}
+                Filter -
+                <span v-if="!!selectedLogs.raw.filter.conjunction">
+                  {{ formatFieldName(selectedLogs.raw.filter.conjunction) }}
                 </span>
               </h5>
 
-              <div v-if="selectedLogs.raw.filter.children?.length">
+              <div v-if="selectedLogs.raw.filter.children && selectedLogs.raw.filter.children.length > 0">
                 <div
                   v-for="(child, idx) in selectedLogs.raw.filter.children"
                   :key="idx"
@@ -475,7 +479,6 @@ const onUpdateOptionsDebounced = debounce((options) => {
                   <template
                     v-if="
                       child.freqOperator &&
-                      child.freqPeriod &&
                       (child.freqCount || child.value)
                     "
                   >

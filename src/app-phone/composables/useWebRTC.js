@@ -612,9 +612,15 @@ export function useWebRTC() {
           }
 
           const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
-          if (requestAction.can_perform_action) toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
+          if (requestAction.can_perform_action) {
+            sendPostMessage("no-call-permission", {
+              remoteNumber: currentPeerNumber.value,
+              channelId: channel_id,
+            });
+          }
+          // toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
           else toast.error(`You cannot send a permission request right now.\nLimits: ${limitSummary}.`,{ timeout: 0 });
-          console.error("Access denied, Request user permission by sending template.");
+          console.log("Access for call denied.");
       }
     }catch(e){
       console.error("Failed to make call:", e);

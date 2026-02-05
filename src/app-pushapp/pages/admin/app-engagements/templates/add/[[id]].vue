@@ -326,6 +326,7 @@ onMounted(async () => {
   setInterval(()=> console.log("id page", isPreStep.value), 10000);
 });
 function goToPreStep() {
+  if(props.edit) router.push({ name: "admin-app-engagements-campaigns-add" });
   isPreStep.value = true;
 }
 function onPresetSelect({ type, subType }) {

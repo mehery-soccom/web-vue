@@ -2,6 +2,7 @@
 import { reactive, ref } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import AbTestingDetails from "./AbTestingDetails.vue";
+const { show } = inject("snackbar");
 
 const props = defineProps({
   modelValue: { type: Object, required: true },
@@ -57,13 +58,79 @@ const segmentsOptions = [
   { title: "Segment 2", value: "2" },
 ];
 
+function validateFilterStructure(
+  node,
+  parentConjunction = null,
+  isRoot = true
+) {
+  if (!node) throw new Error("Empty filter node");
+
+  if (node.type === "group") {
+    const { conjunction, children } = node;
+    if (!Array.isArray(children) || children.length === 0) {
+      throw new Error("Group must have children");
+    }
+
+    // Check: If group has multiple event filters as direct children, it must be OR
+    const directEventChildren = children.filter(
+      (c) => c.type === "filter" && c.filterType === "event"
+    );
+    if (directEventChildren.length > 1 && conjunction !== "or") {
+      throw new Error(
+        "Groups containing multiple event filters must use 'or' conjunction"
+      );
+    }
+
+    // If root AND: cannot directly contain more than one event filter
+    if (isRoot && conjunction === "and" && directEventChildren.length > 1) {
+      throw new Error(
+        "Root AND group cannot contain multiple event filters directly"
+      );
+    }
+
+    // Root must contain one event filter atleast
+    if (isRoot && directEventChildren.length == 0) {
+      throw new Error("Root group must have an event filter");
+    }
+
+    // Recurse into children
+    children.forEach((child) =>
+      validateFilterStructure(child, conjunction, false)
+    );
+    return true;
+  }
+
+  if (node.type === "filter") {
+    // No special checks here — but could enforce supported filterTypes
+    if (
+      !["event", "attribute", "additionalInfo", "cohort"].includes(
+        node.filterType
+      )
+    ) {
+      throw new Error(`Unsupported filterType: ${node.filterType}`);
+    }
+    return true;
+  }
+
+  throw new Error(`Unsupported node type: ${node.type}`);
+}
+
 const isValid = async () => {
   let sections = await Promise.allSettled([
     filterRef.value?.isValid(),
     abTestingRef.value?.isValid() || true,
   ]);
   let sectionsValid = sections.every((r) => !!r.value);
-  return sectionsValid;
+
+  let filterStructureValid = true;
+  try {
+    validateFilterStructure(filterLocal);
+  } catch (error) {
+    filterStructureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+
+  return sectionsValid && filterStructureValid;
 };
 
 defineExpose({ isValid });
@@ -71,7 +138,7 @@ defineExpose({ isValid });
 
 <template>
   <VCard class="pa-6 audience">
-    <h3 class="mb-2">Segments</h3>
+    <!-- <h3 class="mb-2">Segments</h3>
     <p class="text-caption mb-4">
       Select whether you want to target all users or specific segments
     </p>
@@ -117,7 +184,7 @@ defineExpose({ isValid });
       </template>
     </VRow>
 
-    <VDivider class="my-6" />
+    <VDivider class="my-6" /> -->
 
     <h3 class="mb-2">Real-Time Filter</h3>
     <p class="text-caption mb-4">

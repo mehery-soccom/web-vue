@@ -5,6 +5,8 @@ import set from 'lodash/set'
 import AppTextField from '@/app-pushapp/@core/components/app-form-elements/AppTextField.vue'
 import AppTextarea from '@/app-pushapp/@core/components/app-form-elements/AppTextarea.vue'
 import AppSelect from '@/app-pushapp/@core/components/app-form-elements/AppSelect.vue'
+import AppCombobox from '@/app-pushapp/@core/components/app-form-elements/AppCombobox.vue'
+import AppRichTextEditor from '@/app-pushapp/@core/components/app-form-elements/AppRichTextEditor.vue'
 import MyFileInputUpload from '@/@common/components/vuexy/MyFileInputUpload.vue'
 import MyColorPicker from '@/@common/components/vuexy/MyColorPicker.vue'
 import MyAddButton from '@/@common/components/vuexy/MyAddButton.vue'
@@ -125,6 +127,19 @@ defineExpose({ validate });
         item-title="label"
         item-value="code"
       />
+      <AppCombobox
+        v-if="f.type === 'combobox'"
+        :model-value="get(local, f.path)"
+        @update:modelValue="val => set(local, f.path, val)"
+        :items="f.optionsPath || []"
+        :clearable="f.clearable"
+        :label="f.label"
+        :placeholder="f.placeholder"
+        :rules="f.required ? [required] : []"
+        :readonly="f.readonly"
+        item-title="title"
+        item-value="value"
+      />
       <MyFileInputUpload
         v-if="f.type === 'file'"
         :model-value="get(local, f.path)"
@@ -159,7 +174,7 @@ defineExpose({ validate });
         :style-data="local.style"
         :label="f.label" :swatches="swatch"
         :rules="f.required ? [required] : []"
-        :placeholder="f.placeholder"
+        :placeholder="f.placeholder" :combobox="f.combobox"
         :max="f.max" :button-size="f.buttonSize"
       />
       <MyMultipleFilesUpload
@@ -193,6 +208,17 @@ defineExpose({ validate });
         :placeholder="f.placeholder"
         :rules="f.required ? [required] : []"
         :suggestions="get(local, 'model.' + f.textinputstylesKey)"
+      />
+      <AppRichTextEditor
+        v-else-if="f.type === 'richtext'"
+        :model-value="get(local, f.path)"
+        @update:modelValue="val => set(local, f.path, val)"
+        :label="f.label"
+        :height="f.height"
+        :toolbar="f.toolbar"
+        :plugins="f.plugins"
+        :menubar="f.menubar"
+        :readonly="f.readonly"
       />
     </v-col>
   </v-row>

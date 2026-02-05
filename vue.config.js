@@ -67,6 +67,7 @@ module.exports = defineConfig({
         "@app-insights360": path.resolve(__dirname, "src/app-insights360"),
         "@app-notebook": path.resolve(__dirname, "src/app-notebook"),
         "@app-lead": path.resolve(__dirname, "src/app-lead"),
+        "@app-tikat": path.resolve(__dirname, "src/app-tikat"),
       },
     },
     plugins: [

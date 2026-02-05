@@ -5,6 +5,10 @@ import get from 'lodash/get'
 import AppTextField from '@/app-pushapp/@core/components/app-form-elements/AppTextField.vue'
 import MyColorPicker from './MyColorPicker.vue'
 import AppSelect from '@/app-pushapp/@core/components/app-form-elements/AppSelect.vue'
+import AppCombobox from '@/app-pushapp/@core/components/app-form-elements/AppCombobox.vue'
+import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
+
+const libraryStore = useLibraryStore();
 
 const props = defineProps({
   modelValue: Array,
@@ -14,6 +18,8 @@ const props = defineProps({
   max: Number,
   swatches: Array,
   buttonSize: Boolean,
+  combobox: { type: Boolean, default: false },
+  // optionsPath: { type: Array, default: [] },
 })
 
 const emit = defineEmits(['update:modelValue', 'update:styleData'])
@@ -22,6 +28,7 @@ const local = ref([])
 const visibleCount = ref(1) // Starting with 1 visible block
 let isSyncing = false
 const lineOpen = ref({})
+const optionsPath = ref([])
 
 function toggleLine(i) {
   lineOpen.value[i] = !lineOpen.value[i]
@@ -99,6 +106,17 @@ function updateStyle(key, value) {
   set(props.styleData, key, value)
   emit('update:styleData', { ...props.styleData })
 }
+async function fetchItems() {
+  try {
+    const res = await libraryStore.read({ id: 'links' });
+    optionsPath.value = res.data.data.options;
+  } catch (error) {
+    console.log("fetchItems error", error);
+  }
+}
+onMounted(() => {
+  fetchItems();
+});
 </script>
 
 <template>
@@ -119,10 +137,27 @@ function updateStyle(key, value) {
             />
           </VCol>
           <VCol cols="5.5">
-            <AppTextField
+            <AppCombobox v-if="!!props.combobox"
+              :model-value="btn.value"
+              @update:modelValue="val => updateField(i, 'value', typeof val === 'string' ? val : val?.code || val?.value || '')"
+              label="Value 2" :items="optionsPath || []"
+              :clearable=true item-title="code" item-value="code"
+              placeholder="Enter value"
+            >
+              <template #item="{ props, item }">
+                <VListItem v-bind="props">
+                  <VListItemSubtitle class="ml-auto text-xs text-gray-500">
+                    <span v-if="item.raw?.label">
+                      Name : {{ item.raw?.label }}
+                    </span>
+                  </VListItemSubtitle>
+                </VListItem>
+              </template>
+            </AppCombobox>
+            <AppTextField v-else
               :model-value="btn.value"
               @update:modelValue="val => updateField(i, 'value', val)"
-              label="Value"
+              label="Value 1"
               placeholder="Enter value"
             />
           </VCol>

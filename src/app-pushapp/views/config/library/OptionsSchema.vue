@@ -191,7 +191,7 @@ function deleteField(idx) {
       />
       <AppSelect
         v-model="draftField.type"
-        :items="['string', 'number', 'boolean']"
+        :items="['string', 'number', 'boolean', 'pages']"
         label="Type"
         class="mt-3"
         :rules="[requiredValidator]"

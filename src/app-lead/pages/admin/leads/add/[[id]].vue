@@ -11,6 +11,7 @@ import LeadDocs from '@/app-lead/views/admin/leads/LeadDocs.vue';
 import LeadActivities from '@/app-lead/views/admin/leads/LeadActivities.vue';
 // import MyPdfUpload from '@/app-lead/views/admin/leads/MyPdfUpload.vue';
 import LeadDocUpload from '@/app-lead/views/admin/leads/LeadDocUpload.vue';
+import PhoneInputWithCountry from '@/app-lead/@core/components/PhoneCodeWithCountry.vue';
 
 const { show } = inject("snackbar");
 const route = useRoute();
@@ -19,7 +20,10 @@ const leadsStore = useLeadsStore();
 const formsStore = useFormsStore();
 const tab = ref('details');
 
-const leadId = computed(() => route.params.id === 'add' ? null : route.params.id);
+const leadId = computed(() => {
+  if (urlParams.value) return null; 
+  return route.params.id === 'add' ? null : route.params.id
+});
 const isLoading = ref(false);
 const isFetching = ref(false);
 const refForm = ref();
@@ -36,10 +40,30 @@ const closingDate = ref(null);
 const assignedTo = ref(null);
 const maxDocSize = 5 * 1024 * 1024;
 
+const urlParams = computed(() => {
+  const param = route.params.id;
+  if (!param || param === 'add') return null;
+  
+  try {
+    const decoded = atob(param);
+    if (decoded.includes('=') && decoded.includes(';')) {
+      const parsed = {};
+      decoded.split(";").forEach(entry => {
+        const [key, value] = entry.split("=");
+        if (key && value) parsed[key.trim()] = value.trim();
+      });
+      return parsed;
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+});
+
 const phoneValidator = value => {
   if (!value) return true
-  const phoneRegex = /^[+]?[0-9]{10,15}$/;
-  return phoneRegex.test(value) || 'Please enter a valid phone number';
+  const phoneRegex = /^\+[0-9]{8,15}$/; 
+  return phoneRegex.test(value) || 'Please select a country code and enter a valid number';
 }
 
 const getRules = (field) => {
@@ -73,7 +97,6 @@ const isReadOnly = (field) => {
 };
 
 const loadFormStructure = async (formId) => {
-
   if (!formId) {
     selectedFormStructure.value = null;
     leadData.value = {};
@@ -98,7 +121,7 @@ const loadFormStructure = async (formId) => {
             }
           } else {
             if (currentValue === undefined) {
-              currentValue = null;
+              currentValue = '';
             }
           }
 
@@ -108,17 +131,23 @@ const loadFormStructure = async (formId) => {
     }
 
     if (!leadId.value) {
+        if (urlParams.value) {
+            if (urlParams.value.name) newLeadData.name = urlParams.value.name;
+            if (urlParams.value.email) newLeadData.email = urlParams.value.email;
+            if (urlParams.value.phone) newLeadData.phone = urlParams.value.phone;
+            if (urlParams.value.number) newLeadData.phone = urlParams.value.number;
+        }
+
         leadData.value = newLeadData;
         console.log("Initialized leadData for create mode:", JSON.parse(JSON.stringify(newLeadData)));
     } else {
         console.log("Edit mode: Keeping existing leadData:", JSON.parse(JSON.stringify(leadData.value)));
     }
 
-
   } catch (error) {
     console.error("Failed to load form structure:", error);
     const errorMessage = error.response?.data?.message || error.message || 'Failed to load form structure.'
-    show({ message: errorMessage, color: 'error' });
+    show({ message: errorMessage, color: 'error' });
   } finally {
     isFetching.value = false;
     console.log("loadFormStructure finished.");
@@ -339,10 +368,19 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                               </VLabel>
 
                               <VTextField
-                                v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)"
+                                v-if="['TEXT', 'EMAIL'].includes(field.inputType)"
                                 v-model="leadData[field.path.split('.')[1]]"
                                 :placeholder="field.desc"
                                 variant="outlined"
+                                :rules="getRules(field)"
+                                class="mt-2"
+                                :disabled="isReadOnly(field)"
+                              />
+
+                              <PhoneInputWithCountry
+                                v-else-if="field.inputType === 'PHONE'"
+                                v-model="leadData[field.path.split('.')[1]]"
+                                :placeholder="field.desc"
                                 :rules="getRules(field)"
                                 class="mt-2"
                                 :disabled="isReadOnly(field)"
@@ -466,7 +504,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                   </VCard>
                 </VCol>
 
-                <VCol v-if="leadId" cols="12">
+                <VCol v-if="leadId && selectedFormId" cols="12">
                   <LeadDocs :lead-id="leadId" :form-id="selectedFormId" />
                 </VCol>
 
