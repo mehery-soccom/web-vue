@@ -31,6 +31,7 @@ const { FONT_SIZES, GRADIENT_DIRS, TEMPLATE_ALIGN, TEMPLATES_CONFIG } =
   usePushNotification();
 
 const tab = ref("tab-details");
+const initialTypeChange = ref(false);
 const isLoading = ref(false);
 const template = reactive({
   type: "simple",
@@ -111,6 +112,7 @@ onMounted(async () => {
     pushNotificationStore
       .fetchTemplate({ id: PARAM_ID })
       .then((response) => {
+        initialTypeChange.value = true;
         const _template = response.data.data;
         Object.assign(template, {
           ...template,
@@ -120,9 +122,11 @@ onMounted(async () => {
           //   data: {}
           // },
         });
-        if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
-        if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
         console.log("add", JSON.parse(JSON.stringify(template)), JSON.parse(JSON.stringify(_template)), template.style.image_url, typeof(template.style.image_url))
+        if (template.type === "simple") {
+          if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
+          if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+        }
         let _buttonGroupValue = {};
         _template.options.buttons.map((b) => {
           _buttonGroupValue[b.button_text] = b.button_url;
@@ -312,13 +316,15 @@ watch(
   () => template.type,
   (val) => {
     formRefVersion.value += 1;
-
+    console.log("running watch 1", JSON.parse(JSON.stringify(template.style.image_url)))
     if (val === "simple") {
       template.subType = null;
       template.style.image_url = [""];
+    } else if(val === 'styled') {
+      if(initialTypeChange.value) initialTypeChange.value = false;
+      else template.style.image_url = "";
     }
-    else template.style.image_url = "";
-
+    console.log("running watch 2", JSON.parse(JSON.stringify(template.style.image_url)))
     if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
   }
 );
