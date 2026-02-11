@@ -341,7 +341,6 @@ export function useWebRTC() {
 
     try {
       callState.value = "ringing";
-      playRingtone();
 
       // Set remote offer
       const remoteDesc = {
@@ -588,8 +587,6 @@ export function useWebRTC() {
                 timestamp: new Date(),
               };
               callState.value = "ringing";
-              playRingtone();
-
               try {
                 const offerSDP = await createOfferr(remoteNumber);
                 console.log("ss",offerSDP);

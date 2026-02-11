@@ -124,7 +124,7 @@ const audioElements = [
     attrs: {
       id: "ringtone",
       loop: "",
-      src: `${REMOTE_JS_URL}/javacript/sounds/ringtone.wav`,
+      src: `${REMOTE_JS_URL}/javacript/sounds/ringtonee.mp3`,
     },
   },
   {
@@ -133,7 +133,7 @@ const audioElements = [
     attrs: {
       id: "ringbacktone",
       loop: "",
-      src: `${REMOTE_JS_URL}/javacript/sounds/ringbacktone.wav`,
+      src: `${REMOTE_JS_URL}/javacript/sounds/callerring.mp3`,
     },
   },
   {
@@ -228,10 +228,8 @@ const setupMessageHandlers = () => {
 watch(dialedNumber, async(newVal, oldVal) => {
   console.log("Dialed number changed:", newVal);
   // if(newVal.length > 3) contactedNumbers.value = fetchSuggestion(newVal);
-  if ((!newVal || newVal.length <= 1) || newVal.length > 11) {
-    contactedNumbers.value = [];
-    return;
-  }
+  contactedNumbers.value = [];
+  if ((!newVal || newVal.length <= 1) || newVal.length > 11) return;
   try {
     const resp = await getCallsSuggestion(newVal);
     contactedNumbers.value = Array.isArray(resp) ? resp : [];
