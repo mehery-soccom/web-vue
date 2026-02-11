@@ -59,5 +59,11 @@ module.exports = AppConfig.extend({
       entry: "./src/main.js",
       plugins: () => import("@/app-tikat/plugins"),
     },
+    offsite: {
+      component: () => import("@/app-offsite/AppOffsite.vue"),
+      context: "/offsite",
+      entry: "./src/main.js",
+      plugins: () => import("@/app-offsite/plugins"),
+    },
   },
 });
