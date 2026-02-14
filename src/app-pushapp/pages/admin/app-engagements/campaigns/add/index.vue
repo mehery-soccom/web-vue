@@ -3,6 +3,7 @@ import Template from "@app-pushapp/pages/admin/app-engagements/templates/add/[[i
 import Audience from "@app-pushapp/views/admin/app-engagements/Audience.vue";
 import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
+import { onMounted } from "vue";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
@@ -41,7 +42,7 @@ const campaign = reactive({
         type: "filter",
         filterType: "event",
         field: null,
-        operator: "is",
+        operator: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -67,6 +68,11 @@ const campaign = reactive({
     repeatType: null,
     repeatCount: null,
     repeatAfterDays: null,
+  },
+  journey: {
+    enabled: false,
+    code: "",
+    nodes: [],
   },
 });
 watch(
@@ -112,12 +118,29 @@ const templateBRef = ref();
 const audienceRef = ref();
 const scheduleRef = ref();
 const errors = ref({});
+const temp = ref(null);
+const tempB = ref(null);
+const templateList = ref([]);
+const fetchTemplateList = async () => {
+  try {
+    const response = await appEngagementsStore.fetchTemplates({
+      page: 0,
+      itemsPerPage: 100,
+    });
+    templateList.value = response.data.results.map((r) => ({
+      ...r,
+      id: r._id,
+    }));
+  } catch (e) {
+    console.log("templates error", e);
+  }
+};
 
-const onSelectTemplate = (param = "t_edit") => {
+const onSelectTemplate = (param = "t_edit", id) => {
   router.replace({
     query: {
       ...route.query,
-      [param]: "6903443ed360e329e47a0571",
+      [param]: id,
     },
   });
 };
@@ -196,7 +219,7 @@ const create = async () => {
       };
       const templateRes = await (route.query.t_edit
         ? templateRef.value._onUpdate()
-        : templateRef.value.saveTemplate()); // _onCreate()
+        : templateRef.value._onCreate()); // _onCreate()
       payload.action.template.id = templateRes.data._id;
       payload.action.template.code = templateRes.data.code;
       payload.action.template.type = templateRes.data.type;
@@ -204,7 +227,7 @@ const create = async () => {
       if (campaign.abTesting.enabled) {
         const templateBRes = await (route.query.t_b_edit
           ? templateBRef.value._onUpdate()
-          : templateBRef.value.saveTemplate()); // _onCreate()
+          : templateBRef.value._onCreate()); // _onCreate()
         payload.action.templateB.id = templateBRes.data._id;
         payload.action.templateB.code = templateBRes.data.code;
         payload.action.templateB.type = templateBRes.data.type;
@@ -221,6 +244,19 @@ const create = async () => {
     isLoading.value = false;
   }
 };
+// watch(
+//   () => templateRef,
+//   (val) => {
+//     if (val) {
+//       console.log("Template mounted", val?.isPreStep);
+//     }
+//   },
+//   { immediate: true }
+// );
+onMounted(async () => {
+  await fetchTemplateList();
+  // setInterval(()=> console.log("add page", templateRef?.isPreStep?.value, templateBRef?.isPreStep?.value), 10000);
+});
 </script>
 
 <template>
@@ -324,26 +360,66 @@ const create = async () => {
         <div
           v-show="!campaign.abTesting.enabled || activeTemplateVariant === 'A'"
         >
-          <div class="mb-4 d-flex">
+          <div
+            class="mb-4"
+            v-if="!route.query.t_edit && !!templateRef?.isPreStep"
+            style="
+              width: 100%;
+              text-align: center;
+              border-bottom: 1px dashed black;
+            "
+          >
             <!-- select template -->
             <!-- @click="() => onSelectTemplate('t_edit')" -->
+            <VRow>
+              <!-- <VCol cols="12" md="4"></VCol> -->
+              <VCol cols="12" md="4">
+                <AppAutocomplete
+                  style="margin: 15px 0 25px"
+                  v-model="temp"
+                  :items="templateList"
+                  placeholder="Select Template"
+                  item-title="desc"
+                  return-object
+                  prepend-inner-icon="mdi-shape"
+                  @update:modelValue="onSelectTemplate('t_edit', temp.id)"
+                />
+              </VCol>
+            </VRow>
           </div>
-          <Template
-            ref="templateRef"
-            :edit="route.query.t_edit"
-            :embedded="true"
-          />
+          <Template ref="templateRef" :edit="route.query.t_edit" />
         </div>
         <div
           v-show="campaign.abTesting.enabled && activeTemplateVariant === 'B'"
         >
           <!-- select template -->
           <!-- @click="() => onSelectTemplate('t_b_edit')" -->
-          <Template
-            ref="templateBRef"
-            :edit="route.query.t_b_edit"
-            :embedded="true"
-          />
+          <div
+            class="mb-4"
+            v-if="!route.query.t_b_edit && !!templateBRef?.isPreStep"
+            style="
+              width: 100%;
+              text-align: center;
+              border-bottom: 1px dashed black;
+            "
+          >
+            <VRow>
+              <!-- <VCol cols="12" md="4"></VCol> -->
+              <VCol cols="12" md="4">
+                <AppAutocomplete
+                  style="margin: 15px 0 25px"
+                  v-model="tempB"
+                  :items="templateList"
+                  placeholder="Select Template"
+                  item-title="desc"
+                  return-object
+                  prepend-inner-icon="mdi-shape"
+                  @update:modelValue="onSelectTemplate('t_b_edit', tempB.id)"
+                />
+              </VCol>
+            </VRow>
+          </div>
+          <Template ref="templateBRef" :edit="route.query.t_b_edit" />
         </div>
       </VWindowItem>
 
@@ -359,7 +435,11 @@ const create = async () => {
 
       <!-- tab-schedule -->
       <VWindowItem>
-        <Schedule ref="scheduleRef" v-model="campaign.schedule" />
+        <Schedule
+          ref="scheduleRef"
+          v-model="campaign.schedule"
+          v-model:journey="campaign.journey"
+        />
       </VWindowItem>
 
       <!-- tab-goals -->

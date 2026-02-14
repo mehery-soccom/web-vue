@@ -5,6 +5,7 @@ import { ref, onMounted } from "vue";
 import * as XLSX from "xlsx";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { toast } from "vue3-toastify";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -14,6 +15,9 @@ const isLoading = ref(false);
 const isDrawerOpen = ref(false);
 const selectedSession = ref({});
 const sessionTagsMap = ref({});
+const startTime = ref();
+const endTime = ref();
+const datePickerRef = ref(null)
 
 const selectedChatType = ref("I"); 
 const chatTypeOptions = [
@@ -28,6 +32,7 @@ var tonight = new Date();
 tonight.setHours(23, 59, 59, 999);
 const formattedToday = today.toLocaleDateString("en-GB").split("/").join("-");
 const dateRange = ref(formattedToday);
+const dateRange2 = ref(formattedToday);
 
 const headers = [
   { title: "Assigned To", key: "assignedTo", sortable: false },
@@ -38,7 +43,76 @@ const headers = [
   { title: "Start @", key: "startStamp", sortable: true },
   { title: "Actions", key: "actions", sortable: false },
 ];
+window.stillDownloadReport = async (val) => {
+  toast.clearAll()
+  await downloadReport(val)
+}
+window.downloadFile = (url, name) => {
+  const link = document.createElement('a')
+  link.href = url
+  link.download = name
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
 
+const downloadReport = async (val=false) => {
+  isLoading.value = true;
+  try {
+    let params = {
+      dateRange1: startTime.value,
+      dateRange2: endTime.value,
+      type: 'chat-summary',
+      agentCode: window.CONST.APP_USER,
+    }
+    if(!!val) params.force = true;
+    const response = await projectStore.downloadReports(params);
+    if(response.data?.data?.status === 'EXISTS') {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = '-';
+      if(!!createdAt) { formattedDateTime = new Date(createdAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report created for date range on ${formattedDateTime}. Available in Report Tab.</div>
+          <div>Create fresh report if more campaigns have been run after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;padding-left: 30px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else if(response.data?.data?.status === 'IN_PROGRESS') {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = '-';
+      if(!!createdAt) { formattedDateTime = new Date(createdAt).toLocaleString('en-IN', {
+        day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }); }
+        //  by ${response.data.data.doc.agentCode || '-'}
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report creation started for date range on ${formattedDateTime}. Will appear in the Reports tab shortly.</div>
+          <div>Create fresh report if more campaigns have been run after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width: 240px;max-height: 40px;padding-left: 30px;display: flex;align-items: center;
+            background:#1976d2;color:#fff;cursor:pointer;" onclick="window.stillDownloadReport(true)">
+            Download
+          </button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true }
+      )
+    } else {
+      toast.success('Download Started, Please check after some time.')
+    }
+  } catch (error) {
+    console.error("analytics error", error);
+  }finally{
+    isLoading.value = false;
+  }
+};
+const openReportDatePicker = () => {
+  console.log('ref:', datePickerRef.value)
+  datePickerRef.value?.open()
+}
 const formatDateForApi = (dateInput) => {
   const d = new Date(dateInput);
   const day = String(d.getDate()).padStart(2, '0');
@@ -149,6 +223,17 @@ const onDateClosed = (selectedDates) => {
     fetchSessions(start.getTime(), endDate.getTime());
   }
 };
+const onDateClosedReport = async (selectedDates) => {
+  // oldDates.value = selectedDates;
+  const start = new Date(selectedDates[0]);
+  // start.setHours(0, 0, 0, 0);
+  startTime.value = `${String(start.getDate()).padStart(2,'0')}-${String(start.getMonth()+1).padStart(2,'0')}-${start.getFullYear()}`;
+  const endDate = new Date(selectedDates.length === 1 ? selectedDates[0] : selectedDates[1])
+  // endDate.setHours(23, 59, 59, 998);
+  endTime.value = `${String(endDate.getDate()).padStart(2,'0')}-${String(endDate.getMonth()+1).padStart(2,'0')}-${endDate.getFullYear()}`;
+  console.log("dates", dateRange2, selectedDates, startTime.value, endTime.value)
+  await downloadReport();
+};
 
 const openSessionDetails = (item) => {
   selectedSession.value = item; 
@@ -166,6 +251,28 @@ const formatDurationHHMMSS = (ms) => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 };
 
+const addApplyButtonToReportPicker = (selectedDates, dateStr, instance) => {
+  if (instance.__applyAdded) return
+  instance.__applyAdded = true
+
+  const btn = document.createElement('button')
+  btn.type = 'button'
+  btn.innerText = 'Apply'
+  btn.className = 'flatpickr-custom-apply-btn'
+
+  btn.onclick = async () => {
+    if (!instance.selectedDates || instance.selectedDates.length === 0) return
+
+    const start = instance.selectedDates[0]
+    const end = instance.selectedDates.length === 1 ? instance.selectedDates[0] : instance.selectedDates[1]
+    startTime.value = `${String(start.getDate()).padStart(2,'0')}-${String(start.getMonth()+1).padStart(2,'0')}-${start.getFullYear()}`
+    endTime.value = `${String(end.getDate()).padStart(2,'0')}-${String(end.getMonth()+1).padStart(2,'0')}-${end.getFullYear()}`
+
+    instance.close()
+    await downloadReport()
+  }
+  instance.calendarContainer.appendChild(btn)
+}
 const exportToExcel = () => {
   const formattedData = tableData.value.map((item) => {
     const endStamp = item.info?.resolved?.stamp || item.info?.closed?.stamp || item.info?.expired?.stamp;
@@ -186,18 +293,24 @@ const exportToExcel = () => {
       "Phone": item.contactPhone || '-',
       "Email": item.contact?.email || '-', 
       "Department": item.assignedTeam || '-',
+      "Last Assigned Queue": item.assignedQueue || '-',
       "Served By": item.assignedAgent || '-',
       "Channel": item.contactType || '-',
+      "SessionId": item.sessionId || '-',
+      "Channel Id": item.channelId || '-',
+      "Contact Id": item.contactId || '-',
       "Start At": item.summaries?.[0]?.firstMessageStamp ? formatTimeDay(item.summaries[0].firstMessageStamp) : '-',
+      "Chat Start Date": firstMsgStamp ? formatDateOnly(firstMsgStamp) : '-',
       "First Message Type": item.summaries?.[0]?.firstMessageType || '-',
       "Agent Handover Time": item.summaries?.[0]?.assignedStamp ? formatTimeDay(item.summaries[0].assignedStamp) : '-',
       "LastMessageType": item.summaries?.[0]?.lastMessageType || '-',
       "Last Message At": item.summaries?.[0]?.lastMessageStamp ? formatTimeDay(item.summaries[0].lastMessageStamp) : '-',
       "Status": item.status || '-',
-      "SessionId": item.sessionId || '-',
       "Closed by": closedBy,
       "Closedstamp": endStamp ? formatTimeDay(endStamp) : '-',
-      "First Reaction Time": item.summaries?.[0]?.firstReactionTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstReactionTime) : '-',
+      "First Reaction Time": item.summaries?.[0]?.firstResponseTime !== "NA" ? formatDurationHHMMSS(item.summaries?.[0]?.firstResponseTime) : '-',
+      "Feedback Score": item.info?.satisfactionScore || '-',
+      "Sentiment": getSentimentLabel(item.aiSentimentScore),
       "Resolution Time": resolutionTime
     };
 
@@ -244,16 +357,48 @@ onMounted(async () => {
 <template>
   <VRow>
     <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; padding-right: 12px;">
-      
-      <VBtn
-        @click="exportToExcel"
-        color="primary"
-        style="width: 40px; height: 40px; min-width: 40px"
-        class="pa-0"
-        variant="flat"
-      >
-        <VIcon>mdi-download</VIcon>
-      </VBtn>
+      <VTooltip text="Download the list of Chat summary reports">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="openReportDatePicker"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px;margin-right: -12px;"
+            class="pa-0"
+            variant="flat"
+          >
+            <VIcon>mdi-file-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
+      <AppDateTimePicker
+        v-model="dateRange2" ref="datePickerRef"
+        class="hidden-datepicker"
+        :config="{
+          mode: 'range',
+          dateFormat: 'd-m-Y',
+          position: 'auto right',
+          maxDate: tonight,
+          closeOnSelect: false,
+          // onClose: onDateClosedReport,
+          plugins: [customPlugin],
+          onReady: addApplyButtonToReportPicker,
+        }"
+      />
+      <VTooltip text="Download the list of Chats">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="exportToExcel"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px;"
+            class="pa-0"
+            variant="flat"
+          >
+            <VIcon>mdi-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
 
       <VSelect
         v-model="selectedChatType"
@@ -417,7 +562,7 @@ onMounted(async () => {
              <div class="d-flex mb-2">
                <span class="text-caption text-medium-emphasis me-2" style="min-width: 110px;">First Reply:</span>
                <span class="text-body-2">
-                 {{ selectedSession.summaries?.[0]?.firstReactionTime ? formatDuration(selectedSession.summaries[0].firstReactionTime) : '-' }}
+                 {{ selectedSession.summaries?.[0]?.firstResponseTime ? formatDuration(selectedSession.summaries[0].firstResponseTime) : '-' }}
                </span>
              </div>
              <div class="d-flex mb-2">
@@ -471,5 +616,25 @@ onMounted(async () => {
   border-top-left-radius: 12px;
   border-bottom-left-radius: 12px;
   overflow: hidden;
+}
+</style>
+<style>
+.hidden-datepicker { 
+  position: absolute; 
+  opacity: 0; 
+  pointer-events: none; 
+  width: 0; 
+  height: 0; 
+}
+.flatpickr-custom-apply-btn {
+  font-size: 12px;
+  background: #1976d2;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: white;
+  margin: 8px;
+  width: calc(100% - 16px);
 }
 </style>

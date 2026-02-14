@@ -2,13 +2,14 @@
 import { ref, onMounted } from 'vue';
 import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { emailValidator, requiredValidator } from '@app-lead/@core/utils/validators';
+import PhoneInputWithCountry from '@/app-lead/@core/components/PhoneCodeWithCountry.vue';
 
 const formStructure = ref(null);
 const formValues = ref({});
 
 const phoneValidator = value => {
   if (!value) return true 
-  const phoneRegex = /^[+]?[0-9]{10,15}$/;
+  const phoneRegex = /^[+]?[0-9]{8,15}$/;
   return phoneRegex.test(value) || 'Please enter a valid phone number';
 }
 
@@ -45,7 +46,7 @@ onMounted(() => {
           if (field.inputType === 'BOOLEAN') {
             initialValues[key] = false;
           } else {
-            initialValues[key] = null;
+            initialValues[key] = '';
           }
         });
       }
@@ -60,7 +61,7 @@ onMounted(() => {
 
 const submitForm = () => {
   // alert('This is a preview. Form data would be submitted now. Check the console for values.');
-  // console.log('Form Values:', formValues.value);
+  console.log('Form Values:', formValues.value);
 }
 </script>
 
@@ -92,8 +93,7 @@ const submitForm = () => {
                 <span v-if="field.optional === false" class="text-error">*</span>
               </VLabel>
 
-              <!-- TEXT / EMAIL / PHONE -->
-              <VRow v-if="['TEXT', 'EMAIL', 'PHONE'].includes(field.inputType)">
+              <VRow v-if="['TEXT', 'EMAIL'].includes(field.inputType)">
                 <VCol md="8">
                   <VTextField
                     v-model="formValues[field.path || field.code]"
@@ -102,6 +102,16 @@ const submitForm = () => {
                     :rules="getRules(field)"
                   />
                 </VCol>
+              </VRow>
+
+              <VRow v-else-if="field.inputType === 'PHONE'">
+                <VCol md="8">
+                  <PhoneInputWithCountry
+                    v-model="formValues[field.path || field.code]"
+                    :placeholder="field.desc"
+                    :rules="getRules(field)"
+                  />
+                  </VCol>
               </VRow>
 
               <VRow v-else-if="field.inputType === 'OPTIONS'">

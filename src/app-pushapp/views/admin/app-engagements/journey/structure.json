@@ -1,0 +1,96 @@
+{
+    "enabled": false,
+    "code": "",
+    "nodes": [
+        {
+            "id": "n1",
+            "code": "ACTOR",
+            "meta": {
+                "isFirstNode": true
+            },
+            "actions": [],
+            "listeners": [
+                {
+                    "id": "n1_l1",
+                    "code": "TIMEOUT",
+                    "attrs": {
+                        "type": "deliveryTimeout",
+                        "deliveryTimeout": 30000
+                    },
+                    "action": {
+                        "id": "n1_l1_a1",
+                        "code": "ROUTE_TO_NODE",
+                        "attrs": {
+                            "nodeCode": "ACTOR",
+                            "nodeProps": {
+                                "nodeId": "n2"
+                            }
+                        }
+                    }
+                },
+                {
+                    "id": "n1_l2",
+                    "code": "TIMEOUT",
+                    "attrs": {
+                        "type": "ctaTimeout",
+                        "ctaTimeout": 30000
+                    },
+                    "action": {
+                        "id": "n1_l2_a1",
+                        "code": "ROUTE_TO_NODE",
+                        "attrs": {
+                            "nodeCode": "ACTOR",
+                            "nodeProps": {
+                                "nodeId": "n3"
+                            }
+                        }
+                    }
+                }
+            ]
+        },
+        {
+            "id": "n2",
+            "code": "ACTOR",
+            "actions": [
+                {
+                    "id": "n2_a1",
+                    "code": "SEND_MESSAGE",
+                    "attrs": {
+                        "channelId": "wacfb:918999652712",
+                        "appId": "6804fa4473af55000147f5df",
+                        "phone": "918976435833",
+                        "type": "template",
+                        "template": {
+                            "data": {},
+                            "code": "1_march_2025_1"
+                        },
+                        "options": {}
+                    }
+                }
+            ],
+            "listeners": []
+        },
+        {
+            "id": "n3",
+            "code": "ACTOR",
+            "actions": [
+                {
+                    "id": "n3_a1",
+                    "code": "SEND_MESSAGE",
+                    "attrs": {
+                        "channelId": "wacfb:918999652712",
+                        "appId": "6804fa4473af55000147f5df",
+                        "phone": "918976435833",
+                        "type": "template",
+                        "template": {
+                            "data": {},
+                            "code": "1_march_2025_1"
+                        },
+                        "options": {}
+                    }
+                }
+            ],
+            "listeners": []
+        }
+    ]
+}

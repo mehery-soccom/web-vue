@@ -8,6 +8,7 @@ export const APP_CONTEXT =
     pushapp: `/pushapp` || ``,
     insights360: `/nexus/insights360` || ``,
     notebook: `/nexus/notebook` || ``,
+    tikat: `/tikat/` || ``,
   }[APP];
 export const CDN_CONTEXT = CONST.CDN_CONTEXT || APP_CONTEXT;
 export const API_CONTEXT = CONST.API_CONTEXT || APP_CONTEXT;

@@ -94,6 +94,17 @@ const formatDuration = (seconds) => {
     return `${seconds.toFixed(0)} s`;
   }
 };
+const formatDurationHHMMSS = (ms) => {
+  if (ms === null || ms === undefined || isNaN(ms)) return "-";
+
+  let totalSeconds = Math.floor(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  totalSeconds %= 3600;
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+
+  return `${String(hours).padStart(2, "0")}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+};
 const findStatus = (sess) => {
   var awayStamp = new Date().getTime() - 600000;
   var offlineStamp = awayStamp - 600000 * 2;
@@ -132,7 +143,7 @@ const exportToExcel = () => {
     "No. of Conversation": item.totalConversations,
     "Avg. Start Lag": formatDuration(item.averageStartLag),
     "Avg. Response Time": formatDuration(item.averageResponseTime),
-    Duration: formatDuration(item.averageAssignedDuration),
+    Duration: formatDurationHHMMSS(item.averageAssignedDuration),
     Open: item.openConversations,
     Resolved: item.resolvedConversations,
     Expired: item.expiredConversations,

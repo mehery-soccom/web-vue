@@ -36,7 +36,7 @@ const isUpdating = ref(false);
 const isAgentLoading = ref(false);
 const byUser = window.CONST?.USER?.user || null;
 const userRoles = window.CONST?.USER?.role || [];
-const isAgentDisabled = userRoles.includes('MODERATOR') || userRoles.includes('AGENT');
+const isAgentDisabled = userRoles.includes('MODERATOR') || userRoles.includes('USER');
 
 const tsToDate = (ts) => (ts ? new Date(ts) : null);
 

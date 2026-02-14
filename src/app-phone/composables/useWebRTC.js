@@ -341,7 +341,6 @@ export function useWebRTC() {
 
     try {
       callState.value = "ringing";
-      playRingtone();
 
       // Set remote offer
       const remoteDesc = {
@@ -588,8 +587,6 @@ export function useWebRTC() {
                 timestamp: new Date(),
               };
               callState.value = "ringing";
-              playRingtone();
-
               try {
                 const offerSDP = await createOfferr(remoteNumber);
                 console.log("ss",offerSDP);
@@ -612,9 +609,15 @@ export function useWebRTC() {
           }
 
           const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
-          if (requestAction.can_perform_action) toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
+          if (requestAction.can_perform_action) {
+            sendPostMessage("no-call-permission", {
+              remoteNumber: currentPeerNumber.value,
+              channelId: channel_id,
+            });
+          }
+          // toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
           else toast.error(`You cannot send a permission request right now.\nLimits: ${limitSummary}.`,{ timeout: 0 });
-          console.error("Access denied, Request user permission by sending template.");
+          console.log("Access for call denied.");
       }
     }catch(e){
       console.error("Failed to make call:", e);
@@ -634,8 +637,9 @@ export function useWebRTC() {
     console.log(" got ans", answer);
   }
   const getCallsSuggestion = async (val) => {
-    const resp = await PhoneStore.getCallSuggestion({ pageNo: 1, pageSize: 10, search: {contactWaId: val}})
-    console.log("rsults", resp.results)
+    const resp = await PhoneStore.getCallSuggestion({ agentCode: window.CONST.APP_USER, contactWaId: val})
+    console.log("rsults", resp.data.results)
+    return resp.data.results;
   };
 
   onUnmounted(() => {
