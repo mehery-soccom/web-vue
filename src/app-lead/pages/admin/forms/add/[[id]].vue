@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useFormsStore } from '@/app-lead/views/admin/forms/useFormsStore';
 import { requiredValidator } from '@app-lead/@core/utils/validators'
 import AppDateTimePicker from '@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue';
+import LeadDocUpload from '@/app-lead/views/admin/leads/LeadDocUpload.vue';
 import draggable from 'vuedraggable';
 
 const { show } = inject("snackbar");
@@ -20,6 +21,10 @@ const formData = ref({
   title: '',
   code: '',
   desc: '',
+  banner: {
+    bgImg: null,
+    logo: null,
+  },
 });
 
 const formFields = ref([]);
@@ -42,6 +47,7 @@ onMounted(async () => {
         title: existingForm.title,
         code: existingForm.code,
         desc: existingForm.desc,
+        banner: existingForm.banner || { bgImg: null, logo: null },
       };
 
       formFields.value = existingForm.formFields.map(field => {
@@ -160,6 +166,7 @@ const openPreview = () => {
     title: formData.value.title,
     desc: formData.value.desc,
     fields: formFields.value,
+    banner: formData.value.banner,
   };
 
   sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
@@ -171,7 +178,7 @@ const openPreview = () => {
 
 <template>
   <VRow class="justify-center">
-    <VCol cols="10" md="7">
+    <VCol cols="10" md="8">
       <VCard :loading="isFetching" class="mb-4">
         <VCardItem>
           <VCardTitle>{{ formId ? 'Edit Form' : 'Create Form' }}</VCardTitle>
@@ -205,6 +212,32 @@ const openPreview = () => {
               </VCol>
               <VCol cols="12">
                 <AppTextField v-model="formData.desc" label="Description" rows="3" />
+              </VCol>
+              <VCol cols="12" md="6">
+                <LeadDocUpload
+                  label="Background Image"
+                  :model-value="formData.banner.bgImg?.url"
+                  :max-size="1 * 1024 * 1024"
+                  form-id="banner"
+                  sub-dir="lead_forms"
+                  accept="image/*"
+                  hint="Supported formats: PNG, SVG, JPG. Max 1 MB"
+                  @upload-complete="payload => formData.banner.bgImg = payload"
+                  @update:modelValue="val => { if(!val) formData.banner.bgImg = null }"
+                />
+              </VCol>
+              <VCol cols="12" md="6">
+                <LeadDocUpload
+                  label="Logo"
+                  :model-value="formData.banner.logo?.url"
+                  :max-size="1 * 1024 * 1024"
+                  form-id="banner"
+                  sub-dir="lead_forms"
+                  accept="image/*"
+                  hint="Supported formats: PNG, SVG, JPG. Max 1 MB"
+                  @upload-complete="payload => formData.banner.logo = payload"
+                  @update:modelValue="val => { if(!val) formData.banner.logo = null }"
+                />
               </VCol>
             </VRow>
           </VCardText>
