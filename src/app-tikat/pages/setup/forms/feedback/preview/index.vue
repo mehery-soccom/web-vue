@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import AppDateTimePicker from '@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { emailValidator, requiredValidator } from '@app-tikat/@core/utils/validators';
 import PhoneCodeWithCountry from '@/app-tikat/@core/components/PhoneCodeWithCountry.vue';
@@ -33,6 +33,21 @@ const getRules = (field) => {
   
   return rules;
 }
+
+const cardBackgroundStyle = computed(() => {
+  const bgUrl = formStructure.value?.banner?.bgImg?.url;
+  if (!bgUrl) return { backgroundColor: 'rgb(var(--v-theme-surface))' };
+  
+  return {
+    backgroundImage: `url(${bgUrl})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    position: 'relative',
+    color: 'white',
+    zIndex: 0
+  };
+});
 
 onMounted(() => {
   const data = sessionStorage.getItem('form-preview-data');
@@ -75,16 +90,28 @@ const submitForm = () => {
       <VCol cols="12" md="7">
         <VForm v-if="formStructure" @submit.prevent="submitForm">
           
-          <VCard class="mb-6">
-            <VCardItem class="text-left">
-              <VCardTitle class="text-h4 pt-4">{{ formStructure.name }}</VCardTitle>
-              <VCardSubtitle
-                v-if="formStructure.desc"
-                class="mt-2 font-italic"
-              >
-                {{ formStructure.desc }}
-              </VCardSubtitle>
-            </VCardItem>
+          <VCard class="mb-6 overflow-hidden preview-card-header" :style="cardBackgroundStyle" elevation="2">
+            <div 
+              class="d-flex align-center pa-6" 
+              :class="{ 'image-overlay': formStructure.banner?.bgImg?.url }"
+            >
+              <div v-if="formStructure.banner?.logo?.url" class="banner-image me-4">
+                <img :src="formStructure.banner.logo.url" class="banner-media-item" />
+              </div>
+
+              <div class="flex-grow-1">
+                <VCardTitle class="text-h4 pa-0 font-weight-bold" :class="{'text-white': formStructure.banner?.bgImg?.url}">
+                  {{ formStructure.name }}
+                </VCardTitle>
+                <VCardSubtitle
+                  v-if="formStructure.desc"
+                  class="mt-1 pa-0 opacity-90"
+                  :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
+                >
+                  {{ formStructure.desc }}
+                </VCardSubtitle>
+              </div>
+            </div>
           </VCard>
 
           <VCard
@@ -213,10 +240,61 @@ const submitForm = () => {
   </VContainer>
 </template>
 
-<style>
+<style scoped>
+.banner-image {
+  flex-shrink: 0;
+  width: 75px;
+  height: 75px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.preview-card-header {
+  position: relative;
+  overflow: hidden !important;
+  border: none !important;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+}
+
+.text-white {
+  color: white !important;
+}
+
+.opacity-90 {
+  opacity: 0.9;
+}
+
+.preview-card-header > div {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
 .layout-blank {
   background-color: var(--v-theme-background) !important;
   min-height: 100vh;
   padding-bottom: 50px;
+}
+
+:deep(.v-card__underlay) {
+  display: none !important;
 }
 </style>

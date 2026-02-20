@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, inject, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useFormsStore } from '@/app-tikat/views/setup/forms/useFormsStore';
+import TikatDocUpload from '@/app-tikat/views/admin/feedback/TikatDocUpload.vue';
 import draggable from 'vuedraggable';
 
 const requiredValidator = value => !!value || 'This field is required';
@@ -20,6 +21,10 @@ const formData = ref({
   name: '',
   key: '',
   desc: '',
+  banner: {
+    bgImg: null,
+    logo: null,
+  },
 });
 
 const formFields = ref([]);
@@ -45,6 +50,7 @@ onMounted(async () => {
         name: existingForm.name,
         key: existingForm.key,
         desc: existingForm.desc,
+        banner: existingForm.banner || { bgImg: null, logo: null },
       };
 
       formFields.value = (existingForm.formFields || []).map(field => {
@@ -162,6 +168,7 @@ const openPreview = () => {
   const previewData = {
     name: formData.value.name,
     desc: formData.value.desc,
+    banner: formData.value.banner,
     fields: formFields.value,
   };
   sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
@@ -198,13 +205,39 @@ const openPreview = () => {
           <VCardText>
             <VRow>
               <VCol cols="12" md="6">
-                <AppTextField v-model="formData.name" label="Form Name" :rules="[requiredValidator]" />
+                <AppTextField v-model="formData.name" label="Form Name*" :rules="[requiredValidator]" />
               </VCol>
               <VCol cols="12" md="6">
-                <AppTextField v-model="formData.key" label="Form Key" :rules="[requiredValidator]" :disabled="!!formId" />
+                <AppTextField v-model="formData.key" label="Form Key *" :rules="[requiredValidator]" :disabled="!!formId" />
               </VCol>
               <VCol cols="12">
                 <AppTextField v-model="formData.desc" label="Description" rows="3" />
+              </VCol>
+              <VCol cols="12" md="6">
+                <TikatDocUpload
+                  label="Background Image"
+                  :model-value="formData.banner.bgImg?.url"
+                  :max-size="1 * 1024 * 1024"
+                  form-id="banner"
+                  sub-dir="feedback"
+                  accept="image/*"
+                  hint="Supported formats: JPG, PNG, WebP. Max 1 MB"
+                  @upload-complete="payload => formData.banner.bgImg = payload"
+                  @update:modelValue="val => { if(!val) formData.banner.bgImg = null }"
+                />
+              </VCol>
+              <VCol cols="12" md="6">
+                <TikatDocUpload
+                  label="Logo (Aspect ratio : 4/3)"
+                  :model-value="formData.banner.logo?.url"
+                  :max-size="1 * 1024 * 1024"
+                  form-id="banner"
+                  sub-dir="feedback"
+                  accept="image/*"
+                  hint="Supported formats: JPG, PNG, WebP. Max 1 MB"
+                  @upload-complete="payload => formData.banner.logo = payload"
+                  @update:modelValue="val => { if(!val) formData.banner.logo = null }"
+                />
               </VCol>
             </VRow>
           </VCardText>
