@@ -79,6 +79,12 @@ const loadFormStructure = async (formId) => {
         }
       })
     }
+    if (formDetails.questions) {
+      formDetails.questions.forEach((q, idx) => {
+        const qKey = `q_${idx}`;
+        if (newData[qKey] === undefined) newData[qKey] = 0;
+      });
+    }
     feedbackData.value = newData
     if (!feedbackId.value) {
       originalFeedbackData.value = JSON.parse(JSON.stringify(newData))
@@ -134,6 +140,12 @@ const fetchFeedbackData = async () => {
         ...(data.response || {}), 
         ...(data.contact || {}) 
       }
+      if (data.questions) {
+        data.questions.forEach((q, idx) => {
+          const qKey = `q_${idx}`;
+          feedbackData.value[qKey] = q.value || 0;
+        });
+      }
       originalFeedbackData.value = JSON.parse(JSON.stringify(feedbackData.value))
 
       feedbackNotes.value = data.notes || []
@@ -169,6 +181,16 @@ const handleSubmit = async () => {
     }
   })
 
+  const questionPayload = (selectedFormStructure.value?.questions || []).map((q, idx) => ({
+    question: q.question,
+    value: feedbackData.value[`q_${idx}`] || 0,
+    weight: q.weight,
+    order: q.order,
+    optional: q.optional
+  }))
+
+  apiData.questions = questionPayload
+
   const selectedForm = formList.value.find(f => f._id === selectedFormId.value)
 
   const payload = {
@@ -176,7 +198,9 @@ const handleSubmit = async () => {
     formTitle: selectedForm?.name || '',
     formCode: selectedForm?.key || '',
     data: apiData,
+    status: currentStatus.value || 'OPEN',
     byUser: byUser,
+    scale: selectedFormStructure.value?.scale || 5,
   }
 
   try {
@@ -364,6 +388,30 @@ onMounted(fetchFeedbackData);
                               />
                             </VCol>
                           </VRow>
+                          <div v-if="selectedFormStructure.questions?.length" class="mt-6">
+                            <VRow>
+                              <VCol 
+                                v-for="(q, idx) in selectedFormStructure.questions" 
+                                :key="idx" 
+                                cols="12" 
+                                md="6"
+                              >
+                                <VLabel class="mb-1 text-body-2 text-high-emphasis d-block">
+                                  {{ q.question }}
+                                  <span v-if="q.optional === false" class="text-error ms-1">*</span>
+                                </VLabel>
+                                <VRating
+                                  v-model="feedbackData[`q_${idx}`]"
+                                  hover
+                                  :length="selectedFormStructure.scale || 5"
+                                  color="warning"
+                                  active-color="warning"
+                                  density="comfortable"
+                                  :disabled="isReadOnly({ access: { moderator: 'W', agent: 'W' } })" 
+                                />
+                              </VCol>
+                            </VRow>
+                          </div>
                         </div>
 
                         <VRow>

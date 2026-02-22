@@ -57,17 +57,15 @@ onMounted(() => {
 
       const initialValues = {};
 
-      if (formStructure.value && formStructure.value.fields) {
+      if (formStructure.value.fields) {
         formStructure.value.fields.forEach(field => {
-          const dataKey = field.key;
-          
-          if (field.inputType === 'BOOLEAN') {
-                initialValues[dataKey] = false;
-            } else if (field.inputType === 'RATING') {
-                initialValues[dataKey] = 0;
-            } else {
-                initialValues[dataKey] = '';
-            }
+          initialValues[field.key] = field.inputType === 'BOOLEAN' ? false : (field.inputType === 'RATING' ? 0 : '');
+        });
+      }
+
+      if (formStructure.value.questions) {
+        formStructure.value.questions.forEach((q, index) => {
+          initialValues[`question_${index}`] = 0; 
         });
       }
       formValues.value = initialValues;
@@ -224,6 +222,31 @@ const submitForm = () => {
               </VRow>
             </VCardText>
           </VCard>
+
+          <template v-if="formStructure.questions && formStructure.questions.length">
+            <VCard v-for="(q, index) in formStructure.questions" :key="index" class="my-4">
+              <VCardText>
+                <VLabel class="mb-2 font-weight-medium text-high-emphasis">
+                  {{ q.questionText || q.label }}
+                  <span v-if="q.optional === false" class="text-error ms-1">*</span>
+                </VLabel>
+
+                <VRow>
+                  <VCol cols="12">
+                    <VRating
+                      v-model="formValues[`question_${index}`]"
+                      :length="formStructure.scale || 5"
+                      :size="42"
+                      color="warning"
+                      active-color="warning"
+                      hover
+                      density="comfortable"
+                    />
+                  </VCol>
+                </VRow>
+              </VCardText>
+            </VCard>
+          </template>
 
           <VBtn class="mt-6" type="submit" variant="elevated" color="primary" block>
             Submit

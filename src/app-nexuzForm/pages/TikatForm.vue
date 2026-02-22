@@ -77,6 +77,8 @@ onMounted(async () => {
       title: formDef.name,
       desc: formDef.desc, 
       fields: mappedFields,
+      questions: formDef.questions || [],
+      scale: formDef.scale || 5,
       banner: formDef.banner || { bgImg: null, logo: null }
     }
 
@@ -86,6 +88,11 @@ onMounted(async () => {
       else if (f.inputType === 'RATING') initialValues[f.key] = 0
       else initialValues[f.key] = ''
     })
+    if (formDef.questions) {
+      formDef.questions.forEach((q, idx) => {
+        initialValues[`q_${idx}`] = 0
+      })
+    }
     formValues.value = initialValues
 
   } catch (error) {
@@ -116,6 +123,16 @@ const handleSubmit = async () => {
         }
       }
     })
+
+    const questionPayload = (formStructure.value.questions || []).map((q, idx) => ({
+      question: q.question,
+      value: formValues.value[`q_${idx}`] || 0,
+      weight: q.weight,
+      order: q.order,
+      optional: q.optional
+    }))
+
+    apiData.questions = questionPayload
 
     const payload = {
       formId: route.params.formId,
@@ -299,6 +316,32 @@ const handleSubmit = async () => {
               />
             </VCardText>
           </VCard>
+          <div v-if="formStructure.questions?.length">
+            <VCard 
+              v-for="(q, idx) in formStructure.questions" 
+              :key="idx" 
+              class="my-4" 
+              variant="flat" 
+              border
+            >
+              <VCardText>
+                <VLabel class="mb-2 font-weight-medium text-high-emphasis d-block">
+                  {{ q.question }}
+                  <span v-if="q.optional === false" class="text-error ms-1">*</span>
+                </VLabel>
+                <div class="py-1">
+                  <VRating
+                    v-model="formValues[`q_${idx}`]"
+                    hover
+                    :length="formStructure.scale || 5"
+                    color="warning"
+                    active-color="warning"
+                    size="large"
+                  />
+                </div>
+              </VCardText>
+            </VCard>
+          </div>
 
           <VBtn type="submit" block color="primary" :loading="isLoading" class="mt-6">
             Submit

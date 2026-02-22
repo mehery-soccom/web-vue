@@ -42,7 +42,8 @@ const headers = computed(() => {
   const list = [
     { title: 'Name', key: 'contact.name', sortable: true },
     { title: 'Form', key: 'form.title', sortable: false },
-    { title: 'Rating', key: 'response.rating', sortable: true }, 
+    { title: 'Rating', key: 'response.rating', sortable: true },
+    { title: 'Score', key: 'meta.score', sortable: true },
     { title: 'Status', key: 'status', sortable: true },
     { title: 'Assigned To', key: 'assignee.name', sortable: true },
     { title: 'Created on', key: 'createdAt', sortable: true },
@@ -240,6 +241,7 @@ const exportToExcel = async () => {
       const row = {
         "Form Title": item.form?.title || '-',
         "Status": item.status || '-',
+        "Score": item.meta?.score ? `${item.meta.score}%` : '-',
         "Date of Feedback": formatDate(item.createdAt),
         "Assigned to": item.assignee?.name || '-',
       }
@@ -386,6 +388,10 @@ const exportToExcel = async () => {
         <div class="d-flex align-center">
           <span class="font-weight-bold">{{ item.raw.response?.rating || '-' }}</span>
         </div>
+      </template>
+
+      <template #item.meta.score="{ item }">
+        <span>{{ item.raw.meta?.score ? `${item.raw.meta.score}%` : '-' }}</span>
       </template>
 
       <template #item.createdAt="{ item }">

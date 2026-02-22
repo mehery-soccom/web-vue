@@ -21,6 +21,12 @@ const formData = ref({
   name: '',
   key: '',
   desc: '',
+  scale: 5,
+  segmentation: [
+    { label: 'Poor Feedback', min: 0, max: 40 },
+    { label: 'Satisfactory', min: 41, max: 65 },
+    { label: 'Good to Excellent', min: 66, max: 100 },
+  ],
   banner: {
     bgImg: null,
     logo: null,
@@ -45,20 +51,23 @@ onMounted(async () => {
       
     if (formId.value) {
       const existingForm = await formsStore.fetchForm(formId.value);
+      const questionMaster = availableFields.value.find(f => f.key === 'question');
       
       formData.value = {
         name: existingForm.name,
         key: existingForm.key,
         desc: existingForm.desc,
+        scale: existingForm.scale || 5,
+        segmentation: existingForm.segmentation?.length ? existingForm.segmentation : formData.value.segmentation,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
 
-      formFields.value = (existingForm.formFields || []).map(field => {
+      const mappedRegularFields = (existingForm.formFields || []).map(field => {
         const masterField = (existingForm.masterFields || []).find(m => m.field_id === field.id) || {};
-        
         return {
           ...masterField, 
           _id: field.id,
+          order: field.order || 0,
           access: {
             contact: field.access?.contact || 'W',
             moderator: field.access?.moderator || 'W',
@@ -67,6 +76,22 @@ onMounted(async () => {
           label: masterField.label || 'Unknown Field',
         };
       });
+
+      const mappedQuestions = (existingForm.questions || []).map(q => {
+        return {
+          ...(questionMaster || {}),
+          _id: questionMaster?._id || null,
+          key: 'question',
+          label: questionMaster?.label || 'Question',
+          questionText: q.question,
+          weight: q.weight,
+          optional: q.optional,
+          order: q.order || 0,
+        };
+      });
+
+      formFields.value = [...mappedRegularFields, ...mappedQuestions].sort((a, b) => a.order - b.order);
+
     }else {
       const defaultKeys = ['name', 'email', 'phone', 'rating'];
       const defaultAccess = { contact: 'W', moderator: 'W', agent: 'W' };
@@ -88,6 +113,16 @@ onMounted(async () => {
   } finally {
     isFetching.value = false;
   }
+});
+
+watch(() => formData.value.segmentation[0].max, (newVal) => {
+  const poorMax = Number(newVal) || 0;
+  formData.value.segmentation[1].min = poorMax + 1;
+});
+
+watch(() => formData.value.segmentation[1].max, (newVal) => {
+  const satMax = Number(newVal) || 0;
+  formData.value.segmentation[2].min = satMax + 1;
 });
 
 const addFieldCard = () => {
@@ -113,6 +148,9 @@ const onFieldSelected = (selectedFieldId, index) => {
     formFields.value[index] = {
       ...fullField,
       access: { contact: 'W', moderator: 'W', agent: 'W' },
+      questionText: fullField.key === 'question' ? '' : undefined,
+      weight: fullField.key === 'question' ? 1 : undefined,
+      optional: fullField.key === 'question' ? false : (fullField.optional ?? true),
     };
   } else {
     formFields.value[index] = {
@@ -130,8 +168,11 @@ const handleSubmit = async () => {
     return;
   }
 
-  if (formFields.value.length === 0) {
-    show({ message: 'Please add at least one field before saving.', color: 'warning' });
+  const regularFields = formFields.value.filter(f => f.key !== 'question');
+  const questionFields = formFields.value.filter(f => f.key === 'question');
+
+  if (regularFields.length === 0) {
+    show({ message: 'Please add at least one regular field before saving.', color: 'warning' });
     return;
   }
 
@@ -139,10 +180,16 @@ const handleSubmit = async () => {
 
   const payload = {
     ...formData.value,
-    formFields: formFields.value.map((field, index) => ({
+    formFields: regularFields.map((field, index) => ({
       id: field._id,
-      order: index + 1,
+      order: formFields.value.indexOf(field) + 1,
       access: field.access,
+    })),
+    questions: questionFields.map((field, index) => ({
+      question: field.questionText,
+      weight: Number(field.weight) || 1,
+      order: formFields.value.indexOf(field) + 1,
+      optional: !!field.optional,
     })),
   };
 
@@ -169,7 +216,9 @@ const openPreview = () => {
     name: formData.value.name,
     desc: formData.value.desc,
     banner: formData.value.banner,
-    fields: formFields.value,
+    scale: formData.value.scale,
+    fields: formFields.value.filter(f => f.key !== 'question'),
+    questions: formFields.value.filter(f => f.key === 'question'),
   };
   sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
   const routeData = router.resolve({ name: 'setup-forms-feedback-preview' });
@@ -210,8 +259,15 @@ const openPreview = () => {
               <VCol cols="12" md="6">
                 <AppTextField v-model="formData.key" label="Form Key *" :rules="[requiredValidator]" :disabled="!!formId" />
               </VCol>
-              <VCol cols="12">
-                <AppTextField v-model="formData.desc" label="Description" rows="3" />
+              <VCol cols="12" md="9">
+                <AppTextField v-model="formData.desc" label="Description" rows="1" />
+              </VCol>
+              <VCol cols="12" md="3">
+                <AppSelect
+                  v-model="formData.scale"
+                  label="Rating Scale"
+                  :items="[2, 3, 5, 10]"
+                />
               </VCol>
               <VCol cols="12" md="6">
                 <TikatDocUpload
@@ -239,6 +295,56 @@ const openPreview = () => {
                   @update:modelValue="val => { if(!val) formData.banner.logo = null }"
                 />
               </VCol>
+              <VCol cols="12">
+                <div class="text-subtitle-1 font-weight-bold mb-3">Response Segmentation (%)</div>
+                
+                <VCol cols="12" md="6" class="pa-0 mb-3">
+                  <AppTextField
+                    v-model="formData.segmentation[0].max"
+                    type="number"
+                    label="Poor Feedback"
+                    prefix="<"
+                    suffix="%"
+                  />
+                </VCol>
+
+                <VCol cols="12" md="6" class="pa-0 mb-3">
+                  <div class="text-body-2 mb-1">Satisfactory</div>
+                  <VRow dense align="center">
+                    <VCol cols="5">
+                      <AppTextField
+                        v-model="formData.segmentation[1].min"
+                        suffix=""
+                        readonly
+                        variant="filled"
+                        placeholder="Min"
+                        density="compact"
+                      />
+                    </VCol>
+                    <VCol cols="2" class="text-center text-h6 pb-4">-</VCol>
+                    <VCol cols="5">
+                      <AppTextField
+                        v-model="formData.segmentation[1].max"
+                        type="number"
+                        suffix=""
+                        placeholder="Max"
+                        density="compact"
+                      />
+                    </VCol>
+                  </VRow>
+                </VCol>
+
+                <VCol cols="12" md="6" class="pa-0 mb-3">
+                  <AppTextField
+                    v-model="formData.segmentation[2].min"
+                    label="Good to Excellent"
+                    prefix=">"
+                    suffix="%"
+                    readonly
+                    variant="filled"
+                  />
+                </VCol>
+              </VCol>
             </VRow>
           </VCardText>
         </VCard>
@@ -261,7 +367,7 @@ const openPreview = () => {
                       item-title="label"
                       item-value="_id"
                       label="Select a Field"
-                      placeholder="Search for a field to add"
+                      placeholder="Search for a field"
                       clearable
                     >
                       <template #label>
@@ -292,6 +398,37 @@ const openPreview = () => {
                 </VRow>
 
                 <div v-if="field.inputType" class="mt-4">
+                 <template v-if="field.key === 'question'">
+                    <VRow>
+                      <VCol cols="12">
+                        <AppTextField 
+                          v-model="field.questionText" 
+                          label="Enter Question Text*" 
+                          :rules="[requiredValidator]"
+                          placeholder="e.g. How likely are you to recommend us?"
+                        />
+                      </VCol>
+                    </VRow>
+                    <VRow>
+                      <VCol cols="12" md="3">
+                        <AppTextField 
+                          v-model="field.weight" 
+                          type="number" 
+                          label="Weight" 
+                          placeholder="1"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="3" class="d-flex align-center">
+                        <VSwitch 
+                          v-model="field.optional" 
+                          label="Optional" 
+                          density="compact"
+                          class="mt-5"
+                        />
+                      </VCol>
+                    </VRow>
+                  </template>
+                 <template v-else>
                   <VRow v-if="field.inputType === 'OPTIONS'">
                     <VCol md="8">
                       <VSelect
@@ -340,7 +477,8 @@ const openPreview = () => {
                       />
                     </VCol>
                   </VRow>
-
+                 </template>
+                 <div v-if="field.key !== 'question'">
                   <VDivider class="my-4" />
 
                   <h6 class="text-h6 mb-3">Access Control</h6>
@@ -361,6 +499,7 @@ const openPreview = () => {
                       </VRadioGroup>
                     </VCol>
                   </VRow>
+                 </div>
                 </div>
 
                 <div v-else class="text-center pa-4 text-disabled">

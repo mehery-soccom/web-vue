@@ -26,6 +26,7 @@ const defaultFields = [
   { label: 'Phone', key: 'phone', desc: 'Phone Number', inputType: 'PHONE', optional: false, isActive: true },
   { label: 'Email', key: 'email', desc: 'Email ID', inputType: 'EMAIL', optional: false, isActive: true },
   { label: 'Rating', key: 'rating', desc: 'Rating', inputType: 'RATING', optional: false, isActive: true },
+  { label: 'Question', key: 'question', desc: 'Question', inputType: 'QUESTION', optional: true, isActive: true },
 ];
 
 const defaultFieldCodes = defaultFields.map(f => f.key);
