@@ -191,7 +191,7 @@ const normalizeUrl = (v) => {
 const onCreate = async () => {
   let validationResult = await formRef.value.validate();
 
-  console.log("onCreate", validationResult.errors, template);
+  console.log("onCreate", validationResult.errors, JSON.parse(JSON.stringify(template)));
 
   if (!validationResult.valid) {
     return;
@@ -257,7 +257,7 @@ const onCreate = async () => {
 const onUpdate = async () => {
   let validationResult = await formRef.value.validate();
 
-  console.log("onUpdate", validationResult.errors);
+  console.log("onUpdate", validationResult.errors, JSON.parse(JSON.stringify(template)));
 
   if (!validationResult.valid) {
     return;
@@ -266,40 +266,25 @@ const onUpdate = async () => {
   try {
     isLoading.value = true;
 
-    // let data = {};
-    // try {
-    //   data = JSON.parse(template.model.data || DEFAULT_VARIABLES_DATA);
-    // } catch (error) {
-    //   return show({ message: "Invalid variables json", color: "error" });
-    // }
+    const imageUrl = template.type === "simple" && Array.isArray(template.style.image_url) && template.style.image_url.length === 1
+        ? template.style.image_url[0] || "" : template.style.image_url;
 
-    let payload = {};
-    if (template.type === "simple") {
-      if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
-      payload = {
+    let payload = {
         ...template,
-        options: {
-          ...(template.options || {}),
-          buttons: buttonGroupFields.value.map((b) => ({
-            button_id: b.id,
-            button_text: b.text,
-            button_url: normalizeUrl(buttonGroupValue.value[b.text]),
-          })),
+        style: {
+          ...template.style,
+          image_url: imageUrl,
         },
-        // model: {
-        //   ...(template.model || {}),
-        //   data,
-        // },
-      };
-    } else {
-      payload = {
-        ...template,
-        options: {},
-        // model: {
-        //   ...(template.model || {}),
-        //   data,
-        // },
-      };
+        options: template.type === "simple"
+          ? {
+              ...(template.options || {}),
+              buttons: buttonGroupFields.value.map((b) => ({
+                button_id: b.id,
+                button_text: b.text,
+                button_url: normalizeUrl(buttonGroupValue.value[b.text]),
+              })),
+            }
+          : {},
     }
 
     await pushNotificationStore.updateTemplate(template._id, payload);
