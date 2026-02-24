@@ -94,6 +94,11 @@ const loadFormStructure = async (formId) => {
   }
 }
 
+const isAdmin = computed(() => {
+  const userRoles = window.CONST?.USER?.role || [];
+  return userRoles.includes('ADMIN');
+});
+
 const isModerator = computed(() => {
   const userRoles = window.CONST?.USER?.role || [];
   return userRoles.includes('MODERATOR');
@@ -105,8 +110,9 @@ const isUserRole = computed(() => {
 });
 
 const isReadOnly = (field) => {
+  if (isAdmin.value && !feedbackId.value) return false;
+  if (isAdmin.value && field.access?.moderator === 'R') return true;
   if (isModerator.value && field.access?.moderator === 'R') return true;
-  
   if (isUserRole.value && field.access?.agent === 'R') return true;
   
   return false;

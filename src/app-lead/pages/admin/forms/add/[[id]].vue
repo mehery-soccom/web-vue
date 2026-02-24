@@ -16,6 +16,7 @@ const formId = computed(() => route.params.id === 'add' ? null : route.params.id
 const isLoading = ref(false);
 const isFetching = ref(false);
 const refForm = ref();
+const hasLeads = ref(false);
 
 const formData = ref({
   title: '',
@@ -49,6 +50,7 @@ onMounted(async () => {
         desc: existingForm.desc,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
+      hasLeads.value = !!existingForm.hasLeads;
 
       formFields.value = existingForm.formFields.map(field => {
         const masterField = existingForm.masterFields[field.field_id];
@@ -258,6 +260,7 @@ const openPreview = () => {
                       :model-value="field._id"
                       @update:model-value="onFieldSelected($event, index)"
                       :items="availableFields"
+                      :disabled="hasLeads"
                       item-title="title"
                       item-value="_id"
                       label="Select a Field"
@@ -289,7 +292,7 @@ const openPreview = () => {
                     </VAutocomplete>
                   </VCol>
                   <VCol cols="12" md="1" class="text-right">
-                    <VBtn icon="tabler-trash" variant="text" color="error" @click="removeFieldCard(index)" :disabled="field.code === 'name'" />
+                    <VBtn icon="tabler-trash" variant="text" color="error" @click="removeFieldCard(index)" :disabled="field.code === 'name' || hasLeads" />
                   </VCol>
                   <VCol cols="1" md="1" class="text-center">
                     <VIcon class="drag-handle" style="cursor: move;">tabler-grip-vertical</VIcon>
@@ -385,7 +388,7 @@ const openPreview = () => {
 
         <VRow>
           <VCol cols="12" class="d-flex gap-4">
-            <VBtn @click="addFieldCard" prepend-icon="tabler-plus">Add Field</VBtn>
+            <VBtn @click="addFieldCard" prepend-icon="tabler-plus" :disabled="hasLeads">Add Field</VBtn>
             <VSpacer />
             <VBtn
               color="secondary"

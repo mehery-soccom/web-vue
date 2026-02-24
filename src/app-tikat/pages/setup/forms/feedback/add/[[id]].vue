@@ -16,6 +16,7 @@ const formId = computed(() => route.params.id === 'add' ? null : route.params.id
 const isLoading = ref(false);
 const isFetching = ref(false);
 const refForm = ref();
+const hasTikats = ref(false);
 
 const formData = ref({
   name: '',
@@ -61,6 +62,7 @@ onMounted(async () => {
         segmentation: existingForm.segmentation?.length ? existingForm.segmentation : formData.value.segmentation,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
+      hasTikats.value = !!existingForm.hasTikats;
 
       const mappedRegularFields = (existingForm.formFields || []).map(field => {
         const masterField = (existingForm.masterFields || []).find(m => m.field_id === field.id) || {};
@@ -267,6 +269,7 @@ const openPreview = () => {
                   v-model="formData.scale"
                   label="Rating Scale"
                   :items="[2, 3, 5, 10]"
+                  :disabled="hasTikats"
                 />
               </VCol>
               <VCol cols="12" md="6">
@@ -303,6 +306,7 @@ const openPreview = () => {
                     v-model="formData.segmentation[0].max"
                     type="number"
                     label="Poor Feedback"
+                    :disabled="hasTikats"
                     prefix="<"
                     suffix="%"
                   />
@@ -317,6 +321,7 @@ const openPreview = () => {
                         suffix=""
                         readonly
                         variant="filled"
+                        :disabled="hasTikats"
                         placeholder="Min"
                         density="compact"
                       />
@@ -329,6 +334,7 @@ const openPreview = () => {
                         suffix=""
                         placeholder="Max"
                         density="compact"
+                        :disabled="hasTikats"
                       />
                     </VCol>
                   </VRow>
@@ -342,6 +348,7 @@ const openPreview = () => {
                     suffix="%"
                     readonly
                     variant="filled"
+                    :disabled="hasTikats"
                   />
                 </VCol>
               </VCol>
@@ -364,6 +371,7 @@ const openPreview = () => {
                       :model-value="field._id"
                       @update:model-value="onFieldSelected($event, index)"
                       :items="availableFields"
+                      :disabled="hasTikats"
                       item-title="label"
                       item-value="_id"
                       label="Select a Field"
@@ -390,7 +398,7 @@ const openPreview = () => {
                     </VAutocomplete>
                   </VCol>
                   <VCol cols="12" md="1" class="text-right">
-                    <VBtn icon="tabler-trash" variant="text" color="error" @click="removeFieldCard(index)" :disabled="field.key === 'name'" />
+                    <VBtn icon="tabler-trash" variant="text" color="error" @click="removeFieldCard(index)" :disabled="field.key === 'name' || hasTikats" />
                   </VCol>
                   <VCol cols="1" md="1" class="text-center">
                     <VIcon class="drag-handle" style="cursor: move;">tabler-grip-vertical</VIcon>
@@ -405,6 +413,7 @@ const openPreview = () => {
                           v-model="field.questionText" 
                           label="Enter Question Text*" 
                           :rules="[requiredValidator]"
+                          :disabled="hasTikats"
                           placeholder="e.g. How likely are you to recommend us?"
                         />
                       </VCol>
@@ -412,7 +421,8 @@ const openPreview = () => {
                     <VRow>
                       <VCol cols="12" md="3">
                         <AppTextField 
-                          v-model="field.weight" 
+                          v-model="field.weight"
+                          :disabled="hasTikats"
                           type="number" 
                           label="Weight" 
                           placeholder="1"
@@ -420,7 +430,8 @@ const openPreview = () => {
                       </VCol>
                       <VCol cols="12" md="3" class="d-flex align-center">
                         <VSwitch 
-                          v-model="field.optional" 
+                          v-model="field.optional"
+                          :disabled="hasTikats"
                           label="Optional" 
                           density="compact"
                           class="mt-5"
@@ -512,7 +523,7 @@ const openPreview = () => {
 
         <VRow>
           <VCol cols="12" class="d-flex gap-4">
-            <VBtn @click="addFieldCard" prepend-icon="tabler-plus" variant="tonal">Add Field</VBtn>
+            <VBtn @click="addFieldCard" prepend-icon="tabler-plus" :disabled="hasTikats" variant="tonal">Add Field</VBtn>
             <VSpacer />
             <VBtn color="secondary" variant="tonal" :to="{ name: 'setup-forms-feedback-list' }">
               Cancel
