@@ -407,14 +407,23 @@ const openPreview = () => {
 
                 <div v-if="field.inputType" class="mt-4">
                  <template v-if="field.key === 'question'">
-                    <VRow>
-                      <VCol cols="12">
+                    <VRow align="center">
+                      <VCol cols="12" md="9">
                         <AppTextField 
                           v-model="field.questionText" 
-                          label="Enter Question Text*" 
+                          label="Enter Question Text" 
                           :rules="[requiredValidator]"
                           :disabled="hasTikats"
                           placeholder="e.g. How likely are you to recommend us?"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="3">
+                        <VSwitch 
+                          v-model="field.optional"
+                          :disabled="hasTikats"
+                          label="Optional" 
+                          density="compact"
+                          class="mt-5"
                         />
                       </VCol>
                     </VRow>
@@ -426,15 +435,8 @@ const openPreview = () => {
                           type="number" 
                           label="Weight" 
                           placeholder="1"
-                        />
-                      </VCol>
-                      <VCol cols="12" md="3" class="d-flex align-center">
-                        <VSwitch 
-                          v-model="field.optional"
-                          :disabled="hasTikats"
-                          label="Optional" 
-                          density="compact"
-                          class="mt-5"
+                          hide-spin-buttons
+                          class="no-spinner"
                         />
                       </VCol>
                     </VRow>
@@ -542,4 +544,11 @@ const openPreview = () => {
 .drag-handle:hover {
   color: rgb(var(--v-theme-primary));
 }
+
+:deep(.no-spinner input::-webkit-outer-spin-button),
+:deep(.no-spinner input::-webkit-inner-spin-button) {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
 </style>

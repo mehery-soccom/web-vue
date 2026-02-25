@@ -207,6 +207,7 @@ const handleSubmit = async () => {
     status: currentStatus.value || 'OPEN',
     byUser: byUser,
     scale: selectedFormStructure.value?.scale || 5,
+    segmentation: selectedFormStructure.value?.segmentation || [],
   }
 
   try {
