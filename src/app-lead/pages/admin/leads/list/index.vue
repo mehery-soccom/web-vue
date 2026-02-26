@@ -215,7 +215,7 @@ const openChat = (rawItem) => {
     return;
   }
 
-  let paramString = `code=${code};`;
+  let paramString = `code=${code};source=LEAD_MGMT;`;
   if (name) paramString += `name=${name};`;
   if (number) paramString += `number=${number};`;
   if (email) paramString += `email=${email};`;

@@ -473,46 +473,39 @@ const onUpdateOptionsDebounced = debounce((options) => {
                   :key="idx"
                   class="filter-child"
                 >
-                  <div style="margin: 4px 0">
-                    <strong>{{ formatFieldName(child.filterType) }}: </strong>
+                  <div v-if="idx === 0 || selectedLogs.raw.filter.children[idx - 1].filterType !== child.filterType" style="margin: 6px 0">
+                    <strong>{{ formatFieldName(child.filterType).replace(/([a-z])([A-Z])/g, '$1 $2') }}:</strong>
                   </div>
-                  <template
-                    v-if="
-                      child.freqOperator &&
-                      (child.freqCount || child.value)
-                    "
-                  >
-                    <strong>"{{ formatFieldName(child.field) }}"</strong>
-                    {{
-                      " has" +
-                      (child.operator === "is_not" ? " not" : "") +
-                      " happened " +
-                      formatFieldName(child.freqOperator).toLowerCase() +
-                      " " +
-                      (child.freqCount || child.value) +
-                      " time" +
-                      ((child.freqCount || child.value) > 1 ? "s" : "") +
-                      (child.freqPeriod
-                        ? " " + formatFieldName(child.freqPeriod).toLowerCase()
-                        : "") +
-                      "."
-                    }}
-                  </template>
-                  <template
-                    v-else-if="
-                      child.field &&
-                      child.operator &&
-                      (child.freqCount || child.value)
-                    "
-                  >
-                    <strong>"{{ formatFieldName(child.field) }}"</strong>
-                    {{ formatFieldName(child.operator) }}
-                    <strong
-                      >"{{
-                        formatFieldName(child.freqCount || child.value)
-                      }}"</strong
-                    >
-                  </template>
+                  <div style="margin-left: 12px">
+                    <template v-if="child.freqOperator && (child.freqCount || child.value)">
+                      <strong>"{{ formatFieldName(child.field) }}"</strong>
+                      {{
+                        " has" +
+                        (child.operator === "is_not" ? " not" : "") +
+                        " happened " +
+                        formatFieldName(child.freqOperator).toLowerCase() +
+                        " " +
+                        (child.freqCount || child.value) +
+                        " time" +
+                        ((child.freqCount || child.value) > 1 ? "s" : "") +
+                        (child.freqPeriod
+                          ? " " + formatFieldName(child.freqPeriod).toLowerCase()
+                          : "") +
+                        "."
+                      }}
+                    </template>
+
+                    <template v-else-if="child.field && child.operator && (child.freqCount || child.value)">
+                      <strong>"{{ formatFieldName(child.field) }}"</strong>
+                      {{ formatFieldName(child.operator) }}
+                      <strong v-if="typeof child.value?.[0] === 'object' && child.value[0]?.dateLocal">
+                        "{{ formatFieldName(child.value[0].dateLocal) }}"
+                      </strong>
+                      <strong v-else>
+                        "{{ formatFieldName(child.freqCount || child.value) }}"
+                      </strong>
+                    </template>
+                  </div>
                 </div>
               </div>
               <div v-else>

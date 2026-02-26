@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, onMounted, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useFormStore } from "@/app-form/views/useFormStore"
 import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
@@ -38,6 +38,18 @@ const getRules = (field) => {
   if (field.inputType === "PHONE") rules.push(phoneValidator)
   return rules
 }
+
+const cardBackgroundStyle = computed(() => {
+  const bgUrl = formStructure.value?.banner?.bgImg?.url;
+  if (!bgUrl) return { backgroundColor: 'rgb(var(--v-theme-surface))' };
+  
+  return {
+    backgroundImage: `url(${bgUrl})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+});
 
 const isReadOnly = (field) => {
   return field.access?.contact === 'R' || field.access?.external === 'R';
@@ -87,6 +99,7 @@ onMounted(async () => {
       title: formDef.title,
       desc: formDef.desc,
       fields: mappedFields,
+      banner: formDef.banner || { bgImg: null, logo: null }
     }
 
     const initialValues = {}
@@ -172,13 +185,28 @@ const submitForm = async () => {
         </div>
 
         <VForm v-else-if="formStructure" ref="refForm" @submit.prevent="submitForm">
-          <VCard class="mb-6">
-            <VCardItem class="text-left">
-              <VCardTitle class="text-h3 ">{{ formStructure.title }}</VCardTitle>
-              <VCardSubtitle v-if="formStructure.desc" class="mt-2 font-italic">
-                {{ formStructure.desc }}
-              </VCardSubtitle>
-            </VCardItem>
+          <VCard class="mb-6 overflow-hidden preview-card-header" :style="cardBackgroundStyle" elevation="2">
+            <div 
+              class="d-flex align-center pa-6" 
+              :class="{ 'image-overlay': formStructure.banner?.bgImg?.url }"
+            >
+              <div v-if="formStructure.banner?.logo?.url" class="banner-image me-4">
+                <img :src="formStructure.banner.logo.url" class="banner-media-item" />
+              </div>
+
+              <div class="flex-grow-1">
+                <VCardTitle class="text-h3 pa-0 font-weight-bold" :class="{'text-white': formStructure.banner?.bgImg?.url}">
+                  {{ formStructure.title }}
+                </VCardTitle>
+                <VCardSubtitle
+                  v-if="formStructure.desc"
+                  class="mt-1 pa-0 opacity-90"
+                  :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
+                >
+                  {{ formStructure.desc }}
+                </VCardSubtitle>
+              </div>
+            </div>
           </VCard>
 
           <VCard
@@ -307,6 +335,68 @@ const submitForm = async () => {
 </template>
 
 <style>
+
+:deep(.v-card__underlay) {
+  display: none !important;
+}
+
+.banner-image {
+  flex-shrink: 0;
+  width: 75px;
+  height: 75px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.preview-card-header {
+  position: relative;
+  overflow: hidden !important;
+  border: none !important;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-card-header > div {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
+.image-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+}
+
+.text-white {
+  color: white !important;
+}
+
+.opacity-90 {
+  opacity: 0.9;
+}
+
+.preview-card-header > div {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
+.v-container {
+  min-height: 100vh;
+  padding-bottom: 50px;
+}
+
 .layout-wrapper.layout-blank {
   background-color: #f4f5fa;
 }

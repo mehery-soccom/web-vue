@@ -248,6 +248,7 @@ const exportToExcel = () => {
     Campaign: item.name,
     ChannelType: item.contactType,
     Template: item.templateName,
+    Time: formatStamp(item.scheduledStamp || item.createdStamp),
     Status: item.status,
     Total: item.total,
     Sent: item.sent,

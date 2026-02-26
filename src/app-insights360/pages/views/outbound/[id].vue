@@ -205,7 +205,7 @@ const downloadReport = async (val=false) => {
 };
 const exportToExcel = () => {
   const formattedData = campTable.value.map((item) => ({
-    Contact: item.contact.phone || item.contact.email,
+    Contact: item.contact.phone || item.contact.email || item.contact.csid,
     By: item.agent,
     // Created: formatTimestamp(item.stamps.CRTD),
     Status: item.status,

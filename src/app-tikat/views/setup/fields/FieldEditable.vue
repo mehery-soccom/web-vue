@@ -28,6 +28,7 @@ const inputTypeOptions = [
   { title: 'DOCUMENT', value: 'DOCUMENT' },
   { title: 'BOOLEAN', value: 'BOOLEAN' },
   { title: 'DATE', value: 'DATE' },
+  // {title: 'QUESTION', value: 'QUESTION' },
 ]
 
 const newOptionLabel = ref('')

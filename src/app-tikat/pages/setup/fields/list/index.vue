@@ -26,6 +26,7 @@ const defaultFields = [
   { label: 'Phone', key: 'phone', desc: 'Phone Number', inputType: 'PHONE', optional: false, isActive: true },
   { label: 'Email', key: 'email', desc: 'Email ID', inputType: 'EMAIL', optional: false, isActive: true },
   { label: 'Rating', key: 'rating', desc: 'Rating', inputType: 'RATING', optional: false, isActive: true },
+  { label: 'Question with Rating', key: 'question', desc: 'Question', inputType: 'QUESTION', optional: true, isActive: true },
 ];
 
 const defaultFieldCodes = defaultFields.map(f => f.key);
@@ -47,7 +48,6 @@ const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
 
 const headers = [
   { title: "Label", key: "label", sortable: true },
-  { title: "Code", key: "key" },
   { title: "Description", key: "desc" },
   { title: "Type", key: "inputType" },
   { title: "Mandatory", key: "optional" },

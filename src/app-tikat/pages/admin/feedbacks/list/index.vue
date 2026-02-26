@@ -2,12 +2,15 @@
 import { ref, reactive, inject, onMounted, computed } from 'vue'
 import debounce from 'lodash/debounce'
 import { useFeedbackStore } from '@/app-tikat/views/admin/feedback/useFeedbackStore'
+import { useStatusStore } from '@/app-tikat/views/setup/status/useStatusStore'
 import { useRouter } from 'vue-router'
 import * as XLSX from "xlsx"
 
 const { show } = inject('snackbar')
 const feedbackStore = useFeedbackStore()
 const router = useRouter()
+const statusStore = useStatusStore()
+const statusOptions = ref(['OPEN'])
 
 const selectedFeedbacks = ref([])
 const isAssignModalVisible = ref(false)
@@ -29,7 +32,8 @@ const pagination = reactive({
     'contact.name': null,
     'assignee.name': null,
     'form.title': null,
-    'response.rating': null, 
+    'response.rating': null,
+    'meta.segmentLabel': null,
     status: null,
     rating: [], 
   },
@@ -42,10 +46,24 @@ const headers = computed(() => {
   const list = [
     { title: 'Name', key: 'contact.name', sortable: true },
     { title: 'Form', key: 'form.title', sortable: false },
-    { title: 'Rating', key: 'response.rating', sortable: true }, 
-    { title: 'Status', key: 'status', sortable: true },
+    { title: 'Rating', key: 'response.rating', sortable: true },
+    { title: 'Score', key: 'meta.score', sortable: true },
+    { 
+      title: 'Category', 
+      key: 'meta.segmentLabel', 
+      sortable: true,
+      filterType: 'select',
+      filterOptions: ['Poor Feedback', 'Satisfactory', 'Good to Excellent']
+    },
+    { 
+      title: 'Status', 
+      key: 'status', 
+      sortable: true,
+      filterType: 'select',
+      filterOptions: statusOptions.value
+    },
     { title: 'Assigned To', key: 'assignee.name', sortable: true },
-    { title: 'Created on', key: 'createdAt', sortable: true },
+    { title: 'Created', key: 'createdAt', sortable: true },
     { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
   ]
   if (canAssign) list.unshift({ key: 'data-table-select', sortable: false })
@@ -87,6 +105,19 @@ const fetchFeedbacks = async (options = pagination) => {
     show({ message: 'Failed to load feedbacks.', color: 'error' })
   } finally {
     isLoading.value = false
+  }
+}
+
+const fetchStatusOptions = async () => {
+  try {
+    const response = await statusStore.fetchStatuses({ flavour: 'feedback' })
+    const apiStatuses = (response.results || [])
+      .filter(s => s.isActive)
+      .map(s => s.label)
+
+    statusOptions.value = [...new Set(['OPEN', ...apiStatuses])]
+  } catch (error) {
+    console.error("Failed to load status options", error)
   }
 }
 
@@ -197,7 +228,7 @@ const openChat = (rawItem) => {
     return;
   }
 
-  let paramString = `code=${code};`;
+  let paramString = `code=${code};source=FEEDBACK_MGMT;`;
   if (name) paramString += `name=${name};`;
   if (number) paramString += `number=${number};`;
   if (email) paramString += `email=${email};`;
@@ -210,6 +241,7 @@ const openChat = (rawItem) => {
 onMounted(() => {
   // fetchFeedbacks()
   fetchAgentOptions()
+  fetchStatusOptions()
 })
 
 const exportToExcel = async () => {
@@ -240,6 +272,8 @@ const exportToExcel = async () => {
       const row = {
         "Form Title": item.form?.title || '-',
         "Status": item.status || '-',
+        "Score": item.meta?.score ? `${item.meta.score}%` : '-',
+        "Category": item.meta?.segmentLabel || '-',
         "Date of Feedback": formatDate(item.createdAt),
         "Assigned to": item.assignee?.name || '-',
       }
@@ -386,6 +420,14 @@ const exportToExcel = async () => {
         <div class="d-flex align-center">
           <span class="font-weight-bold">{{ item.raw.response?.rating || '-' }}</span>
         </div>
+      </template>
+
+      <template #item.meta.score="{ item }">
+        <span>{{ item.raw.meta?.score ? `${item.raw.meta.score}%` : '-' }}</span>
+      </template>
+
+      <template #item.meta.segmentLabel="{ item }">
+        <span>{{ item.raw.meta?.segmentLabel || '-' }}</span>
       </template>
 
       <template #item.createdAt="{ item }">
