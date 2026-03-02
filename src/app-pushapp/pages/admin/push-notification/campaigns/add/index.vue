@@ -2,6 +2,8 @@
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
+import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 const { show } = inject("snackbar");
 
 const route = useRoute();
@@ -17,20 +19,37 @@ const notification = reactive({
   channel_id: null,
   platforms: null,
 });
+const filter = reactive({
+  type: "group",
+  conjunction: "and",
+  children: [
+    {
+      type: "filter",
+      filterType: null,
+      field: null,
+      operator: null,
+      value: null,
+      freqOperator: null,
+      freqCount: null,
+      freqPeriod: null,
+    },
+  ],
+});
 const ChannelList = ref([]);
 const TemplateListSimple = ref([]);
 const formRef = ref();
+const filterRef = ref(null);
 
 onMounted(async () => {
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
   if (channelsRes.results) ChannelList.value = channelsRes.results;
 
   let templatesRes = await pushNotificationStore
-    .fetchTemplates({ page: 1, itemsPerPage: 200, sortBy: []})
+    .fetchTemplates({ page: 1, itemsPerPage: 200, sortBy: [] })
     .catch((error) => error);
   if (templatesRes.data.results)
     TemplateListSimple.value = templatesRes.data.results.filter(
-      (t) => t.type === "simple"
+      (t) => t.type === "simple",
     );
 
   const copy = route.query.copy;
@@ -40,7 +59,7 @@ onMounted(async () => {
       .then((response) => {
         const _notification = response.data.data;
         let template = TemplateListSimple.value.find(
-          (t) => t.code === _notification.templateCode
+          (t) => t.code === _notification.templateCode,
         );
         Object.assign(notification, {
           ...notification,
@@ -60,18 +79,25 @@ onMounted(async () => {
 
 const onSendSimple = async () => {
   let validationResult = await formRef.value.validate();
-
-  console.log("onSendSimple", validationResult.errors);
-
   if (!validationResult.valid) {
     return;
   }
+
+  let filtervalid = await filterRef.value?.isValid();
+  let filterStructureValid = true;
+  try {
+    validateFilterStructure(filter, null, true, true);
+  } catch (error) {
+    filterStructureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+  if (!filtervalid || !filterStructureValid) return;
 
   try {
     isLoading.value = true;
 
     let template = TemplateListSimple.value.find(
-      (t) => t._id === notification.template
+      (t) => t._id === notification.template,
     );
 
     let campaignPayload = {
@@ -82,16 +108,13 @@ const onSendSimple = async () => {
     };
 
     let campaignRes = await pushNotificationStore.createCampaign(
-      campaignPayload
+      campaignPayload,
     );
 
     let pushPayload = {
       campaignId: campaignRes.data.campaignId,
       to: {
-        filter: {
-          platform: notification.platforms,
-          session_type: "all",
-        },
+        filter: filter,
       },
       channelId: notification.channel_id,
       template: {
@@ -123,11 +146,11 @@ const onSendSimple = async () => {
 <template>
   <v-row>
     <!-- Form Column -->
-    <v-col cols="12" md="8">
+    <v-col cols="12" md="12">
       <v-card title="Push Notification">
         <VTabs v-model="tab">
           <VTab value="tab-details"> Details </VTab>
-          <VTab value="tab-segments"> Segments </VTab>
+          <VTab value="tab-audience"> Audience </VTab>
         </VTabs>
 
         <VForm ref="formRef">
@@ -136,16 +159,31 @@ const onSendSimple = async () => {
               <VWindow v-model="tab" class="disable-tab-transition">
                 <VWindowItem value="tab-details">
                   <VRow>
-                    <VCol cols="12" md="6">
+                    <VCol cols="12" md="4">
                       <AppTextField
+                        autofocus
                         v-model="notification.campaignName"
-                        label="Notification Name"
-                        placeholder="Enter Notification Name"
+                        placeholder="Campaign Name"
                         :rules="[requiredValidator]"
                       />
                     </VCol>
 
-                    <VCol cols="12" md="6">
+                    <VCol cols="12" md="8"></VCol>
+
+                    <VCol cols="12" md="4">
+                      <AppSelect
+                        v-model="notification.channel_id"
+                        :items="ChannelList"
+                        label="Mobile App"
+                        placeholder="Select App"
+                        item-title="channel_name"
+                        item-value="channel_id"
+                        clearable
+                        :rules="[requiredValidator]"
+                      />
+                    </VCol>
+
+                    <VCol cols="12" md="4">
                       <AppSelect
                         v-model="notification.template"
                         :items="TemplateListSimple"
@@ -168,42 +206,16 @@ const onSendSimple = async () => {
                   </VRow>
                 </VWindowItem>
 
-                <VWindowItem value="tab-segments">
-                  <VRow>
-                    <VCol cols="12" md="6">
-                      <AppSelect
-                        v-model="notification.channel_id"
-                        :items="ChannelList"
-                        label="App"
-                        placeholder="Select App"
-                        item-title="channel_name"
-                        item-value="channel_id"
-                        clearable
-                        :rules="[requiredValidator]"
-                      />
-                    </VCol>
-
-                    <VCol cols="12" md="6"></VCol>
-
-                    <VCol cols="12" md="6">
-                      <AppSelect
-                        v-model="notification.platforms"
-                        :items="pushNotificationStore.platformList"
-                        label="Platform"
-                        placeholder="Select Platforms"
-                        item-title="label"
-                        item-value="value"
-                        clearable
-                        multiple
-                        chips
-                        :rules="[requiredValidator]"
-                      />
-                    </VCol>
-
-                    <VCol cols="12" md="6">
-                      <AppTextField label="Target" value="All Users" disabled />
-                    </VCol>
-                  </VRow>
+                <VWindowItem value="tab-audience">
+                  <h3 class="mb-2">Real-Time Filter</h3>
+                  <p class="text-caption mb-4">
+                    Apply filters based on latest user attributes
+                  </p>
+                  <FilterBuilder
+                    v-model="filter"
+                    :ignoreEventfilterType="true"
+                    ref="filterRef"
+                  />
                 </VWindowItem>
               </VWindow>
             </VCardText>
@@ -212,17 +224,23 @@ const onSendSimple = async () => {
 
             <VCardText class="d-flex gap-4">
               <VBtn
-                v-if="tab === 'tab-segments'"
+                v-if="tab === 'tab-audience'"
                 @click="onSendSimple"
                 :disabled="isLoading"
-                >{{ isLoading ? "loading..." : "Send Now" }}</VBtn
+                >{{ isLoading ? "loading..." : "Send Campaign" }}</VBtn
               >
+              <VBtn
+                v-if="tab === 'tab-details'"
+                variant="tonal"
+                @click="tab = 'tab-audience'"
+                >Next<VIcon end icon="mdi-arrow-right"
+              /></VBtn>
               <VBtn
                 variant="tonal"
                 color="secondary"
                 :to="{ name: 'admin-push-notification-campaigns-list' }"
               >
-                Cancel
+                Exit
               </VBtn>
             </VCardText>
           </VCard>
