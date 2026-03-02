@@ -7,6 +7,7 @@ const props = defineProps({
   element: { type: Object, required: true },
   index: { type: Number, required: true },
   level: { type: Number, default: 0 },
+  ignoreEventfilterType: { type: Boolean, default: false },
 });
 const emit = defineEmits(["remove", "update"]);
 
@@ -72,7 +73,7 @@ watch(
     props.element.freqPeriod = null;
 
     clearErrorAndUpdate();
-  }
+  },
 );
 watch(
   () => props.element.field,
@@ -84,7 +85,7 @@ watch(
     props.element.freqPeriod = null;
 
     clearErrorAndUpdate();
-  }
+  },
 );
 
 defineExpose({ isValid });
@@ -101,7 +102,11 @@ defineExpose({ isValid });
       <!-- Type -->
       <AppSelect
         v-model="element.filterType"
-        :items="FILTER_TYPES"
+        :items="
+          FILTER_TYPES.filter((f) =>
+            ignoreEventfilterType ? f.value !== 'event' : true,
+          )
+        "
         placeholder="Select Type"
         density="compact"
         class="filter-entity filter-type"
@@ -248,6 +253,7 @@ defineExpose({ isValid });
       :level="level + 1"
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
+      :ignoreEventfilterType="ignoreEventfilterType"
     />
   </div>
 </template>
