@@ -1,11 +1,16 @@
 export default [
   {
+      title: "Home",
+      icon: { icon: "tabler-smart-home" },
+      to: "dashboards-home",
+  },
+  {
     title: "Dashboard",
     icon: { icon: "tabler-smart-home" },
     children: [
       {
-        title: "Analytics",
-        to: "dashboards-analytics",
+        title: "Feedback Analytics",
+        to: "dashboards-analytics-feedback",
       },
     ],
     // badgeContent: "3",
