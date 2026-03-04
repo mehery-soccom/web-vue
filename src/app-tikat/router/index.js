@@ -18,7 +18,7 @@ const baseRoutes = [
   {
     path: "/",
     redirect: () => {
-      return { name: "dashboards-analytics" };
+      return { name: "dashboards-home" };
     },
   },
 ];
