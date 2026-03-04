@@ -18,6 +18,7 @@ const isAgentLoading = ref(false)
 const isAssigning = ref(false)
 const allAgents = ref([])
 const selectedAgentId = ref(null)
+const isFilterMenuVisible = ref(false)
 const byUser = window.CONST?.USER?.user || null
 
 const isLoading = ref(false)
@@ -35,7 +36,9 @@ const pagination = reactive({
     'response.rating': null,
     'meta.segmentLabel': null,
     status: null,
-    rating: [], 
+    rating: [],
+    minScore: null,
+    maxScore: null,
   },
 })
 
@@ -90,7 +93,9 @@ const fetchFeedbacks = async (options = pagination) => {
       pageNo: options.page,
       pageSize: options.itemsPerPage,
       search: activeFilters,
-      rating: options.filters.rating?.length > 0 ? options.filters.rating.join(',') : undefined
+      rating: options.filters.rating?.length > 0 ? options.filters.rating.join(',') : undefined,
+      minScore: options.filters.minScore || undefined,
+      maxScore: options.filters.maxScore || undefined
     }
 
     if (options.sortBy?.length > 0) {
@@ -248,7 +253,9 @@ const exportToExcel = async () => {
   isLoading.value = true
   try {
     const downloadParams = {
-      rating: pagination.filters.rating?.length > 0 ? pagination.filters.rating.join(',') : undefined
+      rating: pagination.filters.rating?.length > 0 ? pagination.filters.rating.join(',') : undefined,
+      minScore: pagination.filters.minScore || undefined,
+      maxScore: pagination.filters.maxScore || undefined,
     }
 
     const response = await feedbackStore.fetchFeedbacksDownload(downloadParams)
@@ -315,15 +322,21 @@ const exportToExcel = async () => {
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
 
-        <VMenu :close-on-content-click="false" location="bottom end">
+        <VMenu 
+          v-model="isFilterMenuVisible" 
+          :close-on-content-click="false" 
+          location="bottom end"
+        >
           <template #activator="{ props }">
             <VBtn icon v-bind="props" variant="text">
-              <VIcon :color="pagination.filters.rating?.length > 0 ? 'primary' : ''">tabler-filter</VIcon>
-              <VTooltip activator="parent" location="top">Filter Rating</VTooltip>
+              <VIcon :color="(pagination.filters.rating?.length > 0 || pagination.filters.minScore || pagination.filters.maxScore) ? 'primary' : ''">
+                tabler-filter
+              </VIcon>
+              <VTooltip activator="parent" location="top">Filters</VTooltip>
             </VBtn>
           </template>
 
-          <VCard min-width="380">
+          <VCard min-width="300">
             <VCardText>
               <AppSelect
                 v-model="pagination.filters.rating"
@@ -331,15 +344,45 @@ const exportToExcel = async () => {
                 label="Select Rating"
                 multiple
                 chips
-                clearable
-                closable-chips
-                collapse-chips
-                placeholder="Ratings"
+                class="mb-4"
               />
+
+              <div class="text-subtitle-2 mb-2 text-high-emphasis">Score</div>
+              <div class="d-flex gap-2">
+                <VTextField
+                  v-model="pagination.filters.minScore"
+                  label="Min"
+                  type="number"
+                  density="compact"
+                  placeholder="0"
+                />
+                <VTextField
+                  v-model="pagination.filters.maxScore"
+                  label="Max"
+                  type="number"
+                  density="compact"
+                  placeholder="100"
+                />
+              </div>
             </VCardText>
+
             <VCardActions>
               <VSpacer />
-              <VBtn color="primary" size="small" @click="fetchFeedbacks(pagination)">Apply</VBtn>
+              <VBtn 
+                variant="text" 
+                color="secondary" 
+                size="small" 
+                @click="pagination.filters.minScore = null; pagination.filters.maxScore = null; pagination.filters.rating = []"
+              >
+                Reset
+              </VBtn>
+              <VBtn 
+                color="primary" 
+                size="small" 
+                @click="() => { fetchFeedbacks(pagination); isFilterMenuVisible = false; }"
+              >
+                Apply
+              </VBtn>
             </VCardActions>
           </VCard>
         </VMenu>
