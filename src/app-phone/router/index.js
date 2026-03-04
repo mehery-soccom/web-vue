@@ -32,8 +32,16 @@ export default BootRouter.route({
     },
     {
       path:"/call",
-      component: Index,
-      name: "call"
+      component: BlankLayout,
+      children:[
+        {
+          path: "",
+          name: "call",
+          component: Index,
+          props: true, 
+          meta: { layout: "blank" },
+        }
+      ]
     },
     {
       path: "/call/:id",

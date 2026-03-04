@@ -1,5 +1,5 @@
 // composables/useWebRTC.js
-import { ref, reactive, onUnmounted } from "vue";
+import { ref, reactive, onUnmounted, nextTick } from "vue";
 import { toast } from "vue3-toastify";
 import { usePhoneStore } from "../views/usePhoneStore";
 
@@ -16,8 +16,18 @@ export function useWebRTC() {
   const receivedSdpAnswer = ref(null);
   let pc = null;
   let localStream = null;
-  let channelId = ref('');
-  
+  let onLocalCandidateCallback = null;
+
+  //Calling Variables
+  const remoteStream = ref(null);
+  let channelId = ref("");
+
+  const Mic = ref(false);
+  const Camera = ref(false);
+  const ScreenShare = ref(false);
+  let ScreenStream = null;
+  const callMode = ref("meta"); // 'meta' 'p2p'
+
   // ICE servers configuration
   const iceServers = ref([
     { urls: "stun:stun.l.google.com:19302" },
@@ -25,7 +35,7 @@ export function useWebRTC() {
     { urls: "stun:stun.l.google.com:3478" },
     { urls: "stun:stun.counterpath.net:3478" },
     { urls: "stun:numb.viagenie.ca:3478" },
-    // Will add TURN servers if needed 
+    // Will add TURN servers if needed
   ]);
 
   const activeCall = ref({
@@ -111,10 +121,32 @@ export function useWebRTC() {
     }
   };
 
+  const setupRemoteVideo = (stream) => {
+    const remoteVideo = document.getElementById("remote-video");
+    if (remoteVideo) {
+      remoteVideo.srcObject = stream;
+    }
+  };
+
   const setupLocalAudio = (stream) => {
     const localAudio = document.getElementById("audio-local");
     if (localAudio && stream) {
       localAudio.srcObject = stream;
+    }
+  };
+
+  const setupLocalVideo = (stream) => {
+    const localVideo = document.getElementById("local-video");
+    if (localVideo) {
+      localVideo.srcObject = stream;
+      localVideo.muted = true;
+    }
+
+    // Room Video
+    const localVideoPip = document.getElementById("local-video-pip");
+    if (localVideoPip) {
+      localVideoPip.srcObject = stream;
+      localVideoPip.muted = true;
     }
   };
 
@@ -146,31 +178,44 @@ export function useWebRTC() {
       isConnecting.value = true;
       connectionStatus.value = "connecting";
       errorMessage.value = "";
-      localStream = await navigator.mediaDevices.getUserMedia({ 
+
+      const enableVideo = callMode.value === "p2p";
+
+      localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
-        }, 
-        video: false 
+          autoGainControl: true,
+        },
+        video: enableVideo,
       });
-      
+
       setupLocalAudio(localStream);
+
+      if (enableVideo) {
+        setupLocalVideo(localStream);
+        Mic.value = true;
+        Camera.value = true;
+      } else {
+        Mic.value = true;
+        Camera.value = false;
+      }
 
       pc = new RTCPeerConnection({
         iceServers: iceServers.value,
-        iceTransportPolicy: "all"
+        iceTransportPolicy: "all",
       });
 
-      localStream.getTracks().forEach(track => {
+      localStream.getTracks().forEach((track) => {
         pc.addTrack(track, localStream);
       });
 
       setupRTCEventListeners();
       isConnecting.value = false;
-      connectionStatus.value = "connected";
+      if (callMode.value !== "p2p") {
+        connectionStatus.value = "connected";
+      }
       console.log("WebRTC initialized successfully");
-
     } catch (error) {
       console.error("WebRTC initialization failed:", error);
       errorMessage.value = error.message;
@@ -182,10 +227,21 @@ export function useWebRTC() {
   const setupRTCEventListeners = () => {
     if (!pc) return;
 
-    pc.ontrack = (event) => {
+    pc.ontrack = async (event) => {
       console.log("Received remote track:", event);
-      if (event.streams && event.streams[0]) {
-        setupRemoteAudio(event.streams[0]);
+      const stream = event.streams?.[0];
+      if (!stream) return;
+
+      setupRemoteAudio(stream);
+
+      if (callMode.value === "p2p") {
+        remoteStream.value = stream;
+        await nextTick();
+        const remoteVideo = document.getElementById("remote-video");
+        if (remoteVideo) {
+          remoteVideo.srcObject = stream;
+          remoteVideo.muted = false;n
+        }
       }
     };
 
@@ -242,31 +298,43 @@ export function useWebRTC() {
     try {
       callState.value = "calling";
       currentPeerNumber.value = remoteNumber;
-      
+
       // Create offer
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
-        offerToReceiveVideo: false
+        offerToReceiveVideo: callMode.value === "p2p",
       });
-      
+
       await pc.setLocalDescription(offer);
       callData.value.sdp_type = "offer";
       callData.value.sdp = offer.sdp;
-      
+
       activeCall.value = {
         show: true,
         remoteNumber: remoteNumber,
         startTime: null,
       };
-      
+
       addToCallHistory(remoteNumber, "outgoing", new Date());
       playRingbacktone();
-      
+
+      if (callMode.value === "p2p") {
+        console.log("P2P: Waiting for ICE gathering...");
+        await waitForIceGathering();
+        console.log("P2P: Gathering complete");
+        return getLocalSDPData();
+      }
+
       console.log("SDP Offer created, waiting for answer...");
-      await sendOffer(callData.value, channelId.value, currentPeerNumber.value);
+      if (channelId.value) {
+        await sendOffer(
+          callData.value,
+          channelId.value,
+          currentPeerNumber.value
+        );
+      }
       // Return the local description for sending to Meta API
       return getLocalSDPData();
-
     } catch (error) {
       console.error("Failed to create offer:", error);
       errorMessage.value = error.message;
@@ -282,18 +350,29 @@ export function useWebRTC() {
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
   const sendOffer = async (callDat, channelId, phone) => {
     try {
-      const payload = { contact: { phone: phone }, channelId: channelId, session: callDat, agent: agentCode.value };
+      const payload = {
+        contact: { phone: phone },
+        channelId: channelId,
+        session: callDat,
+        agent: agentCode.value,
+      };
       const response = await PhoneStore.sendOfferToMeta(payload);
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -301,13 +380,20 @@ export function useWebRTC() {
   const sendAnswer = async (answerData, callDatas, channelId) => {
     try {
       // const url = `https://crforex.mehery.xyz/admin/api/scriptus/phone/whatsapp/calling/accept`;
-      const payload = { callData: callData.value, channelId: channelId, sdpAnswer: answerData.sdp };
+      const payload = {
+        callData: callData.value,
+        channelId: channelId,
+        sdpAnswer: answerData.sdp,
+      };
 
       const response = await PhoneStore.sendAnswerToMeta(payload);
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -318,7 +404,10 @@ export function useWebRTC() {
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -329,7 +418,10 @@ export function useWebRTC() {
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -345,27 +437,37 @@ export function useWebRTC() {
       // Set remote offer
       const remoteDesc = {
         type: offerSDP.sdp_type || offerSDP.type || "offer",
-        sdp: offerSDP.sdp
+        sdp: offerSDP.sdp,
       };
       await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
-      
+
       // Create answer
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      
+
       incomingCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
         timestamp: new Date(),
       };
-      
+
       addToCallHistory(currentPeerNumber.value, "incoming", new Date());
-      
+
       console.log("SDP Answer created", answer);
-      await sendAnswer( answer, callData.value, channelId.value);
+
+      if (callMode.value === "p2p") {
+        console.log("P2P: Waiting for ICE gathering...");
+        await waitForIceGathering();
+        console.log("P2P: Gathering complete");
+        stopRingtone();
+        return getLocalSDPData();
+      }
+
+      if (channelId.value) {
+        await sendAnswer(answer, callData.value, channelId.value);
+      }
       // Return the local description for sending to Meta API
       return getLocalSDPData();
-
     } catch (error) {
       console.error("Failed to create answer:", error);
       errorMessage.value = error.message;
@@ -379,6 +481,11 @@ export function useWebRTC() {
       throw new Error("WebRTC not initialized");
     }
 
+    if (pc.signalingState === "stable") {
+      console.warn("Remote answer already applied, skipping");
+      return;
+    }
+
     const sdpData = remoteSDPData?.value ?? remoteSDPData;
     if (!sdpData?.sdp) {
       console.warn("No SDP found in remote description", sdpData);
@@ -387,7 +494,7 @@ export function useWebRTC() {
     try {
       const remoteDesc = {
         type: sdpData.sdp_type || "answer",
-        sdp: sdpData.sdp
+        sdp: sdpData.sdp,
       };
       await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
       // if (remoteSDPData.ice && Array.isArray(remoteSDPData.ice)) {
@@ -395,7 +502,12 @@ export function useWebRTC() {
       //     await pc.addIceCandidate(new RTCIceCandidate(candidate));
       //   }
       // }
-      console.log("Remote description set successfully", remoteSDPData, sdpData, remoteDesc);
+      console.log(
+        "Remote description set successfully",
+        remoteSDPData,
+        sdpData,
+        remoteDesc
+      );
       activeCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
@@ -417,7 +529,7 @@ export function useWebRTC() {
 
     return {
       sdp: pc.localDescription.toJSON(),
-      ice: gatheredCandidates.value
+      ice: gatheredCandidates.value,
     };
   };
 
@@ -428,7 +540,12 @@ export function useWebRTC() {
     }
   };
 
-  const handleIncomingCall = (offerSDP, remoteNumber = "", fullOffer, channel_id) => {
+  const handleIncomingCall = (
+    offerSDP,
+    remoteNumber = "",
+    fullOffer,
+    channel_id
+  ) => {
     channelId.value = channel_id;
     currentPeerNumber.value = remoteNumber;
     incomingCall.value = {
@@ -438,7 +555,7 @@ export function useWebRTC() {
     };
     callState.value = "ringing";
     playRingtone();
-    console.log("handle got called", offerSDP)
+    console.log("handle got called", offerSDP);
     callData.value = fullOffer;
     incomingCall.value.pendingOffer = offerSDP;
   };
@@ -449,9 +566,11 @@ export function useWebRTC() {
     }
 
     try {
-      console.log("before assign", JSON.parse(JSON.stringify(callData.value)))
+      console.log("before assign", JSON.parse(JSON.stringify(callData.value)));
       // callData.value = event_data;
-      const answerSDP = await createAnswer(incomingCall.value.pendingOffer || callData.value.session);
+      const answerSDP = await createAnswer(
+        incomingCall.value.pendingOffer || callData.value.session
+      );
       incomingCall.value.show = false;
       activeCall.value = {
         show: true,
@@ -461,9 +580,8 @@ export function useWebRTC() {
       console.log("answered call", answerSDP);
       stopRingtone();
       updateCallHistory("answered");
-      
-      return answerSDP;
 
+      return answerSDP;
     } catch (error) {
       console.error("Failed to answer call:", error);
       throw error;
@@ -484,12 +602,12 @@ export function useWebRTC() {
     callState.value = "idle";
     stopRingtone();
     updateCallHistory("rejected");
-    channelId.value = '';
+    channelId.value = "";
     // callData.value = {};
-    
+
     sendPostMessage("call-rejected", {
       remoteNumber: currentPeerNumber.value,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   };
 
@@ -500,7 +618,7 @@ export function useWebRTC() {
     }
 
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach((track) => track.stop());
       localStream = null;
     }
 
@@ -509,22 +627,22 @@ export function useWebRTC() {
       remoteNumber: "",
       startTime: null,
     };
-    
+
     incomingCall.value = {
       show: false,
       remoteNumber: "",
       timestamp: null,
       pendingOffer: null,
     };
-    
+
     callState.value = "idle";
     currentPeerNumber.value = "";
     gatheredCandidates.value = [];
-    
+
     stopCallTimer();
     stopRingtone();
     stopRingbacktone();
-    if(endFromAgent) await terminateCallMeta(channelId.value);
+    if (endFromAgent) await terminateCallMeta(channelId.value);
 
     // Clear audio elements
     const remoteAudio = document.getElementById("audio-remote");
@@ -534,7 +652,8 @@ export function useWebRTC() {
 
     receivedSdpAnswer.value = null;
     callData.value = {};
-    channelId.value = '';
+    channelId.value = "";
+
     updateCallHistory("ended");
     sendPostMessage("call-ended", {
       description: "HANGUP",
@@ -542,40 +661,40 @@ export function useWebRTC() {
     });
   };
   const getChannelList = async () => {
-    try{
+    try {
       const resp = await PhoneStore.getChannels();
       return resp.data;
-    }catch(e){
-      console.error("channels list", e)
+    } catch (e) {
+      console.error("channels list", e);
     }
-  }
+  };
   const getAction = (actions = [], name) => {
-    return actions.find(a => a.action_name === name);
+    return actions.find((a) => a.action_name === name);
   };
   const formatPermissionLimits = (limits = []) => {
-      return limits.map(l => {
-          const remaining = Math.max(0,l.max_allowed - l.current_usage);
+    return limits.map((l) => {
+      const remaining = Math.max(0, l.max_allowed - l.current_usage);
 
-          let periodLabel = l.time_period;
-          if (l.time_period === "PT24H") periodLabel = "today";
-          if (l.time_period === "P7D") periodLabel = "this week";
+      let periodLabel = l.time_period;
+      if (l.time_period === "PT24H") periodLabel = "today";
+      if (l.time_period === "P7D") periodLabel = "this week";
 
-          return `${remaining} ${periodLabel}`;
-      });
+      return `${remaining} ${periodLabel}`;
+    });
   };
   const makeCall = async (channel_id, remoteNumber, agent) => {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
     }
     let resp = {};
-    try{
+    try {
       resp = await askIfPermissionPresent(remoteNumber, channel_id);
-      console.log("asked perm vue3", resp)
+      console.log("asked perm vue3", resp);
       const { permission, actions } = resp.data;
       const status = permission?.status;
 
       if (status === "permanent" || status === "temporary") {
-          const startCallAction = getAction(actions, "start_call");
+        const startCallAction = getAction(actions, "start_call");
 
           if (startCallAction?.can_perform_action) {
               channelId.value = channel_id;
@@ -599,16 +718,19 @@ export function useWebRTC() {
               toast.error("Call limit reached. You cannot place a call right now.");
               console.error("Call limit reached. You cannot place a call right now.");
           }
-          return;
+        return;
       } else {
-          // this.$toast.error('Access denied, Request user permission by sending template.');
-          const requestAction = getAction(actions,"send_call_permission_request");
-          if (!requestAction) {
-              toast.error("Permission request action not available.");
-              return;
-          }
+        // this.$toast.error('Access denied, Request user permission by sending template.');
+        const requestAction = getAction(
+          actions,
+          "send_call_permission_request"
+        );
+        if (!requestAction) {
+          toast.error("Permission request action not available.");
+          return;
+        }
 
-          const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
+        const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
           if (requestAction.can_perform_action) {
             sendPostMessage("no-call-permission", {
               remoteNumber: currentPeerNumber.value,
@@ -618,8 +740,9 @@ export function useWebRTC() {
           // toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
           else toast.error(`You cannot send a permission request right now.\nLimits: ${limitSummary}.`,{ timeout: 0 });
           console.log("Access for call denied.");
+
       }
-    }catch(e){
+    } catch (e) {
       console.error("Failed to make call:", e);
       // this.$toast.error('Access denied, Request user permission to call.');
     }
@@ -635,11 +758,286 @@ export function useWebRTC() {
     receivedSdpAnswer.value = answer.event_data.session;
     callData.value = answer.event_data;
     console.log(" got ans", answer);
-  }
+  };
   const getCallsSuggestion = async (val) => {
     const resp = await PhoneStore.getCallSuggestion({ agentCode: window.CONST.APP_USER, contactWaId: val})
     console.log("rsults", resp.data.results)
     return resp.data.results;
+
+  };
+
+
+  //Calling Functionalities
+
+  const toggleCamera = async () => {
+    if (!localStream) return;
+
+    const sender = pc.getTransceivers()
+      .find(t => t.receiver.track.kind === 'video')
+      ?.sender;
+
+    if (Camera.value) {
+      const realTrack = localStream.getVideoTracks()[0];
+
+      // keep the connection alive so it doesn't freeze.
+      const canvas = document.createElement("canvas");
+      Object.assign(canvas, { width: 2, height: 2 });
+      canvas.getContext('2d').fillRect(0, 0, 2, 2);
+      const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
+
+      if (sender) await sender.replaceTrack(blackTrack);
+      if (realTrack) {
+        realTrack.stop();
+        localStream.removeTrack(realTrack);
+      }
+
+      localStream.addTrack(blackTrack);
+      
+      Camera.value = false;
+      reattachMediaStreams();
+
+    } else {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 1280, height: 720 },
+        });
+        const newTrack = newStream.getVideoTracks()[0];
+        const blackTrack = localStream.getVideoTracks()[0];
+
+        if (sender) await sender.replaceTrack(newTrack);
+
+        if (blackTrack) {
+          blackTrack.stop();
+          localStream.removeTrack(blackTrack);
+        }
+
+        localStream.addTrack(newTrack);
+        Camera.value = true;
+        reattachMediaStreams();
+      } catch (error) {
+        console.error("Error restarting camera:", error);
+        Camera.value = false;
+      }
+    }
+  };
+  
+  const toggleMic = () => {
+    if (!localStream) return;
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (!audioTrack) return;
+
+    audioTrack.enabled = !audioTrack.enabled;
+    Mic.value = audioTrack.enabled;
+  };
+
+  const stopScreenShare = () => {
+    if (!ScreenStream) return;
+
+    ScreenStream.getTracks().forEach((track) => track.stop());
+    ScreenShare.value = false;
+
+    if (localStream && pc) {
+      const videoSender = pc
+        .getSenders()
+        .find((s) => s.track && s.track.kind === "video");
+      const cameraTrack = localStream.getVideoTracks()[0];
+
+      if (videoSender && cameraTrack) {
+        videoSender.replaceTrack(cameraTrack);
+      }
+    }
+
+    ScreenStream = null;
+  };
+
+  const toggleScreenShare = async () => {
+    if (ScreenShare.value) {
+      stopScreenShare();
+      return;
+    }
+
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: false,
+      });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      ScreenStream = screenStream;
+
+      screenTrack.onended = () => {
+        if (ScreenShare.value) stopScreenShare();
+      };
+
+      if (pc) {
+        const videoSender = pc
+          .getSenders()
+          .find((s) => s.track && s.track.kind === "video");
+        if (videoSender) {
+          await videoSender.replaceTrack(screenTrack);
+        }
+      }
+      ScreenShare.value = true;
+    } catch (error) {
+      console.error("Screen share error:", error);
+    }
+  };
+
+  const waitForIceGathering = () => {
+    return new Promise((resolve) => {
+      if (!pc || pc.iceGatheringState === "complete") {
+        resolve();
+        return;
+      }
+      const checkState = () => {
+        if (pc.iceGatheringState === "complete") {
+          pc.removeEventListener("icegatheringstatechange", checkState);
+          resolve();
+        }
+      };
+      pc.addEventListener("icegatheringstatechange", checkState);
+    });
+  };
+
+  const reattachMediaStreams = () => {
+    const localVideoPip = document.getElementById("local-video-pip");
+    if (localVideoPip && localStream) {
+      localVideoPip.srcObject = localStream;
+      localVideoPip.muted = true;
+    }
+    const remoteVideoEl = document.getElementById("remote-video");
+    if (remoteStream.value && remoteVideoEl)
+      remoteVideoEl.srcObject = remoteStream.value;
+  };
+
+  const initP2PCall = async () => {
+    callMode.value = "p2p";
+
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach((track) => track.stop());
+      localStream = null;
+    }
+
+    await initWebRTC();
+
+    if (pc) {
+      const originalIce = pc.onicecandidate;
+      pc.onicecandidate = (event) => {
+        if (originalIce) originalIce(event);
+
+        if (event.candidate && onLocalCandidateCallback) {
+          onLocalCandidateCallback(event.candidate.toJSON());
+        }
+      };
+    }
+
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = false;
+        Mic.value = false;
+      }
+
+      const videoTrack = localStream.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.stop();
+        localStream.removeTrack(videoTrack);
+        Camera.value = false;
+      }
+    }
+  };
+
+  const createP2POffer = async (remoteNumber) => {
+    if (callMode.value !== "p2p") {
+      await initP2PCall();
+    }
+
+    if (!pc) await initWebRTC();
+
+    callState.value = "calling";
+    currentPeerNumber.value = remoteNumber;
+
+    const offer = await pc.createOffer({
+      offerToReceiveAudio: true,
+      offerToReceiveVideo: true,
+    });
+
+    await pc.setLocalDescription(offer);
+
+    activeCall.value = { show: true, remoteNumber, startTime: null };
+
+    return {
+      type: offer.type,
+      sdp: offer.sdp,
+    };
+  };
+
+  const createP2PAnswer = async (remoteOffer) => {
+    if (!pc) await initP2PCall();
+
+    const sdpData = remoteOffer.sdp || remoteOffer;
+    const type = sdpData.type || "offer";
+    const sdp = sdpData.sdp || sdpData;
+
+    if (typeof sdp !== "string") {
+      console.error("Invalid SDP Data:", remoteOffer);
+      throw new Error("Failed to parse SDP: Invalid format");
+    }
+
+    await pc.setRemoteDescription(new RTCSessionDescription({ type, sdp }));
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    return {
+      type: answer.type,
+      sdp: answer.sdp,
+    };
+  };
+  
+  const addRemoteCandidate = async (candidate) => {
+    if (pc && pc.remoteDescription) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error("Error adding ICE candidate", e);
+      }
+    }
+  };
+
+  const onIceCandidate = (callback) => {
+    onLocalCandidateCallback = callback;
+  };
+
+  const endP2PCall = async () => {
+    if (callMode.value !== "p2p") return;
+
+    await endCall(false);
+
+    if (ScreenStream) {
+      ScreenStream.getTracks().forEach((t) => t.stop());
+      ScreenStream = null;
+    }
+
+    const remoteVideo = document.getElementById("remote-video");
+    const localVideo = document.getElementById("local-video");
+    const localVideoPip = document.getElementById("local-video-pip");
+
+    if (remoteVideo) remoteVideo.srcObject = null;
+    if (localVideo) localVideo.srcObject = null;
+    if (localVideoPip) localVideoPip.srcObject = null;
+
+    remoteStream.value = null;
+    ScreenStream = null;
+
+    Mic.value = false;
+    Camera.value = false;
+    ScreenShare.value = false;
+
+    callMode.value = "meta";
   };
 
   onUnmounted(() => {
@@ -659,6 +1057,14 @@ export function useWebRTC() {
     receivedSdpAnswer,
     receivedAnswer,
 
+    Mic,
+    Camera,
+    ScreenShare,
+    ScreenStream,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+
     initWebRTC,
     disconnect,
     makeCall,
@@ -671,5 +1077,16 @@ export function useWebRTC() {
     gotAnswer,
     getChannelList,
     getCallsSuggestion,
+    createOfferr,
+    createAnswer,
+    remoteStream,
+
+    reattachMediaStreams,
+    initP2PCall,
+    createP2POffer,
+    createP2PAnswer,
+    addRemoteCandidate,
+    onIceCandidate,
+    endP2PCall,
   };
 }

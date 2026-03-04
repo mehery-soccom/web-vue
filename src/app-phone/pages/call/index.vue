@@ -6,7 +6,7 @@ const router = useRouter();
 let meetingIdInput = ref('');
 
 const startInstantMeeting = () => {
-  const roomId = Math.random().toString(36).substring(2, 9);
+  const roomId = Math.random().toString(36).substring(2, 10);
   router.push({ name: 'call-id', params: { id: roomId } });
 };
 const isValidValue = computed(() => {
