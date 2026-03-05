@@ -6,7 +6,7 @@ export default [
   },
   {
     title: "Dashboard",
-    icon: { icon: "tabler-smart-home" },
+    icon: { icon: "tabler-device-analytics" },
     children: [
       {
         title: "Feedback Analytics",

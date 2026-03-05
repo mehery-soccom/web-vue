@@ -79,6 +79,7 @@ onMounted(async () => {
       fields: mappedFields,
       questions: formDef.questions || [],
       scale: formDef.scale || 5,
+      segmentation: formDef.segmentation || [],
       banner: formDef.banner || { bgImg: null, logo: null }
     }
 
@@ -139,7 +140,9 @@ const handleSubmit = async () => {
       formCode: formMeta.value.code,
       formTitle: formMeta.value.title,
       data: apiData,
-      byUser: null 
+      byUser: null,
+      scale: formStructure.value?.scale || 5,
+      segmentation: formStructure.value?.segmentation || [],
     }
 
     await tikatStore.submitFeedback({
@@ -254,6 +257,7 @@ const handleSubmit = async () => {
                       active-color="warning"
                       size="large"
                       :disabled="isReadOnly(field)"
+                      class="large-rating"
                     />
                   </div>
                 </VCol>
@@ -337,6 +341,7 @@ const handleSubmit = async () => {
                     color="warning"
                     active-color="warning"
                     size="large"
+                    class="large-rating"
                   />
                 </div>
               </VCardText>
@@ -359,6 +364,12 @@ const handleSubmit = async () => {
 <style scoped>
 :deep(.v-card__underlay) {
   display: none !important;
+}
+
+.large-rating :deep(.v-icon) {
+  font-size: 35px !important;
+  width: 35px !important;
+  height: 35px !important;
 }
 
 .banner-image {
