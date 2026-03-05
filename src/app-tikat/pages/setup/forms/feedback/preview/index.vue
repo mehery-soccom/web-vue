@@ -202,8 +202,9 @@ const submitForm = () => {
                       color="warning"
                       active-color="warning"
                       hover
-                      density="comfortable"
+                      density="default"
                       :rules="getRules(field)"
+                      class="large-rating"
                     />
                 </VCol>
               </VRow>
@@ -240,7 +241,7 @@ const submitForm = () => {
                       color="warning"
                       active-color="warning"
                       hover
-                      density="comfortable"
+                      class="large-rating"
                     />
                   </VCol>
                 </VRow>
@@ -303,6 +304,12 @@ const submitForm = () => {
 
 .opacity-90 {
   opacity: 0.9;
+}
+
+.large-rating :deep(.v-icon) {
+  font-size: 35px !important;
+  width: 35px !important;
+  height: 35px !important;
 }
 
 .preview-card-header > div {

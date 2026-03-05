@@ -384,6 +384,7 @@ onMounted(fetchFeedbackData);
                                   color="warning"
                                   active-color="warning"
                                   :disabled="isReadOnly(field)"
+                                  class="large-rating"
                                 />
                               </div>
 
@@ -413,7 +414,7 @@ onMounted(fetchFeedbackData);
                                   :length="selectedFormStructure.scale || 5"
                                   color="warning"
                                   active-color="warning"
-                                  density="comfortable"
+                                  class="large-rating"
                                   :disabled="isReadOnly({ access: { moderator: 'W', agent: 'W' } })" 
                                 />
                               </VCol>
@@ -480,3 +481,13 @@ onMounted(fetchFeedbackData);
     </VCol>
   </VRow>
 </template>
+
+<style scoped>
+
+.large-rating :deep(.v-icon) {
+  font-size: 35px !important;
+  width: 35px !important;
+  height: 35px !important;
+}
+
+</style>
