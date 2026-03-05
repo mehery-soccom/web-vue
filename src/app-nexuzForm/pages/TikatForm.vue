@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue"
+import { ref, onMounted, computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import { useTikatFormStore } from "@/app-nexuzForm/views/useTikatFormStore"
 import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
@@ -42,6 +42,18 @@ const isReadOnly = (field) => {
   return field.access?.contact === 'R';
 }
 
+const cardBackgroundStyle = computed(() => {
+  const bgUrl = formStructure.value?.banner?.bgImg?.url;
+  if (!bgUrl) return { backgroundColor: 'rgb(var(--v-theme-surface))' };
+  
+  return {
+    backgroundImage: `url(${bgUrl})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+  };
+});
+
 onMounted(async () => {
   const { formId } = route.params
   const { tnt } = route.query
@@ -64,7 +76,11 @@ onMounted(async () => {
     formStructure.value = {
       title: formDef.name,
       desc: formDef.desc, 
-      fields: mappedFields
+      fields: mappedFields,
+      questions: formDef.questions || [],
+      scale: formDef.scale || 5,
+      segmentation: formDef.segmentation || [],
+      banner: formDef.banner || { bgImg: null, logo: null }
     }
 
     const initialValues = {}
@@ -73,6 +89,11 @@ onMounted(async () => {
       else if (f.inputType === 'RATING') initialValues[f.key] = 0
       else initialValues[f.key] = ''
     })
+    if (formDef.questions) {
+      formDef.questions.forEach((q, idx) => {
+        initialValues[`q_${idx}`] = 0
+      })
+    }
     formValues.value = initialValues
 
   } catch (error) {
@@ -104,12 +125,24 @@ const handleSubmit = async () => {
       }
     })
 
+    const questionPayload = (formStructure.value.questions || []).map((q, idx) => ({
+      question: q.question,
+      value: formValues.value[`q_${idx}`] || 0,
+      weight: q.weight,
+      order: q.order,
+      optional: q.optional
+    }))
+
+    apiData.questions = questionPayload
+
     const payload = {
       formId: route.params.formId,
       formCode: formMeta.value.code,
       formTitle: formMeta.value.title,
       data: apiData,
-      byUser: null 
+      byUser: null,
+      scale: formStructure.value?.scale || 5,
+      segmentation: formStructure.value?.segmentation || [],
     }
 
     await tikatStore.submitFeedback({
@@ -139,13 +172,28 @@ const handleSubmit = async () => {
         </div>
 
         <VForm v-else-if="formStructure" ref="refForm" @submit.prevent="handleSubmit">
-          <VCard class="mb-6" variant="flat" border>
-            <VCardItem class="text-left">
-              <VCardTitle class="text-h3">{{ formStructure.title }}</VCardTitle>
-              <VCardSubtitle v-if="formStructure.desc" class="mt-2 font-italic">
-                {{ formStructure.desc }}
-              </VCardSubtitle>
-            </VCardItem>
+          <VCard class="mb-6 overflow-hidden preview-card-header" :style="cardBackgroundStyle" elevation="2">
+            <div 
+              class="d-flex align-center pa-6" 
+              :class="{ 'image-overlay': formStructure.banner?.bgImg?.url }"
+            >
+              <div v-if="formStructure.banner?.logo?.url" class="banner-image me-4">
+                <img :src="formStructure.banner.logo.url" class="banner-media-item" />
+              </div>
+
+              <div class="flex-grow-1">
+                <VCardTitle class="text-h3 pa-0 font-weight-bold" :class="{'text-white': formStructure.banner?.bgImg?.url}">
+                  {{ formStructure.title }}
+                </VCardTitle>
+                <VCardSubtitle
+                  v-if="formStructure.desc"
+                  class="mt-1 pa-0 opacity-90"
+                  :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
+                >
+                  {{ formStructure.desc }}
+                </VCardSubtitle>
+              </div>
+            </div>
           </VCard>
 
           <VCard 
@@ -209,6 +257,7 @@ const handleSubmit = async () => {
                       active-color="warning"
                       size="large"
                       :disabled="isReadOnly(field)"
+                      class="large-rating"
                     />
                   </div>
                 </VCol>
@@ -271,6 +320,33 @@ const handleSubmit = async () => {
               />
             </VCardText>
           </VCard>
+          <div v-if="formStructure.questions?.length">
+            <VCard 
+              v-for="(q, idx) in formStructure.questions" 
+              :key="idx" 
+              class="my-4" 
+              variant="flat" 
+              border
+            >
+              <VCardText>
+                <VLabel class="mb-2 font-weight-medium text-high-emphasis d-block">
+                  {{ q.question }}
+                  <span v-if="q.optional === false" class="text-error ms-1">*</span>
+                </VLabel>
+                <div class="py-1">
+                  <VRating
+                    v-model="formValues[`q_${idx}`]"
+                    hover
+                    :length="formStructure.scale || 5"
+                    color="warning"
+                    active-color="warning"
+                    size="large"
+                    class="large-rating"
+                  />
+                </div>
+              </VCardText>
+            </VCard>
+          </div>
 
           <VBtn type="submit" block color="primary" :loading="isLoading" class="mt-6">
             Submit
@@ -286,8 +362,64 @@ const handleSubmit = async () => {
 </template>
 
 <style scoped>
+:deep(.v-card__underlay) {
+  display: none !important;
+}
+
+.large-rating :deep(.v-icon) {
+  font-size: 35px !important;
+  width: 35px !important;
+  height: 35px !important;
+}
+
+.banner-image {
+  flex-shrink: 0;
+  width: 75px;
+  height: 75px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.preview-card-header {
+  position: relative;
+  overflow: hidden !important;
+  border: none !important;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-card-header > div {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
+.image-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+}
+
+.text-white {
+  color: white !important;
+}
+
+.opacity-90 {
+  opacity: 0.9;
+}
+
 .v-container {
-  /* background-color: #f4f5fa; */
   min-height: 100vh;
+  padding-bottom: 50px;
 }
 </style>

@@ -2,7 +2,8 @@ import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@/@common/constants";
 import { routes } from "vue-router/auto-routes";
 import DefaultLayout from "@/app-tikat/layouts/default.vue";
-import Dashboard from "@/app-tikat/pages/dashboards/analytics.vue";
+import DashboardFeedback from "@/app-tikat/pages/dashboards/analytics/feedback/index.vue";
+import DashboardHome from "@/app-tikat/pages/dashboards/home/index.vue";
 import FieldsList from "@/app-tikat/pages/setup/fields/list/index.vue";
 import FieldsAdd from "@/app-tikat/pages/setup/fields/add/[[id]].vue";
 import StatusFeedbackList from "@/app-tikat/pages/setup/status/feedback/list/index.vue";
@@ -17,7 +18,7 @@ const baseRoutes = [
   {
     path: "/",
     redirect: () => {
-      return { name: "dashboards-analytics" };
+      return { name: "dashboards-home" };
     },
   },
 ];
@@ -28,13 +29,26 @@ if (!routes || routes?.length < 1) {
   );
   baseRoutes.push(
     {
-      path: "/dashboards/analytics",
+      path: "/dashboards/home",
       component: DefaultLayout,
       children: [
         {
           path: "",
-          name: "dashboards-analytics",
-          component: Dashboard,
+          name: "dashboards-home",
+          component: DashboardHome,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/analytics/feedback",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-analytics-feedback",
+          component: DashboardFeedback,
           props: true,
           meta: { layout: "default" },
         },

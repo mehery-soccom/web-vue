@@ -5,6 +5,7 @@ import FilterItem from "./FilterItem.vue";
 const props = defineProps({
   modelValue: { type: Object, required: true },
   level: { type: Number, default: 0 },
+  ignoreEventfilterType: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "delete-group"]);
 
@@ -14,7 +15,7 @@ const childRefs = ref([]);
 const addFilter = () => {
   props.modelValue.children.push({
     type: "filter",
-    filterType: "event",
+    filterType: null,
     field: null,
     operator: null,
     value: null,
@@ -71,7 +72,7 @@ const isValid = async (silent = false) => {
       const valid = await refComp.isValid(silent);
       if (!valid && !firstInvalid) firstInvalid = refComp;
       return valid;
-    }
+    },
   );
 
   if (!allValid && firstInvalid && !silent) {
@@ -126,6 +127,7 @@ defineExpose({ isValid });
         :level="level"
         @remove="removeChild(index)"
         @update="emit('update:modelValue', modelValue)"
+        :ignoreEventfilterType="ignoreEventfilterType"
       />
     </div>
 

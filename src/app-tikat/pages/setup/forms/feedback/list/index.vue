@@ -185,8 +185,8 @@ const copyLink = async (id) => {
             params: { id: item.raw._id }
           }"
         >
-          <VIcon icon="tabler-edit" />
-          <VTooltip activator="parent" location="top">Edit Form</VTooltip>
+          <VIcon icon="tabler-eye" />
+          <VTooltip activator="parent" location="top">View Form</VTooltip>
         </IconBtn>
 
         <IconBtn>

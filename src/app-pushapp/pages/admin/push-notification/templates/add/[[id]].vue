@@ -5,12 +5,19 @@ import { usePushNotification } from "@app-pushapp/views/admin/push-notification/
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
 const { show } = inject("snackbar");
+import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
 
+const libraryStore = useLibraryStore();
 const required = (v) => !!v || "This field is required";
 const max50 = (v) => !v || v.length <= 50 || "Title must be 50 characters or less";
 const max120 = (v) => !v || v.length <= 120 || "Message must be 120 characters or less";
-const urlRule = (v) =>
-  !v || /^https?:\/\/\S+$/.test(v) || "Must be a valid URL";
+// const urlRule = (v) =>
+//   !v || /^https?:\/\/\S+$/.test(v) || "Must be a valid URL";
+const urlRule = (v) => {
+  if (!v) return true;
+  const value = typeof v === 'string' ? v : v.code || v.value || '';
+  return /^https?:\/\/\S+$/.test(value) || 'Must be a valid URL';
+};
 const lineOpen = reactive({ 1: false, 2: false, 3: false });
 const toggleLine = (line) => {
   lineOpen[line] = !lineOpen[line];
@@ -104,6 +111,15 @@ const templatePreview = computed(() => {
     // },
   };
 });
+const optionsPath = ref([])
+async function fetchItems() {
+  try {
+    const res = await libraryStore.read({ id: 'links' });
+    optionsPath.value = res.data.data.options;
+  } catch (error) {
+    console.log("fetchItems error", error);
+  }
+}
 const formRef = ref();
 const formRefVersion = ref(1);
 
@@ -164,12 +180,18 @@ onMounted(async () => {
     }
   }
   if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
+  fetchItems();
 });
+const normalizeUrl = (v) => {
+  if (!v) return null;
+  if (typeof v === "string") return v;
+  return v.code || v.value || null;
+};
 
 const onCreate = async () => {
   let validationResult = await formRef.value.validate();
 
-  console.log("onCreate", validationResult.errors, template);
+  console.log("onCreate", validationResult.errors, JSON.parse(JSON.stringify(template)));
 
   if (!validationResult.valid) {
     return;
@@ -199,7 +221,7 @@ const onCreate = async () => {
           buttons: buttonGroupFields.value.map((b) => ({
             button_id: b.id,
             button_text: b.text,
-            button_url: buttonGroupValue.value[b.text],
+            button_url: normalizeUrl(buttonGroupValue.value[b.text]),
           })),
         },
         // model: {
@@ -235,7 +257,7 @@ const onCreate = async () => {
 const onUpdate = async () => {
   let validationResult = await formRef.value.validate();
 
-  console.log("onUpdate", validationResult.errors);
+  console.log("onUpdate", validationResult.errors, JSON.parse(JSON.stringify(template)));
 
   if (!validationResult.valid) {
     return;
@@ -244,40 +266,25 @@ const onUpdate = async () => {
   try {
     isLoading.value = true;
 
-    // let data = {};
-    // try {
-    //   data = JSON.parse(template.model.data || DEFAULT_VARIABLES_DATA);
-    // } catch (error) {
-    //   return show({ message: "Invalid variables json", color: "error" });
-    // }
+    const imageUrl = template.type === "simple" && Array.isArray(template.style.image_url) && template.style.image_url.length === 1
+        ? template.style.image_url[0] || "" : template.style.image_url;
 
-    let payload = {};
-    if (template.type === "simple") {
-      if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
-      payload = {
+    let payload = {
         ...template,
-        options: {
-          ...(template.options || {}),
-          buttons: buttonGroupFields.value.map((b) => ({
-            button_id: b.id,
-            button_text: b.text,
-            button_url: buttonGroupValue.value[b.text],
-          })),
+        style: {
+          ...template.style,
+          image_url: imageUrl,
         },
-        // model: {
-        //   ...(template.model || {}),
-        //   data,
-        // },
-      };
-    } else {
-      payload = {
-        ...template,
-        options: {},
-        // model: {
-        //   ...(template.model || {}),
-        //   data,
-        // },
-      };
+        options: template.type === "simple"
+          ? {
+              ...(template.options || {}),
+              buttons: buttonGroupFields.value.map((b) => ({
+                button_id: b.id,
+                button_text: b.text,
+                button_url: normalizeUrl(buttonGroupValue.value[b.text]),
+              })),
+            }
+          : {},
     }
 
     await pushNotificationStore.updateTemplate(template._id, payload);
@@ -437,7 +444,7 @@ watch(
                               v-model="template.style.image_url[index]"
                               :key="index"
                               :label="`Upload Image ${index + 1}`"
-                              :max-size="10240"
+                              :max-size="20240"
                               helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 10 kb"
                             />
                           </div>
@@ -472,12 +479,14 @@ watch(
                         :key="b.text"
                         cols="12"
                       >
-                        <AppTextField
+                        <AppCombobox
                           v-model="buttonGroupValue[b.text]"
                           :label="'Button > ' + b.text"
                           placeholder="Enter URL"
                           :rules="[urlRule]"
                           prepend-inner-icon="mdi-link"
+                          :items="optionsPath || []"
+                          :clearable=true item-title="code" item-value="code"
                         />
                       </VCol>
                     </template>
@@ -571,7 +580,7 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Upload Image" :max-size="10240"
+                          label="Upload Image" :max-size="20240"
                           helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 10 kb"
                         />
                       </VCol>

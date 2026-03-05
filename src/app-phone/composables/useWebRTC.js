@@ -692,13 +692,13 @@ export function useWebRTC() {
       console.log("asked perm vue3", resp);
       const { permission, actions } = resp.data;
       const status = permission?.status;
+      currentPeerNumber.value = remoteNumber;
 
       if (status === "permanent" || status === "temporary") {
         const startCallAction = getAction(actions, "start_call");
 
           if (startCallAction?.can_perform_action) {
               channelId.value = channel_id;
-              currentPeerNumber.value = remoteNumber;
               agentCode.value = agent;
               incomingCall.value = {
                 show: true,

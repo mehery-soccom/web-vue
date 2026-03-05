@@ -29,6 +29,14 @@ const props = defineProps({
   subDir: {
     type: String,
     default: 'main',
+  },
+  accept: {
+    type: String,
+    default: 'application/pdf',
+  },
+  hint: {
+    type: String,
+    default: null
   }
 });
 
@@ -65,7 +73,12 @@ const handleFileUpload = async (event) => {
   const file = event.target.files[0];
   if (!file) return;
 
-  if (file.type !== 'application/pdf') {
+  const isImage = props.accept.includes('image/*');
+  if (isImage && !file.type.startsWith('image/')) {
+    show({ message: 'Only image files are allowed.', color: 'error' });
+    fileInput.value = null;
+    return;
+  } else if (!isImage && props.accept === 'application/pdf' && file.type !== 'application/pdf') {
     show({ message: 'Only PDF files are allowed.', color: 'error' });
     fileInput.value = null;
     return;
@@ -104,24 +117,33 @@ const handleFileUpload = async (event) => {
       formData: formData
     });
 
-    let payload = response.result || response; 
-    
-    if (!payload.url) {
-        if (response.results && response.results[0]) {
-             payload = response.results[0];
-        } 
-        else if (payload.results && payload.results[0]) {
-             payload = payload.results[0];
-        }
-        else {
-             throw new Error("Upload response did not include a URL.");
-        }
+    let payload = null;
+    if (response.results && response.results.length > 0) {
+      payload = response.results[0];
+    } else if (response.result) {
+      payload = response.result;
+    } else {
+      payload = response;
     }
 
-    fileUrl.value = payload.url;
-    emit("update:modelValue", payload.url);
-    emit("upload-complete", payload);
-    displayName.value = payload.name || payload.url.split('/').pop().split('?')[0];
+    if (!payload || !payload.url) {
+      throw new Error("Upload response did not include a valid URL.");
+    }
+
+    const filteredPayload = {
+      name: payload.name,
+      path: payload.path,
+      url: payload.url,
+      contentType: payload.contentType,
+      contentLength: payload.contentLength,
+      title: payload.title,
+    };
+
+    fileUrl.value = filteredPayload.url;
+    emit("update:modelValue", filteredPayload.url);
+    emit("upload-complete", filteredPayload); 
+
+    displayName.value = filteredPayload.name || filteredPayload.url.split('/').pop().split('?')[0];
     show({ message: "File uploaded successfully!", color: "success" });
 
   } catch (error) {
@@ -160,7 +182,7 @@ watch(() => props.modelValue, (newVal) => {
         :model-value="displayName"
         variant="outlined"
         class="flex-grow-1"
-        prepend-inner-icon="mdi-file-pdf-box"
+        :prepend-inner-icon="accept.includes('image') ? 'mdi-image' : 'mdi-file-pdf-box'"
         readonly
       >
         <template #append-inner>
@@ -219,13 +241,13 @@ watch(() => props.modelValue, (newVal) => {
         :loading="uploading"
         color="primary"
         variant="outlined"
-        accept="application/pdf"
+        :accept="accept"
         @change="handleFileUpload"
         v-model="fileInput"
-        placeholder="Select or drop a PDF file"
-        prepend-inner-icon="mdi-file-pdf-box"
+        :placeholder="accept.includes('image') ? 'Select or drop an image' : 'Select or drop a PDF file'"
+        :prepend-inner-icon="accept.includes('image') ? 'mdi-image' : 'mdi-file-pdf-box'"
         prepend-icon=""
-        :hint="`Max file size: ${formattedMaxSize}`"  persistent-hint
+        :hint="hint || `Max file size: ${formattedMaxSize}`" persistent-hint
       >
         <template #selection="{ fileNames }">
           <template v-for="fileName in fileNames" :key="fileName">

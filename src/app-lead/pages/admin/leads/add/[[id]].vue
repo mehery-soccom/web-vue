@@ -89,7 +89,14 @@ const isModerator = computed(() => {
   return userRoles.includes('MODERATOR');
 });
 
+const isAdmin = computed(() => {
+  const userRoles = window.CONST?.USER?.role || [];
+  return userRoles.includes('ADMIN');
+});
+
 const isReadOnly = (field) => {
+  if (isAdmin.value && !leadId.value) return false;
+  if (isAdmin.value && field.access?.moderator === 'R') return true;
   if (isModerator.value && field.access?.moderator === 'R') {
     return true;
   }

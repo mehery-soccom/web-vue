@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import AppDateTimePicker from '@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue';
 import { emailValidator, requiredValidator } from '@app-tikat/@core/utils/validators';
 import PhoneCodeWithCountry from '@/app-tikat/@core/components/PhoneCodeWithCountry.vue';
@@ -34,6 +34,21 @@ const getRules = (field) => {
   return rules;
 }
 
+const cardBackgroundStyle = computed(() => {
+  const bgUrl = formStructure.value?.banner?.bgImg?.url;
+  if (!bgUrl) return { backgroundColor: 'rgb(var(--v-theme-surface))' };
+  
+  return {
+    backgroundImage: `url(${bgUrl})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    position: 'relative',
+    color: 'white',
+    zIndex: 0
+  };
+});
+
 onMounted(() => {
   const data = sessionStorage.getItem('form-preview-data');
   if (data) {
@@ -42,17 +57,15 @@ onMounted(() => {
 
       const initialValues = {};
 
-      if (formStructure.value && formStructure.value.fields) {
+      if (formStructure.value.fields) {
         formStructure.value.fields.forEach(field => {
-          const dataKey = field.key;
-          
-          if (field.inputType === 'BOOLEAN') {
-                initialValues[dataKey] = false;
-            } else if (field.inputType === 'RATING') {
-                initialValues[dataKey] = 0;
-            } else {
-                initialValues[dataKey] = '';
-            }
+          initialValues[field.key] = field.inputType === 'BOOLEAN' ? false : (field.inputType === 'RATING' ? 0 : '');
+        });
+      }
+
+      if (formStructure.value.questions) {
+        formStructure.value.questions.forEach((q, index) => {
+          initialValues[`question_${index}`] = 0; 
         });
       }
       formValues.value = initialValues;
@@ -75,16 +88,28 @@ const submitForm = () => {
       <VCol cols="12" md="7">
         <VForm v-if="formStructure" @submit.prevent="submitForm">
           
-          <VCard class="mb-6">
-            <VCardItem class="text-left">
-              <VCardTitle class="text-h4 pt-4">{{ formStructure.name }}</VCardTitle>
-              <VCardSubtitle
-                v-if="formStructure.desc"
-                class="mt-2 font-italic"
-              >
-                {{ formStructure.desc }}
-              </VCardSubtitle>
-            </VCardItem>
+          <VCard class="mb-6 overflow-hidden preview-card-header" :style="cardBackgroundStyle" elevation="2">
+            <div 
+              class="d-flex align-center pa-6" 
+              :class="{ 'image-overlay': formStructure.banner?.bgImg?.url }"
+            >
+              <div v-if="formStructure.banner?.logo?.url" class="banner-image me-4">
+                <img :src="formStructure.banner.logo.url" class="banner-media-item" />
+              </div>
+
+              <div class="flex-grow-1">
+                <VCardTitle class="text-h4 pa-0 font-weight-bold" :class="{'text-white': formStructure.banner?.bgImg?.url}">
+                  {{ formStructure.name }}
+                </VCardTitle>
+                <VCardSubtitle
+                  v-if="formStructure.desc"
+                  class="mt-1 pa-0 opacity-90"
+                  :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
+                >
+                  {{ formStructure.desc }}
+                </VCardSubtitle>
+              </div>
+            </div>
           </VCard>
 
           <VCard
@@ -177,8 +202,9 @@ const submitForm = () => {
                       color="warning"
                       active-color="warning"
                       hover
-                      density="comfortable"
+                      density="default"
                       :rules="getRules(field)"
+                      class="large-rating"
                     />
                 </VCol>
               </VRow>
@@ -198,6 +224,31 @@ const submitForm = () => {
             </VCardText>
           </VCard>
 
+          <template v-if="formStructure.questions && formStructure.questions.length">
+            <VCard v-for="(q, index) in formStructure.questions" :key="index" class="my-4">
+              <VCardText>
+                <VLabel class="mb-2 font-weight-medium text-high-emphasis">
+                  {{ q.questionText || q.label }}
+                  <span v-if="q.optional === false" class="text-error ms-1">*</span>
+                </VLabel>
+
+                <VRow>
+                  <VCol cols="12">
+                    <VRating
+                      v-model="formValues[`question_${index}`]"
+                      :length="formStructure.scale || 5"
+                      :size="42"
+                      color="warning"
+                      active-color="warning"
+                      hover
+                      class="large-rating"
+                    />
+                  </VCol>
+                </VRow>
+              </VCardText>
+            </VCard>
+          </template>
+
           <VBtn class="mt-6" type="submit" variant="elevated" color="primary" block>
             Submit
           </VBtn>
@@ -213,10 +264,67 @@ const submitForm = () => {
   </VContainer>
 </template>
 
-<style>
+<style scoped>
+.banner-image {
+  flex-shrink: 0;
+  width: 75px;
+  height: 75px;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.banner-media-item {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+.preview-card-header {
+  position: relative;
+  overflow: hidden !important;
+  border: none !important;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+}
+
+.image-overlay {
+  background: rgba(0, 0, 0, 0.3);
+  width: 100%;
+  height: 100%;
+  flex-grow: 1;
+}
+
+.text-white {
+  color: white !important;
+}
+
+.opacity-90 {
+  opacity: 0.9;
+}
+
+.large-rating :deep(.v-icon) {
+  font-size: 35px !important;
+  width: 35px !important;
+  height: 35px !important;
+}
+
+.preview-card-header > div {
+  flex-grow: 1;
+  display: flex;
+  align-items: center;
+}
+
 .layout-blank {
   background-color: var(--v-theme-background) !important;
   min-height: 100vh;
   padding-bottom: 50px;
+}
+
+:deep(.v-card__underlay) {
+  display: none !important;
 }
 </style>

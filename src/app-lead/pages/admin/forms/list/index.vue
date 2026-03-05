@@ -169,7 +169,7 @@ fetchForms();
             params: { id: item.raw._id }
           }"
         >
-          <VIcon icon="tabler-edit" />
+          <VIcon icon="tabler-eye" />
         </IconBtn>
 
         <IconBtn>
