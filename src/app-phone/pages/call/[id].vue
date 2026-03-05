@@ -9,7 +9,7 @@ const {
   initP2PCall, createP2POffer, createP2PAnswer,
   setRemoteDescription, addRemoteCandidate, onIceCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
-  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected,
+  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, sendCameraState, onRemoteCameraState,
 } = useWebRTC();
 
 const route = useRoute();
@@ -33,9 +33,9 @@ const isHost = ref(false);
 const isEndingCall = ref(false);
 const isJoining = ref(false);
 const hasJoined = ref(false);
-const isSyncing = ref(false);
 const roomFullMessage = ref("");
-const nameTakenMessage = ref("");
+const remoteCameraOn = ref(false);
+const nameError = ref("")
 
 let pollingInterval = null;
 let heartbeatInterval = null;
@@ -108,27 +108,29 @@ const setupAsGuest = async (initialSession) => {
 
 const rejoinAsParticipant = async () => {
   await resetWebRTC();
+  onRemoteCameraState((val) => { remoteCameraOn.value = val; });
   const joined = await RealDB.createRoom(roomId, userName.value, userId, null);
   if (joined.waitingForNewSession) {
     currentSessionId = joined.sessionId;
-    statusMessage.value = "Waiting for room to reset...";
     return;
   }
   currentSessionId = joined.sessionId;
   isHost.value = joined.host?.userId === userId;
   if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(joined); }
 };
-
 const handleSessionEnded = async () => {
   if (isCreatingNewSession || isEndingCall.value) return;
   isCreatingNewSession = true;
   stopPolling();
-  statusMessage.value = "Participant left. Waiting for them to rejoin...";
+  remoteName.value = "";
+  remoteName.value = "";
+  remoteCameraOn.value = false;
   try {
     const newSession = await RealDB.createNewSession(roomId, userId, userName.value);
     currentSessionId = newSession.sessionId;
     isHost.value = true;
     await resetWebRTC();
+    onRemoteCameraState((val) => { remoteCameraOn.value = val; });
     await setupAsHost();
   } catch (e) {
     if (e.message?.includes('UNAUTHORIZED')) {
@@ -148,35 +150,36 @@ const handleSessionEnded = async () => {
 };
 
 const joinRoom = async () => {
-  if (!userName.value.trim()) return alert("Please enter your name");
+  if (!userName.value.trim()) { nameError.value = "Please enter your name"; return; }
+  nameError.value = "";
+
   if (isJoining.value) return;
   roomFullMessage.value = "";
   stopPolling();
-  isJoining.value = true; hasJoined.value = true; isSyncing.value = true;
-  statusMessage.value = "Connecting...";
+  isJoining.value = true; hasJoined.value = true;
   const prevId = sessionStorage.getItem('p2p_prevUserId');
   sessionStorage.removeItem('p2p_prevUserId');
   try {
     const session = await RealDB.createRoom(roomId, userName.value, userId, prevId);
     if (session.waitingForNewSession) {
       currentSessionId = session.sessionId;
-      isSyncing.value = false; isJoining.value = false;
-      statusMessage.value = "Waiting for room to reset...";
+      isJoining.value = false;
       startHeartbeat(); startPolling(800);
       return;
     }
     currentSessionId = session.sessionId;
     isHost.value = session.host?.userId === userId;
     await resetWebRTC();
+    onRemoteCameraState((val) => { remoteCameraOn.value = val; });
     if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(session); }
   } catch (error) {
-    hasJoined.value = false; isSyncing.value = false; isJoining.value = false;
+    hasJoined.value = false; isJoining.value = false;
     const msg = error.message || "";
     if (msg.includes("ROOM_FULL")) roomFullMessage.value = "This room is full.";
     else statusMessage.value = "Failed to connect. Please try again.";
     return;
   }
-  isSyncing.value = false; isJoining.value = false;
+  isJoining.value = false;
   startHeartbeat(); startPolling(800);
 };
 
@@ -202,14 +205,13 @@ const startPolling = (rate = 1500) => {
         // New session with open guest slot
         if (isJoining.value || isCreatingNewSession) return;
         stopPolling();
-        isJoining.value = true; isSyncing.value = true;
-        statusMessage.value = "Joining...";
+        isJoining.value = true;
         try {
           await rejoinAsParticipant();
         } catch (e) {
           statusMessage.value = "Reconnection failed. Retrying...";
         } finally {
-          isJoining.value = false; isSyncing.value = false; startPolling(800);
+          isJoining.value = false; startPolling(800);
         }
         return;
       }
@@ -245,8 +247,9 @@ const startPolling = (rate = 1500) => {
 
     // Name sync
     const remotePeer = isHost.value ? roomData.guest : roomData.host;
-    remoteName.value = remotePeer?.name || "";
-
+    if (roomData.sessionId === currentSessionId) {
+      remoteName.value = remotePeer?.name || "";
+    }
     // ICE trickle
     const candidates = isHost.value ? roomData.guestCandidates : roomData.hostCandidates;
     for (const c of (candidates || [])) {
@@ -262,15 +265,25 @@ const startPolling = (rate = 1500) => {
 watch(isConnected, async (connected) => {
   if (connected) {
     wasEverConnected = true;
-    statusMessage.value = "Connected";
     startPolling(4000);
     await nextTick();
     setTimeout(() => reattachMediaStreams(), 300);
   } else if (wasEverConnected && !isEndingCall.value && !isCreatingNewSession) {
-    statusMessage.value = "Participant disconnected. Waiting for them to rejoin...";
     remoteName.value = "";
     startPolling(1000);
   }
+});
+
+watch(remoteCameraOn, async (val) => {
+  if (val) {
+    await nextTick();
+    reattachMediaStreams();
+  }
+});
+
+watch(userName, v => {
+  localStorage.setItem('p2p_username', v);
+  if (v.trim()) nameError.value = "";
 });
 
 onMounted(async () => {
@@ -313,21 +326,14 @@ const handleLeave = async (updateDB = true) => {
       <button class="btn-cancel" @click="router.push('/call')">Go Back</button>
     </div>
 
-    <!-- Syncing/reconnecting overlay -->
-    <div v-else-if="isSyncing" class="sync-page">
-      <div class="loader-large"></div>
-      <h2>Reconnecting...</h2>
-      <p>Please stay on this page while we sync.</p>
-    </div>
-
     <!-- Pre-join staging -->
-    <div v-else-if="!hasJoined">
-      <h1>Meeting Room: {{ roomId }}</h1>
+    <div v-else-if="!hasJoined" class="staging-page">
+      <h1>Room: <span class="room-id">{{ roomId }}</span></h1>
       <div class="staging">
         <div class="left-container">
           <div class="video-preview">
             <video id="local-video" autoplay muted playsinline class="staging-video"></video>
-            <div class="controls">
+            <div class="controls staging-controls">
               <button @click="toggleCamera" :class="{ 'btn-off': !Camera }">
                 <Icon :icon="Camera ? 'tabler:video' : 'tabler:video-off'" />
               </button>
@@ -338,8 +344,11 @@ const handleLeave = async (updateDB = true) => {
           </div>
         </div>
         <div class="right-container">
-          <label for="userName">Enter Name</label>
-          <input type="text" placeholder="Your name" v-model="userName" id="userName" @keyup.enter="joinRoom" />
+          <div class="name-field">
+            <label for="userName">Your name</label>
+            <input type="text" placeholder="Enter your name" v-model="userName" id="userName" @keyup.enter="joinRoom" />
+            <span v-if="nameError" style="color: #ea4335; font-size: 0.78rem; margin-top: -8px;">{{ nameError }}</span>
+          </div>
           <div class="buttons">
             <button class="btn-cancel" @click="handleLeave(false)">Cancel</button>
             <button class="btn-join" @click="joinRoom">Join Call</button>
@@ -350,20 +359,43 @@ const handleLeave = async (updateDB = true) => {
 
     <!-- In-call -->
     <div v-else class="room">
-      <video id="remote-video" autoplay playsinline class="main-video"></video>
 
-      <div v-if="!isConnected" class="status-bar">
-        <div class="loader-small"></div>
-        <span>{{ statusMessage }}</span>
+      <!-- Remote video -->
+      <video id="remote-video" autoplay playsinline class="main-video"
+        :class="{ hidden: !isConnected || !remoteCameraOn }"></video>
+
+      <!-- remote peer not connected -->
+      <div v-if="!isConnected || !remoteCameraOn" class="remote-placeholder">
+        <template v-if="remoteName">
+          <div class="avatar-ring">
+            <div class="avatar">{{ remoteName.charAt(0).toUpperCase() }}</div>
+          </div>
+          <p class="placeholder-name">{{ remoteName }}</p>
+          <div class="connecting-dots" v-if="!isConnected">
+            <span></span><span></span><span></span>
+          </div>
+        </template>
+        <template v-else>
+          <div class="avatar-ring empty">
+            <Icon icon="tabler:user" width="40" color="rgba(255,255,255,0.2)" />
+          </div>
+          <p class="placeholder-name muted">Waiting for someone to join…</p>
+        </template>
       </div>
 
-      <div v-if="isConnected && remoteName" class="remote-name-badge">{{ remoteName }}</div>
+      <!-- Remote name -->
+      <div v-if="remoteName" class="remote-name-badge">{{ remoteName }}</div>
 
+      <!-- Local  -->
       <div class="pip-wrapper">
-        <video id="local-video-pip" autoplay muted playsinline class="pip-video"></video>
+        <video id="local-video-pip" autoplay muted playsinline class="pip-video" :class="{ hidden: !Camera }"></video>
+        <div v-if="!Camera" class="pip-avatar">
+          {{ userName.charAt(0).toUpperCase() }}
+        </div>
         <span>{{ userName }} (You)</span>
       </div>
 
+      <!-- Controls -->
       <div class="controls">
         <button @click="toggleCamera" :class="{ 'btn-off': !Camera }">
           <Icon :icon="Camera ? 'tabler:video' : 'tabler:video-off'" />
@@ -393,30 +425,7 @@ const handleLeave = async (updateDB = true) => {
   background: #e9edf3;
 }
 
-.sync-page {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;
-}
-
-.loader-large {
-  width: 48px;
-  height: 48px;
-  border: 5px solid #1a73e8;
-  border-bottom-color: transparent;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin-bottom: 20px;
-}
-
+/* ── Room full ── */
 .room-full-notice {
   background: white;
   border-radius: 16px;
@@ -431,6 +440,26 @@ const handleLeave = async (updateDB = true) => {
   color: #333;
 }
 
+/* ── Staging ── */
+.staging-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.staging-page h1 {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 1rem;
+}
+
+.room-id {
+  color: #1a73e8;
+  font-family: monospace;
+  font-weight: 700;
+}
+
 .staging {
   display: flex;
   gap: 32px;
@@ -442,53 +471,68 @@ const handleLeave = async (updateDB = true) => {
 
 .video-preview {
   position: relative;
-  background: #000;
+  background: #111;
   border-radius: 12px;
   overflow: hidden;
+  width: 300px; 
+  height: 250px;
+  flex-shrink: 0;
 }
 
 .video-preview video {
   width: 100%;
   height: 250px;
   object-fit: cover;
+  display: block;
 }
 
 .right-container {
-  width: 280px;
+  width: 260px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
+  justify-content: space-between;
+  
+}
+.name-field{
+  width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.name-field label {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #999;
+  font-weight: 600;
 }
 
-.right-container label {
-  font-size: 14px;
-  color: #1557b0;
-  font-weight: 500;
-}
-
-.right-container input {
+.name-field input {
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid #b3cae8;
+  border: 1.5px solid #e0e0e0;
   outline: none;
   font-size: 14px;
+  transition: border-color 0.15s;
 }
 
-.right-container input:focus {
+.name-field input:focus {
   border-color: #1a73e8;
 }
 
 .right-container .buttons {
   display: flex;
-  justify-content: space-between;
+  gap: 10px;
+  margin-top: 4px;
 }
 
-
+/* ── In-call room ── */
 .room {
   width: 100%;
   height: 100%;
   position: relative;
-  background: black;
+  background: #151520;
 }
 
 .main-video {
@@ -497,55 +541,131 @@ const handleLeave = async (updateDB = true) => {
   object-fit: cover;
 }
 
-.status-bar {
+.main-video.hidden {
+  display: none;
+}
+
+/* ── Remote placeholder ── */
+.remote-placeholder {
   position: absolute;
-  top: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: rgba(0, 0, 0, 0.7);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 30px;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  background: #151520;
+}
+
+.avatar-ring {
+  width: 116px;
+  height: 116px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 2px solid rgba(255, 255, 255, 0.08);
   display: flex;
   align-items: center;
-  gap: 10px;
-  z-index: 10;
-  white-space: nowrap;
+  justify-content: center;
 }
 
-.loader-small {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #fff;
-  border-bottom-color: transparent;
+.avatar-ring.empty {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.avatar {
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
-  animation: spin 1s linear infinite;
-  flex-shrink: 0;
+  background: #252a4a;
+  color: #7b96e8;
+  font-size: 2.4rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  letter-spacing: -1px;
+  user-select: none;
 }
 
+.placeholder-name {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 1.05rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+.placeholder-name.muted {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+
+.connecting-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.connecting-dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  animation: dot-pulse 1.4s ease-in-out infinite;
+}
+
+.connecting-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.connecting-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes dot-pulse {
+
+  0%,
+  80%,
+  100% {
+    transform: scale(0.7);
+    opacity: 0.3;
+  }
+
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* ── Remote name badge ── */
 .remote-name-badge {
   position: absolute;
   top: 20px;
   left: 20px;
-  background: rgba(0, 0, 0, 0.6);
+  background: rgba(0, 0, 0, 0.5);
   color: white;
-  padding: 8px 16px;
+  padding: 6px 14px;
   border-radius: 8px;
   font-weight: 600;
+  font-size: 0.88rem;
   z-index: 5;
+  backdrop-filter: blur(4px);
 }
 
+/* ── PiP ── */
 .pip-wrapper {
   position: absolute;
   bottom: 5rem;
   right: 1rem;
-  width: 240px;
-  height: 160px;
-  background: #1a1a1a;
-  border-radius: 8px;
+  width: 200px;
+  height: 140px;
+  background: #111;
+  border-radius: 10px;
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.1);
   z-index: 5;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
 }
 
 .pip-video {
@@ -556,15 +676,32 @@ const handleLeave = async (updateDB = true) => {
 
 .pip-wrapper span {
   position: absolute;
-  bottom: 8px;
+  bottom: 7px;
   left: 8px;
   background: rgba(0, 0, 0, 0.6);
   color: white;
-  padding: 2px 6px;
+  padding: 2px 7px;
   font-size: 10px;
   border-radius: 4px;
 }
 
+.pip-video.hidden {
+  display: none;
+}
+
+.pip-avatar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252a4a;
+  color: #7b96e8;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+/* ── Controls ── */
 .controls {
   position: absolute;
   bottom: 20px;
@@ -580,55 +717,95 @@ const handleLeave = async (updateDB = true) => {
   height: 50px;
   border-radius: 50%;
   border: none;
-  background: #1a73e8;
+  background: rgba(255, 255, 255, 0.14);
   color: white;
-  font-size: 24px;
+  font-size: 22px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
+  transition: background 0.15s, transform 0.1s;
+  backdrop-filter: blur(6px);
+}
+
+.controls button:hover {
+  background: rgba(255, 255, 255, 0.24);
+}
+
+.controls button:active {
+  transform: scale(0.93);
+}
+
+/* staging controls sit on top of the video preview */
+.staging-controls {
+  position: absolute !important;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: transparent !important;
+}
+
+.staging-controls button {
+  background: rgba(0, 0, 0, 0.55) !important;
+  backdrop-filter: blur(4px);
 }
 
 .btn-off {
   background: #ea4335 !important;
 }
 
+.btn-off:hover {
+  background: #c5221f !important;
+}
+
 .btn-leave {
   background: #d93025 !important;
+}
+
+.btn-leave:hover {
+  background: #b31412 !important;
 }
 
 .btn-active {
   background: #0d8f4c !important;
 }
 
+/* ── Shared buttons ── */
 .btn-join {
+  flex: 1;
   background: #1a73e8;
   color: white;
   border: none;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
   cursor: pointer;
+  transition: background 0.15s;
+}
+
+.btn-join:hover {
+  background: #1557b0;
 }
 
 .btn-cancel {
+  flex: 1;
   background: transparent;
-  border: 1px solid #ccc;
+  border: 1.5px solid #ddd;
   padding: 10px;
-  border-radius: 6px;
+  border-radius: 8px;
+  font-size: 0.9rem;
   cursor: pointer;
+  color: #555;
+  transition: border-color 0.15s, color 0.15s;
 }
 
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-
-  100% {
-    transform: rotate(360deg);
-  }
+.btn-cancel:hover {
+  border-color: #aaa;
+  color: #333;
 }
 
+/* ── Responsive ── */
 @media (max-width: 700px) {
   .staging {
     flex-direction: column;
@@ -636,6 +813,11 @@ const handleLeave = async (updateDB = true) => {
 
   .right-container {
     width: 100%;
+  }
+
+  .pip-wrapper {
+    width: 130px;
+    height: 90px;
   }
 }
 </style>

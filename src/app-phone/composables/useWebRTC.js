@@ -17,6 +17,9 @@ export function useWebRTC() {
   let pc = null;
   let localStream = null;
   let onLocalCandidateCallback = null;
+  let dataChannel = null;
+  const onCameraStateCallback = ref(null);
+  let cameraToggleLock = false; 
 
   //Calling Variables
   const remoteStream = ref(null);
@@ -155,7 +158,7 @@ export function useWebRTC() {
     callTimer.value = setInterval(() => {
       if (activeCall.value.startTime) {
         const duration = Math.floor(
-          (new Date() - activeCall.value.startTime) / 1000
+          (new Date() - activeCall.value.startTime) / 1000,
         );
         const minutes = Math.floor(duration / 60)
           .toString()
@@ -179,15 +182,12 @@ export function useWebRTC() {
       connectionStatus.value = "connecting";
       errorMessage.value = "";
 
-      const enableVideo = callMode.value === "p2p";
-
       localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
           autoGainControl: true,
         },
-        video: enableVideo,
       });
 
       setupLocalAudio(localStream);
@@ -228,7 +228,6 @@ export function useWebRTC() {
     if (!pc) return;
 
     pc.ontrack = async (event) => {
-      console.log("Received remote track:", event);
       const stream = event.streams?.[0];
       if (!stream) return;
 
@@ -240,7 +239,7 @@ export function useWebRTC() {
         const remoteVideo = document.getElementById("remote-video");
         if (remoteVideo) {
           remoteVideo.srcObject = stream;
-          remoteVideo.muted = false;n
+          remoteVideo.muted = false;
         }
       }
     };
@@ -284,6 +283,11 @@ export function useWebRTC() {
 
     pc.oniceconnectionstatechange = () => {
       console.log("ICE connection state:", pc.iceConnectionState);
+    };
+
+    pc.ondatachannel = (event) => {
+      dataChannel = event.channel;
+      setupDataChannel(dataChannel);
     };
   };
 
@@ -770,55 +774,56 @@ export function useWebRTC() {
   //Calling Functionalities
 
   const toggleCamera = async () => {
-    if (!localStream) return;
+  if (!localStream || !pc) return;
+  if (cameraToggleLock) return;
+  cameraToggleLock = true;
 
-    const sender = pc.getTransceivers()
-      .find(t => t.receiver.track.kind === 'video')
-      ?.sender;
+  const sender = pc.getSenders().find((s) => s.track?.kind === "video");
 
+  try {
     if (Camera.value) {
       const realTrack = localStream.getVideoTracks()[0];
-
-      // keep the connection alive so it doesn't freeze.
       const canvas = document.createElement("canvas");
       Object.assign(canvas, { width: 2, height: 2 });
-      canvas.getContext('2d').fillRect(0, 0, 2, 2);
+      canvas.getContext("2d").fillRect(0, 0, 2, 2);
       const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
 
       if (sender) await sender.replaceTrack(blackTrack);
-      if (realTrack) {
-        realTrack.stop();
-        localStream.removeTrack(realTrack);
-      }
-
+      if (realTrack) { realTrack.stop(); localStream.removeTrack(realTrack); }
       localStream.addTrack(blackTrack);
-      
       Camera.value = false;
+      sendCameraState(false);
       reattachMediaStreams();
-
     } else {
       try {
-        const newStream = await navigator.mediaDevices.getUserMedia({
-          video: { width: 1280, height: 720 },
-        });
+        const newStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
         const newTrack = newStream.getVideoTracks()[0];
         const blackTrack = localStream.getVideoTracks()[0];
-
         if (sender) await sender.replaceTrack(newTrack);
-
-        if (blackTrack) {
-          blackTrack.stop();
-          localStream.removeTrack(blackTrack);
-        }
-
+        if (blackTrack) { blackTrack.stop(); localStream.removeTrack(blackTrack); }
         localStream.addTrack(newTrack);
         Camera.value = true;
+        sendCameraState(true);
         reattachMediaStreams();
       } catch (error) {
         console.error("Error restarting camera:", error);
         Camera.value = false;
+        sendCameraState(false);
       }
     }
+  } finally {
+    cameraToggleLock = false;
+  }
+};
+
+  const sendCameraState = (state) => {
+    if (dataChannel?.readyState === "open") {
+      dataChannel.send(JSON.stringify({ type: "cameraState", value: state }));
+    }
+  };
+
+  const onRemoteCameraState = (callback) => {
+    onCameraStateCallback.value = callback;
   };
   
   const toggleMic = () => {
@@ -911,44 +916,73 @@ export function useWebRTC() {
 
   const initP2PCall = async () => {
     callMode.value = "p2p";
+    cameraToggleLock = false;
+    dataChannel = null;
 
     if (pc) {
       pc.close();
       pc = null;
     }
     if (localStream) {
-      localStream.getTracks().forEach((track) => track.stop());
+      localStream.getTracks().forEach((t) => t.stop());
       localStream = null;
     }
 
-    await initWebRTC();
+    // Get audio only — no camera light
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
 
-    if (pc) {
-      const originalIce = pc.onicecandidate;
-      pc.onicecandidate = (event) => {
-        if (originalIce) originalIce(event);
-
-        if (event.candidate && onLocalCandidateCallback) {
-          onLocalCandidateCallback(event.candidate.toJSON());
-        }
-      };
+    // Mute mic by default
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = false;
+      Mic.value = false;
     }
 
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
-      if (audioTrack) {
-        audioTrack.enabled = false;
-        Mic.value = false;
-      }
+    // blank video track so the transceiver exists for replaceTrack later
+    const canvas = document.createElement("canvas");
+    Object.assign(canvas, { width: 2, height: 2 });
+    canvas.getContext("2d").fillRect(0, 0, 2, 2);
+    const blankTrack = canvas.captureStream(1).getVideoTracks()[0];
+    localStream.addTrack(blankTrack);
+    Camera.value = false;
 
-      const videoTrack = localStream.getVideoTracks()[0];
-      if (videoTrack) {
-        videoTrack.stop();
-        localStream.removeTrack(videoTrack);
-        Camera.value = false;
+    // Build PeerConnection manually
+    pc = new RTCPeerConnection({
+      iceServers: iceServers.value,
+      iceTransportPolicy: "all",
+    });
+    localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+    setupRTCEventListeners();
+
+    // Wire up ICE candidate callback
+    const originalIce = pc.onicecandidate;
+    pc.onicecandidate = (event) => {
+      if (originalIce) originalIce(event);
+      if (event.candidate && onLocalCandidateCallback) {
+        onLocalCandidateCallback(event.candidate.toJSON());
       }
-    }
+    };
+
+    setupLocalVideo(localStream);
   };
+
+  const setupDataChannel = (dc) => {
+  dc.onopen = () => sendCameraState(Camera.value);
+  dc.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "cameraState" && onCameraStateCallback.value) {
+        onCameraStateCallback.value(msg.value);
+      }
+    } catch (_) {}
+  };
+};
 
   const createP2POffer = async (remoteNumber) => {
     if (callMode.value !== "p2p") {
@@ -959,6 +993,9 @@ export function useWebRTC() {
 
     callState.value = "calling";
     currentPeerNumber.value = remoteNumber;
+
+    dataChannel = pc.createDataChannel("p2p-state");
+    setupDataChannel(dataChannel)
 
     const offer = await pc.createOffer({
       offerToReceiveAudio: true,
@@ -997,7 +1034,7 @@ export function useWebRTC() {
       sdp: answer.sdp,
     };
   };
-  
+
   const addRemoteCandidate = async (candidate) => {
     if (pc && pc.remoteDescription) {
       try {
@@ -1087,6 +1124,8 @@ export function useWebRTC() {
     createP2PAnswer,
     addRemoteCandidate,
     onIceCandidate,
+    sendCameraState,
+    onRemoteCameraState,
     endP2PCall,
   };
 }
