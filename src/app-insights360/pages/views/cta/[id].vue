@@ -151,7 +151,7 @@ function formatTimestamp(ts) {
       <MyDataTable :headers="headers" :items="campTable" :loading="isLoading" 
         :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <template #item.contact.phone="{ item }">
-          <span>{{ item.raw.contact.phone || item.raw.contact.email || item.raw.contact.name }}</span>
+          <span>{{ item.raw.contact.phone || item.raw.contact.email || item.raw.contact.name || item.raw.contact.csid }}</span>
         </template>
         <template #item.timestamp="{ item }">
           <span
