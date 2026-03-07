@@ -307,7 +307,7 @@ function formatTimestamp(ts) {
         <template #item.contact="{ item }">
           <span
             style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.raw.contact.phone || item.raw.contact.email || item.raw.contact.name }}</span
+            >{{ item.raw.contact.phone || item.raw.contact.email || item.raw.contact.name || item.raw.contact.csid }}</span
           >
         </template>
         <!-- <template #item.stamps.CRTD="{ item }">
