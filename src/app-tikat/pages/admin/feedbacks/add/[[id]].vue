@@ -415,6 +415,7 @@ onMounted(fetchFeedbackData);
                                   color="warning"
                                   active-color="warning"
                                   class="large-rating"
+                                  :readonly="!!feedbackId"
                                   :disabled="isReadOnly({ access: { moderator: 'W', agent: 'W' } })" 
                                 />
                               </VCol>

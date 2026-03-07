@@ -366,6 +366,7 @@ const openPreview = () => {
                     <VCol cols="10" class="py-0">
                       <VRadioGroup
                         v-model="field.access[role.toLowerCase()]"
+                        :disabled="hasLeads"
                         inline
                         density="compact"
                         hide-details

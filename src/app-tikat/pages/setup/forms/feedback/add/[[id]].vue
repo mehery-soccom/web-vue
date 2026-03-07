@@ -502,6 +502,7 @@ const openPreview = () => {
                     <VCol cols="9" md="10" class="py-0">
                       <VRadioGroup
                         v-model="field.access[role.toLowerCase()]"
+                        :disabled="hasTikats"
                         inline
                         density="compact"
                         hide-details
