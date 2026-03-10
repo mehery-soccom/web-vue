@@ -4,6 +4,7 @@ import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
+import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
 const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -460,57 +461,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
             <!-- Filter -->
             <section v-if="selectedLogs.raw.filter" class="detail-block">
-              <h5>
-                Filter -
-                <span v-if="!!selectedLogs.raw.filter.conjunction">
-                  {{ formatFieldName(selectedLogs.raw.filter.conjunction) }}
-                </span>
-              </h5>
-
-              <div v-if="selectedLogs.raw.filter.children && selectedLogs.raw.filter.children.length > 0">
-                <div
-                  v-for="(child, idx) in selectedLogs.raw.filter.children"
-                  :key="idx"
-                  class="filter-child"
-                >
-                  <div v-if="idx === 0 || selectedLogs.raw.filter.children[idx - 1].filterType !== child.filterType" style="margin: 6px 0">
-                    <strong>{{ formatFieldName(child.filterType).replace(/([a-z])([A-Z])/g, '$1 $2') }}:</strong>
-                  </div>
-                  <div style="margin-left: 12px">
-                    <template v-if="child.freqOperator && (child.freqCount || child.value)">
-                      <strong>"{{ formatFieldName(child.field) }}"</strong>
-                      {{
-                        " has" +
-                        (child.operator === "is_not" ? " not" : "") +
-                        " happened " +
-                        formatFieldName(child.freqOperator).toLowerCase() +
-                        " " +
-                        (child.freqCount || child.value) +
-                        " time" +
-                        ((child.freqCount || child.value) > 1 ? "s" : "") +
-                        (child.freqPeriod
-                          ? " " + formatFieldName(child.freqPeriod).toLowerCase()
-                          : "") +
-                        "."
-                      }}
-                    </template>
-
-                    <template v-else-if="child.field && child.operator && (child.freqCount || child.value)">
-                      <strong>"{{ formatFieldName(child.field) }}"</strong>
-                      {{ formatFieldName(child.operator) }}
-                      <strong v-if="typeof child.value?.[0] === 'object' && child.value[0]?.dateLocal">
-                        "{{ formatFieldName(child.value[0].dateLocal) }}"
-                      </strong>
-                      <strong v-else>
-                        "{{ formatFieldName(child.freqCount || child.value) }}"
-                      </strong>
-                    </template>
-                  </div>
-                </div>
-              </div>
-              <div v-else>
-                <div>No filters defined</div>
-              </div>
+              <h5>Filter</h5>
+              <FilterViewer :node="selectedLogs.raw.filter" />
             </section>
 
             <!-- Schedule -->
