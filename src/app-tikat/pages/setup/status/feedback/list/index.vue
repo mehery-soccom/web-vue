@@ -22,12 +22,14 @@ const headers = [
   { title: "Status", key: "label" }, 
   { title: "Key", key: "key" },
   { title: "Description", key: "desc" },
+  { title: "Auto Close", key: "closure" },
   { title: "Actions", key: "actions", sortable: false },
 ];
 
 const defaultStatuses = [
-  { label: 'Initial', key: 'initial', desc: 'Initial Status' },
-  { label: 'Resolved', key: 'resolved', desc: 'Feedback has been resolved' },
+  { label: 'New', key: 'new', desc: 'New feedback', closure: false },
+  { label: 'Active', key: 'active', desc: 'Active', closure: false },
+  { label: 'Positive', key: 'positive', desc: 'Positive feedback', closure: true },
 ];
 
 const defaultStatusKeys = defaultStatuses.map(s => s.key);
@@ -165,6 +167,16 @@ const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300);
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
     >
+      <template #item.closure="{ item }">
+        <VChip
+          :color="item.raw.closure ? 'success' : 'secondary'"
+          size="small"
+          label
+          variant="tonal"
+        >
+          {{ item.raw.closure ? 'Yes' : 'No' }}
+        </VChip>
+      </template>
       <template #item.actions="{ item }">
         <IconBtn
           :to="{ name: 'setup-status-feedback-add-id?', params: { id: item.raw._id } }"

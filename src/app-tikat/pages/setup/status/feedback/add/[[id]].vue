@@ -20,6 +20,7 @@ const statusData = ref({
   label: '',
   key: '',
   desc: '',
+  closure: false,
 });
 
 const fetchStatus = async id => {
@@ -34,6 +35,7 @@ const fetchStatus = async id => {
         label: itemToEdit.label,
         key: itemToEdit.key,
         desc: itemToEdit.desc,
+        closure: !!itemToEdit.closure,
       };
     } else {
       throw new Error('Status not found');
@@ -122,6 +124,15 @@ const submitForm = async () => {
                       label="Description"
                       placeholder="Enter a short description for this status"
                       rows="2"
+                    />
+                  </VCol>
+
+                  <VCol cols="12" md="6">
+                    <VSwitch
+                      v-model="statusData.closure"
+                      label="Mark feedback as closed at this status?"
+                      inset
+                      density="comfortable"
                     />
                   </VCol>
                 </VRow>

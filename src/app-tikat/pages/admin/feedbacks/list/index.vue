@@ -36,6 +36,7 @@ const pagination = reactive({
     'response.rating': null,
     'meta.segmentLabel': null,
     status: null,
+    closed: null,
     rating: [],
     minScore: null,
     maxScore: null,
@@ -66,6 +67,16 @@ const headers = computed(() => {
       filterOptions: statusOptions.value
     },
     { title: 'Assigned To', key: 'assignee.name', sortable: true },
+    { 
+      title: 'Closed', 
+      key: 'closed', 
+      sortable: true,
+      filterType: 'select',
+      filterOptions: [
+        { title: 'Yes', value: true },
+        { title: 'No', value: false }
+      ]
+    },
     { title: 'Created', key: 'createdAt', sortable: true },
     { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
   ]
@@ -79,7 +90,7 @@ const fetchFeedbacks = async (options = pagination) => {
     const activeFilters = {}
     
     for (const key in options.filters) {
-      if (options.filters[key]) {
+      if (options.filters[key] !== null && options.filters[key] !== undefined) {
         if (key === 'rating') continue;
         activeFilters[key] = options.filters[key]
       }
@@ -483,6 +494,10 @@ const exportToExcel = async () => {
 
       <template #item.assignee.name="{ item }">
         {{ item.raw.assignee?.name || '-' }}
+      </template>
+
+      <template #item.closed="{ item }">
+        {{ item.raw.closed ? 'Yes' : 'No' }}
       </template>
 
       <template #item.status="{ item }">

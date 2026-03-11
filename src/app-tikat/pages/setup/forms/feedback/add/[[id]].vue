@@ -23,6 +23,7 @@ const formData = ref({
   key: '',
   desc: '',
   scale: 5,
+  positiveScore: 60,
   segmentation: [
     { label: 'Poor Feedback', min: 0, max: 40 },
     { label: 'Satisfactory', min: 41, max: 65 },
@@ -59,6 +60,7 @@ onMounted(async () => {
         key: existingForm.key,
         desc: existingForm.desc,
         scale: existingForm.scale || 5,
+        positiveScore: existingForm.positiveScore || 0,
         segmentation: existingForm.segmentation?.length ? existingForm.segmentation : formData.value.segmentation,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
@@ -261,16 +263,8 @@ const openPreview = () => {
               <VCol cols="12" md="6">
                 <AppTextField v-model="formData.key" label="Form Key *" :rules="[requiredValidator]" :disabled="!!formId" />
               </VCol>
-              <VCol cols="12" md="9">
+              <VCol cols="12">
                 <AppTextField v-model="formData.desc" label="Description" rows="1" />
-              </VCol>
-              <VCol cols="12" md="3">
-                <AppSelect
-                  v-model="formData.scale"
-                  label="Rating Scale"
-                  :items="[2, 3, 5, 10]"
-                  :disabled="hasTikats"
-                />
               </VCol>
               <VCol cols="12" md="6">
                 <TikatDocUpload
@@ -296,6 +290,26 @@ const openPreview = () => {
                   hint="Supported formats: JPG, PNG, WebP. Max 1 MB"
                   @upload-complete="payload => formData.banner.logo = payload"
                   @update:modelValue="val => { if(!val) formData.banner.logo = null }"
+                />
+              </VCol>
+              <VCol cols="12" md="6">
+                <AppSelect
+                  v-model="formData.scale"
+                  label="Rating Scale"
+                  :items="[2, 3, 5, 10]"
+                  :disabled="hasTikats"
+                />
+              </VCol>
+
+              <VCol cols="12" md="6">
+                <AppTextField
+                  v-model="formData.positiveScore"
+                  type="number"
+                  label="Minimum Score for Positive Feedback (%)"
+                  suffix="%"
+                  :rules="[v => (v >= 0 && v <= 100) || 'Between 0-100']"
+                  placeholder="60"
+                  :disabled="hasTikats"
                 />
               </VCol>
               <VCol cols="12">
