@@ -441,7 +441,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </IconBtn>
       </template>
     </MyDataTable>
-    <VDialog v-model="logDialog" max-width="500">
+    <VDialog v-model="logDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
         <VCardText>
@@ -538,7 +538,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;
-  width: 450px;
+  width: 100%;
   margin-top: 10px;
 }
 .detail-block h5 {

@@ -42,15 +42,17 @@ const indent = computed(() => ({
         </div>
         <div class="filter-row">
           <!-- frequency filter -->
-          <template v-if="node.freqOperator">
+          <template v-if="node.freqOperator && (node.freqCount || node.value)">
             <strong> {{ formatFieldName(node.field) }}</strong>
             {{
-              " has happened " +
+              " has" +
+              (node.operator === "is_not" ? " not" : "") +
+              " happened " +
               formatFieldName(node.freqOperator).toLowerCase() +
               " " +
-              node.freqCount +
+              (node.freqCount || node.value) +
               " time" +
-              (node.freqCount > 1 ? "s" : "")
+              ((node.freqCount || node.value) > 1 ? "s" : "")
             }}
             <span v-if="node.freqPeriod">
               {{ formatFieldName(node.freqPeriod).toLowerCase() }}
@@ -61,11 +63,17 @@ const indent = computed(() => ({
           <template v-else>
             <strong>{{ formatFieldName(node.field) }}</strong>
             {{ formatFieldName(node.operator) }}
-            <strong v-if="node.value?.[0]?.dateLocal">
+            <strong v-if="node.operator === 'BETWEEN' && node.value?.length === 2 && node.value[0]?.dateLocal">
+              {{ node.value[0].dateLocal }} and {{ node.value[1].dateLocal }}
+            </strong>
+            <strong v-else-if="node.value?.[0]?.dateLocal">
               {{ node.value[0].dateLocal }}
             </strong>
             <strong v-else-if="Array.isArray(node.value)">
               {{ node.value.join(", ") }}
+            </strong>
+            <strong v-else>
+              {{ formatFieldName(node.freqCount || node.value) }}
             </strong>
           </template>
         </div>

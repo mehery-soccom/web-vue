@@ -191,6 +191,7 @@ const flatpickrConfig = computed(() => {
     dateFormat: props.enableTime ? "d-m-Y H:i" : "d-m-Y",
     onChange: handleChange,
     onReady(selectedDates, dateStr, instance) {
+      if (props.mode === "range") return
       const container = document.createElement("div")
       container.className = "relative-shortcuts"
       const btnWrapper = document.createElement("div")
@@ -299,6 +300,7 @@ watch(
           <template #default>
             <div class="v-field__input v-input__control">
               <FlatPickr
+                :key="props.mode"
                 :model-value="internalValue"
                 :config="flatpickrConfig"
                 :placeholder="placeholder"
@@ -310,7 +312,7 @@ watch(
         </VField>
       </template>
     </VInput>
-    <div v-if="selectedRelative" class="d-flex gap-2">
+    <div v-if="selectedRelative && props.mode !== 'range'" class="d-flex gap-2">
       <AppTextField
         v-model="offset"
         type="number"
