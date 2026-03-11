@@ -204,10 +204,11 @@ const handleSubmit = async () => {
     formTitle: selectedForm?.name || '',
     formCode: selectedForm?.key || '',
     data: apiData,
-    status: currentStatus.value || 'OPEN',
+    status: !feedbackId.value ? 'New' : (currentStatus.value || 'New'),
     byUser: byUser,
     scale: selectedFormStructure.value?.scale || 5,
     segmentation: selectedFormStructure.value?.segmentation || [],
+    positiveScore: selectedFormStructure.value?.positiveScore,
   }
 
   try {

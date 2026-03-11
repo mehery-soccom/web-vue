@@ -79,6 +79,7 @@ onMounted(async () => {
       fields: mappedFields,
       questions: formDef.questions || [],
       scale: formDef.scale || 5,
+      positiveScore: formDef.positiveScore,
       segmentation: formDef.segmentation || [],
       banner: formDef.banner || { bgImg: null, logo: null }
     }
@@ -143,6 +144,7 @@ const handleSubmit = async () => {
       byUser: null,
       scale: formStructure.value?.scale || 5,
       segmentation: formStructure.value?.segmentation || [],
+      positiveScore: formStructure.value?.positiveScore,
     }
 
     await tikatStore.submitFeedback({
