@@ -16,7 +16,6 @@ export function useWebRTC() {
   const receivedSdpAnswer = ref(null);
   let pc = null;
   let localStream = null;
-  let onLocalCandidateCallback = null;
   let dataChannel = null;
   const onCameraStateCallback = ref(null);
   let cameraToggleLock = false; 
@@ -124,13 +123,6 @@ export function useWebRTC() {
     }
   };
 
-  const setupRemoteVideo = (stream) => {
-    const remoteVideo = document.getElementById("remote-video");
-    if (remoteVideo) {
-      remoteVideo.srcObject = stream;
-    }
-  };
-
   const setupLocalAudio = (stream) => {
     const localAudio = document.getElementById("audio-local");
     if (localAudio && stream) {
@@ -192,15 +184,6 @@ export function useWebRTC() {
 
       setupLocalAudio(localStream);
 
-      if (enableVideo) {
-        setupLocalVideo(localStream);
-        Mic.value = true;
-        Camera.value = true;
-      } else {
-        Mic.value = true;
-        Camera.value = false;
-      }
-
       pc = new RTCPeerConnection({
         iceServers: iceServers.value,
         iceTransportPolicy: "all",
@@ -247,10 +230,8 @@ export function useWebRTC() {
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         gatheredCandidates.value.push(event.candidate.toJSON());
-        console.log("New ICE candidate:", event.candidate);
       } else {
         console.log("ICE gathering complete");
-        // Update local SDP data when complete
         updateLocalSDPData();
       }
     };
@@ -321,13 +302,6 @@ export function useWebRTC() {
 
       addToCallHistory(remoteNumber, "outgoing", new Date());
       playRingbacktone();
-
-      if (callMode.value === "p2p") {
-        console.log("P2P: Waiting for ICE gathering...");
-        await waitForIceGathering();
-        console.log("P2P: Gathering complete");
-        return getLocalSDPData();
-      }
 
       console.log("SDP Offer created, waiting for answer...");
       if (channelId.value) {
@@ -458,14 +432,6 @@ export function useWebRTC() {
       addToCallHistory(currentPeerNumber.value, "incoming", new Date());
 
       console.log("SDP Answer created", answer);
-
-      if (callMode.value === "p2p") {
-        console.log("P2P: Waiting for ICE gathering...");
-        await waitForIceGathering();
-        console.log("P2P: Gathering complete");
-        stopRingtone();
-        return getLocalSDPData();
-      }
 
       if (channelId.value) {
         await sendAnswer(answer, callData.value, channelId.value);
@@ -887,22 +853,6 @@ export function useWebRTC() {
     }
   };
 
-  const waitForIceGathering = () => {
-    return new Promise((resolve) => {
-      if (!pc || pc.iceGatheringState === "complete") {
-        resolve();
-        return;
-      }
-      const checkState = () => {
-        if (pc.iceGatheringState === "complete") {
-          pc.removeEventListener("icegatheringstatechange", checkState);
-          resolve();
-        }
-      };
-      pc.addEventListener("icegatheringstatechange", checkState);
-    });
-  };
-
   const reattachMediaStreams = () => {
     const localVideoPip = document.getElementById("local-video-pip");
     if (localVideoPip && localStream) {
@@ -960,15 +910,6 @@ export function useWebRTC() {
     localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
     setupRTCEventListeners();
 
-    // Wire up ICE candidate callback
-    const originalIce = pc.onicecandidate;
-    pc.onicecandidate = (event) => {
-      if (originalIce) originalIce(event);
-      if (event.candidate && onLocalCandidateCallback) {
-        onLocalCandidateCallback(event.candidate.toJSON());
-      }
-    };
-
     setupLocalVideo(localStream);
   };
 
@@ -984,33 +925,48 @@ export function useWebRTC() {
   };
 };
 
-  const createP2POffer = async (remoteNumber) => {
-    if (callMode.value !== "p2p") {
-      await initP2PCall();
-    }
+const waitForNCandidates = (n = 10) => {
+    return new Promise((resolve) => {
+        if (gatheredCandidates.value.length >= n) {
+            resolve(); return;
+        }
+        const original = pc.onicecandidate;
+        pc.onicecandidate = (event) => {
+            if (original) original(event);
+            if (gatheredCandidates.value.length >= n) {
+                pc.onicecandidate = original;  // restore
+                resolve();
+            }
+        };
+    });
+};
 
+  const createP2POffer = async (remoteNumber) => {
+    if (callMode.value !== "p2p") await initP2PCall();
     if (!pc) await initWebRTC();
 
     callState.value = "calling";
     currentPeerNumber.value = remoteNumber;
 
     dataChannel = pc.createDataChannel("p2p-state");
-    setupDataChannel(dataChannel)
+    setupDataChannel(dataChannel);
 
     const offer = await pc.createOffer({
-      offerToReceiveAudio: true,
-      offerToReceiveVideo: true,
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
     });
-
     await pc.setLocalDescription(offer);
+
+    await waitForNCandidates(10);  // ← wait for 10 or 3s
 
     activeCall.value = { show: true, remoteNumber, startTime: null };
 
     return {
-      type: offer.type,
-      sdp: offer.sdp,
+        type: offer.type,
+        sdp: offer.sdp,
+        candidates: gatheredCandidates.value.slice(0, 10),
     };
-  };
+};
 
   const createP2PAnswer = async (remoteOffer) => {
     if (!pc) await initP2PCall();
@@ -1026,12 +982,21 @@ export function useWebRTC() {
 
     await pc.setRemoteDescription(new RTCSessionDescription({ type, sdp }));
 
+    if (remoteOffer.candidates?.length) {
+        for (const c of remoteOffer.candidates) {
+            try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+        }
+    }
+
     const answer = await pc.createAnswer();
     await pc.setLocalDescription(answer);
+
+    await waitForNCandidates(10);
 
     return {
       type: answer.type,
       sdp: answer.sdp,
+      candidates: gatheredCandidates.value.slice(0, 10),
     };
   };
 
@@ -1043,10 +1008,6 @@ export function useWebRTC() {
         console.error("Error adding ICE candidate", e);
       }
     }
-  };
-
-  const onIceCandidate = (callback) => {
-    onLocalCandidateCallback = callback;
   };
 
   const endP2PCall = async () => {
@@ -1123,7 +1084,6 @@ export function useWebRTC() {
     createP2POffer,
     createP2PAnswer,
     addRemoteCandidate,
-    onIceCandidate,
     sendCameraState,
     onRemoteCameraState,
     endP2PCall,

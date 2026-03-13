@@ -7,7 +7,7 @@ import { RealDB } from '@/app-phone/composables/apiSignaling';
 
 const {
   initP2PCall, createP2POffer, createP2PAnswer,
-  setRemoteDescription, addRemoteCandidate, onIceCandidate,
+  setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
   reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, sendCameraState, onRemoteCameraState,
 } = useWebRTC();
@@ -38,42 +38,23 @@ const remoteCameraOn = ref(false);
 const nameError = ref("")
 
 let pollingInterval = null;
-let heartbeatInterval = null;
 let pollRate = 1500;
 let wasEverConnected = false;
 let lastAnsweredOfferSdp = null;
 let currentSessionId = null;
-let isCreatingNewSession = false;
+const isCreatingNewSession = ref(false);
 let remoteDescSet = false;
-let pendingCandidates = [];
-const processedCandidates = new Set();
 
 const resetWebRTC = async () => {
   await endP2PCall();
   await initP2PCall();
-  processedCandidates.clear();
-  pendingCandidates = []; remoteDescSet = false; lastAnsweredOfferSdp = null;
+  remoteDescSet = false; lastAnsweredOfferSdp = null;
 };
 
 const stopPolling = () => { if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; } };
-const stopHeartbeat = () => { if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; } };
-
-const startHeartbeat = () => {
-  stopHeartbeat();
-  heartbeatInterval = setInterval(async () => {
-    if (!hasJoined.value || isEndingCall.value || isJoining.value || isCreatingNewSession) return;
-    const result = await RealDB.heartbeat(roomId, userId);
-    if (result?.ok && result.status === "ended" && result.sessionId === currentSessionId)
-      await handleSessionEnded();
-  }, 10000);
-};
 
 const setupAsHost = async () => {
   const sId = currentSessionId;
-  onIceCandidate(async (c) => {
-    if (currentSessionId !== sId) return;
-    await RealDB.addCandidate(roomId, c, 'host', sId);
-  });
   const offer = await createP2POffer(roomId);
   if (currentSessionId !== sId) return;
   await RealDB.updateRoom(roomId, { offer: { type: 'offer', sdp: offer.sdp }, status: 'waiting', answer: null, guestCandidates: [] });
@@ -82,30 +63,27 @@ const setupAsHost = async () => {
 
 const setupAsGuest = async (initialSession) => {
   const sId = currentSessionId;
-  onIceCandidate(async (c) => {
-    if (currentSessionId !== sId) return;
-    await RealDB.addCandidate(roomId, c, 'guest', sId);
-  });
   let roomData = initialSession?.offer?.sdp ? initialSession : null;
   let attempts = 0;
   while (!roomData?.offer?.sdp && attempts < 40) {
     if (currentSessionId !== sId) return;
     statusMessage.value = "Waiting for host...";
     await new Promise(r => setTimeout(r, 300));
-    roomData = await RealDB.getRoom(roomId);
+    roomData = await RealDB.getRoom(roomId, userId);
     attempts++;
   }
   if (currentSessionId !== sId || !roomData?.offer?.sdp) throw new Error("Host offer unavailable.");
   const answer = await createP2PAnswer(roomData.offer);
-  remoteDescSet = true;
-  for (const c of pendingCandidates) addRemoteCandidate(c);
-  pendingCandidates = [];
   if (currentSessionId !== sId) return;
-  lastAnsweredOfferSdp = roomData.offer.sdp;
-  await RealDB.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp }, status: 'active' });
-  statusMessage.value = "Connecting...";
+    lastAnsweredOfferSdp = roomData.offer.sdp;
+    await RealDB.updateRoom(roomId, {
+        answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates },
+        status: 'active'
+    });
+    statusMessage.value = "Connecting...";
 };
 
+// if 2 peers try joinng and same time then guest peer and refreshing
 const rejoinAsParticipant = async () => {
   await resetWebRTC();
   onRemoteCameraState((val) => { remoteCameraOn.value = val; });
@@ -118,33 +96,38 @@ const rejoinAsParticipant = async () => {
   isHost.value = joined.host?.userId === userId;
   if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(joined); }
 };
+
+// on refresh rejoin as host
 const handleSessionEnded = async () => {
-  if (isCreatingNewSession || isEndingCall.value) return;
-  isCreatingNewSession = true;
+  if (isCreatingNewSession.value || isEndingCall.value) return;
+  isCreatingNewSession.value = true;
   stopPolling();
-  remoteName.value = "";
   remoteName.value = "";
   remoteCameraOn.value = false;
   try {
-    const newSession = await RealDB.createNewSession(roomId, userId, userName.value);
-    currentSessionId = newSession.sessionId;
-    isHost.value = true;
+    const session = await RealDB.createRoom(roomId, userName.value, userId, null);
+
+    if (session.waitingForNewSession) {
+      // another peer already created new session, wait for polling to detect it
+      currentSessionId = session.sessionId;
+      return;
+    }
+
+    currentSessionId = session.sessionId;
+    isHost.value = session.host?.userId === userId;
+
     await resetWebRTC();
     onRemoteCameraState((val) => { remoteCameraOn.value = val; });
-    await setupAsHost();
-  } catch (e) {
-    if (e.message?.includes('UNAUTHORIZED')) {
-      // Another peer already created a new session — join it as a participant
-      try {
-        await rejoinAsParticipant();
-      } catch (inner) {
-        statusMessage.value = "Error. Please refresh.";
-      }
+
+    if (isHost.value) {
+      await setupAsHost();
     } else {
-      statusMessage.value = "Error. Please refresh.";
+      await setupAsGuest(session);
     }
+  } catch (e) {
+    statusMessage.value = "Error. Please refresh.";
   } finally {
-    isCreatingNewSession = false;
+    isCreatingNewSession.value = false;
     startPolling(800);
   }
 };
@@ -164,7 +147,7 @@ const joinRoom = async () => {
     if (session.waitingForNewSession) {
       currentSessionId = session.sessionId;
       isJoining.value = false;
-      startHeartbeat(); startPolling(800);
+      startPolling(800);
       return;
     }
     currentSessionId = session.sessionId;
@@ -180,18 +163,23 @@ const joinRoom = async () => {
     return;
   }
   isJoining.value = false;
-  startHeartbeat(); startPolling(800);
+  startPolling(800);
 };
 
 const startPolling = (rate = 1500) => {
   stopPolling();
   pollRate = rate;
   pollingInterval = setInterval(async () => {
-    if (isEndingCall.value || isJoining.value || isCreatingNewSession) return;
-    const roomData = await RealDB.getRoom(roomId);
+    if (isEndingCall.value || isJoining.value || isCreatingNewSession.value) return;
+    const roomData = await RealDB.getRoom(roomId, userId);
 
-    if (hasJoined.value && roomData?.sessionId === currentSessionId && roomData?.status === "ended") {
-      await handleSessionEnded(); return;
+    if (hasJoined.value && (!roomData || (roomData.sessionId === currentSessionId && roomData.status === "ended"))) {
+      if (!roomData && isHost.value && !wasEverConnected) {
+        await handleLeave(false);
+        return;
+      }
+      await handleSessionEnded();
+      return;
     }
 
     //detect new session after refresh
@@ -203,7 +191,7 @@ const startPolling = (rate = 1500) => {
         isHost.value = roomData.host?.userId === userId;
       } else if (roomData.status === "waiting" || (roomData.status === "active" && !roomData.guest?.userId)) {
         // New session with open guest slot
-        if (isJoining.value || isCreatingNewSession) return;
+        if (isJoining.value || isCreatingNewSession.value) return;
         stopPolling();
         isJoining.value = true;
         try {
@@ -223,8 +211,11 @@ const startPolling = (rate = 1500) => {
       try {
         await setRemoteDescription(roomData.answer);
         remoteDescSet = true;
-        for (const c of pendingCandidates) addRemoteCandidate(c);
-        pendingCandidates = [];
+        if (roomData.answer.candidates?.length) {
+            for (const c of roomData.answer.candidates) {
+                try { addRemoteCandidate(c); } catch (_) {}
+            }
+        }
       } catch (e) { if (!e.message?.includes('not initialized')) console.error("[POLL/HOST]", e); }
     }
 
@@ -233,29 +224,23 @@ const startPolling = (rate = 1500) => {
       try {
         const sId = currentSessionId;
         await endP2PCall(); await initP2PCall();
-        processedCandidates.clear(); pendingCandidates = []; remoteDescSet = false;
-        onIceCandidate(async (c) => { if (currentSessionId !== sId) return; await RealDB.addCandidate(roomId, c, 'guest', sId); });
+        remoteDescSet = false;
         const answer = await createP2PAnswer(roomData.offer);
         remoteDescSet = true;
-        for (const c of pendingCandidates) addRemoteCandidate(c);
-        pendingCandidates = [];
         if (currentSessionId !== sId) return;
         lastAnsweredOfferSdp = roomData.offer.sdp;
-        await RealDB.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp }, status: 'active' });
+        await RealDB.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates }, status: 'active' });
       } catch (e) { console.error("[POLL/GUEST re-answer]:", e); }
     }
 
     // Name sync
     const remotePeer = isHost.value ? roomData.guest : roomData.host;
     if (roomData.sessionId === currentSessionId) {
-      remoteName.value = remotePeer?.name || "";
-    }
-    // ICE trickle
-    const candidates = isHost.value ? roomData.guestCandidates : roomData.hostCandidates;
-    for (const c of (candidates || [])) {
-      if (processedCandidates.has(c.candidate)) continue;
-      processedCandidates.add(c.candidate);
-      if (remoteDescSet) { addRemoteCandidate(c); } else { pendingCandidates.push(c); }
+      if (isConnected.value || !wasEverConnected) {
+        remoteName.value = remotePeer?.name || "";
+      } else if (roomData.status === "ended" || !remotePeer?.userId) {
+        remoteName.value = "";
+      }
     }
     const target = !isConnected.value && roomData.guest?.userId ? 500 : isConnected.value ? 4000 : 1500;
     if (target !== pollRate) startPolling(target);
@@ -265,11 +250,18 @@ const startPolling = (rate = 1500) => {
 watch(isConnected, async (connected) => {
   if (connected) {
     wasEverConnected = true;
-    startPolling(4000);
+    stopPolling();
+    startPolling(10000);
+    const roomData = await RealDB.getRoom(roomId,userId);
+    if (roomData?.sessionId === currentSessionId) {
+      const remotePeer = isHost.value ? roomData.guest : roomData.host;
+      remoteName.value = remotePeer?.name || "";
+    }
     await nextTick();
     setTimeout(() => reattachMediaStreams(), 300);
-  } else if (wasEverConnected && !isEndingCall.value && !isCreatingNewSession) {
+  } else if (wasEverConnected && !isEndingCall.value && !isCreatingNewSession.value) {
     remoteName.value = "";
+    remoteCameraOn.value = false
     startPolling(1000);
   }
 });
@@ -300,14 +292,14 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
-  stopPolling(); stopHeartbeat(); endP2PCall();
+  stopPolling(); endP2PCall();
   if (hasJoined.value && !isEndingCall.value) {
     RealDB.leaveRoom(roomId, userId);
   }
 });
 
 const handleLeave = async (updateDB = true) => {
-  stopPolling(); stopHeartbeat();
+  stopPolling();
   isEndingCall.value = true;
   if (updateDB) await RealDB.leaveRoom(roomId, userId);
   await endP2PCall();
@@ -366,7 +358,7 @@ const handleLeave = async (updateDB = true) => {
 
       <!-- remote peer not connected -->
       <div v-if="!isConnected || !remoteCameraOn" class="remote-placeholder">
-        <template v-if="remoteName">
+        <template v-if="remoteName && !isCreatingNewSession">
           <div class="avatar-ring">
             <div class="avatar">{{ remoteName.charAt(0).toUpperCase() }}</div>
           </div>
@@ -384,7 +376,7 @@ const handleLeave = async (updateDB = true) => {
       </div>
 
       <!-- Remote name -->
-      <div v-if="remoteName" class="remote-name-badge">{{ remoteName }}</div>
+      <div v-if="remoteName && !isCreatingNewSession" class="remote-name-badge">{{ remoteName }}</div>
 
       <!-- Local  -->
       <div class="pip-wrapper">
@@ -474,7 +466,7 @@ const handleLeave = async (updateDB = true) => {
   background: #111;
   border-radius: 12px;
   overflow: hidden;
-  width: 300px; 
+  width: 300px;
   height: 250px;
   flex-shrink: 0;
 }
@@ -492,14 +484,16 @@ const handleLeave = async (updateDB = true) => {
   flex-direction: column;
   gap: 14px;
   justify-content: space-between;
-  
+
 }
-.name-field{
+
+.name-field {
   width: 260px;
   display: flex;
   flex-direction: column;
   gap: 14px;
 }
+
 .name-field label {
   font-size: 0.78rem;
   text-transform: uppercase;
