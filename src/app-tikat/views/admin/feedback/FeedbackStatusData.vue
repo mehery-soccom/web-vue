@@ -74,9 +74,15 @@ const handleSubmit = async () => {
 
   try {
     if (form.value.status !== originalForm.value.status) {
+      const selectedStatus = allStatuses.value.find(s => s.label === form.value.status);
+      
       await feedbackStore.updateFeedback({
         id: props.feedbackId,
-        data: { status: form.value.status, byUser }
+        data: { 
+          status: form.value.status, 
+          closure: selectedStatus ? !!selectedStatus.closure : false,
+          byUser 
+        }
       });
     }
 

@@ -14,6 +14,10 @@ const emit = defineEmits(["remove", "update"]);
 const hasError = ref(false);
 
 const furtherGroupRef = ref(null);
+const datePresets = [
+  { label: "Today", key: "today" },
+  { label: "Tomorrow", key: "tomorrow" }
+]
 
 // === Constants ===
 const {
@@ -55,6 +59,14 @@ const isValid = async (silent = false) => {
       (!el.freqOperator || !el.freqCount || !el.freqPeriod)
     )
       valid = false;
+    if (FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "date" && Array.isArray(el.value)) {
+      const v = el.value[0];
+      if (!v?.stampUTC) {
+        if (v?.offset === null || v?.offset === undefined || v?.offset === "") {
+          valid = false;
+        }
+      }
+    }
   }
 
   if (!valid && !silent) hasError.value = true;
@@ -212,10 +224,11 @@ defineExpose({ isValid });
           "
           :mode="element.operator === 'BETWEEN' ? 'range' : 'single'"
           v-model="element.value"
+          :relative-presets="datePresets"
           placeholder="Select Date"
           clearable
           @update:modelValue="clearErrorAndUpdate"
-          class="filter-entity f-w-value"
+          class="filter-entity date-pick"
         />
         <AppTextField
           v-else
@@ -274,8 +287,9 @@ defineExpose({ isValid });
 .value {
   max-width: 250px;
 }
-.f-w-value {
-  width: 250px;
+.date-pick {
+  max-width: 550px;
+  display: flex;
 }
 .freq-operator {
   width: 140px;

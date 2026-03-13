@@ -39,9 +39,14 @@ const props = defineProps({
   enableTime: Boolean,
   noPastDate: Boolean,
   noFutureDate: Boolean,
+  relativePresets: {
+    type: Array,
+    default: () => []
+  }
 });
 
-const emit = defineEmits(["update:modelValue"]);
+// const emit = defineEmits(["update:modelValue"]);
+const emit = defineEmits([ "update:modelValue", "relative-selected" ]);
 
 /* ---------------- Timezone ---------------- */
 function getUserTimeZone() {
@@ -86,6 +91,8 @@ function parseToDate(input) {
 
 function normalizeIncomingValue(val) {
   if (!val) return null;
+  const first = Array.isArray(val) ? val[0] : val;
+  if (first?.dateLocal && !first?.stampUTC && !first?.dateUTC) return null;
   if (Array.isArray(val)) {
     const dates = val.map(parseToDate).filter(Boolean);
     return props.mode === "range" ? dates.slice(0, 2) : dates[0] ?? null;
@@ -95,6 +102,10 @@ function normalizeIncomingValue(val) {
 
 /* ---------------- Internal state ---------------- */
 const internalValue = ref(null);
+const selectedRelative = ref(null)
+const offset = ref(null)
+const offsetUnit = ref("days")
+const presetButtons = {};
 const isProgrammaticUpdate = ref(false); // standard imperative-widget guard - “If I caused this change, ignore it. If the user caused this change, emit it.”
 
 /* ---------------- Emit payload (STRICT contract) ---------------- */
@@ -120,11 +131,21 @@ function buildPayload(date) {
     format,
   };
 }
+function emitRelativePayload() {
+  emit("update:modelValue", [
+    {
+      type: "date",
+      dateLocal: selectedRelative.value,
+      offset: offset.value,
+      offsetUnit: offsetUnit.value
+    }
+  ])
+}
 
 /* ---------------- Flatpickr change (USER ONLY) ---------------- */
 function handleChange(selectedDates) {
   if (isProgrammaticUpdate.value) return;
-
+  selectedRelative.value = null;
   if (!selectedDates || selectedDates.length === 0) {
     emit("update:modelValue", []);
     return;
@@ -140,7 +161,23 @@ function handleChange(selectedDates) {
     emit("update:modelValue", [buildPayload(selectedDates[0])]);
   }
 }
+/* ---------------- Relative preset select ---------------- */
+function selectRelativePreset(preset) {
+  selectedRelative.value = preset.key
+  offset.value = null;
+  offsetUnit.value = "days"
 
+  emitRelativePayload()
+}
+
+watch([offset, offsetUnit], () => {
+  if (!selectedRelative.value) return
+  emitRelativePayload()
+})
+watch(selectedRelative, (val) => {
+  Object.values(presetButtons).forEach(btn => btn.classList.remove("active"))
+  if (val && presetButtons[val]) presetButtons[val].classList.add("active")
+})
 /* ---------------- Flatpickr config ---------------- */
 const flatpickrConfig = computed(() => {
   const base = {
@@ -148,8 +185,36 @@ const flatpickrConfig = computed(() => {
     enableTime: props.enableTime,
     time_24hr: true,
     allowInput: true,
+    // static: true,
+    // closeOnScroll: false,
+    position: "above",
     dateFormat: props.enableTime ? "d-m-Y H:i" : "d-m-Y",
     onChange: handleChange,
+    onReady(selectedDates, dateStr, instance) {
+      if (props.mode === "range") return
+      const container = document.createElement("div")
+      container.className = "relative-shortcuts"
+      const btnWrapper = document.createElement("div")
+      btnWrapper.className = "relative-btn-wrapper"
+
+      function createBtn(label, preset) {
+        const btn = document.createElement("button")
+        btn.type = "button"
+        btn.textContent = label
+        btn.className = "relative-btn"
+
+        presetButtons[preset.key] = btn
+        btn.onclick = () => { selectRelativePreset(preset) }
+        return btn
+      }
+
+      props.relativePresets.forEach(preset => {
+        btnWrapper.appendChild(createBtn(preset.label, preset))
+      })
+      container.appendChild(btnWrapper)
+
+      instance.calendarContainer.appendChild(container)
+    }
   };
 
   const today = new Date();
@@ -166,6 +231,9 @@ const flatpickrConfig = computed(() => {
 function clearValue() {
   if (props.readonly || props.disabled) return;
   internalValue.value = null;
+  selectedRelative.value = null
+  offset.value = null;
+  offsetUnit.value = "days"
   emit("update:modelValue", []);
 }
 
@@ -174,6 +242,12 @@ watch(
   () => props.modelValue,
   async (val) => {
     isProgrammaticUpdate.value = true;
+    const first = val?.[0];
+    if (first?.dateLocal && !first?.stampUTC && !first?.dateUTC){
+      selectedRelative.value = first.dateLocal
+      offset.value = first.offset ?? null
+      offsetUnit.value = first.offsetUnit ?? "days"
+    }
     internalValue.value = normalizeIncomingValue(val);
     await nextTick();
     isProgrammaticUpdate.value = false;
@@ -207,6 +281,13 @@ watch(
 
           <!-- Append Icons -->
           <template #append-inner>
+            <VChip v-if="selectedRelative"
+              size="medium"
+              color="primary"
+              variant="tonal"
+              class="mr-2" style="padding: 3.5px 15px 3px;"
+            >{{ props.relativePresets.find(p => p.key === selectedRelative)?.label }}
+            </VChip>
             <VIcon
               v-if="clearable && internalValue && !readonly"
               icon="mdi-close-circle"
@@ -219,6 +300,7 @@ watch(
           <template #default>
             <div class="v-field__input v-input__control">
               <FlatPickr
+                :key="props.mode"
                 :model-value="internalValue"
                 :config="flatpickrConfig"
                 :placeholder="placeholder"
@@ -230,15 +312,57 @@ watch(
         </VField>
       </template>
     </VInput>
+    <div v-if="selectedRelative && props.mode !== 'range'" class="d-flex gap-2">
+      <AppTextField
+        v-model="offset"
+        type="number"
+        placeholder="Offset"
+        density="compact"
+        style="max-width:100px; margin-left: 8px;"
+      />
+      <AppSelect v-model="offsetUnit"
+        :items="[
+          { title:'Days', value:'days' },
+          { title:'Months', value:'months' }
+        ]"
+        density="compact"
+      />
+    </div>
   </div>
 </template>
 
-<style scoped>
+<style>
 .flatpickr-input {
   width: 100%;
   border: none;
   outline: none;
   background: transparent;
+}
+.relative-shortcuts {
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  padding: 8px 12px;
+  background: rgb(var(--v-theme-surface));
+}
+.relative-btn-wrapper {
+  display: flex;
+  gap: 8px;
+}
+.relative-btn {
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  background: transparent;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.relative-btn:hover {
+  background: rgba(var(--v-theme-primary), 0.08);
+}
+.relative-btn.active {
+  background: rgb(var(--v-theme-primary));
+  color: rgb(var(--v-theme-on-primary));
+  border-color: rgb(var(--v-theme-primary));
 }
 </style>
 
