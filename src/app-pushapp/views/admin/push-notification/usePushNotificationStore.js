@@ -76,6 +76,15 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
           { text: "Email", id: "PUSHAPP_EMAIL" },
         ],
       },
+      {
+        label: "Buy | Sell | Later",
+        value: "THREE_TRANSACTION_CATEGORY",
+        fields: [
+          { text: "Buy", id: "PUSHAPP_BUY" },
+          { text: "Sell", id: "PUSHAPP_SELL" },
+          { text: "Later", id: "PUSHAPP_LATER" },
+        ],
+      },
     ],
     templates: [],
     platformList: [
