@@ -868,6 +868,7 @@ export function useWebRTC() {
     callMode.value = "p2p";
     cameraToggleLock = false;
     dataChannel = null;
+    gatheredCandidates.value = [];
 
     if (pc) {
       pc.close();
@@ -925,16 +926,23 @@ export function useWebRTC() {
   };
 };
 
-const waitForNCandidates = (n = 10) => {
+const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     return new Promise((resolve) => {
         if (gatheredCandidates.value.length >= n) {
             resolve(); return;
         }
+
+        const timer = setTimeout(() => {
+          pc.onicecandidate = original;
+          resolve();
+        }, timeoutMs);
+
         const original = pc.onicecandidate;
         pc.onicecandidate = (event) => {
             if (original) original(event);
             if (gatheredCandidates.value.length >= n) {
-                pc.onicecandidate = original;  // restore
+              clearTimeout(timer)
+                pc.onicecandidate = original;
                 resolve();
             }
         };
