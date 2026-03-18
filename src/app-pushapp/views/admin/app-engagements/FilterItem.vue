@@ -8,6 +8,8 @@ const props = defineProps({
   index: { type: Number, required: true },
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreCohortfilterType: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
 });
 const emit = defineEmits(["remove", "update"]);
 
@@ -109,14 +111,19 @@ defineExpose({ isValid });
     <div
       v-if="element.type === 'filter'"
       class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 position-relative"
-      :class="hasError ? 'border-red' : 'border-grey-lighten-1'"
+      :class="[
+        hasError ? 'border-red' : 'border-grey-lighten-1',
+        { readonly: readonly },
+      ]"
     >
       <!-- Type -->
       <AppSelect
         v-model="element.filterType"
         :items="
-          FILTER_TYPES.filter((f) =>
-            ignoreEventfilterType ? f.value !== 'event' : true,
+          FILTER_TYPES.filter(
+            (f) =>
+              (ignoreEventfilterType ? f.value !== 'event' : true) &&
+              (ignoreCohortfilterType ? f.value !== 'cohort' : true),
           )
         "
         placeholder="Select Type"
@@ -132,7 +139,17 @@ defineExpose({ isValid });
         :placeholder="`Select field`"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
-      />
+      >
+        <template #item="{ props, item }">
+          <VListItem v-bind="props">
+            <VListItemSubtitle class="ml-auto text-xs text-gray-500">
+              <span v-if="item.raw.meta?.projection != null">
+                Projection : {{ item.raw.meta?.projection }}
+              </span>
+            </VListItemSubtitle>
+          </VListItem>
+        </template>
+      </AppSelect>
 
       <!-- Operator -->
       <AppSelect
@@ -267,6 +284,7 @@ defineExpose({ isValid });
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
+      :ignoreCohortfilterType="ignoreCohortfilterType"
     />
   </div>
 </template>
@@ -299,5 +317,11 @@ defineExpose({ isValid });
 }
 .freq-period {
   width: 160px;
+}
+
+/* disable only interactive elements */
+.readonly .v-btn,
+.readonly .filter-entity {
+  pointer-events: none;
 }
 </style>

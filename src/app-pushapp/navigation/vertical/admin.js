@@ -6,6 +6,11 @@ export default [
     to: "admin-channels-list",
   },
   {
+    title: "Build Cohorts",
+    icon: { icon: "tabler-users-group" },
+    to: "admin-cohorts-list",
+  },
+  {
     title: "Push Notification",
     icon: { icon: "tabler-bell-ringing" },
     children: [
