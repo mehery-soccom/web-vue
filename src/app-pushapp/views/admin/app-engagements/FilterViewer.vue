@@ -110,6 +110,7 @@ const indent = computed(() => ({
   color:#6b7280;
   margin-right:3px;
   font-weight:800;
+  white-space: nowrap;
 }
 .filter-row{
   font-size:13px;
