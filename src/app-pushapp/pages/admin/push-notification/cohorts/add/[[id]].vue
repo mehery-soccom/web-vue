@@ -49,7 +49,7 @@ const onCreate = async () => {
 
     show({ message: "Cohort created successfully", color: "success" });
 
-    router.push({ name: "admin-cohorts-list" });
+    router.push({ name: "admin-push-notification-cohorts-list" });
   } catch (error) {
     const apiErr = error.response.data;
     show({
@@ -113,8 +113,8 @@ onMounted(async () => {
         >{{ route.params.id ? "View" : "Build" }} Cohort</v-card-title
       >
       <v-card-subtitle
-        >This cohort can be used for sending out Push Notifications & App
-        Engagements</v-card-subtitle
+        >This cohort can be used for sending out Push
+        Notifications</v-card-subtitle
       >
     </v-card-item>
 
@@ -161,7 +161,7 @@ onMounted(async () => {
       <VBtn
         variant="tonal"
         color="secondary"
-        :to="{ name: 'admin-cohorts-list' }"
+        :to="{ name: 'admin-push-notification-cohorts-list' }"
       >
         Exit
       </VBtn>
