@@ -149,7 +149,7 @@ onMounted(async () => {
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
-          :to="{ name: 'admin-cohorts-add-id?' }"
+          :to="{ name: 'admin-push-notification-cohorts-add-id?' }"
         >
           New Cohort
         </VBtn>
@@ -223,7 +223,7 @@ onMounted(async () => {
       <template #item.actions="{ item }">
         <IconBtn
           :to="{
-            name: 'admin-cohorts-add-id?',
+            name: 'admin-push-notification-cohorts-add-id?',
             params: { id: item.raw._id },
           }"
         >
