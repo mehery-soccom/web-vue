@@ -125,7 +125,7 @@ const fetchTemplateList = async () => {
   try {
     const response = await appEngagementsStore.fetchTemplates({
       page: 0,
-      itemsPerPage: 100,
+      itemsPerPage: 250,
     });
     templateList.value = response.data.results.map((r) => ({
       ...r,
