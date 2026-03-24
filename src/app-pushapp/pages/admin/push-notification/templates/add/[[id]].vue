@@ -213,9 +213,14 @@ const onCreate = async () => {
     delete template._id;
     delete template.__v;
     if (template.type === "simple") {
-      if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
+      const imageUrl = Array.isArray(template.style.image_url) && template.style.image_url.length === 1
+        ? template.style.image_url[0] || "" : template.style.image_url;
       payload = {
         ...template,
+        style: {
+          ...template.style,
+          image_url: imageUrl,
+        },
         options: {
           ...(template.options || {}),
           buttons: buttonGroupFields.value.map((b) => ({
