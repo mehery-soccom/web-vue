@@ -510,6 +510,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                           toRef(template.style, 'line_1'),
                           toRef(template.style, 'line_2'),
                           toRef(template.style, 'line_3'),
+                          toRef(template.style, 'richline_1'),
                         ]"
                         :dynamic-prefixes="['data']"
                       />
