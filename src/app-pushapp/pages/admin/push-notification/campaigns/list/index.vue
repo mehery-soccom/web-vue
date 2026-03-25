@@ -1,6 +1,7 @@
 <script setup>
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
+import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 import debounce from "lodash/debounce";
@@ -32,7 +33,7 @@ const formattedNotifications = computed(() =>
     },
     status:
       item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
-  }))
+  })),
 );
 const headers = [
   { title: "", key: "data-table-expand" },
@@ -196,26 +197,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
           <td :colspan="headers.length">
-            <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
-            <div
-              v-if="
-                slotProps.item.raw.stats &&
-                slotProps.item.raw.stats.cta &&
-                Object.keys(slotProps.item.raw.stats.cta).length > 0
-              "
-            >
-              <div style="font-size: 14px; font-weight: 600; margin-top: 10px">
-                CTA stats:
-              </div>
-              <div style="margin: 5px 10px">
-                <div
-                  v-for="(value, key) in slotProps.item.raw.stats.cta"
-                  :key="key"
-                >
-                  <div>{{ key }} : {{ value }}</div>
-                </div>
-              </div>
-            </div>
+            <NotificationCampaignExpansion :stats="slotProps.item.raw.stats" />
           </td>
         </tr>
       </template>
@@ -298,7 +280,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
       <!-- Actions -->
       <template #item.actions="{ item }">
-        <IconBtn
+        <!-- <IconBtn
           :to="{
             name: 'admin-push-notification-campaigns-add',
             query: { copy: item.raw.id },
@@ -306,7 +288,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
-        </IconBtn>
+        </IconBtn> -->
         <IconBtn
           v-if="item.raw.logs?.length"
           @click="openLogDialog(item.raw.logs)"

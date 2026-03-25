@@ -65,7 +65,7 @@ onMounted(async () => {
           ...notification,
           ..._notification,
           channel_id: _notification.channelId,
-          platforms: _notification.filters.platform,
+          platforms: _notification.filters?.platform,
           template: template?._id,
           campaignName: "",
         });
