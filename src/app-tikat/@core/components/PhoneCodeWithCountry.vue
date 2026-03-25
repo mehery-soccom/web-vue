@@ -19,6 +19,14 @@ const props = defineProps({
     type: String,
     default: '+91', 
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  },
+  readonly: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 const emits = defineEmits(['update:modelValue']);
@@ -100,6 +108,7 @@ const customFilter = (itemTitle, queryText, item) => {
       class="flex-grow-0"
       style="width: 90px; min-width: 90px;"
       autocomplete="off"
+      :disabled="disabled || readonly"
     >
       <template #selection="{ item }">
         <span class="text-body-2">{{ item.raw.dial_code }}</span>
@@ -120,6 +129,8 @@ const customFilter = (itemTitle, queryText, item) => {
       type="number"
       :rules="computedRules" 
       class="flex-grow-1"
+      :disabled="disabled"
+      :readonly="readonly"
     />
   </div>
 </template>
