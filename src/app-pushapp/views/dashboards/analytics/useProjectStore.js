@@ -7,5 +7,9 @@ export const useProjectStore = defineStore("ProjectStore", {
     fetchProjects() {
       return axios.get("/dashboard/analytics/projects");
     },
+    fetchChartDatas(params) {
+      let url = `/api/dashboard/chart/device-activity`;
+      return axios.post(url, params );
+    },
   },
 });
