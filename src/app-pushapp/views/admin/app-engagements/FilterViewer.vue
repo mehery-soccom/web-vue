@@ -63,11 +63,11 @@ const indent = computed(() => ({
           <template v-else>
             <strong>{{ formatFieldName(node.field) }}</strong>
             {{ formatFieldName(node.operator) }}
-            <strong v-if="node.operator === 'BETWEEN' && node.value?.length === 2 && node.value[0]?.dateLocal">
-              {{ node.value[0].dateLocal }} and {{ node.value[1].dateLocal }}
+            <strong v-if="node.operator === 'BETWEEN' && node.value?.length === 2 && (node.value[0]?.dateLocal || node.value[0]?.date)">
+              {{ node.value[0].dateLocal || node.value[0].date }} and {{ node.value[1].dateLocal || node.value[1].date }}
             </strong>
-            <strong v-else-if="node.value?.[0]?.dateLocal">
-              {{ node.value[0].dateLocal }}
+            <strong v-else-if="node.value?.[0]?.dateLocal || node.value?.[0]?.date">
+              {{ node.value[0].dateLocal || node.value[0].date }}
             </strong>
             <strong v-else-if="Array.isArray(node.value)">
               {{ node.value.join(", ") }}
