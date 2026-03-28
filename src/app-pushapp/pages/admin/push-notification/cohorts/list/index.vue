@@ -17,11 +17,11 @@ const headers = computed(() => [
     key: "name",
     align: "center",
   },
-  {
-    title: "Projection",
-    key: "subscribers",
-    align: "center",
-  },
+  // {
+  //   title: "Projection",
+  //   key: "subscribers",
+  //   align: "center",
+  // },
   {
     title: "Status",
     key: "status",

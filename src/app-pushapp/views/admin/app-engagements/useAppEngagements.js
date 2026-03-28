@@ -117,7 +117,7 @@ export const useAppEngagements = (source) => {
             title: el.name,
             value: el._id,
             meta: {
-              projection: el.buildStats?.tokensSubscribed,
+              projection: null, // el.buildStats?.tokensSubscribed,
             },
           };
           resultsMap[r.value] = r;
