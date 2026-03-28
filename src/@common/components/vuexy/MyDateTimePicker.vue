@@ -77,10 +77,10 @@ function parseToDate(input) {
     return isNaN(d) ? null : d;
   }
   if (typeof input === "object") {
-    if (input.stampUTC) return new Date(input.stampUTC);
+    if (input.stamp) return new Date(input.stamp);
     if (input.dateUTC) return new Date(input.dateUTC);
-    if (input.dateLocal && input.format) {
-      const dt = DateTime.fromFormat(input.dateLocal, input.format, {
+    if (input.date && input.format) {
+      const dt = DateTime.fromFormat(input.date, input.format, {
         zone: input.timeZone || getUserTimeZone(),
       });
       return dt.isValid ? dt.toJSDate() : null;
@@ -92,7 +92,7 @@ function parseToDate(input) {
 function normalizeIncomingValue(val) {
   if (!val) return null;
   const first = Array.isArray(val) ? val[0] : val;
-  if (first?.dateLocal && !first?.stampUTC && !first?.dateUTC) return null;
+  if (first?.date && !first?.stamp && !first?.dateUTC) return null;
   if (Array.isArray(val)) {
     const dates = val.map(parseToDate).filter(Boolean);
     return props.mode === "range" ? dates.slice(0, 2) : dates[0] ?? null;
@@ -110,8 +110,8 @@ const isProgrammaticUpdate = ref(false); // standard imperative-widget guard - â
 
 /* ---------------- Emit payload (STRICT contract) ---------------- */
 function buildPayload(date) {
-  const stampUTC = date.getTime();
-  const dateUTC = new Date(stampUTC).toISOString();
+  const stamp = date.getTime();
+  const dateUTC = new Date(stamp).toISOString();
   const timeZone = getUserTimeZone();
 
   const format = getDisplayFormat();
@@ -124,18 +124,20 @@ function buildPayload(date) {
 
   return {
     type: "date",
-    stampUTC,
+    stamp,
     dateUTC,
     timeZone,
-    dateLocal,
+    date: dateLocal,
     format,
   };
 }
 function emitRelativePayload() {
+  const timeZone = getUserTimeZone();
   emit("update:modelValue", [
     {
-      type: "date",
-      dateLocal: selectedRelative.value,
+      type: "relativeDate",
+      date: selectedRelative.value,
+      timeZone: timeZone,
       offset: offset.value,
       offsetUnit: offsetUnit.value
     }
@@ -243,8 +245,8 @@ watch(
   async (val) => {
     isProgrammaticUpdate.value = true;
     const first = val?.[0];
-    if (first?.dateLocal && !first?.stampUTC && !first?.dateUTC){
-      selectedRelative.value = first.dateLocal
+    if (first?.date && !first?.stamp && !first?.dateUTC){
+      selectedRelative.value = first.date
       offset.value = first.offset ?? null
       offsetUnit.value = first.offsetUnit ?? "days"
     }

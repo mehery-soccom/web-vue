@@ -63,7 +63,7 @@ const isValid = async (silent = false) => {
       valid = false;
     if (FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "date" && Array.isArray(el.value)) {
       const v = el.value[0];
-      if (!v?.stampUTC) {
+      if (!v?.stamp) {
         if (v?.offset === null || v?.offset === undefined || v?.offset === "") {
           valid = false;
         }

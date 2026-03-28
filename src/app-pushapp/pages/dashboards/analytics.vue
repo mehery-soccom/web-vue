@@ -64,18 +64,18 @@ const buildPayload = (fromDate, toDate) => {
   return {
     from: {
       type: "date",
-      stampUTC: new Date(fromDate).getTime(),
+      stamp: new Date(fromDate).getTime(),
       dateUTC: new Date(fromDate).toISOString(),
-      timeZone: "UTC",
-      dateLocal: new Date(fromDate).toLocaleDateString("en-GB"),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      date: new Date(fromDate).toLocaleDateString("en-GB"),
       format: "DD/MM/YYYY",
     },
     to: {
       type: "date",
-      stampUTC: new Date(toDate).getTime(),
+      stamp: new Date(toDate).getTime(),
       dateUTC: new Date(toDate).toISOString(),
-      timeZone: "UTC",
-      dateLocal: new Date(toDate).toLocaleDateString("en-GB"),
+      timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+      date: new Date(toDate).toLocaleDateString("en-GB"),
       format: "DD/MM/YYYY",
     },
   };
