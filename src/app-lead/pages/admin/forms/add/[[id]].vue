@@ -22,6 +22,7 @@ const formData = ref({
   title: '',
   code: '',
   desc: '',
+  displayTitle: true,
   banner: {
     bgImg: null,
     logo: null,
@@ -48,6 +49,7 @@ onMounted(async () => {
         title: existingForm.title,
         code: existingForm.code,
         desc: existingForm.desc,
+        displayTitle: existingForm.displayTitle !== undefined ? existingForm.displayTitle : true,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
       hasLeads.value = !!existingForm.hasLeads;
@@ -169,6 +171,7 @@ const openPreview = () => {
     desc: formData.value.desc,
     fields: formFields.value,
     banner: formData.value.banner,
+    displayTitle: formData.value.displayTitle,
   };
 
   sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
@@ -239,6 +242,14 @@ const openPreview = () => {
                   hint="Supported formats: PNG, SVG, JPG. Max 1 MB"
                   @upload-complete="payload => formData.banner.logo = payload"
                   @update:modelValue="val => { if(!val) formData.banner.logo = null }"
+                />
+              </VCol>
+              <VCol cols="12">
+                <VSwitch
+                  v-model="formData.displayTitle"
+                  label="Display Name and Description over Background Image"
+                  inset
+                  density="comfortable"
                 />
               </VCol>
             </VRow>

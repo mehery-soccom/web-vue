@@ -81,6 +81,7 @@ onMounted(async () => {
       scale: formDef.scale || 5,
       positiveScore: formDef.positiveScore,
       segmentation: formDef.segmentation || [],
+      displayTitle: formDef.displayTitle !== undefined ? formDef.displayTitle : true,
       banner: formDef.banner || { bgImg: null, logo: null }
     }
 
@@ -184,16 +185,21 @@ const handleSubmit = async () => {
               </div>
 
               <div class="flex-grow-1">
-                <VCardTitle class="text-h3 pa-0 font-weight-bold" :class="{'text-white': formStructure.banner?.bgImg?.url}">
-                  {{ formStructure.title }}
-                </VCardTitle>
-                <VCardSubtitle
-                  v-if="formStructure.desc"
-                  class="mt-1 pa-0 opacity-90"
-                  :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
-                >
-                  {{ formStructure.desc }}
-                </VCardSubtitle>
+                <template v-if="formStructure.displayTitle !== false">
+                  <VCardTitle 
+                    class="text-h3 pa-0 font-weight-bold" 
+                    :class="{'text-white': formStructure.banner?.bgImg?.url}"
+                  >
+                    {{ formStructure.title }}
+                  </VCardTitle>
+                  <VCardSubtitle
+                    v-if="formStructure.desc"
+                    class="mt-1 pa-0 opacity-90"
+                    :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
+                  >
+                    {{ formStructure.desc }}
+                  </VCardSubtitle>
+                </template>
               </div>
             </div>
           </VCard>
@@ -372,6 +378,10 @@ const handleSubmit = async () => {
   font-size: 35px !important;
   width: 35px !important;
   height: 35px !important;
+}
+
+.large-rating.v-rating--disabled {
+  pointer-events: none;
 }
 
 .banner-image {
