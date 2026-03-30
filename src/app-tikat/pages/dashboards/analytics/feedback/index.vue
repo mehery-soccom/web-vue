@@ -1,164 +1,257 @@
-<!-- <script setup>
-import { ref, onMounted } from 'vue'
+<script setup>
+import { ref, onMounted, computed } from 'vue'
+import { useAnalyticsStore } from '@/app-tikat/views/dashboard/analytics/useFeedbackAnalyticsStore'
 import CardStatisticsTransactions from '@app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue'
+import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue"
+import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters"
 
-const segmentsStats = ref([
-  { title: 'Feedback Received', stats: '0', icon: 'tabler-message-2', color: 'primary' },
-  { title: 'Excellent', stats: '0', icon: 'tabler-mood-smile', color: 'success' },
+const { customPlugin } = useDatePickerFilters()
+const analyticsStore = useAnalyticsStore()
+const flavour = ref('feedback')
+
+const today = new Date()
+const tonight = new Date().setHours(23, 59, 59, 999)
+
+const formattedToday = today.toLocaleDateString("en-GB").split("/").join("-")
+const dateRange = ref(`${formattedToday} to ${formattedToday}`)
+
+const defaultStatusConfig = {
+  'Positive': { icon: 'tabler-circle-check', color: 'success' },
+  'New': { icon: 'tabler-circle-plus', color: 'info' },
+  'Active': { icon: 'tabler-chart-dots', color: 'primary' },
+}
+
+const otherColors = ['warning', 'error', 'secondary', 'dark']
+
+const mappedSegmentationSummary = computed(() => {
+  return analyticsStore.segmentationSummary.map(seg => {
+    const statusMatch = analyticsStore.statusSummary.find(s => s.formCode === seg.formCode)
+    return {
+      ...seg,
+      formTitle: statusMatch ? statusMatch.formTitle : seg.formCode
+    }
+  })
+})
+
+const allUniqueStatuses = computed(() => {
+  const statuses = new Set()
+  analyticsStore.statusSummary.forEach(form => {
+    Object.keys(form.Status || {}).forEach(s => statuses.add(s))
+  })
+  
+  const priority = ['Positive', 'New', 'Active']
+  return Array.from(statuses).sort((a, b) => {
+    if (priority.includes(a) && !priority.includes(b)) return -1
+    if (!priority.includes(a) && priority.includes(b)) return 1
+    if (priority.includes(a) && priority.includes(b)) return priority.indexOf(a) - priority.indexOf(b)
+    return a.localeCompare(b)
+  })
+})
+
+const dynamicStatusStats = computed(() => {
+  const stats = []
+  const totalReceived = analyticsStore.statusSummary.reduce((acc, curr) => acc + (curr.total || 0), 0)
+  
+  stats.push({ 
+    title: 'Total Received', 
+    stats: String(totalReceived), 
+    icon: 'tabler-message-2', 
+    color: 'primary' 
+  })
+
+  allUniqueStatuses.value.forEach((status, index) => {
+    const totalForStatus = analyticsStore.statusSummary.reduce((acc, curr) => acc + (curr.Status?.[status] || 0), 0)
+    const config = defaultStatusConfig[status] || { 
+      icon: 'tabler-circle-dot',
+      color: otherColors[index % otherColors.length] 
+    }
+
+    stats.push({
+      title: status,
+      stats: String(totalForStatus),
+      icon: config.icon,
+      color: config.color
+    })
+  })
+  return stats
+})
+
+const segmentStats = ref([
+  { title: 'Total Received', stats: '0', icon: 'tabler-message-2', color: 'primary' },
+  { title: 'Good/Excellent', stats: '0', icon: 'tabler-mood-smile', color: 'success' },
   { title: 'Satisfactory', stats: '0', icon: 'tabler-mood-neutral', color: 'warning' },
   { title: 'Poor', stats: '0', icon: 'tabler-mood-sad', color: 'error' },
 ])
 
-const statusStats = ref([
-  { title: 'Feedback Received', stats: '0', icon: 'tabler-message-2', color: 'primary' },
-  { title: 'Open', stats: '0', icon: 'tabler-circle-dot', color: 'info' },
-  { title: 'Resolved', stats: '0', icon: 'tabler-circle-check', color: 'success' },
-  { title: 'In Progress', stats: '0', icon: 'tabler-clock', color: 'warning' },
-])
-
-// --- Tables Data ---
-const segmentTableData = ref([])
-const statusTableData = ref([])
-
-const fetchDashboardData = async () => {
+const getStatusSummary = async () => {
   try {
-    // Simulating API Delay
-    await new Promise(resolve => setTimeout(resolve, 500))
-
-    // 1. Mock Data for Top Cards
-    const cardData = {
-      segments: { total: 100, excellent: 50, satisfactory: 30, poor: 20 },
-      statuses: { total: 100, open: 50, resolved: 30, inProgress: 20 }
-    }
-
-    segmentsStats.value[0].stats = String(cardData.segments.total)
-    segmentsStats.value[1].stats = String(cardData.segments.excellent)
-    segmentsStats.value[2].stats = String(cardData.segments.satisfactory)
-    segmentsStats.value[3].stats = String(cardData.segments.poor)
-
-    statusStats.value[0].stats = String(cardData.statuses.total)
-    statusStats.value[1].stats = String(cardData.statuses.open)
-    statusStats.value[2].stats = String(cardData.statuses.resolved)
-    statusStats.value[3].stats = String(cardData.statuses.inProgress)
-
-    // 2. Mock Data for Tables (Matching your image)
-    segmentTableData.value = [
-      { formName: 'ABC', avgScore: '34.52%', received: 345, excellent: 90, satisfactory: 30, poor: 225 },
-      { formName: 'PQR', avgScore: '89.91%', received: 290, excellent: 20, satisfactory: 10, poor: 260 },
-    ]
-
-    statusTableData.value = [
-      { formName: 'ABC', avgScore: '34.52%', received: 345, new: 90, active: 30, closed: 225 },
-      { formName: 'PQR', avgScore: '89.91%', received: 290, new: 20, active: 10, closed: 260 },
-    ]
-
-  } catch (error) {
-    console.error("Dashboard analytics error", error)
+    await analyticsStore.fetchStatusSummary(flavour.value)
+  } catch (e) {
+    console.error("Status fetch error", e)
   }
 }
 
-onMounted(() => {
-  fetchDashboardData()
-})
-</script>
+const getSegmentationSummary = async () => {
+  let [startStr, endStr] = dateRange.value.includes(" to ") ? dateRange.value.split(" to ") : [dateRange.value, dateRange.value]
+  const [sD, sM, sY] = startStr.split("-").map(Number)
+  const [eD, eM, eY] = endStr.split("-").map(Number)
 
-<template>
-  <VRow class="match-height">
-    <VCol cols="12" md="6">
-      <CardStatisticsTransactions 
-        :statistics="segmentsStats" 
-        title="Campaign Segments" 
-      />
-    </VCol>
-    <VCol cols="12" md="6">
-      <CardStatisticsTransactions 
-        :statistics="statusStats" 
-        title="Campaign Status" 
-      />
-    </VCol>
+  const tzConfig = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET || "Asia/Kolkata"
+  const timezone = tzConfig.split("::")[0]
 
-    <VCol cols="12">
-      <VCard title="Form Segment Breakdown">
-        <VTable class="text-no-wrap">
-          <thead>
-            <tr>
-              <th class="text-uppercase">Form Name</th>
-              <th class="text-uppercase text-center">Avg Score</th>
-              <th class="text-uppercase text-center">Received</th>
-              <th class="text-uppercase text-center">Excellent</th>
-              <th class="text-uppercase text-center">Satisfactory</th>
-              <th class="text-uppercase text-center">Poor</th>
-              <th class="text-uppercase text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in segmentTableData" :key="item.formName">
-              <td class="font-weight-medium">{{ item.formName }}</td>
-              <td class="text-center">{{ item.avgScore }}</td>
-              <td class="text-center">{{ item.received }}</td>
-              <td class="text-center">{{ item.excellent }}</td>
-              <td class="text-center">{{ item.satisfactory }}</td>
-              <td class="text-center">{{ item.poor }}</td>
-              <td class="text-center">
-                <VBtn variant="text" size="small" color="primary">View</VBtn>
-              </td>
-            </tr>
-          </tbody>
-        </VTable>
-      </VCard>
-    </VCol>
+  const params = {
+    dateRange1: new Date(sY, sM - 1, sD, 0, 0, 0).getTime(),
+    dateRange2: new Date(eY, eM - 1, eD, 23, 59, 59).getTime(),
+    timezone
+  }
 
-    <VCol cols="12">
-      <VCard title="Form Status Breakdown">
-        <VTable class="text-no-wrap">
-          <thead>
-            <tr>
-              <th class="text-uppercase">Form Name</th>
-              <th class="text-uppercase text-center">Avg Score</th>
-              <th class="text-uppercase text-center">Received</th>
-              <th class="text-uppercase text-center">New</th>
-              <th class="text-uppercase text-center">Active</th>
-              <th class="text-uppercase text-center">Closed</th>
-              <th class="text-uppercase text-center">Action</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="item in statusTableData" :key="item.formName">
-              <td class="font-weight-medium">{{ item.formName }}</td>
-              <td class="text-center">{{ item.avgScore }}</td>
-              <td class="text-center">{{ item.received }}</td>
-              <td class="text-center">{{ item.new }}</td>
-              <td class="text-center">{{ item.active }}</td>
-              <td class="text-center">{{ item.closed }}</td>
-              <td class="text-center">
-                <VBtn variant="text" size="small" color="primary">View</VBtn>
-              </td>
-            </tr>
-          </tbody>
-        </VTable>
-      </VCard>
-    </VCol>
-  </VRow>
-</template>
-
-<style lang="scss">
-.v-table th {
-  font-weight: 600 !important;
-  letter-spacing: 0.5px;
+  try {
+    const data = await analyticsStore.fetchSegmentationSummary(flavour.value, params)
+    let total = 0, good = 0, sat = 0, poor = 0
+    data.forEach(form => {
+      total += form.total || 0
+      good += form.good || 0
+      sat += form.satisfactory || 0
+      poor += form.poor || 0
+    })
+    segmentStats.value[0].stats = String(total)
+    segmentStats.value[1].stats = String(good)
+    segmentStats.value[2].stats = String(sat)
+    segmentStats.value[3].stats = String(poor)
+  } catch (e) {
+    console.error("Segmentation fetch error", e)
+  }
 }
-</style> -->
 
-<script setup>
+onMounted(async () => {
+  await getStatusSummary()
+  getSegmentationSummary()
+})
 
+const onDateClosed = (selectedDates) => {
+  if (selectedDates.length === 2) {
+    getSegmentationSummary()
+  }
+}
 </script>
 
 <template>
   <VRow class="match-height">
-    <div :style="{ width: '100%', textAlign: 'center', marginTop: '300px' }">
-      <h3 :style="{ fontSize: '44px' }">
-        <VIcon icon="tabler-settings" /> Service Management
-        <small>v1.0</small>
-      </h3>
-    </div>
+    
+    <VCol cols="12">
+      <h3 class="text-h5">Status Analytics</h3>
+    </VCol>
+
+    <VCol cols="12">
+      <CardStatisticsTransactions 
+        :statistics="dynamicStatusStats" 
+        title="Status Overview" 
+      />
+    </VCol>
+
+    <VCol cols="12">
+      <VCard title="FormWise Status Breakdown">
+        <VTable class="text-no-wrap">
+          <thead>
+            <tr>
+              <th class="text-uppercase">Form Title</th>
+              <th class="text-uppercase text-center">Avg Score</th>
+              <th class="text-uppercase text-center">Total</th>
+              <th v-for="status in allUniqueStatuses" :key="status" class="text-uppercase text-center">
+                {{ status }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in analyticsStore.statusSummary" :key="item.formCode">
+              <td class="font-weight-medium text-primary">{{ item.formTitle }}</td>
+              <td class="text-center font-weight-bold">{{ item.averageScore }}</td>
+              <td class="text-center">{{ item.total }}</td>
+              <td v-for="status in allUniqueStatuses" :key="status" class="text-center">
+                <VChip v-if="item.Status?.[status]" size="small" variant="tonal" :color="defaultStatusConfig[status]?.color || 'secondary'">
+                  {{ item.Status[status] }}
+                </VChip>
+                <span v-else class="text-disabled">0</span>
+              </td>
+            </tr>
+          </tbody>
+        </VTable>
+      </VCard>
+    </VCol>
+
+    <VCol cols="12">
+      <VDivider class="my-6" />
+    </VCol>
+
+    <VCol cols="12" class="d-flex justify-space-between align-center">
+      <h3 class="text-h5">Segmentation Analytics</h3>
+      <AppDateTimePicker
+        v-model="dateRange"
+        style="width: 280px"
+        prepend-inner-icon="tabler-calendar"
+        :config="{
+          mode: 'range',
+          dateFormat: 'd-m-Y',
+          maxDate: tonight,
+          onClose: onDateClosed,
+          plugins: [customPlugin],
+        }"
+      />
+    </VCol>
+
+    <VCol cols="12">
+      <CardStatisticsTransactions 
+        :statistics="segmentStats" 
+        title="Performance Segments" 
+      />
+    </VCol>
+
+    <VCol cols="12">
+      <VCard title="FormWise Performance Breakdown">
+        <template #append>
+          <div v-if="analyticsStore.isLoading" class="mr-4">
+            <VProgressCircular indeterminate size="20" width="2" color="primary" />
+          </div>
+        </template>
+        <VTable class="text-no-wrap segmentation-table">
+          <thead>
+            <tr>
+              <th class="text-uppercase px-6">Form Title</th>
+              <th class="text-uppercase text-center px-6">Avg Score</th>
+              <th class="text-uppercase text-center px-6">Total</th>
+              <th class="text-uppercase text-center px-6">Good</th>
+              <th class="text-uppercase text-center px-6">Satisfactory</th>
+              <th class="text-uppercase text-center px-6">Poor</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="item in mappedSegmentationSummary" :key="item.formCode">
+              <td class="font-weight-medium text-primary px-6">{{ item.formTitle }}</td>
+              <td class="text-center px-6">
+                <VChip size="small" :color="item.averageScore > 70 ? 'success' : 'primary'">
+                  {{ item.averageScore }}%
+                </VChip>
+              </td>
+              <td class="text-center px-6">{{ item.total }}</td>
+              <td class="text-center text-success px-6">{{ item.good }}</td>
+              <td class="text-center text-warning px-6">{{ item.satisfactory }}</td>
+              <td class="text-center text-error px-6">{{ item.poor }}</td>
+            </tr>
+          </tbody>
+        </VTable>
+      </VCard>
+    </VCol>
   </VRow>
 </template>
+
+<style scoped>
+.segmentation-table th, 
+.segmentation-table td {
+  padding-top: 12px !important;
+  padding-bottom: 12px !important;
+}
+
+.segmentation-table th:first-child {
+  width: 30%;
+}
+</style>

@@ -29,6 +29,7 @@ const formData = ref({
     { label: 'Satisfactory', min: 41, max: 65 },
     { label: 'Good to Excellent', min: 66, max: 100 },
   ],
+  displayTitle: true,
   banner: {
     bgImg: null,
     logo: null,
@@ -62,6 +63,7 @@ onMounted(async () => {
         scale: existingForm.scale || 5,
         positiveScore: existingForm.positiveScore || 0,
         segmentation: existingForm.segmentation?.length ? existingForm.segmentation : formData.value.segmentation,
+        displayTitle: existingForm.displayTitle !== undefined ? existingForm.displayTitle : true,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
       hasTikats.value = !!existingForm.hasTikats;
@@ -222,6 +224,7 @@ const openPreview = () => {
     banner: formData.value.banner,
     scale: formData.value.scale,
     fields: formFields.value.filter(f => f.key !== 'question'),
+    displayTitle: formData.value.displayTitle,
     questions: formFields.value.filter(f => f.key === 'question'),
   };
   sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
@@ -290,6 +293,14 @@ const openPreview = () => {
                   hint="Supported formats: JPG, PNG, WebP. Max 1 MB"
                   @upload-complete="payload => formData.banner.logo = payload"
                   @update:modelValue="val => { if(!val) formData.banner.logo = null }"
+                />
+              </VCol>
+              <VCol cols="12">
+                <VSwitch
+                  v-model="formData.displayTitle"
+                  label="Display Name and Description over Background Image"
+                  inset
+                  density="comfortable"
                 />
               </VCol>
               <VCol cols="12" md="6">
