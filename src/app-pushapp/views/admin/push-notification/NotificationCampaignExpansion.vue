@@ -16,6 +16,11 @@
         </MyDataTable>
       </VCol>
     </VRow>
+    <VRow v-else>
+      <VCol cols="12">
+        <h4>No CTA available</h4>
+      </VCol>
+    </VRow>
   </VCard>
 </template>
 
