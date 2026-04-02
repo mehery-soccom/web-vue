@@ -4,6 +4,7 @@ import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
+import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
 import debounce from "lodash/debounce";
 
 const pushNotificationStore = usePushNotificationStore();
@@ -137,6 +138,12 @@ const fetchCampaigns = async (params) => {
   }
 };
 
+const campaignDialog = ref(false);
+const selectedCampaignLogs = ref([]);
+const openCampaignDialog = (logs) => {
+  selectedCampaignLogs.value = logs || [];
+  campaignDialog.value = true;
+};
 const openLogDialog = (logs) => {
   selectedLogs.value = logs || [];
   logDialog.value = true;
@@ -289,6 +296,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
         </IconBtn> -->
+        <IconBtn @click="openCampaignDialog(item)">
+          <VIcon>mdi-eye</VIcon>
+          <VTooltip activator="parent">Logs</VTooltip>
+        </IconBtn>
         <IconBtn
           v-if="item.raw.logs?.length"
           @click="openLogDialog(item.raw.logs)"
@@ -326,6 +337,35 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <VCardActions class="sticky-footer">
           <VSpacer />
           <VBtn text @click="logDialog = false">Close</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+    <VDialog v-model="campaignDialog" max-width="600">
+      <VCard>
+        <VCardTitle class="text-h6">Campaign Details</VCardTitle>
+        <VCardText>
+          <div class="campaign-details">
+            <div style="font-size: 15px;"><strong>Campaign Name:</strong> {{ selectedCampaignLogs.raw.campaignName }}</div>
+            <div style="margin-top: 4px;font-size: 15px;"><strong>Template Code:</strong> {{ selectedCampaignLogs.raw.templateCode }}</div>
+
+            <!-- Filter -->
+            <section v-if="selectedCampaignLogs.raw.filter" class="detail-block">
+              <h5>Filter</h5>
+              <FilterViewer :node="selectedCampaignLogs.raw.filter" />
+            </section>
+
+            <!-- Schedule -->
+            <section class="detail-block">
+              <h5>Schedule</h5>
+              <div>
+                <p><strong>Duration Type:</strong> Manual</p>
+              </div>
+            </section>
+          </div>
+        </VCardText>
+        <VCardActions class="sticky-footer">
+          <VSpacer />
+          <VBtn text @click="campaignDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
     </VDialog>

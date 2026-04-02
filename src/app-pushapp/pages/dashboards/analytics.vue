@@ -180,6 +180,9 @@ onMounted(async () => {
         }"
       />
     </div>
+  </VRow>
+  <VRow>
+    <VCol cols="12" md="2"></VCol>
     <VCol cols="12" md="8">
       <VCard title="Devices Statistics">
         <VCardText>
