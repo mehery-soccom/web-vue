@@ -369,7 +369,7 @@ export const getDonutChartConfig = (themeColors) => {
       pie: {
         donut: {
           labels: {
-            show: true,
+            show: false,
             name: {
               fontSize: "1.125rem",
             },
@@ -379,7 +379,7 @@ export const getDonutChartConfig = (themeColors) => {
               formatter: (val) => `${parseInt(val, 10)}`,
             },
             total: {
-              show: true,
+              show: false,
               fontSize: "1.125rem",
               label: "Operational",
               formatter: () => "31%",
@@ -411,7 +411,7 @@ export const getDonutChartConfig = (themeColors) => {
             pie: {
               donut: {
                 labels: {
-                  show: true,
+                  show: false,
                   name: {
                     fontSize: "0.9375rem",
                   },
