@@ -5,7 +5,9 @@ import { useFeedbackStore } from '@/app-tikat/views/admin/feedback/useFeedbackSt
 import { useStatusStore } from '@/app-tikat/views/setup/status/useStatusStore'
 import { useRouter } from 'vue-router'
 import * as XLSX from "xlsx"
+import { useRoute } from 'vue-router'
 
+const route = useRoute()
 const { show } = inject('snackbar')
 const feedbackStore = useFeedbackStore()
 const router = useRouter()
@@ -255,6 +257,10 @@ const openChat = (rawItem) => {
 }
 
 onMounted(() => {
+  if (route.query.formTitle) {
+    pagination.filters['form.title'] = route.query.formTitle
+  }
+  
   // fetchFeedbacks()
   fetchAgentOptions()
   fetchStatusOptions()

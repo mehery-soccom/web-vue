@@ -17,6 +17,9 @@ const pagination = reactive({
   sortBy: [],
   filters: {
     title: null,
+    description: null,
+    'form.title': null,
+    'createdAt.byUser': null,
   },
 })
 
@@ -121,11 +124,12 @@ const onUpdateOptions = (options) => {
   pagination.page = options.page
   pagination.itemsPerPage = options.itemsPerPage
   pagination.sortBy = options.sortBy
+  pagination.filters = options.filters || {}
   fetchCampaigns(pagination)
 }
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300)
 
-fetchCampaigns()
+// fetchCampaigns()
 </script>
 
 <template>
