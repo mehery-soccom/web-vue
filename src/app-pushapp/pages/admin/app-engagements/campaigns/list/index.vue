@@ -534,7 +534,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
 .detail-block {
   // flex: 0 0 auto; /* fit to content width */
-  padding: 10px 20px;
+  padding: 5px 20px 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;

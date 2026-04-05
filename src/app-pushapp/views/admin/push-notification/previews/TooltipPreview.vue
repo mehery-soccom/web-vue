@@ -62,7 +62,7 @@ onBeforeUnmount(() => {
         <div class="tooltip-content">
           <div class="line1 road" style="display: flex;" v-if="props.template.style.richline_1">
             <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'prepend'" v-html="template.style.line1_icon" />
-            <span v-html="props.template.style.richline_1"></span>
+            <span v-html="_bind(props.template.style.richline_1)"></span>
             <span v-if="template.style.line1_icon && template.style.line1_icon_position === 'append'" v-html="template.style.line1_icon" />
           </div>
           <!-- <div class="line1 road" v-if="props.template.style.richline_1" v-html="props.template.style.richline_1"></div> -->

@@ -65,7 +65,7 @@ onMounted(async () => {
           ...notification,
           ..._notification,
           channel_id: _notification.channelId,
-          platforms: _notification.filters.platform,
+          platforms: _notification.filters?.platform,
           template: template?._id,
           campaignName: "",
         });
@@ -184,7 +184,7 @@ const onSendSimple = async () => {
                     </VCol>
 
                     <VCol cols="12" md="4">
-                      <AppSelect
+                      <AppAutocomplete
                         v-model="notification.template"
                         :items="TemplateListSimple"
                         label="Template"
@@ -201,7 +201,7 @@ const onSendSimple = async () => {
                             </div>
                           </v-list-item>
                         </template>
-                      </AppSelect>
+                      </AppAutocomplete>
                     </VCol>
                   </VRow>
                 </VWindowItem>

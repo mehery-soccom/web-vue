@@ -24,12 +24,15 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["removePlatform", "fileUpload"]);
+const emit = defineEmits(["removePlatform", "fileUpload", "fileUploadFCM"]);
 
 const localData = ref(structuredClone(toRaw(props.data)));
 
 const handleFileUpload = (event) => {
   emit("fileUpload", event.target.files[0], props.index);
+};
+const handleFileUploadFCM = (event) => {
+  emit("fileUploadFCM", event.target.files[0], props.index);
 };
 
 const removePlatform = () => {
@@ -94,6 +97,18 @@ const removePlatform = () => {
             append-inner-icon="$file"
             label="Certificate"
             @change="handleFileUpload"
+            accept="application/JSON, .p8"
+          />
+        </VCol>
+        <VCol cols="12" md="6" v-if="data.platform_type === 'ios'">
+          <VFileInput
+            class="mt-2"
+            show-size
+            counter
+            prepend-icon
+            append-inner-icon="$file"
+            label="FCM File"
+            @change="handleFileUploadFCM"
             accept="application/JSON, .p8"
           />
         </VCol>

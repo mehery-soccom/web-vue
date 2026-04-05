@@ -55,6 +55,7 @@ const onCreate = async () => {
       if (p.platform_type === "ios") {
         formData.append(`key_id`, p.key_id);
         formData.append(`team_id`, p.team_id);
+        if(p.fcm_file) formData.append(`ios_fcm_file`, p.fcm_file);
       }
     });
 
@@ -110,6 +111,8 @@ const onUpdate = async () => {
       if (p.platform_type === "ios") {
         formData.append(`key_id`, p.key_id);
         formData.append(`team_id`, p.team_id);
+        if(!p.fcm_file) formData.append(`ios_fcm_file`, p.fcm_file_path);
+        else formData.append(`ios_fcm_file`, p.fcm_file);
       }
     });
 

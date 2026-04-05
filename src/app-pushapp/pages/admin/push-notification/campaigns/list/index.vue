@@ -1,8 +1,10 @@
 <script setup>
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
+import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
+import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
 import debounce from "lodash/debounce";
 
 const pushNotificationStore = usePushNotificationStore();
@@ -32,7 +34,7 @@ const formattedNotifications = computed(() =>
     },
     status:
       item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
-  }))
+  })),
 );
 const headers = [
   { title: "", key: "data-table-expand" },
@@ -136,6 +138,12 @@ const fetchCampaigns = async (params) => {
   }
 };
 
+const campaignDialog = ref(false);
+const selectedCampaignLogs = ref([]);
+const openCampaignDialog = (logs) => {
+  selectedCampaignLogs.value = logs || [];
+  campaignDialog.value = true;
+};
 const openLogDialog = (logs) => {
   selectedLogs.value = logs || [];
   logDialog.value = true;
@@ -196,26 +204,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
           <td :colspan="headers.length">
-            <div>Campaign ID : {{ slotProps.item.raw._id }}</div>
-            <div
-              v-if="
-                slotProps.item.raw.stats &&
-                slotProps.item.raw.stats.cta &&
-                Object.keys(slotProps.item.raw.stats.cta).length > 0
-              "
-            >
-              <div style="font-size: 14px; font-weight: 600; margin-top: 10px">
-                CTA stats:
-              </div>
-              <div style="margin: 5px 10px">
-                <div
-                  v-for="(value, key) in slotProps.item.raw.stats.cta"
-                  :key="key"
-                >
-                  <div>{{ key }} : {{ value }}</div>
-                </div>
-              </div>
-            </div>
+            <NotificationCampaignExpansion :stats="slotProps.item.raw.stats" />
           </td>
         </tr>
       </template>
@@ -298,7 +287,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
       <!-- Actions -->
       <template #item.actions="{ item }">
-        <IconBtn
+        <!-- <IconBtn
           :to="{
             name: 'admin-push-notification-campaigns-add',
             query: { copy: item.raw.id },
@@ -306,6 +295,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
+        </IconBtn> -->
+        <IconBtn @click="openCampaignDialog(item)">
+          <VIcon>mdi-eye</VIcon>
+          <VTooltip activator="parent">Logs</VTooltip>
         </IconBtn>
         <IconBtn
           v-if="item.raw.logs?.length"
@@ -344,6 +337,35 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <VCardActions class="sticky-footer">
           <VSpacer />
           <VBtn text @click="logDialog = false">Close</VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
+    <VDialog v-model="campaignDialog" max-width="600">
+      <VCard>
+        <VCardTitle class="text-h6">Campaign Details</VCardTitle>
+        <VCardText>
+          <div class="campaign-details">
+            <div style="font-size: 15px;"><strong>Campaign Name:</strong> {{ selectedCampaignLogs.raw.campaignName }}</div>
+            <div style="margin-top: 4px;font-size: 15px;"><strong>Template Code:</strong> {{ selectedCampaignLogs.raw.templateCode }}</div>
+
+            <!-- Filter -->
+            <section v-if="selectedCampaignLogs.raw.filter" class="detail-block">
+              <h5>Filter</h5>
+              <FilterViewer :node="selectedCampaignLogs.raw.filter" />
+            </section>
+
+            <!-- Schedule -->
+            <section class="detail-block">
+              <h5>Schedule</h5>
+              <div>
+                <p><strong>Duration Type:</strong> Manual</p>
+              </div>
+            </section>
+          </div>
+        </VCardText>
+        <VCardActions class="sticky-footer">
+          <VSpacer />
+          <VBtn text @click="campaignDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
     </VDialog>

@@ -2,7 +2,8 @@ import { BootRouter } from "@/@common";
 import { CDN_CONTEXT } from "@/@common/constants";
 import { routes } from "vue-router/auto-routes";
 import DefaultLayout from "@/app-lead/layouts/default.vue";
-import Dashboard from "@/app-lead/pages/dashboards/analytics.vue";
+import Dashboard from "@/app-lead/pages/dashboards/dashboard/index.vue";
+import DashboardHome from "@/app-lead/pages/dashboards/home/index.vue";
 import FieldsList from "@/app-lead/pages/admin/fields/list/index.vue";
 import FieldsAdd from "@/app-lead/pages/admin/fields/add/[[id]].vue";
 import FormsList from "@/app-lead/pages/admin/forms/list/index.vue";
@@ -20,7 +21,7 @@ const baseRoutes = [
   {
     path: "/",
     redirect: () => {
-      return { name: "dashboards-analytics" };
+      return { name: "dashboards-home" };
     },
   },
 ];
@@ -31,12 +32,25 @@ if (!routes || routes?.length < 1) {
   );
   baseRoutes.push(
     {
-      path: "/dashboards/analytics",
+      path: "/dashboards/home",
       component: DefaultLayout,
       children: [
         {
           path: "",
-          name: "dashboards-analytics",
+          name: "dashboards-home",
+          component: DashboardHome,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/dashboard",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-dashboard",
           component: Dashboard,
           props: true,
           meta: { layout: "default" },

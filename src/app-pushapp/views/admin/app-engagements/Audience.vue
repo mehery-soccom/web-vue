@@ -24,17 +24,17 @@ const abTestingLocal = reactive(JSON.parse(JSON.stringify(props.abTesting)));
 watch(
   () => props.modelValue,
   (val) => Object.assign(form, val),
-  { deep: true }
+  { deep: true },
 );
 watch(
   () => props.filter,
   (val) => Object.assign(filterLocal, val),
-  { deep: true }
+  { deep: true },
 );
 watch(
   () => props.abTesting,
   (val) => Object.assign(abTestingLocal, val),
-  { deep: true }
+  { deep: true },
 );
 
 // Watch & sync
@@ -61,7 +61,7 @@ const segmentsOptions = [
 function validateFilterStructure(
   node,
   parentConjunction = null,
-  isRoot = true
+  isRoot = true,
 ) {
   if (!node) throw new Error("Empty filter node");
 
@@ -73,18 +73,18 @@ function validateFilterStructure(
 
     // Check: If group has multiple event filters as direct children, it must be OR
     const directEventChildren = children.filter(
-      (c) => c.type === "filter" && c.filterType === "event"
+      (c) => c.type === "filter" && c.filterType === "event",
     );
     if (directEventChildren.length > 1 && conjunction !== "or") {
       throw new Error(
-        "Groups containing multiple event filters must use 'or' conjunction"
+        "Groups containing multiple event filters must use 'or' conjunction",
       );
     }
 
     // If root AND: cannot directly contain more than one event filter
     if (isRoot && conjunction === "and" && directEventChildren.length > 1) {
       throw new Error(
-        "Root AND group cannot contain multiple event filters directly"
+        "Root AND group cannot contain multiple event filters directly",
       );
     }
 
@@ -95,7 +95,7 @@ function validateFilterStructure(
 
     // Recurse into children
     children.forEach((child) =>
-      validateFilterStructure(child, conjunction, false)
+      validateFilterStructure(child, conjunction, false),
     );
     return true;
   }
@@ -104,7 +104,7 @@ function validateFilterStructure(
     // No special checks here — but could enforce supported filterTypes
     if (
       !["event", "attribute", "additionalInfo", "cohort"].includes(
-        node.filterType
+        node.filterType,
       )
     ) {
       throw new Error(`Unsupported filterType: ${node.filterType}`);
@@ -191,7 +191,11 @@ defineExpose({ isValid });
       Apply filters based on app events and latest user attributes
     </p>
 
-    <FilterBuilder v-model="filterLocal" ref="filterRef" />
+    <FilterBuilder
+      v-model="filterLocal"
+      ref="filterRef"
+      :ignoreCohortfilterType="true"
+    />
 
     <template v-if="abTestingLocal?.enabled">
       <VDivider class="my-6" />
