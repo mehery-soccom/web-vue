@@ -2,9 +2,9 @@
 import { ref, onMounted, computed } from 'vue'
 import { useAnalyticsStore } from '@/app-tikat/views/dashboard/analytics/useFeedbackAnalyticsStore'
 import CardStatisticsTransactions from '@app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue'
-import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue"
+import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue"
 import DemoDataTableKitchenSink from "@/app-tikat/views/tables/DemoDataTableKitchenSink.vue"
-import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters"
+import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters"
 import { useRouter } from 'vue-router'
 
 const router = useRouter()

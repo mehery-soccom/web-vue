@@ -17,7 +17,7 @@ const isEditMode = !!PARAM_ID
 const isLoading = ref(false)
 const isFetchingForms = ref(false)
 const formRef = ref(null)
-const byUser = window.CONST?.USER?.user || null
+const byUser = window.CONST?.USER?.code || null
 
 const formList = ref([])
 

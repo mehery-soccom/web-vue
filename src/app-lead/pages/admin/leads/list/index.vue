@@ -14,7 +14,7 @@ const isAgentLoading = ref(false)
 const isAssigning = ref(false)
 const allAgents = ref([])
 const selectedAgentId = ref(null)
-const byUser = window.CONST?.USER?.user || null
+const byUser = window.CONST?.USER?.code || null
 
 const isLoading = ref(false)
 const leads = ref([])

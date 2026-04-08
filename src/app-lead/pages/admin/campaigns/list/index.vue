@@ -4,7 +4,7 @@ import debounce from 'lodash/debounce'
 import { useCampaignStore } from '@/app-lead/views/admin/campaigns/useCampaignStore'
 
 const { show } = inject('snackbar')
-const byUser = window.CONST?.USER?.user || null
+const byUser = window.CONST?.USER?.code || null
 
 const campaignStore = useCampaignStore()
 

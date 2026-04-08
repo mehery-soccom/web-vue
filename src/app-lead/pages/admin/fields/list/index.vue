@@ -174,7 +174,7 @@ const handleImport = async () => {
         label: opt.label,
         code: opt.value,
       })),
-      byUser: window.CONST?.USER?.user,
+      byUser: window.CONST?.USER?.code,
     }
     
     return fieldsStore.createField(transformedField)

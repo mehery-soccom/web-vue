@@ -23,7 +23,7 @@ const emit = defineEmits(['activity-added']);
 
 const leadsStore = useLeadsStore();
 const { show } = inject("snackbar");
-const byUser = window.CONST?.USER?.user || 'dev';
+const byUser = window.CONST?.USER?.code;
 
 const isAddingActivity = ref(false);
 const isSaving = ref(false);

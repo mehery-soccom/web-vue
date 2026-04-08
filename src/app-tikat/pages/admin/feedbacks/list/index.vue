@@ -21,7 +21,7 @@ const isAssigning = ref(false)
 const allAgents = ref([])
 const selectedAgentId = ref(null)
 const isFilterMenuVisible = ref(false)
-const byUser = window.CONST?.USER?.user || null
+const byUser = window.CONST?.USER?.code || null
 
 const isLoading = ref(false)
 const feedbacks = ref([])

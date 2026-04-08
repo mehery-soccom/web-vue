@@ -85,7 +85,7 @@ const fetchFields = async (options = pagination) => {
       
       try {
         await Promise.all(defaultFields.map(field => 
-          fieldsStore.createField({ ...field, byUser: window.CONST?.USER?.user })
+          fieldsStore.createField({ ...field, byUser: window.CONST?.USER?.code })
         ));
 
         const finalResponse = await fieldsStore.fetchFields(apiParams);
