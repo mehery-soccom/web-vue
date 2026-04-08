@@ -36,7 +36,7 @@ const feedbackData = ref({});
 const originalFeedbackData = ref(null);
 const feedbackHistory = ref([]);
 
-const byUser = window.CONST?.USER?.user || null;
+const byUser = window.CONST?.USER?.code || null;
 
 const phoneValidator = value => {
   if (!value) return true;

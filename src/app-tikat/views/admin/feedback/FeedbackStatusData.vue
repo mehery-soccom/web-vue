@@ -20,7 +20,7 @@ const allAgents = ref([]);
 const isLoading = ref(true);
 const isUpdating = ref(false);
 const isAgentLoading = ref(false);
-const byUser = window.CONST?.USER?.user || 'system';
+const byUser = window.CONST?.USER?.code || 'system';
 const userRoles = window.CONST?.USER?.role || [];
 const isAgentDisabled = userRoles.includes('MODERATOR') || userRoles.includes('USER');
 
