@@ -18,7 +18,7 @@ export function useWebRTC() {
   let localStream = null;
   let dataChannel = null;
   const onCameraStateCallback = ref(null);
-  let cameraToggleLock = false; 
+  let cameraToggleLock = false;
 
   //Calling Variables
   const remoteStream = ref(null);
@@ -29,6 +29,8 @@ export function useWebRTC() {
   const ScreenShare = ref(false);
   let ScreenStream = null;
   const callMode = ref("meta"); // 'meta' 'p2p'
+
+  let p2pRoomId = null;
 
   // ICE servers configuration
   const iceServers = ref([
@@ -766,7 +768,7 @@ export function useWebRTC() {
         const newTrack = newStream.getVideoTracks()[0];
         const blackTrack = localStream.getVideoTracks()[0];
         if (sender) await sender.replaceTrack(newTrack);
-        if (blackTrack) { blackTrack.stop(); localStream.removeTrack(blackTrack); }
+        if (blackTrack) {localStream.removeTrack(blackTrack);blackTrack.stop();}
         localStream.addTrack(newTrack);
         Camera.value = true;
         sendCameraState(true);
@@ -898,8 +900,10 @@ export function useWebRTC() {
     // blank video track so the transceiver exists for replaceTrack later
     const canvas = document.createElement("canvas");
     Object.assign(canvas, { width: 2, height: 2 });
-    canvas.getContext("2d").fillRect(0, 0, 2, 2);
-    const blankTrack = canvas.captureStream(1).getVideoTracks()[0];
+    const ctx = canvas.getContext("2d");
+    const keepAlive = setInterval(() => ctx.fillRect(0, 0, 2, 2), 100);
+    const blankTrack = canvas.captureStream(10).getVideoTracks()[0];
+    blankTrack.onended = () => clearInterval(keepAlive);
     localStream.addTrack(blankTrack);
     Camera.value = false;
 
@@ -950,6 +954,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
 };
 
   const createP2POffer = async (remoteNumber) => {
+    p2pRoomId = remoteNumber;
     if (callMode.value !== "p2p") await initP2PCall();
     if (!pc) await initWebRTC();
 
@@ -1092,7 +1097,6 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     createP2POffer,
     createP2PAnswer,
     addRemoteCandidate,
-    sendCameraState,
     onRemoteCameraState,
     endP2PCall,
   };
