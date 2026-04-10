@@ -3,18 +3,19 @@ import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebRTC } from "@/app-phone/composables/useWebRTC";
-import { RealDB } from '@/app-phone/composables/apiSignaling';
+import { useP2pCallStore } from '@/app-phone/views/useP2PCallStore';
 
 const {
   initP2PCall, createP2POffer, createP2PAnswer,
   setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
-  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, sendCameraState, onRemoteCameraState,
+  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState,
 } = useWebRTC();
 
 const route = useRoute();
 const router = useRouter();
 const roomId = route.params.id;
+const callStore = useP2pCallStore()
 
 const userName = ref(localStorage.getItem('p2p_username') || "");
 const userId = (() => {
@@ -57,7 +58,7 @@ const setupAsHost = async () => {
   const sId = currentSessionId;
   const offer = await createP2POffer(roomId);
   if (currentSessionId !== sId) return;
-  await RealDB.updateRoom(roomId, { offer: { type: 'offer', sdp: offer.sdp }, status: 'waiting', answer: null, guestCandidates: [] });
+  await callStore.updateRoom(roomId, { offer: { type: 'offer', sdp: offer.sdp }, status: 'waiting', answer: null, guestCandidates: [] });
   statusMessage.value = "Waiting for participant...";
 };
 
@@ -69,25 +70,25 @@ const setupAsGuest = async (initialSession) => {
     if (currentSessionId !== sId) return;
     statusMessage.value = "Waiting for host...";
     await new Promise(r => setTimeout(r, 300));
-    roomData = await RealDB.getRoom(roomId, userId);
+    roomData = await callStore.getRoom(roomId, userId);
     attempts++;
   }
   if (currentSessionId !== sId || !roomData?.offer?.sdp) throw new Error("Host offer unavailable.");
   const answer = await createP2PAnswer(roomData.offer);
   if (currentSessionId !== sId) return;
-    lastAnsweredOfferSdp = roomData.offer.sdp;
-    await RealDB.updateRoom(roomId, {
-        answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates },
-        status: 'active'
-    });
-    statusMessage.value = "Connecting...";
+  lastAnsweredOfferSdp = roomData.offer.sdp;
+  await callStore.updateRoom(roomId, {
+    answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates },
+    status: 'active'
+  });
+  statusMessage.value = "Connecting...";
 };
 
 // if 2 peers try joinng and same time then guest peer and refreshing
 const rejoinAsParticipant = async () => {
   await resetWebRTC();
   onRemoteCameraState((val) => { remoteCameraOn.value = val; });
-  const joined = await RealDB.createRoom(roomId, userName.value, userId, null);
+  const joined = await callStore.createRoom(roomId, userName.value, userId, null);
   if (joined.waitingForNewSession) {
     currentSessionId = joined.sessionId;
     return;
@@ -105,7 +106,7 @@ const handleSessionEnded = async () => {
   remoteName.value = "";
   remoteCameraOn.value = false;
   try {
-    const session = await RealDB.createRoom(roomId, userName.value, userId, null);
+    const session = await callStore.createRoom(roomId, userName.value, userId, null);
 
     if (session.waitingForNewSession) {
       // another peer already created new session, wait for polling to detect it
@@ -143,7 +144,7 @@ const joinRoom = async () => {
   const prevId = sessionStorage.getItem('p2p_prevUserId');
   sessionStorage.removeItem('p2p_prevUserId');
   try {
-    const session = await RealDB.createRoom(roomId, userName.value, userId, prevId);
+    const session = await callStore.createRoom(roomId, userName.value, userId, prevId);
     if (session.waitingForNewSession) {
       currentSessionId = session.sessionId;
       isJoining.value = false;
@@ -171,7 +172,7 @@ const startPolling = (rate = 1500) => {
   pollRate = rate;
   pollingInterval = setInterval(async () => {
     if (isEndingCall.value || isJoining.value || isCreatingNewSession.value) return;
-    const roomData = await RealDB.getRoom(roomId, userId);
+    const roomData = await callStore.getRoom(roomId, userId);
 
     if (hasJoined.value && (!roomData || (roomData.sessionId === currentSessionId && roomData.status === "ended"))) {
       if (!roomData && isHost.value && !wasEverConnected) {
@@ -229,7 +230,7 @@ const startPolling = (rate = 1500) => {
         remoteDescSet = true;
         if (currentSessionId !== sId) return;
         lastAnsweredOfferSdp = roomData.offer.sdp;
-        await RealDB.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates }, status: 'active' });
+        await callStore.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates }, status: 'active' });
       } catch (e) { console.error("[POLL/GUEST re-answer]:", e); }
     }
 
@@ -252,7 +253,7 @@ watch(isConnected, async (connected) => {
     wasEverConnected = true;
     stopPolling();
     startPolling(10000);
-    const roomData = await RealDB.getRoom(roomId,userId);
+    const roomData = await callStore.getRoom(roomId, userId);
     if (roomData?.sessionId === currentSessionId) {
       const remotePeer = isHost.value ? roomData.guest : roomData.host;
       remoteName.value = remotePeer?.name || "";
@@ -284,7 +285,7 @@ onMounted(async () => {
     sessionStorage.setItem('p2p_prevUserId', userId);
     if (hasJoined.value && !isEndingCall.value) {
       navigator.sendBeacon(
-        `http://localhost:8090/nexus/phone/p2p/room/${roomId}/leave`,
+        `${window.CONST?.API_CONTEXT || ""}/p2p/room/${roomId}/leave`,
         new Blob([JSON.stringify({ userId })], { type: 'application/json' })
       );
     }
@@ -294,14 +295,14 @@ onMounted(async () => {
 onUnmounted(() => {
   stopPolling(); endP2PCall();
   if (hasJoined.value && !isEndingCall.value) {
-    RealDB.leaveRoom(roomId, userId);
+    callStore.leaveRoom(roomId, userId);
   }
 });
 
 const handleLeave = async (updateDB = true) => {
   stopPolling();
   isEndingCall.value = true;
-  if (updateDB) await RealDB.leaveRoom(roomId, userId);
+  if (updateDB) await callStore.leaveRoom(roomId, userId);
   await endP2PCall();
   router.push('/call');
 };
@@ -729,6 +730,23 @@ const handleLeave = async (updateDB = true) => {
 .controls button:active {
   transform: scale(0.93);
 }
+
+/*.btn-recording {
+  background: #d93025 !important;
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-red {
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(217, 48, 37, 0);
+  }
+}*/
 
 /* staging controls sit on top of the video preview */
 .staging-controls {

@@ -1,15 +1,10 @@
-import axios from "axios";
+import { useP2pCallStore } from "../views/useP2PCallStore";
 
-// Backend runs on 8090 now
-const API_URL = "http://localhost:8090/nexus/phone/p2p/room";
-// const API_URL = 'http://localhost:3000/api/room';
 export const RealDB = {
   async getRoom(roomId, userId = null) {
+    const P2pStore = useP2pCallStore();
     try {
-      const res = await axios.get(`${API_URL}/${roomId}`, {
-        params: { userId },
-        withCredentials: true,
-      });
+      const res = await P2pStore.getRoom(roomId, userId);
       return res.data;
     } catch (e) {
       if (e.response?.status === 404) return null;
@@ -18,12 +13,9 @@ export const RealDB = {
   },
 
   async createRoom(roomId, userName, userId, previousUserId = null) {
+    const P2pStore = useP2pCallStore();
     try {
-      const res = await axios.post(
-        API_URL,
-        { roomId, userName, userId, previousUserId },
-        { withCredentials: true },
-      );
+      const res = await P2pStore.createRoom(roomId, userName, userId, previousUserId);
       return res.data;
     } catch (e) {
       const msg = e.response?.data?.message || e.response?.data || e.message;
@@ -32,10 +24,9 @@ export const RealDB = {
   },
 
   async updateRoom(roomId, updates) {
+    const P2pStore = useP2pCallStore();
     try {
-      const res = await axios.post(`${API_URL}/${roomId}/update`, updates, {
-        withCredentials: true,
-      });
+      const res = await P2pStore.updateRoom(roomId, updates);
       return res.data;
     } catch (e) {
       throw e;
@@ -43,12 +34,9 @@ export const RealDB = {
   },
 
   async leaveRoom(roomId, userId) {
+    const P2pStore = useP2pCallStore();
     try {
-      await axios.post(
-        `${API_URL}/${roomId}/leave`,
-        { userId },
-        { withCredentials: true },
-      );
+      await P2pStore.leaveRoom(roomId, userId);
     } catch (_) {}
   },
 };
