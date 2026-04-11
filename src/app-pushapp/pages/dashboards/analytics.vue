@@ -156,46 +156,42 @@ onMounted(async () => {
 </script>
 
 <template>
-  <VRow class="match-height">
-    <!-- <div :style="{ width: '100%', textAlign: 'center', marginTop: '300px' }">
-      <h3 :style="{ fontSize: '44px' }">
-        <VIcon icon="tabler-settings" /> PushApp
-        <small>v1.0</small>
-      </h3>
-    </div> -->
-    <div style="width: 100%; display: flex; justify-content: flex-end;">
-      <AppDateTimePicker
-        style="width: 300px; margin-left: auto; margin: 0 12px"
-        v-model="dateRange"
-        prepend-inner-icon="tabler-calendar"
-        :config="{
-          mode: 'range',
-          dateFormat: 'd-m-Y',
-          position: 'auto right',
-          onChange: onDateSelect,
-          maxDate: tonight,
-          onValueUpdate: onDateUpdate,
-          onClose: onDateClosed,
-          plugins: [customPlugin],
-        }"
-      />
-    </div>
-  </VRow>
-  <VRow>
-    <VCol cols="12" md="2"></VCol>
-    <VCol cols="12" md="8">
-      <VCard title="Devices Statistics">
-        <VCardText>
-          <ChartJsLineChart
-            style="width: 100%; height: 80%"
-            :colors="chartJsCustomColors"
-            :chartOption="chartOptions"
-            :data="chartData"
-          />
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <div>
+    <VRow class="match-height">
+      <div style="width: 100%; display: flex; justify-content: flex-end;">
+        <AppDateTimePicker
+          style="width: 300px; margin-left: auto; margin: 0 12px"
+          v-model="dateRange"
+          prepend-inner-icon="tabler-calendar"
+          :config="{
+            mode: 'range',
+            dateFormat: 'd-m-Y',
+            position: 'auto right',
+            onChange: onDateSelect,
+            maxDate: tonight,
+            onValueUpdate: onDateUpdate,
+            onClose: onDateClosed,
+            plugins: [customPlugin],
+          }"
+        />
+      </div>
+    </VRow>
+    <VRow>
+      <VCol cols="12" md="2"></VCol>
+      <VCol cols="12" md="8">
+        <VCard title="Devices Statistics">
+          <VCardText>
+            <ChartJsLineChart
+              style="width: 100%; height: 80%"
+              :colors="chartJsCustomColors"
+              :chartOption="chartOptions"
+              :data="chartData"
+            />
+          </VCardText>
+        </VCard>
+      </VCol>
+    </VRow>
+  </div>
 </template>
 
 <style lang="scss">

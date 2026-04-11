@@ -67,7 +67,7 @@ const submitForm = async () => {
   const payload = {
     ...stageData.value,
     probability: String(stageData.value.probability),
-    byUser: window.CONST?.USER?.user,
+    byUser: window.CONST?.USER?.code,
   };
 
   try {

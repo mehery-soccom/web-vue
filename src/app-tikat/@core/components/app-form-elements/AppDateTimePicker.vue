@@ -104,6 +104,13 @@ const elementId = computed(() => {
         .slice(2, 7)}`
     : undefined;
 });
+
+defineExpose({
+  open: () => refFlatPicker.value?.fp?.open(),
+  close: () => refFlatPicker.value?.fp?.close(),
+  fp: refFlatPicker,
+})
+
 </script>
 
 <template>

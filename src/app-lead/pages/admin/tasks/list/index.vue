@@ -13,7 +13,7 @@ const { customPlugin } = useDatePickerFilters()
 
 const isLoading = ref(false)
 const tasks = ref([])
-const byUser = window.CONST?.USER?.user || null
+const byUser = window.CONST?.USER?.code || null
 const userRoles = window.CONST?.USER?.role || []
 
 const pagination = reactive({
