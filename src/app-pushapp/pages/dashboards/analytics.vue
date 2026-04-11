@@ -40,6 +40,7 @@ const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-
 const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
 const dates = `${formattedStart} to ${formattedEnd}`;
 var dateRange = ref(dates);
+const globalDateRange = ref([]);
 
 const onDateSelect = (selectedDates, dateStr) => {
   console.log("Selected:", selectedDates, dateStr);
@@ -50,15 +51,16 @@ const onDateUpdate = (selectedDates, dateStr) => {
 
 const onDateClosed = (selectedDates, dateStr) => {
   console.log("Closed:", selectedDates, toRaw(oldDates.value), dateStr);
-  if (selectedDates.length === 2 && toRaw(oldDates.value) != selectedDates) {
-    oldDates.value = selectedDates;
+  if (selectedDates.length === 2) {
+    globalDateRange.value = selectedDates;
     const start = new Date(selectedDates[0]);
-    start.setHours(0, 0, 0, 0);
+    start.setHours(0,0,0,0);
     const end = new Date(selectedDates[1]);
-    end.setHours(23, 59, 59, 999);
-
+    end.setHours(23,59,59,999);
     fetchChartData(start, end);
   }
+  // if (selectedDates.length === 2 && toRaw(oldDates.value) != selectedDates) {
+  //   oldDates.value = selectedDates;
 };
 const buildPayload = (fromDate, toDate) => {
   return {
@@ -149,53 +151,79 @@ const fetchChartData = async (fromDate, toDate) => {
     console.error("fetchChartData error:", error);
   }
 };
+const onChartDateChange = ([start, end]) => {
+  const from = new Date(start);
+  from.setHours(0,0,0,0);
+  const to = new Date(end);
+  to.setHours(23,59,59,999);
 
+  fetchChartData(from, to);
+};
 onMounted(async () => {
+  globalDateRange.value = [oneWeekAgo, today];
   await fetchChartData(oneWeekAgo, today)
 });
 </script>
 
 <template>
-  <VRow class="match-height">
-    <!-- <div :style="{ width: '100%', textAlign: 'center', marginTop: '300px' }">
-      <h3 :style="{ fontSize: '44px' }">
-        <VIcon icon="tabler-settings" /> PushApp
-        <small>v1.0</small>
-      </h3>
-    </div> -->
-    <div style="width: 100%; display: flex; justify-content: flex-end;">
-      <AppDateTimePicker
-        style="width: 300px; margin-left: auto; margin: 0 12px"
-        v-model="dateRange"
-        prepend-inner-icon="tabler-calendar"
-        :config="{
-          mode: 'range',
-          dateFormat: 'd-m-Y',
-          position: 'auto right',
-          onChange: onDateSelect,
-          maxDate: tonight,
-          onValueUpdate: onDateUpdate,
-          onClose: onDateClosed,
-          plugins: [customPlugin],
-        }"
-      />
-    </div>
-  </VRow>
-  <VRow>
-    <VCol cols="12" md="2"></VCol>
-    <VCol cols="12" md="8">
-      <VCard title="Devices Statistics">
-        <VCardText>
-          <ChartJsLineChart
-            style="width: 100%; height: 80%"
-            :colors="chartJsCustomColors"
-            :chartOption="chartOptions"
-            :data="chartData"
-          />
-        </VCardText>
-      </VCard>
-    </VCol>
-  </VRow>
+  <div>
+    <!-- <VRow class="match-height">
+      <div style="width: 100%; display: flex; justify-content: flex-end;">
+        <AppDateTimePicker
+          style="width: 300px; margin-left: auto; margin: 0 12px"
+          v-model="dateRange"
+          prepend-inner-icon="tabler-calendar"
+          :config="{
+            mode: 'range',
+            dateFormat: 'd-m-Y',
+            position: 'auto right',
+            onChange: onDateSelect,
+            maxDate: tonight,
+            onValueUpdate: onDateUpdate,
+            onClose: onDateClosed,
+            plugins: [customPlugin],
+          }"
+        />
+      </div>
+    </VRow> -->
+    <VRow>
+      <VCol cols="12" md="2"></VCol>
+      <VCol cols="12" md="8">
+        <MyChartComponent
+          type="line"
+          :data="chartData"
+          :chartOption="chartOptions"
+          :colors="chartJsCustomColors"
+          :title="'Device Statistics'"
+          :modelValue="globalDateRange"
+          :enableDatePicker="true"
+          :dateConfig="{
+            mode: 'range',
+            dateFormat: 'd-m-Y',
+            maxDate: tonight,
+            plugins: [customPlugin]
+          }"
+          @dateChange="onChartDateChange"
+        />
+      </VCol>
+    </VRow>
+
+    <!-- <VRow>
+      <VCol cols="12" md="2"></VCol>
+      <VCol cols="12" md="8">
+        <VCard title="Devices Statistics">
+          <VCardText>
+            <ChartJsLineChart
+              style="width: 100%; height: 80%"
+              :colors="chartJsCustomColors"
+              :chartOption="chartOptions"
+              :data="chartData"
+            />
+          </VCardText>
+        </VCard>
+      </VCol>
+    </VRow> -->
+  </div>
 </template>
 
 <style lang="scss">

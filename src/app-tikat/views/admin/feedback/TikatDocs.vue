@@ -15,7 +15,7 @@ const feedbackStore = useFeedbackStore();
 const { show } = inject("snackbar");
 
 const isLoading = ref(false);
-const byUser = window.CONST?.USER?.user || 'system';
+const byUser = window.CONST?.USER?.code || 'system';
 
 const isAddingNote = ref(false);
 const isAddingDoc = ref(false);

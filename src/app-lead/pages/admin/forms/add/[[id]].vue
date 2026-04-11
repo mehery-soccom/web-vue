@@ -144,7 +144,7 @@ const handleSubmit = async () => {
       order: index + 1,
       access: field.access,
     })),
-    byUser: window.CONST?.USER?.user,
+    byUser: window.CONST?.USER?.code,
   };
 
   try {

@@ -5,9 +5,9 @@ import VueApexCharts from "vue3-apexcharts"
 import { useDashboardStore } from '@/app-lead/views/dashboard/useDashboardStore'
 import { useStagesStore } from '@/app-lead/views/admin/stages/useStagesStore'
 import { getDonutChartConfig } from "@app-lead/@core/libs/apex-chart/apexCharConfig"
-import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters"
+import { useDatePickerFilters } from "@app-lead/views/dashboard/useDatePickerFilters"
 import CardStatisticsTransactions from '@app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue'
-import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue"
+import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
 
 const vuetifyTheme = useTheme()
 const { customPlugin } = useDatePickerFilters()
@@ -185,14 +185,8 @@ const onDateClosed = (selectedDates) => {
 
 <template>
   <VRow class="match-height">
-    <VCol cols="12" class="d-flex justify-space-between align-center">
+    <VCol cols="12">
       <h3 class="text-h5">Lead Analytics</h3>
-      <AppDateTimePicker
-        v-model="dateRange"
-        style="width: 280px"
-        prepend-inner-icon="tabler-calendar"
-        :config="{ mode: 'range', dateFormat: 'd-m-Y', maxDate: tonight, onClose: onDateClosed, plugins: [customPlugin] }"
-      />
     </VCol>
 
     <VCol cols="12">
@@ -200,6 +194,15 @@ const onDateClosed = (selectedDates) => {
         v-if="mappedStageStats.length > 1"
         :statistics="mappedStageStats" 
         title="Stages Overview" 
+      />
+    </VCol>
+
+    <VCol cols="12" class="d-flex justify-end">
+      <AppDateTimePicker
+        v-model="dateRange"
+        style="width: 280px"
+        prepend-inner-icon="tabler-calendar"
+        :config="{ mode: 'range', dateFormat: 'd-m-Y', maxDate: tonight, onClose: onDateClosed, plugins: [customPlugin] }"
       />
     </VCol>
 
@@ -217,7 +220,7 @@ const onDateClosed = (selectedDates) => {
     </VCol>
 
     <VCol cols="12" md="4">
-      <VCard title="Source Breakdown">
+      <VCard title="Lead Source Breakdown">
         <VCardText>
           <VueApexCharts
             v-if="sourceChartData.series.length"

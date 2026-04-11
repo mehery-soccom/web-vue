@@ -216,7 +216,7 @@ const fetchLeadData = async () => {
 };
 
 onMounted(fetchLeadData);
-const byUser = window.CONST?.USER?.user || null;
+const byUser = window.CONST?.USER?.code || null;
 
 const handleSubmit = async () => {
   const { valid } = await refForm.value.validate();
