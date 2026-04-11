@@ -3,7 +3,7 @@ import { Icon } from '@iconify/vue';
 import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebRTC } from "@/app-phone/composables/useWebRTC";
-import { useP2pCallStore } from '@/app-phone/views/useP2PCallStore';
+import { RealDB } from '@/app-phone/composables/apiSignaling';
 
 const {
   initP2PCall, createP2POffer, createP2PAnswer,
@@ -15,7 +15,7 @@ const {
 const route = useRoute();
 const router = useRouter();
 const roomId = route.params.id;
-const callStore = useP2pCallStore()
+const callStore = RealDB
 
 const userName = ref(localStorage.getItem('p2p_username') || "");
 const userId = (() => {
