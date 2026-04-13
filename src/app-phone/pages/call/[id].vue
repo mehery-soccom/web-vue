@@ -37,6 +37,7 @@ const hasJoined = ref(false);
 const roomFullMessage = ref("");
 const remoteCameraOn = ref(false);
 const nameError = ref("")
+const isScreenSharePending = ref(false);
 
 let pollingInterval = null;
 let pollRate = 1500;
@@ -47,9 +48,30 @@ const isCreatingNewSession = ref(false);
 let remoteDescSet = false;
 
 const resetWebRTC = async () => {
+  const hadCamera = Camera.value;
+  const hadMic = Mic.value;
+  const hadScreen = ScreenShare.value;
   await endP2PCall();
   await initP2PCall();
   remoteDescSet = false; lastAnsweredOfferSdp = null;
+
+  if (hadMic) {
+    await toggleMic()
+  }
+
+  if (hadCamera) {
+    await toggleCamera();
+  }
+  
+  if (hadScreen) {
+    try {
+      await toggleScreenShare();
+      isScreenSharePending.value = false;
+    } catch (error) {
+      console.warn("Screen share blocked by browser security.");
+      isScreenSharePending.value = true;
+    }
+  }
 };
 
 const stopPolling = () => { if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; } };
@@ -145,6 +167,8 @@ const joinRoom = async () => {
   const prevId = sessionStorage.getItem('p2p_prevUserId');
   sessionStorage.removeItem('p2p_prevUserId');
   try {
+    const stagingCameraOn = Camera.value;
+    const stagingMicOn = Mic.value;
     const session = await callStore.createRoom(roomId, userName.value, userId, prevId);
     if (session.waitingForNewSession) {
       currentSessionId = session.sessionId;
@@ -157,6 +181,14 @@ const joinRoom = async () => {
     await resetWebRTC();
     onRemoteCameraState((val) => { remoteCameraOn.value = val; });
     if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(session); }
+    if (stagingCameraOn) {
+      Camera.value = false; 
+      await toggleCamera();
+    }
+    if (stagingMicOn) {
+      Mic.value = false;
+      await toggleMic();
+    }
   } catch (error) {
     hasJoined.value = false; isJoining.value = false;
     const msg = error.message || "";
@@ -212,17 +244,22 @@ const startPolling = (rate = 1500) => {
     if (!roomData || roomData.sessionId !== currentSessionId) return;
 
     // apply answer (host side)
-    if (isHost.value && !remoteDescSet && roomData.answer?.sdp) {
-      try {
-        await setRemoteDescription(roomData.answer);
-        remoteDescSet = true;
-        if (roomData.answer.candidates?.length) {
-            for (const c of roomData.answer.candidates) {
-                try { addRemoteCandidate(c); } catch (_) {}
-            }
+    if (isHost.value && roomData.answer?.sdp) {
+      if (!remoteDescSet) {
+          try {
+              await setRemoteDescription(roomData.answer);
+              remoteDescSet = true;
+          } catch (e) { 
+              if (!e.message?.includes('not initialized')) console.error("[POLL/HOST]", e); 
+          }
+      }
+
+      if (roomData.answer.candidates?.length) {
+          roomData.answer.candidates.forEach(c => {
+              try { addRemoteCandidate(c); } catch (_) {}
+          });
         }
-      } catch (e) { if (!e.message?.includes('not initialized')) console.error("[POLL/HOST]", e); }
-    }
+    }    
 
     // re-answer on new offer (guest side)
     if (!isHost.value && !remoteDescSet && roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp && !roomData.answer?.sdp) {
@@ -250,6 +287,14 @@ const startPolling = (rate = 1500) => {
     const target = !isConnected.value && roomData.guest?.userId ? 500 : isConnected.value ? 4000 : 1500;
     if (target !== pollRate) startPolling(target);
   }, pollRate);
+};
+const resumeScreenShare = async () => {
+  try {
+    await toggleScreenShare();
+    isScreenSharePending.value = false;
+  } catch (error) {
+    console.error("Manual resume failed:", error);
+  }
 };
 
 watch(isConnected, async (connected) => {
@@ -403,6 +448,12 @@ const handleLeave = async (updateDB = true) => {
         <button @click="toggleScreenShare" :class="{ 'btn-active': ScreenShare }">
           <Icon :icon="ScreenShare ? 'tabler:screen-share-off' : 'tabler:screen-share'" />
         </button>
+        <div v-if="isScreenSharePending" class="resume-overlay">
+          <button @click="resumeScreenShare" class="btn-resume">
+            <Icon icon="tabler:screen-share" />
+            Resume Screen Share
+          </button>
+        </div>
         <button @click="handleLeave(true)" class="btn-leave">
           <Icon icon="tabler:phone-off" />
         </button>
@@ -415,11 +466,13 @@ const handleLeave = async (updateDB = true) => {
 <style scoped>
 .call-container {
   width: 100%;
-  height: 100vh;
+  height: 100dvh;
   display: flex;
   justify-content: center;
   align-items: center;
   background: #e9edf3;
+  overflow: hidden;
+  position: fixed;
 }
 
 /* ── Room full ── */
@@ -703,12 +756,12 @@ const handleLeave = async (updateDB = true) => {
 /* ── Controls ── */
 .controls {
   position: absolute;
-  bottom: 20px;
+  bottom: 40px;
   left: 50%;
   transform: translateX(-50%);
   display: flex;
   gap: 12px;
-  z-index: 10;
+  z-index: 999;
 }
 
 .controls button {
@@ -734,7 +787,32 @@ const handleLeave = async (updateDB = true) => {
 .controls button:active {
   transform: scale(0.93);
 }
+.resume-overlay {
+  position: absolute;
+  top: -60px; /* Position it above the control bar */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  width: max-content;
+}
+.btn-resume {
+  background: #f9ab00 !important;
+  color: #202124 !important;
+  border-radius: 24px !important;
+  padding: 8px 16px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: auto !important;
+  height: auto !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
 
+.btn-resume:hover {
+  background: #f89b00 !important;
+}
 /*.btn-recording {
   background: #d93025 !important;
   animation: pulse-red 1.5s ease-in-out infinite;
@@ -834,11 +912,13 @@ const handleLeave = async (updateDB = true) => {
   .pip-wrapper {
     width: 130px;
     height: 90px;
-    bottom: 7rem;
+    bottom: 100px;
   }
    .controls {
-    bottom: 1.5rem;
-    gap: 8px;
+    bottom: 30px;
+    gap: 10px;
+    width: 90%;
+    justify-content: center;
   }
 
   .controls button {

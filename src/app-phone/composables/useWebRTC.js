@@ -783,7 +783,11 @@ export function useWebRTC() {
         sendCameraState(false);
       }
     }
-  } finally {
+    reattachMediaStreams();
+  } catch (error){
+    console.error("Camera Toggle Error:", error);
+  }
+    finally {
     cameraToggleLock = false;
   }
 };
@@ -825,6 +829,7 @@ export function useWebRTC() {
     }
 
     ScreenStream = null;
+    sendCameraState(Camera.value);
   };
 
   const toggleScreenShare = async () => {
