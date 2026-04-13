@@ -9,7 +9,7 @@ const {
   initP2PCall, createP2POffer, createP2PAnswer,
   setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
-  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState,
+  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState
 } = useWebRTC();
 
 const route = useRoute();
@@ -55,23 +55,31 @@ const resetWebRTC = async () => {
   await initP2PCall();
   remoteDescSet = false; lastAnsweredOfferSdp = null;
 
-  if (hadMic) {
-    await toggleMic()
+  if (isHost.value) {
+    await setupAsHost(); 
+  } else {
   }
 
-  if (hadCamera) {
-    await toggleCamera();
-  }
-  
-  if (hadScreen) {
-    try {
-      await toggleScreenShare();
-      isScreenSharePending.value = false;
-    } catch (error) {
-      console.warn("Screen share blocked by browser security.");
-      isScreenSharePending.value = true;
+  const unwatch = watch(isConnected, async (connected) => {
+    if (connected) {
+      if (hadMic) {
+        Mic.value = false; // Reset ref so toggleMic actually fires
+        await toggleMic();
+      }
+      if (hadCamera) {
+        Camera.value = false;
+        await toggleCamera();
+      }
+      if (hadScreen) {
+        try {
+          await toggleScreenShare();
+        } catch (e) {
+          isScreenSharePending.value = true;
+        }
+      }
+      unwatch(); 
     }
-  }
+  });
 };
 
 const stopPolling = () => { if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; } };
@@ -308,7 +316,12 @@ watch(isConnected, async (connected) => {
       remoteName.value = remotePeer?.name || "";
     }
     await nextTick();
-    setTimeout(() => reattachMediaStreams(), 300);
+    if (ScreenShare.value || Camera.value) {
+       sendCameraState(true);
+    } else {
+       sendCameraState(false);
+    }
+    setTimeout(() => reattachMediaStreams(), 1000);
   } else if (wasEverConnected && !isEndingCall.value && !isCreatingNewSession.value) {
     remoteName.value = "";
     remoteCameraOn.value = false

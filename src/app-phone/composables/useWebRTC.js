@@ -750,9 +750,9 @@ export function useWebRTC() {
   if (cameraToggleLock) return;
   cameraToggleLock = true;
 
-  const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-
+  
   try {
+    const sender = pc.getSenders().find((s) => s.track?.kind === "video");
     if (Camera.value) {
       const realTrack = localStream.getVideoTracks()[0];
       const canvas = document.createElement("canvas");
@@ -859,6 +859,7 @@ export function useWebRTC() {
         }
       }
       ScreenShare.value = true;
+      sendCameraState(true);
     } catch (error) {
       console.error("Screen share error:", error);
     }
@@ -868,11 +869,16 @@ export function useWebRTC() {
     const localVideoPip = document.getElementById("local-video-pip");
     if (localVideoPip && localStream) {
       localVideoPip.srcObject = localStream;
-      localVideoPip.muted = true;
     }
     const remoteVideoEl = document.getElementById("remote-video");
-    if (remoteStream.value && remoteVideoEl)
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = Mic.value;
+    }
+    if (remoteStream.value && remoteVideoEl){
+        remoteVideoEl.srcObject = null;
       remoteVideoEl.srcObject = remoteStream.value;
+    }
   };
 
   const initP2PCall = async () => {
@@ -1056,8 +1062,6 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     Mic.value = false;
     Camera.value = false;
     ScreenShare.value = false;
-
-    callMode.value = "meta";
   };
 
   onUnmounted(() => {
@@ -1084,6 +1088,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     toggleMic,
     toggleCamera,
     toggleScreenShare,
+    sendCameraState,
 
     initWebRTC,
     disconnect,
