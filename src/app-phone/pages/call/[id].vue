@@ -58,7 +58,7 @@ const setupAsHost = async () => {
   const sId = currentSessionId;
   const offer = await createP2POffer(roomId);
   if (currentSessionId !== sId) return;
-  await callStore.updateRoom(roomId, { offer: { type: 'offer', sdp: offer.sdp }, status: 'waiting', answer: null, guestCandidates: [] });
+  await callStore.updateRoom(roomId, { offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates }, status: 'waiting', answer: null, guestCandidates: [] });
   statusMessage.value = "Waiting for participant...";
 };
 
