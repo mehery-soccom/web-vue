@@ -13,7 +13,7 @@ const isLoading = ref(false);
 const items = ref([]);
 const headers = computed(() => [
   {
-    title: "Cohort",
+    title: "Name",
     key: "name",
     align: "center",
   },
@@ -31,7 +31,6 @@ const headers = computed(() => [
       { title: "Building", value: "BUILDING" },
       { title: "Ready", value: "READY" },
       { title: "Expired", value: "EXPIRED" },
-      { title: "Deleted", value: "DELETED" },
       { title: "Failed", value: "FAILED" },
     ],
   },
@@ -151,7 +150,7 @@ onMounted(async () => {
           prepend-icon="tabler-plus"
           :to="{ name: 'admin-push-notification-cohorts-add-id?' }"
         >
-          New Cohort
+          New
         </VBtn>
       </div>
     </VCardText>
