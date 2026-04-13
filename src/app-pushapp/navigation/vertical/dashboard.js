@@ -4,8 +4,12 @@ export default [
     icon: { icon: "tabler-smart-home" },
     children: [
       {
-        title: "Analytics",
+        title: "Device Analytics",
         to: "dashboards-analytics",
+      },
+      {
+        title: "Event Analytics",
+        to: "dashboards-events",
       },
       // {
       //   title: 'eCommerce',
