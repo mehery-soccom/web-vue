@@ -3,6 +3,7 @@ import { CDN_CONTEXT } from "@common/constants";
 import { routes } from "vue-router/auto-routes";
 import DefaultLayout from '../layouts/default.vue';
 import Dashboard from '../pages/dashboards/analytics.vue';
+import Events from "../pages/dashboards/events.vue";
 import TemplateList from '../pages/admin/app-engagements/templates/list/index.vue';
 import TemplateAdd from '../pages/admin/app-engagements/templates/add/[[id]].vue';
 import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vue';
@@ -52,6 +53,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "dashboards-analytics",
           component: Dashboard,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/events",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-events",
+          component: Events,
           props: true,
           meta: { layout: "default" },
         },
