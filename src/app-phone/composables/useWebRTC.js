@@ -253,9 +253,13 @@ export function useWebRTC() {
           break;
         case "disconnected":
         case "failed":
+          if (callMode.value === "p2p") {
+          pc.restartIce();
+        } else {
           isConnected.value = false;
           connectionStatus.value = "error";
           endCall(false);
+        }
           break;
         case "closed":
           isConnected.value = false;
