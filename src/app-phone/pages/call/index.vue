@@ -14,7 +14,7 @@ const isValidValue = computed(() => {
 })
 
 const joinMeeting = () => {
-  if (!isValidValue) return;
+  if (!isValidValue.value) return;
   router.push({ name: 'call-id', params: { id: meetingIdInput.value } });
 };
 </script>
@@ -30,7 +30,7 @@ const joinMeeting = () => {
         </button>
 
         <div class="join-box">
-          <input v-model="meetingIdInput" type="text" placeholder="Enter code to join" />
+          <input v-model="meetingIdInput" type="text" placeholder="Enter code to join"  @keyup.enter="joinMeeting"/>
           <button class="btn-text" :class="{ 'btn-text-active': isValidValue }" :disabled="!isValidValue"
             @click="joinMeeting">
             Join

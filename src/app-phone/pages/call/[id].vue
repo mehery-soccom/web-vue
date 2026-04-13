@@ -116,6 +116,7 @@ const handleSessionEnded = async () => {
 
     currentSessionId = session.sessionId;
     isHost.value = session.host?.userId === userId;
+    wasEverConnected = false;
 
     await resetWebRTC();
     onRemoteCameraState((val) => { remoteCameraOn.value = val; });
@@ -190,6 +191,9 @@ const startPolling = (rate = 1500) => {
         // We're already registered in the new session (e.g. fast page-refresh flow)
         currentSessionId = roomData.sessionId;
         isHost.value = roomData.host?.userId === userId;
+        remoteDescSet = false;
+        lastAnsweredOfferSdp = null;
+        wasEverConnected = false;
       } else if (roomData.status === "waiting" || (roomData.status === "active" && !roomData.guest?.userId)) {
         // New session with open guest slot
         if (isJoining.value || isCreatingNewSession.value) return;
@@ -830,6 +834,17 @@ const handleLeave = async (updateDB = true) => {
   .pip-wrapper {
     width: 130px;
     height: 90px;
+    bottom: 7rem;
+  }
+   .controls {
+    bottom: 1.5rem;
+    gap: 8px;
+  }
+
+  .controls button {
+    width: 42px;
+    height: 42px;
+    font-size: 18px;
   }
 }
 </style>
