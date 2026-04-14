@@ -9,7 +9,8 @@ const {
   initP2PCall, createP2POffer, createP2PAnswer,
   setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
-  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState, connectionStatus, resetP2PWithMedia
+  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState, connectionStatus, resetP2PWithMedia,
+  remoteDisconnected
 } = useWebRTC();
 
 const route = useRoute();
@@ -247,7 +248,6 @@ const startPolling = (rate = 1500) => {
     // re-answer on new offer (guest side)
     if (!isHost.value && roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp) {
       try {
-        if (connectionStatus.value === 'error' ||connectionStatus.value === 'disconnected') return;
         const sId = currentSessionId;
         await resetP2PWithMedia(Camera.value, Mic.value);
         remoteDescSet = false;
@@ -294,23 +294,41 @@ watch(isConnected, async (connected) => {
     await nextTick();
     let attempts = 0;
     const trySend = setInterval(() => {
-      reattachMediaStreams();
+    reattachMediaStreams();
+    const dcOpen = dataChannel?.readyState === "open";
+    console.log(`[isConnected watcher] attempt ${attempts + 1}, dataChannel state: ${dataChannel?.readyState ?? "null"}`);
+    if (dcOpen) {
       sendCameraState(Camera.value);
       if (ScreenShare.value) sendCameraState(true);
-      attempts++;
-      if (attempts >= 10) clearInterval(trySend);
-    }, 500);
+      console.log("[isConnected watcher] Camera state sent successfully");
+      clearInterval(trySend);
+    }
+    attempts++;
+    if (attempts >= 30) {
+      console.warn("[isConnected watcher] dataChannel never opened after reconnect");
+      clearInterval(trySend);
+    }
+  }, 500);
   } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
-    remoteName.value = "";
-    remoteCameraOn.value = false
+    console.log("[isConnected] Lost connection but not ending call yet, starting slow poll");
+    remoteCameraOn.value = false;
     startPolling(1000);
   }
 });
 
 watch(connectionStatus, async (status) => {
   if ((status === 'failed' || status === 'error') && isHost.value && wasEverConnected.value) {
+    await resetP2PWithMedia(Camera.value, Mic.value);
     console.log("Network failed. Starting ICE Restart...");
-    const offer = await createP2POffer(roomId); 
+    remoteDescSet = false;
+    let offer;
+    try {
+      offer = await createP2POffer(roomId);
+    } catch (e) {
+      console.warn("Offer failed, retrying...");
+      await resetP2PWithMedia(Camera.value, Mic.value);
+      offer = await createP2POffer(roomId);
+    }
     await callStore.updateRoom(roomId, {
       offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates },
       answer: null, 
@@ -330,7 +348,12 @@ watch(userName, v => {
   localStorage.setItem('p2p_username', v);
   if (v.trim()) nameError.value = "";
 });
-
+watch(remoteDisconnected, (dropped) => {
+  if (dropped) {
+    console.log("[CallRoom] Remote peer disconnected, clearing remoteCameraOn");
+    remoteCameraOn.value = false;
+  }
+});
 onMounted(async () => {
   await initP2PCall();
   window.addEventListener('beforeunload', () => {
@@ -416,7 +439,13 @@ const handleLeave = async (updateDB = true) => {
             <div class="avatar">{{ remoteName.charAt(0).toUpperCase() }}</div>
           </div>
           <p class="placeholder-name">{{ remoteName }}</p>
-          <div class="connecting-dots" v-if="!isConnected">
+          <div v-if="remoteDisconnected && !isConnected" class="reconnecting-badge">
+            <span class="buffer-dot"></span>
+            <span class="buffer-dot"></span>
+            <span class="buffer-dot"></span>
+            <span style="margin-left:6px; font-size:0.78rem; opacity:0.6">Connection lost…</span>
+          </div>
+          <div v-else-if="!isConnected" class="connecting-dots">
             <span></span><span></span><span></span>
           </div>
         </template>
@@ -763,6 +792,27 @@ const handleLeave = async (updateDB = true) => {
   font-weight: 700;
 }
 
+.reconnecting-badge {
+  display: flex;
+  align-items: center;
+  background: rgba(249, 171, 0, 0.15);
+  border: 1px solid rgba(249, 171, 0, 0.3);
+  border-radius: 20px;
+  padding: 5px 12px;
+  margin-top: 4px;
+}
+
+.buffer-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #f9ab00;
+  margin: 0 2px;
+  animation: dot-pulse 1.4s ease-in-out infinite;
+}
+
+.buffer-dot:nth-child(2) { animation-delay: 0.2s; }
+.buffer-dot:nth-child(3) { animation-delay: 0.4s; }
 /* ── Controls ── */
 .controls {
   position: absolute;
