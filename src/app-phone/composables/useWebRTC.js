@@ -230,7 +230,7 @@ export function useWebRTC() {
         const attach = () => {
           const remoteVideo = document.getElementById("remote-video");
           if (remoteVideo) {
-            remoteVideo.srcObject = stream;
+            if (remoteVideo.srcObject !== stream) {remoteVideo.srcObject = stream;}
             remoteVideo.muted = false;
             console.log("[ontrack] Remote video attached on attempt", attempts + 1);
         } else if (attempts < 20) {

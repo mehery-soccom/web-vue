@@ -266,9 +266,9 @@ const startPolling = (rate = 1500) => {
     // Name sync
     const remotePeer = isHost.value ? roomData.guest : roomData.host;
     if (roomData.sessionId === currentSessionId) {
-      if (isConnected.value || !wasEverConnected.value) {
+      if (remotePeer?.userId) {
         remoteName.value = remotePeer?.name || "";
-      } else if (roomData.status === "ended" || !remotePeer?.userId) {
+      } else {
         remoteName.value = "";
       }
     }
@@ -298,19 +298,28 @@ watch(isConnected, async (connected) => {
     await nextTick();
     let attempts = 0;
     const trySend = setInterval(() => {
-    reattachMediaStreams();
     const dcOpen = dataChannel?.readyState === "open";
     console.log(`[isConnected watcher] attempt ${attempts + 1}, dataChannel state: ${dataChannel?.readyState ?? "null"}`);
     if (dcOpen) {
       sendCameraState(Camera.value);
       if (ScreenShare.value) sendCameraState(true);
-      console.log("[isConnected watcher] Camera state sent successfully");
       clearInterval(trySend);
     }
+
     attempts++;
-    if (attempts >= 30) {
-      console.warn("[isConnected watcher] dataChannel never opened after reconnect");
+
+    if (attempts >= 10) {
+      console.warn("[fallback] forcing media restore without datachannel");
+      reattachMediaStreams();
+      if (remoteStream.value?.getVideoTracks().length) {
+        remoteCameraOn.value = true;
+      }
       clearInterval(trySend);
+    }
+    if (connected) {
+      setTimeout(() => {
+        reattachMediaStreams();
+      }, 1500);
     }
   }, 500);
   } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
@@ -346,6 +355,15 @@ watch(remoteCameraOn, async (val) => {
     await nextTick();
     reattachMediaStreams();
   }
+  if (remoteStream.value) {
+  const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
+
+  if (dead) {
+    console.warn("[remote stream dead] forcing reset");
+    await resetP2PWithMedia(Camera.value, Mic.value);
+    return;
+  }
+}
 });
 
 watch(userName, v => {
