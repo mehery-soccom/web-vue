@@ -10,7 +10,7 @@ const {
   setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
   reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState, connectionStatus, resetP2PWithMedia,
-  remoteDisconnected
+  remoteDisconnected, dataChannel
 } = useWebRTC();
 
 const route = useRoute();
@@ -225,7 +225,11 @@ const startPolling = (rate = 1500) => {
         return;
       }
     }
-    if (!roomData || roomData.sessionId !== currentSessionId) return;
+    if (!roomData || roomData.sessionId !== currentSessionId) {
+      console.warn("[POLL] Session mismatch → forcing reconnect");
+      await handleSessionEnded();
+      return;
+    }
 
     // apply answer (host side)
     if (isHost.value && roomData.answer?.sdp) {
