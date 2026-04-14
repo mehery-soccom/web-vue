@@ -221,11 +221,13 @@ export function useWebRTC() {
       if (callMode.value === "p2p") {
         remoteStream.value = stream;
         await nextTick();
+        setTimeout(() => {
         const remoteVideo = document.getElementById("remote-video");
         if (remoteVideo) {
           remoteVideo.srcObject = stream;
           remoteVideo.muted = false;
         }
+      }, 200);
       }
     };
 
@@ -253,6 +255,8 @@ export function useWebRTC() {
           break;
         case "disconnected":
         case "failed":
+          connectionStatus.value = "error";
+          isConnected.value = false;
           if (callMode.value === "p2p") {
           pc.restartIce();
         } else {
@@ -274,6 +278,9 @@ export function useWebRTC() {
 
     pc.ondatachannel = (event) => {
       dataChannel = event.channel;
+      dataChannel.onopen = () => {
+        if (callMode.value === "p2p") {sendCameraState(Camera.value);}
+      };
       setupDataChannel(dataChannel);
     };
   };
@@ -875,8 +882,7 @@ export function useWebRTC() {
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = Mic.value;
     }
-    if (remoteStream.value && remoteVideoEl){
-        remoteVideoEl.srcObject = null;
+    if (remoteStream.value && remoteVideoEl && remoteVideoEl.srcObject !== remoteStream.value){
       remoteVideoEl.srcObject = remoteStream.value;
     }
   };
@@ -1038,6 +1044,47 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     }
   };
 
+  const resetP2PWithMedia = async (hadCamera, hadMic) => {
+    callMode.value = "p2p";
+    cameraToggleLock = false;
+    gatheredCandidates.value = [];
+    remoteStream.value = null;
+    if (pc) { pc.close(); pc = null; }
+    if (localStream) { localStream.getTracks().forEach(t => t.stop()); localStream = null; await new Promise(r => setTimeout(r, 400));}
+
+    const constraints = {
+      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      video: hadCamera ? { width: 1280, height: 720 } : false
+    };
+
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (!hadCamera) {
+       const canvas = document.createElement("canvas");
+       canvas.width = canvas.height = 2;
+       const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
+       localStream.addTrack(blackTrack);
+    }
+    Mic.value = hadMic;
+    Camera.value = hadCamera;
+    localStream.getAudioTracks()[0].enabled = hadMic;
+    if (ScreenStream) {
+      ScreenStream.getTracks().forEach(t => t.stop());
+      ScreenStream = null;
+    }
+
+    pc = new RTCPeerConnection({ iceServers: iceServers.value, iceTransportPolicy: "all" });
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    setupRTCEventListeners();
+    setupLocalVideo(localStream);
+
+    dataChannel = null;
+    ScreenShare.value = false;
+    callMode.value = "p2p";
+  }catch (error){
+    console.error("Hardware Grab Failed", error);
+  }
+};
   const endP2PCall = async () => {
     if (callMode.value !== "p2p") return;
 
@@ -1112,6 +1159,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     createP2PAnswer,
     addRemoteCandidate,
     onRemoteCameraState,
+    resetP2PWithMedia,
     endP2PCall,
   };
 }

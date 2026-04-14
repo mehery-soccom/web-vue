@@ -9,7 +9,7 @@ const {
   initP2PCall, createP2POffer, createP2PAnswer,
   setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
-  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState
+  reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState, connectionStatus, resetP2PWithMedia
 } = useWebRTC();
 
 const route = useRoute();
@@ -41,7 +41,7 @@ const isScreenSharePending = ref(false);
 
 let pollingInterval = null;
 let pollRate = 1500;
-let wasEverConnected = false;
+const wasEverConnected = ref(false);
 let lastAnsweredOfferSdp = null;
 let currentSessionId = null;
 const isCreatingNewSession = ref(false);
@@ -51,35 +51,10 @@ const resetWebRTC = async () => {
   const hadCamera = Camera.value;
   const hadMic = Mic.value;
   const hadScreen = ScreenShare.value;
-  await endP2PCall();
-  await initP2PCall();
-  remoteDescSet = false; lastAnsweredOfferSdp = null;
-
-  if (isHost.value) {
-    await setupAsHost(); 
-  } else {
-  }
-
-  const unwatch = watch(isConnected, async (connected) => {
-    if (connected) {
-      if (hadMic) {
-        Mic.value = false; // Reset ref so toggleMic actually fires
-        await toggleMic();
-      }
-      if (hadCamera) {
-        Camera.value = false;
-        await toggleCamera();
-      }
-      if (hadScreen) {
-        try {
-          await toggleScreenShare();
-        } catch (e) {
-          isScreenSharePending.value = true;
-        }
-      }
-      unwatch(); 
-    }
-  });
+  await resetP2PWithMedia(hadCamera, hadMic);
+  remoteDescSet = false;lastAnsweredOfferSdp = null;
+  if (hadScreen) isScreenSharePending.value = true;
+  onRemoteCameraState((val) => { remoteCameraOn.value = val; });
 };
 
 const stopPolling = () => { if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; } };
@@ -146,7 +121,7 @@ const handleSessionEnded = async () => {
 
     currentSessionId = session.sessionId;
     isHost.value = session.host?.userId === userId;
-    wasEverConnected = false;
+    wasEverConnected.value = false;
 
     await resetWebRTC();
     onRemoteCameraState((val) => { remoteCameraOn.value = val; });
@@ -216,7 +191,7 @@ const startPolling = (rate = 1500) => {
     const roomData = await callStore.getRoom(roomId, userId);
 
     if (hasJoined.value && (!roomData || (roomData.sessionId === currentSessionId && roomData.status === "ended"))) {
-      if (!roomData && isHost.value && !wasEverConnected) {
+      if (!roomData && isHost.value && !wasEverConnected.value) {
         await handleLeave(false);
         return;
       }
@@ -233,7 +208,7 @@ const startPolling = (rate = 1500) => {
         isHost.value = roomData.host?.userId === userId;
         remoteDescSet = false;
         lastAnsweredOfferSdp = null;
-        wasEverConnected = false;
+        wasEverConnected.value = false;
       } else if (roomData.status === "waiting" || (roomData.status === "active" && !roomData.guest?.userId)) {
         // New session with open guest slot
         if (isJoining.value || isCreatingNewSession.value) return;
@@ -270,15 +245,16 @@ const startPolling = (rate = 1500) => {
     }    
 
     // re-answer on new offer (guest side)
-    if (!isHost.value && !remoteDescSet && roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp && !roomData.answer?.sdp) {
+    if (!isHost.value && roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp) {
       try {
+        if (connectionStatus.value === 'error' ||connectionStatus.value === 'disconnected') return;
         const sId = currentSessionId;
-        await endP2PCall(); await initP2PCall();
+        await resetP2PWithMedia(Camera.value, Mic.value);
         remoteDescSet = false;
         const answer = await createP2PAnswer(roomData.offer);
-        remoteDescSet = true;
         if (currentSessionId !== sId) return;
         lastAnsweredOfferSdp = roomData.offer.sdp;
+        remoteDescSet = true;
         await callStore.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates }, status: 'active' });
       } catch (e) { console.error("[POLL/GUEST re-answer]:", e); }
     }
@@ -286,7 +262,7 @@ const startPolling = (rate = 1500) => {
     // Name sync
     const remotePeer = isHost.value ? roomData.guest : roomData.host;
     if (roomData.sessionId === currentSessionId) {
-      if (isConnected.value || !wasEverConnected) {
+      if (isConnected.value || !wasEverConnected.value) {
         remoteName.value = remotePeer?.name || "";
       } else if (roomData.status === "ended" || !remotePeer?.userId) {
         remoteName.value = "";
@@ -307,7 +283,7 @@ const resumeScreenShare = async () => {
 
 watch(isConnected, async (connected) => {
   if (connected) {
-    wasEverConnected = true;
+    wasEverConnected.value = true;
     stopPolling();
     startPolling(10000);
     const roomData = await callStore.getRoom(roomId, userId);
@@ -316,16 +292,30 @@ watch(isConnected, async (connected) => {
       remoteName.value = remotePeer?.name || "";
     }
     await nextTick();
-    if (ScreenShare.value || Camera.value) {
-       sendCameraState(true);
-    } else {
-       sendCameraState(false);
-    }
-    setTimeout(() => reattachMediaStreams(), 1000);
-  } else if (wasEverConnected && !isEndingCall.value && !isCreatingNewSession.value) {
+    let attempts = 0;
+    const trySend = setInterval(() => {
+      reattachMediaStreams();
+      sendCameraState(Camera.value);
+      if (ScreenShare.value) sendCameraState(true);
+      attempts++;
+      if (attempts >= 10) clearInterval(trySend);
+    }, 500);
+  } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
     remoteName.value = "";
     remoteCameraOn.value = false
     startPolling(1000);
+  }
+});
+
+watch(connectionStatus, async (status) => {
+  if ((status === 'failed' || status === 'error') && isHost.value && wasEverConnected.value) {
+    console.log("Network failed. Starting ICE Restart...");
+    const offer = await createP2POffer(roomId); 
+    await callStore.updateRoom(roomId, {
+      offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates },
+      answer: null, 
+      status: 'reconnecting' 
+    });
   }
 });
 
@@ -450,6 +440,13 @@ const handleLeave = async (updateDB = true) => {
         <span>{{ userName }} (You)</span>
       </div>
 
+      <div v-if="wasEverConnected && !isConnected" class="reconnecting-overlay">
+        <div class="wifi-loader">
+          <Icon icon="tabler:wifi-off" width="40" />
+        </div>
+        <p>Reconnecting...</p>
+        <span>Trying to restore your connection</span>
+      </div>
       <!-- Controls -->
       <div class="controls">
         <button @click="toggleCamera" :class="{ 'btn-off': !Camera }">
