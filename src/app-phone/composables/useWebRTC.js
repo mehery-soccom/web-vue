@@ -280,6 +280,15 @@ export function useWebRTC() {
               }
             };
             setTimeout(() => trySendState(), 500);
+            setTimeout(() => {
+              if (remoteStream.value) {
+                const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
+                if (dead) {
+                  console.warn("[connected but no media] forcing reset");
+                  connectionStatus.value = "error";
+                }
+              }
+            }, 2000);
           }
           break;
         case "disconnected":
@@ -920,8 +929,10 @@ export function useWebRTC() {
       if (audioTrack) audioTrack.enabled = Mic.value;
     }
     if (remoteStream.value && remoteVideoEl){
+      if (remoteVideoEl.srcObject !== remoteStream.value) {
       remoteVideoEl.srcObject = remoteStream.value;
       console.log("[reattach] Remote video srcObject set", !!remoteStream.value);
+      }
     }
   };
 
@@ -1175,6 +1186,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     callHistory,
     receivedSdpAnswer,
     receivedAnswer,
+    dataChannel,
 
     Mic,
     Camera,
