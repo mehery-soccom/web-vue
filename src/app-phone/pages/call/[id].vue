@@ -57,7 +57,7 @@ const resetWebRTC = async () => {
   await resetP2PWithMedia(hadCamera, hadMic);
   remoteDescSet = false;lastAnsweredOfferSdp = null;
   if (hadScreen) isScreenSharePending.value = true;
-  onRemoteCameraState((val) => { remoteCameraOn.value = val; });
+  onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
 };
 
 const stopPolling = () => { if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; } };
@@ -95,7 +95,7 @@ const setupAsGuest = async (initialSession) => {
 // if 2 peers try joinng and same time then guest peer and refreshing
 const rejoinAsParticipant = async () => {
   await resetWebRTC();
-  onRemoteCameraState((val) => { remoteCameraOn.value = val; });
+  onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
   const joined = await callStore.createRoom(roomId, userName.value, userId, null);
   if (joined.waitingForNewSession) {
     currentSessionId = joined.sessionId;
@@ -126,7 +126,7 @@ const handleSessionEnded = async () => {
     wasEverConnected.value = false;
 
     await resetWebRTC();
-    onRemoteCameraState((val) => { remoteCameraOn.value = val; });
+    onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
 
     if (isHost.value) {
       await setupAsHost();
@@ -164,7 +164,7 @@ const joinRoom = async () => {
     currentSessionId = session.sessionId;
     isHost.value = session.host?.userId === userId;
     await resetWebRTC();
-    onRemoteCameraState((val) => { remoteCameraOn.value = val; });
+    onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
     if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(session); }
     if (stagingCameraOn) {
       Camera.value = false; 
@@ -257,7 +257,7 @@ const startPolling = (rate = 1500) => {
       try {
         const sId = currentSessionId;
         await resetP2PWithMedia(Camera.value, Mic.value);
-        onRemoteCameraState((val) => { remoteCameraOn.value = val; });
+        onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
         remoteDescSet = false;
         const answer = await createP2PAnswer(roomData.offer);
         if (currentSessionId !== sId) return;
@@ -307,7 +307,7 @@ watch(isConnected, async (connected) => {
     const dcOpen = dataChannel.value?.readyState === "open";
     if (dcOpen) {
       sendCameraState(Camera.value);
-      if (ScreenShare.value) sendCameraState(true);
+      if (ScreenShare.value) sendCameraState(true, true);
       clearInterval(trySend);
       return
     }
@@ -323,6 +323,9 @@ watch(isConnected, async (connected) => {
       return; 
     }
   }, 500);
+  setTimeout(() => {
+      increaseBitrate(); 
+    }, 2000);
   } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
     remoteCameraOn.value = false;
     startPolling(1000);
@@ -339,7 +342,7 @@ watch(connectionStatus, async (status) => {
     try{
 
     await resetP2PWithMedia(Camera.value, Mic.value);
-    onRemoteCameraState((val) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
+    onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
     remoteDescSet = false;
     let offer;
     try {
