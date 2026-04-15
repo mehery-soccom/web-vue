@@ -926,6 +926,14 @@ export function useWebRTC() {
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) audioTrack.enabled = Mic.value;
     }
+    if (remoteVideoEl) {
+      const isScreenTrack = remoteStream.value
+        ?.getVideoTracks()[0]
+        ?.label.toLowerCase()
+        .includes("screen");
+
+      remoteVideoEl.style.objectFit = isScreenTrack ? "contain" : "cover";
+    }
     if (remoteStream.value && remoteVideoEl){
       if (remoteVideoEl.srcObject !== remoteStream.value) {
       remoteVideoEl.srcObject = remoteStream.value;
@@ -1111,10 +1119,9 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     gatheredCandidates.value = [];
     remoteStream.value = null;
     dataChannel.value = null;
-    ScreenShare.value = false;
     remoteDisconnected.value = false;
     if (pc) { pc.close(); pc = null; }
-    if (localStream) { localStream.getTracks().forEach(t => t.stop());}
+    if (localStream) { localStream.getTracks().forEach(t => {if (t.kind === "video" && ScreenShare.value) return; t.stop()});}
 
     
     try {
@@ -1144,6 +1151,13 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     setupRTCEventListeners();
     await nextTick()
     setupLocalVideo(localStream);
+    if (ScreenShare.value && ScreenStream) {
+      const screenTrack = ScreenStream.getVideoTracks()[0];
+      if (screenTrack && pc) {
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender) {await sender.replaceTrack(screenTrack);}
+      }
+    }
   }catch (error){
     console.error("[WebRTC:reset] Hardware grab failed", { message: error.message, hadCamera, hadMic });
   }
