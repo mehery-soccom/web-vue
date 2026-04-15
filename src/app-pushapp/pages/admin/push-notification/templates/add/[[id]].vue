@@ -13,9 +13,14 @@ const max50 = (v) => !v || v.length <= 50 || "Title must be 50 characters or les
 const max120 = (v) => !v || v.length <= 120 || "Message must be 120 characters or less";
 // const urlRule = (v) =>
 //   !v || /^https?:\/\/\S+$/.test(v) || "Must be a valid URL";
+const urlRequired = v => {
+  if (!template.style.category) return true;
+  const value = typeof v === 'string' ? v : v?.code || v?.value || '';
+  return !!value || 'URL is required';
+};
 const urlRule = (v) => {
-  if (!v) return true;
-  const value = typeof v === 'string' ? v : v.code || v.value || '';
+  const value = typeof v === 'string' ? v : v?.code || v?.value || '';
+  if (!value) return true;
   return /^https?:\/\/\S+$/.test(value) || 'Must be a valid URL';
 };
 const lineOpen = reactive({ 1: false, 2: false, 3: false });
@@ -488,7 +493,7 @@ watch(
                           v-model="buttonGroupValue[b.text]"
                           :label="'Button > ' + b.text"
                           placeholder="Enter URL"
-                          :rules="[urlRule]"
+                          :rules="[urlRequired, urlRule]"
                           prepend-inner-icon="mdi-link"
                           :items="optionsPath || []"
                           :clearable=true item-title="code" item-value="code"
