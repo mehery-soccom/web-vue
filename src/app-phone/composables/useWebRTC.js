@@ -23,6 +23,7 @@ export function useWebRTC() {
   //Calling Variables
   const remoteStream = ref(null);
   let channelId = ref("");
+  const pendingCandidates = [];
 
   const Mic = ref(false);
   const Camera = ref(false);
@@ -279,11 +280,7 @@ export function useWebRTC() {
           }
           break;
         case "disconnected":
-          const remoteVideo = document.getElementById("remote-video");
-          if (remoteVideo) {
-            remoteVideo.srcObject = null;
-          }
-          remoteStream.value = null;
+          console.warn("[ICE] temporary disconnect — waiting for recovery");
           break;
         case "failed":
           connectionStatus.value = "error";
@@ -998,26 +995,23 @@ export function useWebRTC() {
 };
 
 const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
-    return new Promise((resolve) => {
-        if (gatheredCandidates.value.length >= n) {
-            resolve(); return;
-        }
+  return new Promise((resolve) => {
+    if (gatheredCandidates.value.length >= n) return resolve();
 
-        const timer = setTimeout(() => {
-          pc.onicecandidate = original;
-          resolve();
-        }, timeoutMs);
+    const handler = () => {
+      if (gatheredCandidates.value.length >= n) {
+        cleanup();
+      }
+    };
 
-        const original = pc.onicecandidate;
-        pc.onicecandidate = (event) => {
-            if (original) original(event);
-            if (gatheredCandidates.value.length >= n) {
-              clearTimeout(timer)
-                pc.onicecandidate = original;
-                resolve();
-            }
-        };
-    });
+    const cleanup = () => {
+      pc.removeEventListener("icecandidate", handler);
+      clearTimeout(timer);
+      resolve();
+    };
+    pc.addEventListener("icecandidate", handler);
+    const timer = setTimeout(cleanup, timeoutMs);
+  });
 };
 
   const createP2POffer = async (remoteNumber) => {
@@ -1034,6 +1028,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     setupDataChannel(dataChannel.value);
 
     const offer = await pc.createOffer({
+        iceRestart: true,
         offerToReceiveAudio: true,
         offerToReceiveVideo: true,
     });
@@ -1070,6 +1065,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
         for (const c of remoteOffer.candidates) {
             try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
         }
+        pendingCandidates.length = 0;
     }
 
     const answer = await pc.createAnswer();
@@ -1085,12 +1081,15 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
   };
 
   const addRemoteCandidate = async (candidate) => {
-    if (pc && pc.remoteDescription) {
+    if (!pc) return;
+    if (pc.remoteDescription) {
       try {
         await pc.addIceCandidate(new RTCIceCandidate(candidate));
       } catch (e) {
         console.error("Error adding ICE candidate", e);
       }
+    }else {
+      pendingCandidates.push(candidate);
     }
   };
 
