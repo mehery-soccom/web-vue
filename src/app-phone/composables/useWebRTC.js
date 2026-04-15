@@ -16,7 +16,7 @@ export function useWebRTC() {
   const receivedSdpAnswer = ref(null);
   let pc = null;
   let localStream = null;
-  let dataChannel = null;
+  const dataChannel = ref(null);
   const onCameraStateCallback = ref(null);
   let cameraToggleLock = false;
 
@@ -268,25 +268,12 @@ export function useWebRTC() {
           stopRingbacktone();
           stopRingtone();
           if (callMode.value === "p2p") {
-            const trySendState = (attempts = 0) => {
-              if (dataChannel?.readyState === "open") {
-                console.log("[reconnect] DataChannel open, re-sending camera state");
-                sendCameraState(Camera.value);
-                if (ScreenShare.value) sendCameraState(true);
-              } else if (attempts < 20) {
-                setTimeout(() => trySendState(attempts + 1), 300);
-              } else {
-                console.warn("[reconnect] DataChannel never re-opened after reconnect");
-              }
-            };
-            setTimeout(() => trySendState(), 500);
             setTimeout(() => {
-              if (remoteStream.value) {
-                const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
-                if (dead) {
-                  console.warn("[connected but no media] forcing reset");
-                  connectionStatus.value = "error";
-                }
+              if (!remoteStream.value) return;
+              const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
+              if (dead && pc?.connectionState === "connected") {
+                console.warn("[connected but no media] forcing reset");
+                connectionStatus.value = "error";
               }
             }, 2000);
           }
@@ -323,11 +310,8 @@ export function useWebRTC() {
 
     pc.ondatachannel = (event) => {
       console.log("[ondatachannel] DataChannel received (guest side)");
-      dataChannel = event.channel;
-      dataChannel.onopen = () => {
-        if (callMode.value === "p2p") {sendCameraState(Camera.value);}
-      };
-      setupDataChannel(dataChannel);
+      dataChannel.value = event.channel;
+      setupDataChannel(dataChannel.value);
     };
   };
 
@@ -846,8 +830,8 @@ export function useWebRTC() {
 };
 
   const sendCameraState = (state) => {
-    if (dataChannel?.readyState === "open") {
-      dataChannel.send(JSON.stringify({ type: "cameraState", value: state }));
+    if (dataChannel.value?.readyState === "open") {
+      dataChannel.value.send(JSON.stringify({ type: "cameraState", value: state }));
     }
   };
 
@@ -921,7 +905,15 @@ export function useWebRTC() {
   const reattachMediaStreams = () => {
     const localVideoPip = document.getElementById("local-video-pip");
     if (localVideoPip && localStream) {
+      if (localVideoPip.srcObject !== localStream) {
       localVideoPip.srcObject = localStream;
+    }
+    }
+    const remoteAudio = document.getElementById("audio-remote");
+    if (remoteAudio && remoteStream.value) {
+      if (remoteAudio.srcObject !== remoteStream.value) {
+        remoteAudio.srcObject = remoteStream.value;
+      }
     }
     const remoteVideoEl = document.getElementById("remote-video");
     if (localStream) {
@@ -939,7 +931,7 @@ export function useWebRTC() {
   const initP2PCall = async () => {
     callMode.value = "p2p";
     cameraToggleLock = false;
-    dataChannel = null;
+    dataChannel.value = null;
     gatheredCandidates.value = [];
 
     if (pc) {
@@ -991,8 +983,7 @@ export function useWebRTC() {
   const setupDataChannel = (dc) => {
   dc.onopen = () => {
     console.log("[dataChannel] Opened, sending camera state:", Camera.value, "ScreenShare:", ScreenShare.value);
-    sendCameraState(Camera.value);
-    if (ScreenShare.value) sendCameraState(true);
+    sendCameraState(Camera.value || ScreenShare.value);
     reattachMediaStreams();
   };
   dc.onmessage = (e) => {
@@ -1039,8 +1030,8 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     callState.value = "calling";
     currentPeerNumber.value = remoteNumber;
 
-    dataChannel = pc.createDataChannel("p2p-state");
-    setupDataChannel(dataChannel);
+    dataChannel.value = pc.createDataChannel("p2p-state");
+    setupDataChannel(dataChannel.value);
 
     const offer = await pc.createOffer({
         offerToReceiveAudio: true,
@@ -1137,7 +1128,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     setupRTCEventListeners();
     setupLocalVideo(localStream);
 
-    dataChannel = null;
+    dataChannel.value = null;
     ScreenShare.value = false;
     callMode.value = "p2p";
   }catch (error){
@@ -1146,6 +1137,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
 };
   const endP2PCall = async () => {
     if (callMode.value !== "p2p") return;
+    dataChannel.value = null;
 
     await endCall(false);
 

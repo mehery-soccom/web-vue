@@ -10,7 +10,7 @@ const {
   setRemoteDescription, addRemoteCandidate,
   endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
   reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState, connectionStatus, resetP2PWithMedia,
-  remoteDisconnected, dataChannel
+  remoteDisconnected, dataChannel, remoteStream
 } = useWebRTC();
 
 const route = useRoute();
@@ -296,14 +296,16 @@ watch(isConnected, async (connected) => {
       remoteName.value = remotePeer?.name || "";
     }
     await nextTick();
+    setTimeout(() => reattachMediaStreams(), 800);
     let attempts = 0;
     const trySend = setInterval(() => {
-    const dcOpen = dataChannel?.readyState === "open";
-    console.log(`[isConnected watcher] attempt ${attempts + 1}, dataChannel state: ${dataChannel?.readyState ?? "null"}`);
+    const dcOpen = dataChannel.value?.readyState === "open";
+    console.log(`[isConnected watcher] attempt ${attempts + 1}, dataChannel state: ${dataChannel.value?.readyState ?? "null"}`);
     if (dcOpen) {
       sendCameraState(Camera.value);
       if (ScreenShare.value) sendCameraState(true);
       clearInterval(trySend);
+      return
     }
 
     attempts++;
@@ -315,11 +317,7 @@ watch(isConnected, async (connected) => {
         remoteCameraOn.value = true;
       }
       clearInterval(trySend);
-    }
-    if (connected) {
-      setTimeout(() => {
-        reattachMediaStreams();
-      }, 1500);
+      return; 
     }
   }, 500);
   } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
@@ -354,16 +352,15 @@ watch(remoteCameraOn, async (val) => {
   if (val) {
     await nextTick();
     reattachMediaStreams();
+    if (remoteStream.value) {
+      const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
+    
+      if (dead) {
+        console.warn("[remote stream dead] forcing reset");
+        await resetP2PWithMedia(Camera.value, Mic.value);
+      }
+    }
   }
-  if (remoteStream.value) {
-  const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
-
-  if (dead) {
-    console.warn("[remote stream dead] forcing reset");
-    await resetP2PWithMedia(Camera.value, Mic.value);
-    return;
-  }
-}
 });
 
 watch(userName, v => {
