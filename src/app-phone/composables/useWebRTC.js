@@ -801,7 +801,7 @@ export function useWebRTC() {
       if (realTrack) { realTrack.stop(); localStream.removeTrack(realTrack); }
       localStream.addTrack(blackTrack);
       Camera.value = false;
-      sendCameraState(false);
+      sendCameraState(false, false);
       reattachMediaStreams();
     } else {
       try {
@@ -812,12 +812,12 @@ export function useWebRTC() {
         if (blackTrack) {localStream.removeTrack(blackTrack);blackTrack.stop();}
         localStream.addTrack(newTrack);
         Camera.value = true;
-        sendCameraState(true);
+        sendCameraState(true, false);
         reattachMediaStreams();
       } catch (error) {
         console.error("Error restarting camera:", error);
         Camera.value = false;
-        sendCameraState(false);
+        sendCameraState(false, false);
       }
     }
     reattachMediaStreams();
@@ -877,10 +877,11 @@ export function useWebRTC() {
 
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
+        video: {width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { max: 30 }},
         audio: false,
       });
       const screenTrack = screenStream.getVideoTracks()[0];
+      if(screenTrack.contentHint != undefined){ screenTrack.contentHint = 'detail'}
       ScreenStream = screenStream;
 
       screenTrack.onended = () => {
@@ -998,7 +999,7 @@ export function useWebRTC() {
     try {
       const msg = JSON.parse(e.data);
       if (msg.type === "cameraState" && onCameraStateCallback.value) {
-        onCameraStateCallback.value(msg.value);
+        onCameraStateCallback.value(msg.value, msg.isScreen);
       }
     } catch (_) {}
   };
@@ -1098,6 +1099,26 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
       }
     }
   };
+    const increaseBitrate = async () => {
+    if (!pc) return;
+    const videoSender = pc.getSenders().filter(s => s.track?.kind === 'video');
+
+    for (const sender of videoSender) {
+      try {
+        const parameters = sender.getParameters();
+        if (!parameters.encodings || parameters.encodings.length === 0) {
+          parameters.encodings = [{}];
+        }
+        const isScreen = sender.track?.label?.toLowerCase().includes("screen");
+        parameters.encodings[0].maxBitrate = isScreen ? 3500000 : 2500000; 
+        
+        parameters.degradationPreference = 'maintain-resolution'; 
+        await sender.setParameters(parameters);
+      } catch (e) {
+        console.warn("[WebRTC] Could not set bitrate:", e);
+      }
+    }
+  };
 
   const resetP2PWithMedia = async (hadCamera, hadMic) => {
     connectionStatus.value = "connecting";
@@ -1115,7 +1136,9 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     try {
       const constraints = {
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-        video: hadCamera ? { width: 1280, height: 720 } : false
+        video: hadCamera ? { width: { min: 640, ideal: 1280, max: 1920 },
+        height: { min: 480, ideal: 720, max: 1080 },
+        frameRate: { ideal: 30, max: 60 } } : false
       };
     localStream = await navigator.mediaDevices.getUserMedia(constraints);
     if (!hadCamera) {
@@ -1224,6 +1247,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     createP2PAnswer,
     addRemoteCandidate,
     onRemoteCameraState,
+    increaseBitrate,
     resetP2PWithMedia,
     remoteDisconnected,
     endP2PCall,
