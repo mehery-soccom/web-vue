@@ -250,7 +250,7 @@ const startPolling = (rate = 1500) => {
     }    
 
     // re-answer on new offer (guest side)
-    if (!isHost.value && roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp) {
+    if (!isHost.value && roomData.offer?.sdp) {
       try {
         const sId = currentSessionId;
         await resetP2PWithMedia(Camera.value, Mic.value);
@@ -272,7 +272,7 @@ const startPolling = (rate = 1500) => {
         remoteName.value = "";
       }
     }
-    const target = !isConnected.value && roomData.guest?.userId ? 500 : isConnected.value ? 4000 : 1500;
+    const target = !isConnected.value && roomData.guest?.userId ? 700 : isConnected.value ? 8000 : 1500;
     if (target !== pollRate) startPolling(target);
   }, pollRate);
 };
@@ -287,6 +287,7 @@ const resumeScreenShare = async () => {
 
 watch(isConnected, async (connected) => {
   if (connected) {
+    remoteCameraOn.value = true;
     wasEverConnected.value = true;
     stopPolling();
     startPolling(10000);
@@ -297,6 +298,9 @@ watch(isConnected, async (connected) => {
     }
     await nextTick();
     setTimeout(() => reattachMediaStreams(), 800);
+    if (remoteStream.value?.getVideoTracks().length) {
+      remoteCameraOn.value = true;
+    }
     let attempts = 0;
     const trySend = setInterval(() => {
     const dcOpen = dataChannel.value?.readyState === "open";
@@ -355,9 +359,15 @@ watch(remoteCameraOn, async (val) => {
     if (remoteStream.value) {
       const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
     
-      if (dead) {
-        console.warn("[remote stream dead] forcing reset");
+      if (dead && isConnected.value) {
         await resetP2PWithMedia(Camera.value, Mic.value);
+        const offer = await createP2POffer(roomId);
+
+        await callStore.updateRoom(roomId, {
+          offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates },
+          answer: null,
+          status: 'reconnecting'
+        });
       }
     }
   }
@@ -371,6 +381,15 @@ watch(remoteDisconnected, (dropped) => {
   if (dropped) {
     console.log("[CallRoom] Remote peer disconnected, clearing remoteCameraOn");
     remoteCameraOn.value = false;
+  }
+});
+watch(remoteStream, (stream) => {
+  if (stream) {
+    console.log("[FIX] remote stream detected → restoring UI");
+    if (stream.getVideoTracks().length) {
+      remoteCameraOn.value = true;
+    }
+    reattachMediaStreams();
   }
 });
 onMounted(async () => {
