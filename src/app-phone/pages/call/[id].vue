@@ -39,6 +39,7 @@ const roomFullMessage = ref("");
 const remoteCameraOn = ref(false);
 const nameError = ref("")
 const isScreenSharePending = ref(false);
+let isReconnecting = false;
 
 let pollingInterval = null;
 let pollRate = 1500;
@@ -106,6 +107,11 @@ const rejoinAsParticipant = async () => {
 
 // on refresh rejoin as host
 const handleSessionEnded = async () => {
+  console.log("[CallRoom:session] handleSessionEnded called", { 
+    isCreatingNewSession: isCreatingNewSession.value, 
+    isEndingCall: isEndingCall.value,
+    wasEverConnected: wasEverConnected.value
+  });
   if (isCreatingNewSession.value || isEndingCall.value) return;
   isCreatingNewSession.value = true;
   stopPolling();
@@ -113,6 +119,10 @@ const handleSessionEnded = async () => {
   remoteCameraOn.value = false;
   try {
     const session = await callStore.createRoom(roomId, userName.value, userId, null);
+    console.log("[CallRoom:session] New session created", { 
+      sessionId: currentSessionId, 
+      isHost: isHost.value 
+    });
 
     if (session.waitingForNewSession) {
       // another peer already created new session, wait for polling to detect it
@@ -134,6 +144,7 @@ const handleSessionEnded = async () => {
     }
   } catch (e) {
     statusMessage.value = "Error. Please refresh.";
+    console.error("[CallRoom:session] Session creation failed", { message: e.message });
   } finally {
     isCreatingNewSession.value = false;
     startPolling(800);
@@ -237,30 +248,42 @@ const startPolling = (rate = 1500) => {
           try {
               await setRemoteDescription(roomData.answer);
               remoteDescSet = true;
+              if (roomData.status === 'reconnecting') {
+                await callStore.updateRoom(roomId, { status: 'active' });
+            }
           } catch (e) { 
               if (!e.message?.includes('not initialized')) console.error("[POLL/HOST]", e); 
           }
       }
 
-      if (roomData.answer.candidates?.length) {
-          roomData.answer.candidates.forEach(c => {
-              try { addRemoteCandidate(c); } catch (_) {}
-          });
-        }
+      if (remoteDescSet && roomData.answer.candidates?.length) {
+        roomData.answer.candidates.forEach(c => addRemoteCandidate(c));
+      }
     }    
 
     // re-answer on new offer (guest side)
-    if (!isHost.value && roomData.offer?.sdp) {
+    const roomIsReconnecting = roomData.status === 'reconnecting';
+    const isNewOffer = roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp;
+    if (!isHost.value && (isNewOffer || (roomIsReconnecting && !remoteDescSet))) {
+      console.log("[CallRoom:poll] 🔄 Guest re-answering", { 
+      isNewOffer, 
+      roomIsReconnecting, 
+      remoteDescSet,
+      lastAnswered: lastAnsweredOfferSdp?.slice(-20), 
+      newOffer: roomData.offer?.sdp?.slice(-20)
+    });
       try {
+        console.log("[CallRoom:poll] Guest re-answer pushed to DB");
         const sId = currentSessionId;
         await resetP2PWithMedia(Camera.value, Mic.value);
+        onRemoteCameraState((val) => { remoteCameraOn.value = val; });
         remoteDescSet = false;
         const answer = await createP2PAnswer(roomData.offer);
         if (currentSessionId !== sId) return;
         lastAnsweredOfferSdp = roomData.offer.sdp;
         remoteDescSet = true;
         await callStore.updateRoom(roomId, { answer: { type: 'answer', sdp: answer.sdp, candidates: answer.candidates }, status: 'active' });
-      } catch (e) { console.error("[POLL/GUEST re-answer]:", e); }
+      } catch (e) { console.error("[CallRoom:poll] Guest re-answer failed", { message: e.message }); }
     }
 
     // Name sync
@@ -272,7 +295,7 @@ const startPolling = (rate = 1500) => {
         remoteName.value = "";
       }
     }
-    const target = !isConnected.value && roomData.guest?.userId ? 700 : isConnected.value ? 8000 : 1500;
+    const target = !isConnected.value && roomData.guest?.userId ? 500 : isConnected.value ? 4000 : 1500;
     if (target !== pollRate) startPolling(target);
   }, pollRate);
 };
@@ -286,8 +309,8 @@ const resumeScreenShare = async () => {
 };
 
 watch(isConnected, async (connected) => {
+  console.log(`[CallRoom:isConnected] → ${connected} | wasEverConnected: ${wasEverConnected.value}`);
   if (connected) {
-    remoteCameraOn.value = true;
     wasEverConnected.value = true;
     stopPolling();
     startPolling(10000);
@@ -298,14 +321,14 @@ watch(isConnected, async (connected) => {
     }
     await nextTick();
     setTimeout(() => reattachMediaStreams(), 800);
-    if (remoteStream.value?.getVideoTracks().length) {
-      remoteCameraOn.value = true;
-    }
     let attempts = 0;
     const trySend = setInterval(() => {
+      const dcState = dataChannel.value?.readyState ?? "null";
+      console.log(`[CallRoom:dataChannel] attempt ${attempts + 1}/10 — state: ${dcState}`);
     const dcOpen = dataChannel.value?.readyState === "open";
     console.log(`[isConnected watcher] attempt ${attempts + 1}, dataChannel state: ${dataChannel.value?.readyState ?? "null"}`);
     if (dcOpen) {
+      console.log("[CallRoom:dataChannel] Open — sending camera state", { camera: Camera.value, screen: ScreenShare.value });
       sendCameraState(Camera.value);
       if (ScreenShare.value) sendCameraState(true);
       clearInterval(trySend);
@@ -315,7 +338,8 @@ watch(isConnected, async (connected) => {
     attempts++;
 
     if (attempts >= 10) {
-      console.warn("[fallback] forcing media restore without datachannel");
+      console.warn("[CallRoom:dataChannel] DataChannel never opened after 10 attempts — falling back to stream detection", {
+          remoteStreamTracks: remoteStream.value?.getTracks().map(t => `${t.kind}:${t.readyState}`) || []})
       reattachMediaStreams();
       if (remoteStream.value?.getVideoTracks().length) {
         remoteCameraOn.value = true;
@@ -325,15 +349,26 @@ watch(isConnected, async (connected) => {
     }
   }, 500);
   } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
-    console.log("[isConnected] Lost connection but not ending call yet, starting slow poll");
+    console.warn("[CallRoom:isConnected] Lost connection — starting slow poll for recovery");
     remoteCameraOn.value = false;
     startPolling(1000);
   }
 });
 
 watch(connectionStatus, async (status) => {
+  console.log(`[CallRoom:connStatus] → ${status} | isHost: ${isHost.value} | wasConnected: ${wasEverConnected.value} | isReconnecting: ${isReconnecting}`);
   if ((status === 'failed' || status === 'error') && isHost.value && wasEverConnected.value) {
+    stopPolling();
+      if (isReconnecting){console.warn("[CallRoom:connStatus] Reconnect already in progress, skipping");
+      return
+    } 
+    console.log("[CallRoom:connStatus]  Starting host ICE restart...");
+    isReconnecting = true;
+    try{
+    console.log("[CallRoom:connStatus] New offer created, pushing to DB with status: reconnecting");
+
     await resetP2PWithMedia(Camera.value, Mic.value);
+    onRemoteCameraState((val) => { remoteCameraOn.value = val; });
     console.log("Network failed. Starting ICE Restart...");
     remoteDescSet = false;
     let offer;
@@ -350,6 +385,11 @@ watch(connectionStatus, async (status) => {
       status: 'reconnecting' 
     });
   }
+  finally{
+    console.log("[CallRoom:connStatus] Reconnect attempt done, isReconnecting reset");
+    isReconnecting = false;
+    startPolling(800);
+  }}
 });
 
 watch(remoteCameraOn, async (val) => {
@@ -359,15 +399,9 @@ watch(remoteCameraOn, async (val) => {
     if (remoteStream.value) {
       const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
     
-      if (dead && isConnected.value) {
+      if (dead) {
+        console.warn("[remote stream dead] forcing reset");
         await resetP2PWithMedia(Camera.value, Mic.value);
-        const offer = await createP2POffer(roomId);
-
-        await callStore.updateRoom(roomId, {
-          offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates },
-          answer: null,
-          status: 'reconnecting'
-        });
       }
     }
   }
@@ -381,15 +415,6 @@ watch(remoteDisconnected, (dropped) => {
   if (dropped) {
     console.log("[CallRoom] Remote peer disconnected, clearing remoteCameraOn");
     remoteCameraOn.value = false;
-  }
-});
-watch(remoteStream, (stream) => {
-  if (stream) {
-    console.log("[FIX] remote stream detected → restoring UI");
-    if (stream.getVideoTracks().length) {
-      remoteCameraOn.value = true;
-    }
-    reattachMediaStreams();
   }
 });
 onMounted(async () => {
