@@ -25,6 +25,7 @@ const byUser = window.CONST?.USER?.code || null
 
 const isLoading = ref(false)
 const feedbacks = ref([])
+const lastFetchParams = ref({})
 
 const pagination = reactive({
   itemsLength: 0,
@@ -115,6 +116,12 @@ const fetchFeedbacks = async (options = pagination) => {
       const sortItem = options.sortBy[0]
       apiParams.sort = `${sortItem.order === 'desc' ? '-' : ''}${sortItem.key}`
     }
+    lastFetchParams.value = {
+      search: activeFilters,
+      rating: apiParams.rating,
+      minScore: apiParams.minScore,
+      maxScore: apiParams.maxScore,
+    }
 
     const response = await feedbackStore.fetchFeedbacks(apiParams)
     feedbacks.value = response.results || []
@@ -143,7 +150,10 @@ const onUpdateOptions = (options) => {
   pagination.page = options.page
   pagination.itemsPerPage = options.itemsPerPage
   pagination.sortBy = options.sortBy
-  pagination.filters = options.filters || {}
+  pagination.filters = {
+    ...pagination.filters,
+    ...(options.filters || {})
+  }
   fetchFeedbacks(pagination)
 }
 const onUpdateOptionsDebounced = debounce(onUpdateOptions, 300)
@@ -277,7 +287,24 @@ const exportToExcel = async () => {
 
     const response = await feedbackStore.fetchFeedbacksDownload(downloadParams)
     
-    const allData = Array.isArray(response) ? response : (response.results || [])
+    let allData = Array.isArray(response) ? response : (response.results || [])
+    
+    const searchFilters = lastFetchParams.value?.search || {}
+    allData = allData.filter(item => {
+      return Object.entries(searchFilters).every(([field, value]) => {
+        if (value === null || value === undefined || value === '') return true
+        
+        const fieldValue = field.split('.').reduce((obj, key) => obj?.[key], item)
+        
+        if (fieldValue === undefined || fieldValue === null) return false
+        
+        if (typeof fieldValue === 'boolean') {
+          return fieldValue === (value === true || value === 'true')
+        }
+        
+        return String(fieldValue).toLowerCase().includes(String(value).toLowerCase())
+      })
+    })
 
     if (allData.length === 0) {
       show({ message: 'No data available for selected filters', color: 'warning' })

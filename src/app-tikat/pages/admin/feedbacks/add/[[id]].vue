@@ -384,6 +384,7 @@ onMounted(fetchFeedbackData);
                                   hover
                                   color="warning"
                                   active-color="warning"
+                                  :readonly="isReadOnly(field)"
                                   :disabled="isReadOnly(field)"
                                   class="large-rating"
                                 />
