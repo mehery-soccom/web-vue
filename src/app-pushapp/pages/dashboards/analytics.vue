@@ -186,9 +186,9 @@ onMounted(async () => {
         />
       </div>
     </VRow> -->
-    <VRow>
-      <VCol cols="12" md="2"></VCol>
-      <VCol cols="12" md="8">
+    <VRow justify="center">
+      <!-- <VCol cols="12" md="1.5"></VCol> -->
+      <VCol cols="12" md="9">
         <MyChartComponent
           type="line"
           :data="chartData"
@@ -199,7 +199,7 @@ onMounted(async () => {
           :enableDatePicker="true"
           :dateConfig="{
             mode: 'range',
-            dateFormat: 'd-m-Y',
+            dateFormat: 'd-m',
             maxDate: tonight,
             plugins: [customPlugin]
           }"

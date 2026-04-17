@@ -16,7 +16,7 @@ export function useWebRTC() {
   const receivedSdpAnswer = ref(null);
   let pc = null;
   let localStream = null;
-  let dataChannel = null;
+  const dataChannel = ref(null);
   const onCameraStateCallback = ref(null);
   let cameraToggleLock = false;
 
@@ -29,7 +29,7 @@ export function useWebRTC() {
   const ScreenShare = ref(false);
   let ScreenStream = null;
   const callMode = ref("meta"); // 'meta' 'p2p'
-
+  const remoteDisconnected = ref(false);
   let p2pRoomId = null;
 
   // ICE servers configuration
@@ -219,13 +219,27 @@ export function useWebRTC() {
       setupRemoteAudio(stream);
 
       if (callMode.value === "p2p") {
+        stream.getTracks().forEach(track => {
+        track.onended = () => {
+          console.warn("[Remote Track Ended]", track.kind);
+        };
+      });
         remoteStream.value = stream;
-        await nextTick();
-        const remoteVideo = document.getElementById("remote-video");
-        if (remoteVideo) {
-          remoteVideo.srcObject = stream;
-          remoteVideo.muted = false;
+        let attempts = 0;
+        const attach = () => {
+          const remoteVideo = document.getElementById("remote-video");
+          if (remoteVideo) {
+            if (remoteVideo.srcObject !== stream) {remoteVideo.srcObject = stream;}
+            remoteVideo.muted = false;
+        } else if (attempts < 20) {
+          attempts++;
+          setTimeout(attach, 150);
+        } else {
+          console.warn("[ontrack] Remote video element never appeared");
         }
+      };
+      await nextTick();
+      attach();
       }
     };
 
@@ -240,9 +254,9 @@ export function useWebRTC() {
 
     // Handle connection state changes
     pc.onconnectionstatechange = () => {
-      console.log("Connection state:", pc.connectionState);
       switch (pc.connectionState) {
         case "connected":
+          remoteDisconnected.value = false;
           isConnected.value = true;
           connectionStatus.value = "connected";
           callState.value = "talking";
@@ -250,11 +264,33 @@ export function useWebRTC() {
           startCallTimer();
           stopRingbacktone();
           stopRingtone();
+          if (callMode.value === "p2p") {
+            setTimeout(() => {
+              if (!remoteStream.value) return;
+              const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
+              if (dead && pc?.connectionState === "connected") {
+                console.warn("[connected but no media] forcing reset");
+                connectionStatus.value = "error";
+              }
+            }, 2000);
+          }
           break;
         case "disconnected":
+          console.warn("[WebRTC:connState] Temporary disconnect — waiting for ICE recovery");
+          break;
         case "failed":
+          console.error("[WebRTC:connState] ❌ Failed", {
+            iceState: pc.iceConnectionState,
+            signalingState: pc.signalingState,
+            hadRemoteStream: !!remoteStream.value,
+            remoteTrackStates: remoteStream.value?.getTracks().map(t => `${t.kind}:${t.readyState}`) || [],
+            mode: callMode.value,
+          });
+          connectionStatus.value = "error";
+          isConnected.value = false;
+          remoteStream.value = null;
           if (callMode.value === "p2p") {
-          pc.restartIce();
+            remoteDisconnected.value = true;
         } else {
           isConnected.value = false;
           connectionStatus.value = "error";
@@ -269,12 +305,13 @@ export function useWebRTC() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("ICE connection state:", pc.iceConnectionState);
+      console.log(`[WebRTC:ICE] → ${pc.iceConnectionState}`);
     };
 
     pc.ondatachannel = (event) => {
-      dataChannel = event.channel;
-      setupDataChannel(dataChannel);
+      console.log("[ondatachannel] DataChannel received (guest side)");
+      dataChannel.value = event.channel;
+      setupDataChannel(dataChannel.value);
     };
   };
 
@@ -750,9 +787,9 @@ export function useWebRTC() {
   if (cameraToggleLock) return;
   cameraToggleLock = true;
 
-  const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-
+  
   try {
+    const sender = pc.getSenders().find((s) => s.track?.kind === "video");
     if (Camera.value) {
       const realTrack = localStream.getVideoTracks()[0];
       const canvas = document.createElement("canvas");
@@ -792,9 +829,9 @@ export function useWebRTC() {
   }
 };
 
-  const sendCameraState = (state) => {
-    if (dataChannel?.readyState === "open") {
-      dataChannel.send(JSON.stringify({ type: "cameraState", value: state }));
+  const sendCameraState = (state, isScreen = false) => {
+    if (dataChannel.value?.readyState === "open") {
+      dataChannel.value.send(JSON.stringify({ type: "cameraState", value: state, isScreen }));
     }
   };
 
@@ -829,7 +866,7 @@ export function useWebRTC() {
     }
 
     ScreenStream = null;
-    sendCameraState(Camera.value);
+    sendCameraState(Camera.value, false);
   };
 
   const toggleScreenShare = async () => {
@@ -859,6 +896,7 @@ export function useWebRTC() {
         }
       }
       ScreenShare.value = true;
+      sendCameraState(true, true);
     } catch (error) {
       console.error("Screen share error:", error);
     }
@@ -867,18 +905,41 @@ export function useWebRTC() {
   const reattachMediaStreams = () => {
     const localVideoPip = document.getElementById("local-video-pip");
     if (localVideoPip && localStream) {
+      if (localVideoPip.srcObject !== localStream) {
       localVideoPip.srcObject = localStream;
-      localVideoPip.muted = true;
+    }
+    }
+    const remoteAudio = document.getElementById("audio-remote");
+    if (remoteAudio && remoteStream.value) {
+      if (remoteAudio.srcObject !== remoteStream.value) {
+        remoteAudio.srcObject = remoteStream.value;
+      }
     }
     const remoteVideoEl = document.getElementById("remote-video");
-    if (remoteStream.value && remoteVideoEl)
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = Mic.value;
+    }
+    if (remoteVideoEl) {
+      const isScreenTrack = remoteStream.value
+        ?.getVideoTracks()[0]
+        ?.label.toLowerCase()
+        .includes("screen");
+
+      remoteVideoEl.style.objectFit = isScreenTrack ? "contain" : "cover";
+    }
+    if (remoteStream.value && remoteVideoEl){
+      if (remoteVideoEl.srcObject !== remoteStream.value) {
       remoteVideoEl.srcObject = remoteStream.value;
+      remoteVideoEl.play().catch(e => console.warn("Auto-play prevented:", e));
+      }
+    }
   };
 
   const initP2PCall = async () => {
     callMode.value = "p2p";
     cameraToggleLock = false;
-    dataChannel = null;
+    dataChannel.value = null;
     gatheredCandidates.value = [];
 
     if (pc) {
@@ -928,7 +989,11 @@ export function useWebRTC() {
   };
 
   const setupDataChannel = (dc) => {
-  dc.onopen = () => sendCameraState(Camera.value);
+  dc.onopen = () => {
+    remoteDisconnected.value = false;
+    sendCameraState(Camera.value || ScreenShare.value);
+    reattachMediaStreams();
+  };
   dc.onmessage = (e) => {
     try {
       const msg = JSON.parse(e.data);
@@ -940,38 +1005,39 @@ export function useWebRTC() {
 };
 
 const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
-    return new Promise((resolve) => {
-        if (gatheredCandidates.value.length >= n) {
-            resolve(); return;
-        }
+  return new Promise((resolve) => {
+    if (gatheredCandidates.value.length >= n) {
+      resolve(); return;
+    }
 
-        const timer = setTimeout(() => {
+    const timer = setTimeout(() => {
+      pc.onicecandidate = original;
+      resolve();
+    }, timeoutMs);
+
+    const original = pc.onicecandidate;
+    pc.onicecandidate = (event) => {
+      if (original) original(event);
+      if (gatheredCandidates.value.length >= n) {
+        clearTimeout(timer)
           pc.onicecandidate = original;
           resolve();
-        }, timeoutMs);
-
-        const original = pc.onicecandidate;
-        pc.onicecandidate = (event) => {
-            if (original) original(event);
-            if (gatheredCandidates.value.length >= n) {
-              clearTimeout(timer)
-                pc.onicecandidate = original;
-                resolve();
-            }
-        };
-    });
+      }
+    };
+  });
 };
 
   const createP2POffer = async (remoteNumber) => {
     p2pRoomId = remoteNumber;
     if (callMode.value !== "p2p") await initP2PCall();
     if (!pc) await initWebRTC();
+    gatheredCandidates.value = [];
 
     callState.value = "calling";
     currentPeerNumber.value = remoteNumber;
 
-    dataChannel = pc.createDataChannel("p2p-state");
-    setupDataChannel(dataChannel);
+    dataChannel.value = pc.createDataChannel("p2p-state");
+    setupDataChannel(dataChannel.value);
 
     const offer = await pc.createOffer({
         offerToReceiveAudio: true,
@@ -992,6 +1058,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
 
   const createP2PAnswer = async (remoteOffer) => {
     if (!pc) await initP2PCall();
+    gatheredCandidates.value = [];
 
     const sdpData = remoteOffer.sdp || remoteOffer;
     const type = sdpData.type || "offer";
@@ -1032,8 +1099,58 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     }
   };
 
+  const resetP2PWithMedia = async (hadCamera, hadMic) => {
+    connectionStatus.value = "connecting";
+    isConnected.value = false;
+    callMode.value = "p2p";
+    cameraToggleLock = false;
+    gatheredCandidates.value = [];
+    remoteStream.value = null;
+    dataChannel.value = null;
+    remoteDisconnected.value = false;
+    if (pc) { pc.close(); pc = null; }
+    if (localStream) { localStream.getTracks().forEach(t => {if (t.kind === "video" && ScreenShare.value) return; t.stop()});}
+
+    
+    try {
+      const constraints = {
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: hadCamera ? { width: 1280, height: 720 } : false
+      };
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (!hadCamera) {
+       const canvas = document.createElement("canvas");
+       canvas.width = canvas.height = 2;
+       const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
+       localStream.addTrack(blackTrack);
+    }
+    Mic.value = hadMic;
+    Camera.value = hadCamera;
+    localStream.getAudioTracks()[0].enabled = hadMic;
+    if (ScreenStream) {
+      ScreenStream.getTracks().forEach(t => t.stop());
+      ScreenStream = null;
+    }
+
+    pc = new RTCPeerConnection({ iceServers: iceServers.value, iceTransportPolicy: "all" });
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    setupRTCEventListeners();
+    await nextTick()
+    setupLocalVideo(localStream);
+    if (ScreenShare.value && ScreenStream) {
+      const screenTrack = ScreenStream.getVideoTracks()[0];
+      if (screenTrack && pc) {
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender) {await sender.replaceTrack(screenTrack);}
+      }
+    }
+  }catch (error){
+    console.error("[WebRTC:reset] Hardware grab failed", { message: error.message, hadCamera, hadMic });
+  }
+};
   const endP2PCall = async () => {
     if (callMode.value !== "p2p") return;
+    dataChannel.value = null;
 
     await endCall(false);
 
@@ -1056,8 +1173,6 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     Mic.value = false;
     Camera.value = false;
     ScreenShare.value = false;
-
-    callMode.value = "meta";
   };
 
   onUnmounted(() => {
@@ -1076,6 +1191,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     callHistory,
     receivedSdpAnswer,
     receivedAnswer,
+    dataChannel,
 
     Mic,
     Camera,
@@ -1084,6 +1200,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     toggleMic,
     toggleCamera,
     toggleScreenShare,
+    sendCameraState,
 
     initWebRTC,
     disconnect,
@@ -1107,6 +1224,8 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     createP2PAnswer,
     addRemoteCandidate,
     onRemoteCameraState,
+    resetP2PWithMedia,
+    remoteDisconnected,
     endP2PCall,
   };
 }
