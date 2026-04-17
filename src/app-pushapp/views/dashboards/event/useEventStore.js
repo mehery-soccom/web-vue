@@ -34,5 +34,19 @@ export const useEventStore = defineStore("EventStore", {
         console.error("Error fetching event stats:", error);
       }
     },
+
+    async fetchTimeSlotStats(params) {
+      return DataService.axios.get("/api/v1/analytics/events/timeSlot", { params });
+    },
+
+    // Events over time
+    async fetchEventOverTime(params) {
+      return DataService.axios.get("/api/v1/analytics/events/event", { params });
+    },
+
+    //Users over time
+    async fetchUserOverTime(params) {
+      return DataService.axios.get("/api/v1/analytics/events/users", { params });
+    },
   },
 });
