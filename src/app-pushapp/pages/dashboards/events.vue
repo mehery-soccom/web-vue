@@ -4,6 +4,7 @@ import { useEventStore } from '@app-pushapp/views/dashboards/event/useEventStore
 import CardStatisticsTransactions from '@app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters"
+import Trends from "@app-pushapp/views/dashboards/event/Trends.vue"
 
 const eventStore = useEventStore()
 const { customPlugin } = useDatePickerFilters()
@@ -13,11 +14,13 @@ const selectedCohort = ref('All')
 const cohortOptions = ['All']
 const analyticsType = ref('Snap') 
 const options = ['Snap', 'Trends', 'Sessions', 'Users', "Geo's", 'Devices']
+const selectedTrend = ref(null)
+const trendOptions = ['Time of Day', 'Events over time', 'Users over time']
 
 // Date Logic: Default last 7 days
 const tonight = new Date().setHours(23, 59, 59, 999)
 const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-")
-const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 7))
+const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6))
 const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`)
 
 
@@ -119,31 +122,57 @@ watch([selectedEvent, analyticsType], () => {
     </VCol>
 
     <VCol cols="12">
-      <VBtnToggle
-        v-model="analyticsType"
-        color="primary"
-        variant="tonal"
-        mandatory
-        divided
-      >
-        <VBtn
-          v-for="option in options"
-          :key="option"
-          :value="option"
-        >
-          {{ option }}
-        </VBtn>
+      <VBtnToggle v-model="analyticsType" color="primary" variant="tonal" mandatory divided>
+        <template v-for="option in options" :key="option">
+          
+          <VBtn v-if="option !== 'Trends'" :value="option">
+            {{ option }}
+          </VBtn>
+
+          <VMenu v-else transition="scale-transition">
+            <template #activator="{ props }">
+              <VBtn 
+                :value="option" 
+                v-bind="props" 
+                append-icon="tabler-chevron-down"
+              >
+                Trends
+              </VBtn>
+            </template>
+
+            <VList>
+              <VListItem 
+                v-for="trend in trendOptions" 
+                :key="trend" 
+                @click="selectedTrend = trend; analyticsType = 'Trends'"
+              >
+                <VListItemTitle>{{ trend }}</VListItemTitle>
+              </VListItem>
+            </VList>
+          </VMenu>
+
+        </template>
       </VBtnToggle>
     </VCol>
 
     <VCol cols="12">
         <VRow v-if="analyticsType === 'Snap'">
             <VCol cols="12" md="6">
-            <CardStatisticsTransactions
-                :statistics="snapStatistics"
-                title="Snap Overview"
-            />
+              <CardStatisticsTransactions
+                  :statistics="snapStatistics"
+                  title="Snap Overview"
+              />
             </VCol>
+        </VRow>
+
+        <VRow v-else-if="analyticsType === 'Trends'">
+          <VCol cols="12">
+            <Trends 
+              :event="selectedEvent" 
+              :dateRange="dateRange" 
+              :selectedTrend="selectedTrend"
+            />
+          </VCol>
         </VRow>
 
         <VCard v-else class="text-center pa-12">
