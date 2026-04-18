@@ -25,9 +25,10 @@ const chartConfig = computed(() =>
 </script>
 
 <template>
-  <LineChart
-    :chart-options="chartOption || chartConfig"
-    :height="200"
-    :chart-data="data"
-  />
+  <div style="height: 100%; width: 100%;">
+    <LineChart
+      :chart-options="chartOption || chartConfig"
+      :chart-data="data"
+    />
+  </div>
 </template>
