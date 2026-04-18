@@ -60,7 +60,7 @@ const headers = computed(() => {
       key: 'meta.segmentLabel', 
       sortable: true,
       filterType: 'select',
-      filterOptions: ['Poor Feedback', 'Satisfactory', 'Good to Excellent']
+      filterOptions: ['Not Satisfied', 'Neutral', 'Satisfied']
     },
     { 
       title: 'Status', 

@@ -25,9 +25,9 @@ const formData = ref({
   scale: 5,
   positiveScore: 60,
   segmentation: [
-    { label: 'Poor Feedback', min: 0, max: 40 },
-    { label: 'Satisfactory', min: 41, max: 65 },
-    { label: 'Good to Excellent', min: 66, max: 100 },
+    { label: 'Not Satisfied', min: 0, max: 40 },
+    { label: 'Neutral', min: 41, max: 65 },
+    { label: 'Satisfied', min: 66, max: 100 },
   ],
   displayTitle: true,
   banner: {
@@ -330,7 +330,7 @@ const openPreview = () => {
                   <AppTextField
                     v-model="formData.segmentation[0].max"
                     type="number"
-                    label="Poor Feedback"
+                    label="Not Satisfied"
                     :disabled="hasTikats"
                     prefix="<"
                     suffix="%"
@@ -338,7 +338,7 @@ const openPreview = () => {
                 </VCol>
 
                 <VCol cols="12" md="6" class="pa-0 mb-3">
-                  <div class="text-body-2 mb-1">Satisfactory</div>
+                  <div class="text-body-2 mb-1">Neutral</div>
                   <VRow dense align="center">
                     <VCol cols="5">
                       <AppTextField
@@ -368,7 +368,7 @@ const openPreview = () => {
                 <VCol cols="12" md="6" class="pa-0 mb-3">
                   <AppTextField
                     v-model="formData.segmentation[2].min"
-                    label="Good to Excellent"
+                    label="Satisfied"
                     prefix=">"
                     suffix="%"
                     readonly
