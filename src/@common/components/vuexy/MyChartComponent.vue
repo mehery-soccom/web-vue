@@ -41,7 +41,7 @@ const onDateClosed = (selectedDates, dateStr) => {
 </script>
 
 <template>
-  <VCard>
+  <VCard style="height: 100%;">
     <!-- <div v-if="enableDatePicker" class="pa-2" style="max-width: 250px;">
       <AppDateTimePicker
         :key="pickerKey"
@@ -70,7 +70,7 @@ const onDateClosed = (selectedDates, dateStr) => {
       </div>
     </template>
 
-    <VCardText>
+    <VCardText style="height: calc(100% - 70px);">
       <ChartJsLineChart
         v-if="type === 'line'"
         :data="data"
