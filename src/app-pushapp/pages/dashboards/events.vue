@@ -23,6 +23,14 @@ const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-
 const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6))
 const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`)
 
+const optionIcons = {
+  Snap: 'tabler-click',
+  Trends: 'tabler-trending-up',
+  Sessions: 'tabler-clock',
+  Users: 'tabler-users',
+  "Geo's": 'tabler-map-pin',
+  Devices: 'tabler-device-mobile'
+}
 
 const formattedEventList = computed(() => {
   return eventStore.uniqueEvents.map(event => ({
@@ -122,19 +130,26 @@ watch([selectedEvent, analyticsType], () => {
     </VCol>
 
     <VCol cols="12">
-      <VBtnToggle v-model="analyticsType" color="primary" variant="tonal" mandatory divided>
+      <VBtnToggle v-model="analyticsType" color="primary" variant="text" mandatory class="gap-2" >
         <template v-for="option in options" :key="option">
           
-          <VBtn v-if="option !== 'Trends'" :value="option">
+          <VBtn 
+            v-if="option !== 'Trends'" 
+            :value="option" 
+            :prepend-icon="optionIcons[option]"
+            rounded="lg"
+          >
             {{ option }}
           </VBtn>
 
-          <VMenu v-else transition="scale-transition">
+          <VMenu v-else transition="scale-transition" open-on-hover>
             <template #activator="{ props }">
               <VBtn 
                 :value="option" 
                 v-bind="props" 
+                :prepend-icon="optionIcons[option]"
                 append-icon="tabler-chevron-down"
+                rounded="lg"
               >
                 Trends
               </VBtn>

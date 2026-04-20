@@ -13,6 +13,7 @@ export const useDatePickerFilters = () => {
         <button class="flatpickr-custom-btn" data-type="yesterday">Yesterday</button>
         <button class="flatpickr-custom-btn" data-type="last7">Last 7 Days</button>
         <button class="flatpickr-custom-btn" data-type="thisMonth">This Month</button>
+        <button class="flatpickr-custom-btn" data-type="lastMonth">Last Month</button>
         <button class="flatpickr-custom-btn" data-type="last30">Last 30 Days</button>
       `
 
@@ -43,6 +44,10 @@ export const useDatePickerFilters = () => {
             start = new Date()
             start.setDate(start.getDate() - 29)
             end = new Date()
+          } else if (type === 'lastMonth') {
+            const now = new Date()
+            start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+            end = new Date(now.getFullYear(), now.getMonth(), 0)
           }
 
           if (start && end) {
