@@ -123,6 +123,7 @@ const fetchChartData = async (fromDate, toDate) => {
     chartData.value = { labels: formattedLabels, datasets: formattedDatasets,};
     chartOptions.value = {
       responsive: true,
+      maintainAspectRatio: false,
       plugins: {
         legend: {
           position: "top",
@@ -188,7 +189,7 @@ onMounted(async () => {
     </VRow> -->
     <VRow justify="center">
       <!-- <VCol cols="12" md="1.5"></VCol> -->
-      <VCol cols="12" md="9">
+      <VCol cols="12" md="11" style="height: calc(100vh - 150px);">
         <MyChartComponent
           type="line"
           :data="chartData"
