@@ -40,6 +40,78 @@ const TemplateListSimple = ref([]);
 const formRef = ref();
 const filterRef = ref(null);
 
+const schedule = reactive({
+  durationType: "immediate",
+  startDate: null,
+  endDate: null,
+  recurringType: false,
+
+  dailyTime: null,
+  weeklyTime: null,
+  monthlyDateTime: null,
+  monthlyWeekdayTime: null,
+});
+const now = new Date();
+const scheduleDateValidator = value => {
+  if (schedule.durationType === "scheduled" && !value) {
+    return "Please select schedule date";
+  }
+  return true;
+};
+watch(() => schedule.durationType, val => {
+  console.log("dura", val)
+  if (val === "immediate") {
+    schedule.startDate = null;
+  }
+});
+const getTimeParts = (time) => {
+  if (!time) return ["00", "00"];
+  if (time instanceof Date) return [time.getHours(), time.getMinutes()];
+  if (typeof time === "string") {
+    const [hour, minute] = time.split(":");
+    return [hour, minute];
+  }
+  return ["00", "00"];
+};
+const buildSchedulePayload = (schedule) => {
+  if(!!schedule.recurringType) schedule.durationType = 'recurring';
+  if (schedule.durationType === "immediate") return { type: "immediate" };
+
+  if (schedule.durationType === "scheduled") {
+    return {
+      type: "scheduled",
+      runAt: new Date(schedule.startDate),
+    };
+  }
+
+  if (schedule.durationType === "recurring") {
+    let rule = "";
+    const [hour, minute] = getTimeParts(schedule[`${schedule.schedulePattern}Time`]);
+    switch (schedule.schedulePattern) {
+      case "daily":
+        rule = `FREQ=DAILY;BYHOUR=${hour};BYMINUTE=${minute}`;
+        break;
+      case "weekly":
+        rule = `FREQ=WEEKLY;BYDAY=${(schedule.scheduleDays || []).join(",")};BYHOUR=${hour};BYMINUTE=${minute}`;
+        break;
+      case "monthlyDate":
+        rule = `FREQ=MONTHLY;BYMONTHDAY=${schedule.scheduleDate};BYHOUR=${hour};BYMINUTE=${minute}`;
+        break;
+      case "monthlyWeekday":
+        const weekMap = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1,};
+        rule = `FREQ=MONTHLY;BYDAY=${(schedule.scheduleWeekday || []).join(",")};BYSETPOS=${weekMap[schedule.scheduleWeek]};BYHOUR=${hour};BYMINUTE=${minute}`;
+        break;
+    }
+
+    return {
+      type: "recurring",
+      rrule: rule,
+    };
+  }
+
+  return {};
+};
+
 onMounted(async () => {
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
   if (channelsRes.results) ChannelList.value = channelsRes.results;
@@ -105,6 +177,7 @@ const onSendSimple = async () => {
         code: template.code,
       },
       campaignName: notification.campaignName,
+      schedule: buildSchedulePayload(schedule),
     };
 
     let campaignRes = await pushNotificationStore.createCampaign(
@@ -117,6 +190,7 @@ const onSendSimple = async () => {
         filter: filter,
       },
       channelId: notification.channel_id,
+      schedule: buildSchedulePayload(schedule),
       template: {
         code: template.code,
         data: template.model?.data,
@@ -151,6 +225,7 @@ const onSendSimple = async () => {
         <VTabs v-model="tab">
           <VTab value="tab-details"> Details </VTab>
           <VTab value="tab-audience"> Audience </VTab>
+          <VTab value="tab-schedule"> Scheduling </VTab>
         </VTabs>
 
         <VForm ref="formRef">
@@ -217,6 +292,157 @@ const onSendSimple = async () => {
                     ref="filterRef"
                   />
                 </VWindowItem>
+
+                <VWindowItem value="tab-schedule">
+                  <h3 class="mb-2">Campaign Duration</h3>
+                  <p class="text-caption mb-4">
+                    Choose when the campaign will run
+                  </p>
+                  <VRadioGroup v-model="schedule.durationType" hide-details>
+                    <VRadio value="immediate">
+                      <template #label>
+                        <span>Run campaign now</span>
+                      </template>
+                    </VRadio>
+
+                    <VRadio value="scheduled">
+                      <template #label>
+                        <div class="d-flex flex-column gap-2">
+                          <div class="d-flex flex-wrap align-center gap-2">
+                            <span>Run campaign at scheduled date/time</span>
+                            <AppDateTimePicker
+                              v-model="schedule.startDate"
+                              :key="schedule.durationType + '1'"
+                              placeholder="Select Date"
+                              class="flex-grow-1 tiny-input"
+                              style="min-width:170px"
+                              :disabled="schedule.durationType != 'scheduled'"
+                              :config="{ enableTime: true, minDate: now }"
+                              :rules="[scheduleDateValidator]"
+                            />
+                          </div>
+                        </div>
+                      </template>
+                    </VRadio>
+                  </VRadioGroup>
+                  <div style="display: flex;margin-top: 6px;">
+                    <VSwitch
+                      v-model="schedule.recurringType"
+                      hide-details
+                      inset
+                      color="primary"
+                      class="mr-2"
+                    />
+                    <!-- <VTooltip activator="parent" location="bottom">
+                      Make the campaign recurring
+                    </VTooltip> -->
+                    <span>Recurring</span>
+                  </div>
+
+                  <div v-if="!!schedule.recurringType">
+                    <VDivider class="my-6" />
+
+                    <h3 class="mb-2">Recurring Campaign</h3>
+                    <p class="text-caption mb-4">Choose when the campaign repeats</p>
+                    <div class="recurring-group">
+
+                      <VRadioGroup v-model="schedule.schedulePattern">
+
+                        <VRadio value="daily">
+                          <template #label>
+                            Run Daily at 
+                            <AppDateTimePicker
+                              v-model="schedule.dailyTime"
+                              :key="schedule.durationType + '1' + schedule.recurringType"
+                              placeholder="Select Time"
+                              class="flex-grow-1 tiny-input ml-2 input-uniform"
+                              style="min-width:170px"
+                              :disabled="!schedule.recurringType"
+                              :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                            />
+                          </template>
+                        </VRadio>
+
+                        <VRadio value="weekly">
+                          <template #label>
+                            <div class="d-flex align-center gap-2 flex-wrap">
+                              Run on scheduled days of week
+                              <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
+                                <AppSelect
+                                  v-model="schedule.scheduleDays"
+                                  :items="['MON','TUE','WED','THU','FRI','SAT','SUN']"
+                                  density="compact" multiple placeholder="Week Days"
+                                  style="width:170px" class="input-uniform dif-height"
+                                />
+                                <AppDateTimePicker
+                                  v-model="schedule.weeklyTime"
+                                  :key="schedule.durationType + '1' + schedule.recurringType"
+                                  placeholder="Select Time"
+                                  class="flex-grow-1 tiny-input input-uniform"
+                                  style="min-width:170px"
+                                  :disabled="!schedule.recurringType"
+                                  :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                                />
+                              <!-- </div> -->
+                            </div>
+                          </template>
+                        </VRadio>
+
+                        <VRadio value="monthlyDate">
+                          <template #label>
+                            <div class="d-flex align-center gap-2 flex-wrap">
+                              Run on date of month
+                              <VTextField
+                                v-model="schedule.scheduleDate"
+                                type="number"
+                                density="compact"
+                                style="width:80px" class="input-uniform dif-height"
+                              />
+                              <AppDateTimePicker
+                                v-model="schedule.monthlyDateTime"
+                                :key="schedule.durationType + '1' + schedule.recurringType"
+                                placeholder="Select Time"
+                                class="flex-grow-1 tiny-input input-uniform"
+                                style="min-width:170px"
+                                :disabled="!schedule.recurringType"
+                                :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                              />
+                            </div>
+                          </template>
+                        </VRadio>
+
+                        <VRadio value="monthlyWeekday">
+                          <template #label>
+                            <div class="d-flex align-center gap-2 flex-wrap">
+                              Run on
+                              <AppSelect
+                                v-model="schedule.scheduleWeek"
+                                :items="['FIRST','SECOND','THIRD','FOURTH','LAST']"
+                                density="compact" placeholder="Week Number"
+                                style="width:170px" class="input-uniform dif-height"
+                              />
+                              <AppSelect
+                                v-model="schedule.scheduleWeekday"
+                                :items="['MON','TUE','WED','THU','FRI','SAT','SUN']"
+                                density="compact" multiple placeholder="Week Days"
+                                style="width:170px" class="input-uniform dif-height"
+                              />
+                              <AppDateTimePicker
+                                v-model="schedule.monthlyWeekdayTime"
+                                :key="schedule.durationType + '1' + schedule.recurringType"
+                                placeholder="Select Time"
+                                class="flex-grow-1 tiny-input input-uniform"
+                                style="min-width:170px"
+                                :disabled="!schedule.recurringType"
+                                :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                              />
+                            </div>
+                          </template>
+                        </VRadio>
+                      </VRadioGroup>
+                    </div>
+                  </div>
+                </VWindowItem>
               </VWindow>
             </VCardText>
 
@@ -224,11 +450,23 @@ const onSendSimple = async () => {
 
             <VCardText class="d-flex gap-4">
               <VBtn
+                v-if="tab === 'tab-schedule'"
+                @click="onSendSimple"
+                :disabled="isLoading"
+                >{{ isLoading ? "loading..." : "Send Campaign" }}
+              </VBtn>
+              <VBtn
+                v-if="tab === 'tab-audience'"
+                variant="tonal"
+                @click="tab = 'tab-schedule'"
+                >Next<VIcon end icon="mdi-arrow-right"
+              /></VBtn>
+              <!-- <VBtn
                 v-if="tab === 'tab-audience'"
                 @click="onSendSimple"
                 :disabled="isLoading"
                 >{{ isLoading ? "loading..." : "Send Campaign" }}</VBtn
-              >
+              > -->
               <VBtn
                 v-if="tab === 'tab-details'"
                 variant="tonal"
@@ -256,5 +494,18 @@ const onSendSimple = async () => {
   top: 0;
   right: 0;
   padding: 0.5rem;
+}
+</style>
+<style scoped>
+:deep(.dif-height .v-select .v-field .v-field__input) {
+  min-height: 32px !important;
+}
+:deep(.dif-height .v-select .v-field .v-field__input .v-select__selection) {
+  line-height: 18px;
+}
+:deep(.dif-height .v-input__control .v-field .v-field__field .v-field__input) {
+  min-height: 32px !important;
+  max-height: 32px;
+  padding-top: 3px;
 }
 </style>
