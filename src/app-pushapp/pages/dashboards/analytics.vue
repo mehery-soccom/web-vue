@@ -42,6 +42,7 @@ const dates = `${formattedStart} to ${formattedEnd}`;
 var dateRange = ref(dates);
 const globalDateRange = ref([]);
 
+const uiLegends = [ "New User", "Inactive (7+) / Uninstalled (14+)" ];
 const onDateSelect = (selectedDates, dateStr) => {
   console.log("Selected:", selectedDates, dateStr);
 };
@@ -103,6 +104,7 @@ const fetchChartData = async (fromDate, toDate) => {
 
       return {
         ...ds,
+        label: uiLegends[index] || `Series ${index + 1}`,
         fill: false,
         tension: 0.4,
         pointRadius: 2,
@@ -139,11 +141,21 @@ const fetchChartData = async (fromDate, toDate) => {
         intersect: false,
       },
       scales: {
+        x: {
+          title: {
+            display: true,
+            text: "Time",
+          },
+        },
         y: {
           beginAtZero: true,
           suggestedMax: yMax,
           ticks: {
             stepSize: 1,
+          },
+          title: {
+            display: true,
+            text: "Count",
           },
         },
       },
