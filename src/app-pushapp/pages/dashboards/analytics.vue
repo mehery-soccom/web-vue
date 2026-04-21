@@ -3,7 +3,7 @@ import ChartJsLineChart from '@/app-pushapp/views/dashboards/analytics/ChartJsLi
 import { useProjectStore } from "@app-pushapp/views/dashboards/analytics/useProjectStore";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
-import { ref, onMounted, toRaw } from "vue";
+import { ref, onMounted, toRaw, nextTick } from "vue";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -41,6 +41,7 @@ const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
 const dates = `${formattedStart} to ${formattedEnd}`;
 var dateRange = ref(dates);
 const globalDateRange = ref([]);
+const chartKey = ref(0);
 
 const uiLegends = [ "New User", "Inactive (7+) / Uninstalled (14+)" ];
 const onDateSelect = (selectedDates, dateStr) => {
@@ -160,6 +161,8 @@ const fetchChartData = async (fromDate, toDate) => {
         },
       },
     };
+    await nextTick();
+    chartKey.value++;  
   } catch (error) {
     console.error("fetchChartData error:", error);
   }
@@ -203,7 +206,7 @@ onMounted(async () => {
       <!-- <VCol cols="12" md="1.5"></VCol> -->
       <VCol cols="12" md="11" style="height: calc(100vh - 150px);">
         <MyChartComponent
-          type="line"
+          type="line" :key="chartKey"
           :data="chartData"
           :chartOption="chartOptions"
           :colors="chartJsCustomColors"

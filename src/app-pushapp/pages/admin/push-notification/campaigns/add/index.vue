@@ -58,6 +58,16 @@ const scheduleDateValidator = value => {
   }
   return true;
 };
+const dayOfMonthValidator = value => {
+  if (!value && schedule.schedulePattern === "monthlyDate") {
+    return "Date is required";
+  }
+  const num = Number(value);
+  if (isNaN(num) || num < 1 || num > 31) {
+    return "Enter valid date(1-31)";
+  }
+  return true;
+};
 watch(() => schedule.durationType, val => {
   console.log("dura", val)
   if (val === "immediate") {
@@ -394,9 +404,9 @@ const onSendSimple = async () => {
                               Run on date of month
                               <VTextField
                                 v-model="schedule.scheduleDate"
-                                type="number"
-                                density="compact"
-                                style="width:80px" class="input-uniform dif-height"
+                                type="number" :rules="[dayOfMonthValidator]"
+                                density="compact" placeholder="Date" 
+                                style="width:157px" class="input-uniform dif-height"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyDateTime"

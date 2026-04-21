@@ -59,10 +59,11 @@ const onDateClosed = (selectedDates, dateStr) => {
           <div class="text-h4">{{ title }}</div>
           <div v-if="subHeader" class="text-caption text-medium-emphasis"> {{ subHeader }} </div>
         </div>
-        <div v-if="enableDatePicker" style="width: 150px;">
+        <div v-if="enableDatePicker" style="width: 180px;">
           <AppDateTimePicker
             :key="pickerKey"
             v-model="localDate"
+            prepend-inner-icon="tabler-calendar"
             :config="{ ...dateConfig }"
             @on-close="onDateClosed"
           />
