@@ -124,7 +124,12 @@ const buildSchedulePayload = (schedule) => {
 
 onMounted(async () => {
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
-  if (channelsRes.results) ChannelList.value = channelsRes.results;
+  // if (channelsRes.results) ChannelList.value = channelsRes.results;
+  if (channelsRes.results) {
+    ChannelList.value = channelsRes.results;
+    if (ChannelList.value.length === 1) notification.channel_id = ChannelList.value[0].channel_id;
+  }
+
 
   let templatesRes = await pushNotificationStore
     .fetchTemplates({ page: 1, itemsPerPage: 200, sortBy: [] })

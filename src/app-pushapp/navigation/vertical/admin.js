@@ -14,7 +14,7 @@ export default [
         to: "admin-push-notification-templates-list",
       },
       {
-        title: "Build a Slice",
+        title: "Slices",
         // icon: { icon: "tabler-users-group" },
         to: "admin-push-notification-cohorts-list",
       },
