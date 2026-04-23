@@ -110,10 +110,10 @@ onMounted(async () => {
   <v-card>
     <v-card-item class="pb-0">
       <v-card-title
-        >{{ route.params.id ? "View" : "Build" }} Cohort</v-card-title
+        >{{ route.params.id ? "View" : "Build" }} Slice</v-card-title
       >
       <v-card-subtitle
-        >This cohort can be used for sending out Push
+        >This slice can be used to send out Push
         Notifications</v-card-subtitle
       >
     </v-card-item>
@@ -124,7 +124,7 @@ onMounted(async () => {
           <VCol cols="12" md="4">
             <AppTextField
               v-model="cohort.name"
-              placeholder="Cohort name"
+              placeholder="Slice name"
               :rules="[requiredValidator]"
               prepend-inner-icon="mdi-text-box"
               :readonly="!!route.params.id"

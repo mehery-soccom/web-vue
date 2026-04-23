@@ -43,7 +43,7 @@ var dateRange = ref(dates);
 const globalDateRange = ref([]);
 const chartKey = ref(0);
 
-const uiLegends = [ "New User", "Inactive (7+) / Uninstalled (14+)" ];
+const uiLegends = [ "New", "Uninstalled" ];
 const onDateSelect = (selectedDates, dateStr) => {
   console.log("Selected:", selectedDates, dateStr);
 };
@@ -96,7 +96,14 @@ const fetchChartData = async (fromDate, toDate) => {
     const isSingleDay = new Date(fromDate).toDateString() === new Date(toDate).toDateString();
     const formattedLabels = labels.map((ts) => {
       const date = new Date(ts);
-      return isSingleDay ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : date.toLocaleDateString("en-GB");
+      if (isSingleDay) {
+        return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      } else {
+        const day = String(date.getDate()).padStart(2, "0");
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        return `${day}/${month}`;
+      }
+      // return isSingleDay ? date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : date.toLocaleDateString("en-GB");
     });
 
     const colorKeys = Object.keys(chartJsCustomColors);
@@ -130,6 +137,12 @@ const fetchChartData = async (fromDate, toDate) => {
       plugins: {
         legend: {
           position: "top",
+          labels: {
+            boxWidth: 15,
+            boxHeight: 15,
+            usePointStyle: true,
+            pointStyle: 'rect',
+          },
         },
         tooltip: {
           mode: "index",
@@ -172,7 +185,7 @@ const onChartDateChange = ([start, end]) => {
   from.setHours(0,0,0,0);
   const to = new Date(end);
   to.setHours(23,59,59,999);
-
+  globalDateRange.value = [from, to];
   fetchChartData(from, to);
 };
 onMounted(async () => {
