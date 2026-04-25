@@ -30,7 +30,7 @@ const formattedItems = computed(() =>
       item.status === "DERIVE"
         ? getCampaignStatus(item.schedule, item.abTesting?.enabled)
         : item.status,
-  }))
+  })),
 );
 const headers = [
   { title: "", key: "data-table-expand" },
@@ -58,10 +58,10 @@ const headers = [
     title: "A/B",
     key: "abTesting.enabled",
     filterType: "switch",
-    filterOptions: [
-      { title: "Enabled", value: true },
-      { title: "Disabled", value: false },
-    ],
+    // filterOptions: [
+    //   { title: "Enabled", value: true },
+    //   { title: "Disabled", value: false },
+    // ],
   },
   {
     title: "Status",
@@ -153,7 +153,7 @@ const openLogDialog = (logs) => {
 
 const getCampaignStatus = (
   { durationType, startDate, endDate },
-  isAbTesting
+  isAbTesting,
 ) => {
   if (durationType === "manual") {
     if (isAbTesting) return "TESTING";
@@ -488,7 +488,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
                   <strong>Repeat Type:</strong>
                   {{
                     formatFieldName(
-                      selectedLogs.raw.schedule.repeatType || "N/A"
+                      selectedLogs.raw.schedule.repeatType || "N/A",
                     )
                   }}
                 </p>
