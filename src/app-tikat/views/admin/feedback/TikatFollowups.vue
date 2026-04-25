@@ -12,7 +12,7 @@ const props = defineProps({
 const emit = defineEmits(['refresh']);
 const feedbackStore = useFeedbackStore();
 const { show } = inject("snackbar");
-const byUser = window.CONST?.USER?.user || 'dev';
+const byUser = window.CONST?.USER?.code;
 
 const isAdding = ref(false);
 const isSaving = ref(false);

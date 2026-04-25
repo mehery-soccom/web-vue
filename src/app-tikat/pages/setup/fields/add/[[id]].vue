@@ -63,7 +63,7 @@ const submitForm = async () => {
     delete payload.options
   }
   
-  payload.byUser = window.CONST?.USER?.user
+  payload.byUser = window.CONST?.USER?.code
 
   try {
     if (PARAM_ID) {

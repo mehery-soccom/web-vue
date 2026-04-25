@@ -36,7 +36,7 @@ const feedbackData = ref({});
 const originalFeedbackData = ref(null);
 const feedbackHistory = ref([]);
 
-const byUser = window.CONST?.USER?.user || null;
+const byUser = window.CONST?.USER?.code || null;
 
 const phoneValidator = value => {
   if (!value) return true;
@@ -111,7 +111,7 @@ const isUserRole = computed(() => {
 
 const isReadOnly = (field) => {
   if (isAdmin.value && !feedbackId.value) return false;
-  if (isAdmin.value && field.access?.moderator === 'R') return true;
+  if (isAdmin.value && ['R', 'H'].includes(field.access?.moderator)) return true;
   if (isModerator.value && field.access?.moderator === 'R') return true;
   if (isUserRole.value && field.access?.agent === 'R') return true;
   
@@ -384,6 +384,7 @@ onMounted(fetchFeedbackData);
                                   hover
                                   color="warning"
                                   active-color="warning"
+                                  :readonly="isReadOnly(field)"
                                   :disabled="isReadOnly(field)"
                                   class="large-rating"
                                 />
@@ -490,6 +491,10 @@ onMounted(fetchFeedbackData);
   font-size: 35px !important;
   width: 35px !important;
   height: 35px !important;
+}
+
+.large-rating.v-rating--disabled {
+  pointer-events: none;
 }
 
 </style>

@@ -14,7 +14,7 @@ const isAgentLoading = ref(false)
 const isAssigning = ref(false)
 const allAgents = ref([])
 const selectedAgentId = ref(null)
-const byUser = window.CONST?.USER?.user || null
+const byUser = window.CONST?.USER?.code || null
 
 const isLoading = ref(false)
 const leads = ref([])
@@ -25,6 +25,9 @@ const pagination = reactive({
   sortBy: [],
   filters: {
     name: null,
+    form: null,
+    source: null,
+    assignedTo: null,
   },
 })
 
@@ -53,14 +56,12 @@ const fetchLeads = async (options = pagination) => {
   isLoading.value = true
   try {
     const activeFilters = {}
-    if (options.filters.name) {
-      activeFilters['contact.name'] = options.filters.name
-    }
-    for (const key in options.filters) {
-      if (options.filters[key] && key !== 'name') {
-        activeFilters[key] = options.filters[key]
-      }
-    }
+    
+    if (options.filters.name) activeFilters['contact.name'] = options.filters.name
+    if (options.filters.stage) activeFilters['leadHistory.stagetitle'] = options.filters.stage
+    if (options.filters.form) activeFilters['form.title'] = options.filters.form
+    if (options.filters.source) activeFilters['source'] = options.filters.source
+    if (options.filters.assignedTo) activeFilters['assignedTo'] = options.filters.assignedTo
 
     const userRoles = window.CONST?.USER?.role || []
     if (userRoles.includes('MODERATOR') || userRoles.includes('USER')) {
@@ -228,7 +229,7 @@ const openChat = (rawItem) => {
 }
 
 onMounted(() => {
-  fetchLeads()
+//   fetchLeads()
   fetchAgentOptions()
 })
 </script>

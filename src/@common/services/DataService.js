@@ -31,7 +31,7 @@ function processor(params, responseData, config) {
     if (responseData.results) {
       for (var i in responseData.results) {
         responseData.results[i] = DataProcessor[dataType](
-          responseData.results[i]
+          responseData.results[i],
         );
       }
     }
@@ -44,7 +44,7 @@ function processor(params, responseData, config) {
     if (responseData.details) {
       for (let i in responseData.details) {
         responseData.details[i] = DataProcessor[metaType](
-          responseData.details[i]
+          responseData.details[i],
         );
       }
     }
@@ -251,7 +251,7 @@ const DataService = {
         "service.storage." + key,
         JSON.stringify({
           value: value,
-        })
+        }),
       );
     },
   },
@@ -289,14 +289,14 @@ const DataService = {
           const nextURL = new URL(response.request.responseURL);
           nextURL.searchParams.append(
             "referer",
-            encodeURIComponent(window.location.href)
+            encodeURIComponent(window.location.href),
           );
           window.location.reload();
         }
 
         if (config.toast !== false && response.data?.message) {
           VueApp.config.globalProperties.$toast?.success?.(
-            response.data.message
+            response.data.message,
           );
         }
 
@@ -307,7 +307,7 @@ const DataService = {
         const config = error.config;
 
         if (config.toast !== false && response?.data?.message) {
-          VueApp.config.globalProperties.$toast?.error?.(response.data.message);
+          // VueApp.config.globalProperties.$toast?.error?.(response.data.message);
         }
 
         if (response?.data?.errors) {
@@ -341,7 +341,7 @@ const DataService = {
         }
 
         return Promise.reject(error);
-      }
+      },
     );
 
     axios.interceptors.request.use((config) => {
@@ -349,8 +349,8 @@ const DataService = {
         Intl.DateTimeFormat().resolvedOptions().timeZone;
 
       if (config.skipApiContext === true) {
-        config.baseURL = window.location.origin;
-      }
+        config.baseURL = window.location.origin;
+      }
 
       return config;
     });

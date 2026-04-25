@@ -15,7 +15,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["fileUpload", "updatePlatform"]);
+const emit = defineEmits(["fileUpload", "fileUploadFCM", "updatePlatform"]);
 
 onMounted(async () => {});
 
@@ -57,6 +57,9 @@ const removePlatform = (index) => {
 
 const handleFileUpload = (file, index) => {
   props.data.platforms[index].file = file;
+};
+const handleFileUploadFCM = (file, index) => {
+  props.data.platforms[index].fcm_file = file;
 };
 </script>
 
@@ -109,6 +112,7 @@ const handleFileUpload = (file, index) => {
           :data="platform"
           @remove-platform="removePlatform"
           @fileUpload="handleFileUpload"
+          @fileUploadFCM="handleFileUploadFCM"
         />
       </div>
     </VCardText>

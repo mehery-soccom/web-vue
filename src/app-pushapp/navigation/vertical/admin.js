@@ -14,6 +14,11 @@ export default [
         to: "admin-push-notification-templates-list",
       },
       {
+        title: "Slices",
+        // icon: { icon: "tabler-users-group" },
+        to: "admin-push-notification-cohorts-list",
+      },
+      {
         title: "Blast",
         to: "admin-push-notification-campaigns-add",
       },

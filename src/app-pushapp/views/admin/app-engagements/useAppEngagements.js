@@ -28,7 +28,7 @@ export const useAppEngagements = (source) => {
     // console.log("FILTER_FIELDS", source?.filterType);
     if (!source?.filterType) return [];
     return Object.values(FILTER_FIELDS_MAP).filter(
-      (o) => o.type === source.filterType
+      (o) => o.type === source.filterType,
     );
   });
   const FILTER_OPERATORS = computed(() => {
@@ -71,11 +71,11 @@ export const useAppEngagements = (source) => {
       }
     }
 
-    if (type === "additionalInfo" || type === "cohort") {
+    if (type === "additionalInfo") {
       isLoading.value = true;
       try {
         const response = await DataService.getX(
-          "/api/v1/customer/master/field"
+          "/api/v1/customer/master/field",
         );
         const resultsMap = {};
         const results = response.map((el) => {
@@ -91,6 +91,33 @@ export const useAppEngagements = (source) => {
                   value: o.value,
                 };
               }),
+            },
+          };
+          resultsMap[r.value] = r;
+          return r;
+        });
+        localCache[type] = results;
+        Object.assign(FILTER_FIELDS_MAP, resultsMap);
+      } catch (error) {
+        console.error(`Failed to fetch filter options for ${type}:`, error);
+        localCache[type] = [];
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
+    if (type === "cohort") {
+      isLoading.value = true;
+      try {
+        const response = await DataService.axios.get("/api/v1/cohort");
+        const resultsMap = {};
+        const results = response.data.results.map((el) => {
+          const r = {
+            type,
+            title: el.name,
+            value: el._id,
+            meta: {
+              projection: null, // el.buildStats?.tokensSubscribed,
             },
           };
           resultsMap[r.value] = r;
@@ -128,7 +155,7 @@ export const useAppEngagements = (source) => {
                 type: item.type,
                 page: item.page,
               },
-            })
+            }),
           );
         } catch (error) {
           console.error(`Failed to fetch options for ${key}:`, error);
@@ -141,6 +168,12 @@ export const useAppEngagements = (source) => {
     isLoading.value = false;
   }
 
+  function clearCache() {
+    Object.keys(localCache).forEach((key) => {
+      delete localCache[key];
+    });
+  }
+
   onMounted(() => {});
 
   if (source)
@@ -149,7 +182,7 @@ export const useAppEngagements = (source) => {
       (newVal) => {
         fetchFilterFields({ type: newVal?.filterType });
       },
-      { immediate: true, deep: true }
+      { immediate: true, deep: true },
     );
 
   return {
@@ -162,5 +195,7 @@ export const useAppEngagements = (source) => {
     FILTER_OPERATORS,
 
     FILTER_PERIODS,
+
+    clearCache,
   };
 };

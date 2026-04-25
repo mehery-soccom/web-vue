@@ -7,12 +7,19 @@ const props = defineProps({
   element: { type: Object, required: true },
   index: { type: Number, required: true },
   level: { type: Number, default: 0 },
+  ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreCohortfilterType: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
 });
 const emit = defineEmits(["remove", "update"]);
 
 const hasError = ref(false);
 
 const furtherGroupRef = ref(null);
+const datePresets = [
+  { label: "Today", key: "today" },
+  { label: "Tomorrow", key: "tomorrow" }
+]
 
 // === Constants ===
 const {
@@ -54,6 +61,14 @@ const isValid = async (silent = false) => {
       (!el.freqOperator || !el.freqCount || !el.freqPeriod)
     )
       valid = false;
+    if (FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "date" && Array.isArray(el.value)) {
+      const v = el.value[0];
+      if (!v?.stamp) {
+        if (v?.offset === null || v?.offset === undefined || v?.offset === "") {
+          valid = false;
+        }
+      }
+    }
   }
 
   if (!valid && !silent) hasError.value = true;
@@ -72,7 +87,7 @@ watch(
     props.element.freqPeriod = null;
 
     clearErrorAndUpdate();
-  }
+  },
 );
 watch(
   () => props.element.field,
@@ -84,7 +99,7 @@ watch(
     props.element.freqPeriod = null;
 
     clearErrorAndUpdate();
-  }
+  },
 );
 
 defineExpose({ isValid });
@@ -96,12 +111,21 @@ defineExpose({ isValid });
     <div
       v-if="element.type === 'filter'"
       class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 position-relative"
-      :class="hasError ? 'border-red' : 'border-grey-lighten-1'"
+      :class="[
+        hasError ? 'border-red' : 'border-grey-lighten-1',
+        { readonly: readonly },
+      ]"
     >
       <!-- Type -->
       <AppSelect
         v-model="element.filterType"
-        :items="FILTER_TYPES"
+        :items="
+          FILTER_TYPES.filter(
+            (f) =>
+              (ignoreEventfilterType ? f.value !== 'event' : true) &&
+              (ignoreCohortfilterType ? f.value !== 'cohort' : true),
+          )
+        "
         placeholder="Select Type"
         density="compact"
         class="filter-entity filter-type"
@@ -115,7 +139,17 @@ defineExpose({ isValid });
         :placeholder="`Select field`"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
-      />
+      >
+        <template #item="{ props, item }">
+          <VListItem v-bind="props">
+            <VListItemSubtitle class="ml-auto text-xs text-gray-500">
+              <span v-if="item.raw.meta?.projection != null">
+                Projection : {{ item.raw.meta?.projection }}
+              </span>
+            </VListItemSubtitle>
+          </VListItem>
+        </template>
+      </AppSelect>
 
       <!-- Operator -->
       <AppSelect
@@ -207,10 +241,11 @@ defineExpose({ isValid });
           "
           :mode="element.operator === 'BETWEEN' ? 'range' : 'single'"
           v-model="element.value"
+          :relative-presets="datePresets"
           placeholder="Select Date"
           clearable
           @update:modelValue="clearErrorAndUpdate"
-          class="filter-entity f-w-value"
+          class="filter-entity date-pick"
         />
         <AppTextField
           v-else
@@ -248,6 +283,8 @@ defineExpose({ isValid });
       :level="level + 1"
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
+      :ignoreEventfilterType="ignoreEventfilterType"
+      :ignoreCohortfilterType="ignoreCohortfilterType"
     />
   </div>
 </template>
@@ -268,8 +305,9 @@ defineExpose({ isValid });
 .value {
   max-width: 250px;
 }
-.f-w-value {
-  width: 250px;
+.date-pick {
+  max-width: 550px;
+  display: flex;
 }
 .freq-operator {
   width: 140px;
@@ -279,5 +317,11 @@ defineExpose({ isValid });
 }
 .freq-period {
   width: 160px;
+}
+
+/* disable only interactive elements */
+.readonly .v-btn,
+.readonly .filter-entity {
+  pointer-events: none;
 }
 </style>

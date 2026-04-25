@@ -20,7 +20,7 @@ const { show } = inject("snackbar");
 
 const allDocs = ref([]);
 const isLoading = ref(true);
-const byUser = window.CONST?.USER?.user || null;
+const byUser = window.CONST?.USER?.code || null;
 
 const isAddingNote = ref(false);
 const isSavingNote = ref(false);

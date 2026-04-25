@@ -4,6 +4,7 @@ import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
+import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
 const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -29,7 +30,7 @@ const formattedItems = computed(() =>
       item.status === "DERIVE"
         ? getCampaignStatus(item.schedule, item.abTesting?.enabled)
         : item.status,
-  }))
+  })),
 );
 const headers = [
   { title: "", key: "data-table-expand" },
@@ -57,10 +58,10 @@ const headers = [
     title: "A/B",
     key: "abTesting.enabled",
     filterType: "switch",
-    filterOptions: [
-      { title: "Enabled", value: true },
-      { title: "Disabled", value: false },
-    ],
+    // filterOptions: [
+    //   { title: "Enabled", value: true },
+    //   { title: "Disabled", value: false },
+    // ],
   },
   {
     title: "Status",
@@ -152,7 +153,7 @@ const openLogDialog = (logs) => {
 
 const getCampaignStatus = (
   { durationType, startDate, endDate },
-  isAbTesting
+  isAbTesting,
 ) => {
   if (durationType === "manual") {
     if (isAbTesting) return "TESTING";
@@ -440,7 +441,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </IconBtn>
       </template>
     </MyDataTable>
-    <VDialog v-model="logDialog" max-width="500">
+    <VDialog v-model="logDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
         <VCardText>
@@ -460,57 +461,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
             <!-- Filter -->
             <section v-if="selectedLogs.raw.filter" class="detail-block">
-              <h5>
-                Filter -
-                <span v-if="!!selectedLogs.raw.filter.conjunction">
-                  {{ formatFieldName(selectedLogs.raw.filter.conjunction) }}
-                </span>
-              </h5>
-
-              <div v-if="selectedLogs.raw.filter.children && selectedLogs.raw.filter.children.length > 0">
-                <div
-                  v-for="(child, idx) in selectedLogs.raw.filter.children"
-                  :key="idx"
-                  class="filter-child"
-                >
-                  <div v-if="idx === 0 || selectedLogs.raw.filter.children[idx - 1].filterType !== child.filterType" style="margin: 6px 0">
-                    <strong>{{ formatFieldName(child.filterType).replace(/([a-z])([A-Z])/g, '$1 $2') }}:</strong>
-                  </div>
-                  <div style="margin-left: 12px">
-                    <template v-if="child.freqOperator && (child.freqCount || child.value)">
-                      <strong>"{{ formatFieldName(child.field) }}"</strong>
-                      {{
-                        " has" +
-                        (child.operator === "is_not" ? " not" : "") +
-                        " happened " +
-                        formatFieldName(child.freqOperator).toLowerCase() +
-                        " " +
-                        (child.freqCount || child.value) +
-                        " time" +
-                        ((child.freqCount || child.value) > 1 ? "s" : "") +
-                        (child.freqPeriod
-                          ? " " + formatFieldName(child.freqPeriod).toLowerCase()
-                          : "") +
-                        "."
-                      }}
-                    </template>
-
-                    <template v-else-if="child.field && child.operator && (child.freqCount || child.value)">
-                      <strong>"{{ formatFieldName(child.field) }}"</strong>
-                      {{ formatFieldName(child.operator) }}
-                      <strong v-if="typeof child.value?.[0] === 'object' && child.value[0]?.dateLocal">
-                        "{{ formatFieldName(child.value[0].dateLocal) }}"
-                      </strong>
-                      <strong v-else>
-                        "{{ formatFieldName(child.freqCount || child.value) }}"
-                      </strong>
-                    </template>
-                  </div>
-                </div>
-              </div>
-              <div v-else>
-                <div>No filters defined</div>
-              </div>
+              <h5>Filter</h5>
+              <FilterViewer :node="selectedLogs.raw.filter" />
             </section>
 
             <!-- Schedule -->
@@ -536,7 +488,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
                   <strong>Repeat Type:</strong>
                   {{
                     formatFieldName(
-                      selectedLogs.raw.schedule.repeatType || "N/A"
+                      selectedLogs.raw.schedule.repeatType || "N/A",
                     )
                   }}
                 </p>
@@ -582,11 +534,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
 .detail-block {
   // flex: 0 0 auto; /* fit to content width */
-  padding: 10px 20px;
+  padding: 5px 20px 10px;
   border: 1px solid #ddd;
   border-radius: 6px;
   background: #fafafa;
-  width: 450px;
+  width: 100%;
   margin-top: 10px;
 }
 .detail-block h5 {

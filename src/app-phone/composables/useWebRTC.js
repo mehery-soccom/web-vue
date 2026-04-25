@@ -1,5 +1,5 @@
 // composables/useWebRTC.js
-import { ref, reactive, onUnmounted } from "vue";
+import { ref, reactive, onUnmounted, nextTick } from "vue";
 import { toast } from "vue3-toastify";
 import { usePhoneStore } from "../views/usePhoneStore";
 
@@ -16,8 +16,22 @@ export function useWebRTC() {
   const receivedSdpAnswer = ref(null);
   let pc = null;
   let localStream = null;
-  let channelId = ref('');
-  
+  const dataChannel = ref(null);
+  const onCameraStateCallback = ref(null);
+  let cameraToggleLock = false;
+
+  //Calling Variables
+  const remoteStream = ref(null);
+  let channelId = ref("");
+
+  const Mic = ref(false);
+  const Camera = ref(false);
+  const ScreenShare = ref(false);
+  let ScreenStream = null;
+  const callMode = ref("meta"); // 'meta' 'p2p'
+  const remoteDisconnected = ref(false);
+  let p2pRoomId = null;
+
   // ICE servers configuration
   const iceServers = ref([
     { urls: "stun:stun.l.google.com:19302" },
@@ -25,7 +39,7 @@ export function useWebRTC() {
     { urls: "stun:stun.l.google.com:3478" },
     { urls: "stun:stun.counterpath.net:3478" },
     { urls: "stun:numb.viagenie.ca:3478" },
-    // Will add TURN servers if needed 
+    // Will add TURN servers if needed
   ]);
 
   const activeCall = ref({
@@ -118,12 +132,27 @@ export function useWebRTC() {
     }
   };
 
+  const setupLocalVideo = (stream) => {
+    const localVideo = document.getElementById("local-video");
+    if (localVideo) {
+      localVideo.srcObject = stream;
+      localVideo.muted = true;
+    }
+
+    // Room Video
+    const localVideoPip = document.getElementById("local-video-pip");
+    if (localVideoPip) {
+      localVideoPip.srcObject = stream;
+      localVideoPip.muted = true;
+    }
+  };
+
   // Timer functions
   const startCallTimer = () => {
     callTimer.value = setInterval(() => {
       if (activeCall.value.startTime) {
         const duration = Math.floor(
-          (new Date() - activeCall.value.startTime) / 1000
+          (new Date() - activeCall.value.startTime) / 1000,
         );
         const minutes = Math.floor(duration / 60)
           .toString()
@@ -146,31 +175,32 @@ export function useWebRTC() {
       isConnecting.value = true;
       connectionStatus.value = "connecting";
       errorMessage.value = "";
-      localStream = await navigator.mediaDevices.getUserMedia({ 
+
+      localStream = await navigator.mediaDevices.getUserMedia({
         audio: {
           echoCancellation: true,
           noiseSuppression: true,
-          autoGainControl: true
-        }, 
-        video: false 
+          autoGainControl: true,
+        },
       });
-      
+
       setupLocalAudio(localStream);
 
       pc = new RTCPeerConnection({
         iceServers: iceServers.value,
-        iceTransportPolicy: "all"
+        iceTransportPolicy: "all",
       });
 
-      localStream.getTracks().forEach(track => {
+      localStream.getTracks().forEach((track) => {
         pc.addTrack(track, localStream);
       });
 
       setupRTCEventListeners();
       isConnecting.value = false;
-      connectionStatus.value = "connected";
+      if (callMode.value !== "p2p") {
+        connectionStatus.value = "connected";
+      }
       console.log("WebRTC initialized successfully");
-
     } catch (error) {
       console.error("WebRTC initialization failed:", error);
       errorMessage.value = error.message;
@@ -182,29 +212,51 @@ export function useWebRTC() {
   const setupRTCEventListeners = () => {
     if (!pc) return;
 
-    pc.ontrack = (event) => {
-      console.log("Received remote track:", event);
-      if (event.streams && event.streams[0]) {
-        setupRemoteAudio(event.streams[0]);
+    pc.ontrack = async (event) => {
+      const stream = event.streams?.[0];
+      if (!stream) return;
+
+      setupRemoteAudio(stream);
+
+      if (callMode.value === "p2p") {
+        stream.getTracks().forEach(track => {
+        track.onended = () => {
+          console.warn("[Remote Track Ended]", track.kind);
+        };
+      });
+        remoteStream.value = stream;
+        let attempts = 0;
+        const attach = () => {
+          const remoteVideo = document.getElementById("remote-video");
+          if (remoteVideo) {
+            if (remoteVideo.srcObject !== stream) {remoteVideo.srcObject = stream;}
+            remoteVideo.muted = false;
+        } else if (attempts < 20) {
+          attempts++;
+          setTimeout(attach, 150);
+        } else {
+          console.warn("[ontrack] Remote video element never appeared");
+        }
+      };
+      await nextTick();
+      attach();
       }
     };
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
         gatheredCandidates.value.push(event.candidate.toJSON());
-        console.log("New ICE candidate:", event.candidate);
       } else {
         console.log("ICE gathering complete");
-        // Update local SDP data when complete
         updateLocalSDPData();
       }
     };
 
     // Handle connection state changes
     pc.onconnectionstatechange = () => {
-      console.log("Connection state:", pc.connectionState);
       switch (pc.connectionState) {
         case "connected":
+          remoteDisconnected.value = false;
           isConnected.value = true;
           connectionStatus.value = "connected";
           callState.value = "talking";
@@ -212,12 +264,38 @@ export function useWebRTC() {
           startCallTimer();
           stopRingbacktone();
           stopRingtone();
+          if (callMode.value === "p2p") {
+            setTimeout(() => {
+              if (!remoteStream.value) return;
+              const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
+              if (dead && pc?.connectionState === "connected") {
+                console.warn("[connected but no media] forcing reset");
+                connectionStatus.value = "error";
+              }
+            }, 2000);
+          }
           break;
         case "disconnected":
+          console.warn("[WebRTC:connState] Temporary disconnect — waiting for ICE recovery");
+          break;
         case "failed":
+          console.error("[WebRTC:connState] ❌ Failed", {
+            iceState: pc.iceConnectionState,
+            signalingState: pc.signalingState,
+            hadRemoteStream: !!remoteStream.value,
+            remoteTrackStates: remoteStream.value?.getTracks().map(t => `${t.kind}:${t.readyState}`) || [],
+            mode: callMode.value,
+          });
+          connectionStatus.value = "error";
+          isConnected.value = false;
+          remoteStream.value = null;
+          if (callMode.value === "p2p") {
+            remoteDisconnected.value = true;
+        } else {
           isConnected.value = false;
           connectionStatus.value = "error";
           endCall(false);
+        }
           break;
         case "closed":
           isConnected.value = false;
@@ -227,7 +305,13 @@ export function useWebRTC() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("ICE connection state:", pc.iceConnectionState);
+      console.log(`[WebRTC:ICE] → ${pc.iceConnectionState}`);
+    };
+
+    pc.ondatachannel = (event) => {
+      console.log("[ondatachannel] DataChannel received (guest side)");
+      dataChannel.value = event.channel;
+      setupDataChannel(dataChannel.value);
     };
   };
 
@@ -242,31 +326,36 @@ export function useWebRTC() {
     try {
       callState.value = "calling";
       currentPeerNumber.value = remoteNumber;
-      
+
       // Create offer
       const offer = await pc.createOffer({
         offerToReceiveAudio: true,
-        offerToReceiveVideo: false
+        offerToReceiveVideo: callMode.value === "p2p",
       });
-      
+
       await pc.setLocalDescription(offer);
       callData.value.sdp_type = "offer";
       callData.value.sdp = offer.sdp;
-      
+
       activeCall.value = {
         show: true,
         remoteNumber: remoteNumber,
         startTime: null,
       };
-      
+
       addToCallHistory(remoteNumber, "outgoing", new Date());
       playRingbacktone();
-      
+
       console.log("SDP Offer created, waiting for answer...");
-      await sendOffer(callData.value, channelId.value, currentPeerNumber.value);
+      if (channelId.value) {
+        await sendOffer(
+          callData.value,
+          channelId.value,
+          currentPeerNumber.value
+        );
+      }
       // Return the local description for sending to Meta API
       return getLocalSDPData();
-
     } catch (error) {
       console.error("Failed to create offer:", error);
       errorMessage.value = error.message;
@@ -282,18 +371,29 @@ export function useWebRTC() {
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
   const sendOffer = async (callDat, channelId, phone) => {
     try {
-      const payload = { contact: { phone: phone }, channelId: channelId, session: callDat, agent: agentCode.value };
+      const payload = {
+        contact: { phone: phone },
+        channelId: channelId,
+        session: callDat,
+        agent: agentCode.value,
+      };
       const response = await PhoneStore.sendOfferToMeta(payload);
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -301,13 +401,20 @@ export function useWebRTC() {
   const sendAnswer = async (answerData, callDatas, channelId) => {
     try {
       // const url = `https://crforex.mehery.xyz/admin/api/scriptus/phone/whatsapp/calling/accept`;
-      const payload = { callData: callData.value, channelId: channelId, sdpAnswer: answerData.sdp };
+      const payload = {
+        callData: callData.value,
+        channelId: channelId,
+        sdpAnswer: answerData.sdp,
+      };
 
       const response = await PhoneStore.sendAnswerToMeta(payload);
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -318,7 +425,10 @@ export function useWebRTC() {
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -329,7 +439,10 @@ export function useWebRTC() {
       console.log("Meta API response:", response.data);
       return response.data;
     } catch (error) {
-      console.error("Error sending answer to Meta API:", error.response?.data || error.message);
+      console.error(
+        "Error sending answer to Meta API:",
+        error.response?.data || error.message
+      );
       throw error;
     }
   };
@@ -345,27 +458,29 @@ export function useWebRTC() {
       // Set remote offer
       const remoteDesc = {
         type: offerSDP.sdp_type || offerSDP.type || "offer",
-        sdp: offerSDP.sdp
+        sdp: offerSDP.sdp,
       };
       await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
-      
+
       // Create answer
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      
+
       incomingCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
         timestamp: new Date(),
       };
-      
+
       addToCallHistory(currentPeerNumber.value, "incoming", new Date());
-      
+
       console.log("SDP Answer created", answer);
-      await sendAnswer( answer, callData.value, channelId.value);
+
+      if (channelId.value) {
+        await sendAnswer(answer, callData.value, channelId.value);
+      }
       // Return the local description for sending to Meta API
       return getLocalSDPData();
-
     } catch (error) {
       console.error("Failed to create answer:", error);
       errorMessage.value = error.message;
@@ -379,6 +494,11 @@ export function useWebRTC() {
       throw new Error("WebRTC not initialized");
     }
 
+    if (pc.signalingState === "stable") {
+      console.warn("Remote answer already applied, skipping");
+      return;
+    }
+
     const sdpData = remoteSDPData?.value ?? remoteSDPData;
     if (!sdpData?.sdp) {
       console.warn("No SDP found in remote description", sdpData);
@@ -387,7 +507,7 @@ export function useWebRTC() {
     try {
       const remoteDesc = {
         type: sdpData.sdp_type || "answer",
-        sdp: sdpData.sdp
+        sdp: sdpData.sdp,
       };
       await pc.setRemoteDescription(new RTCSessionDescription(remoteDesc));
       // if (remoteSDPData.ice && Array.isArray(remoteSDPData.ice)) {
@@ -395,7 +515,12 @@ export function useWebRTC() {
       //     await pc.addIceCandidate(new RTCIceCandidate(candidate));
       //   }
       // }
-      console.log("Remote description set successfully", remoteSDPData, sdpData, remoteDesc);
+      console.log(
+        "Remote description set successfully",
+        remoteSDPData,
+        sdpData,
+        remoteDesc
+      );
       activeCall.value = {
         show: true,
         remoteNumber: currentPeerNumber.value,
@@ -417,7 +542,7 @@ export function useWebRTC() {
 
     return {
       sdp: pc.localDescription.toJSON(),
-      ice: gatheredCandidates.value
+      ice: gatheredCandidates.value,
     };
   };
 
@@ -428,7 +553,12 @@ export function useWebRTC() {
     }
   };
 
-  const handleIncomingCall = (offerSDP, remoteNumber = "", fullOffer, channel_id) => {
+  const handleIncomingCall = (
+    offerSDP,
+    remoteNumber = "",
+    fullOffer,
+    channel_id
+  ) => {
     channelId.value = channel_id;
     currentPeerNumber.value = remoteNumber;
     incomingCall.value = {
@@ -438,7 +568,7 @@ export function useWebRTC() {
     };
     callState.value = "ringing";
     playRingtone();
-    console.log("handle got called", offerSDP)
+    console.log("handle got called", offerSDP);
     callData.value = fullOffer;
     incomingCall.value.pendingOffer = offerSDP;
   };
@@ -449,9 +579,11 @@ export function useWebRTC() {
     }
 
     try {
-      console.log("before assign", JSON.parse(JSON.stringify(callData.value)))
+      console.log("before assign", JSON.parse(JSON.stringify(callData.value)));
       // callData.value = event_data;
-      const answerSDP = await createAnswer(incomingCall.value.pendingOffer || callData.value.session);
+      const answerSDP = await createAnswer(
+        incomingCall.value.pendingOffer || callData.value.session
+      );
       incomingCall.value.show = false;
       activeCall.value = {
         show: true,
@@ -461,9 +593,8 @@ export function useWebRTC() {
       console.log("answered call", answerSDP);
       stopRingtone();
       updateCallHistory("answered");
-      
-      return answerSDP;
 
+      return answerSDP;
     } catch (error) {
       console.error("Failed to answer call:", error);
       throw error;
@@ -484,12 +615,12 @@ export function useWebRTC() {
     callState.value = "idle";
     stopRingtone();
     updateCallHistory("rejected");
-    channelId.value = '';
+    channelId.value = "";
     // callData.value = {};
-    
+
     sendPostMessage("call-rejected", {
       remoteNumber: currentPeerNumber.value,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
   };
 
@@ -500,7 +631,7 @@ export function useWebRTC() {
     }
 
     if (localStream) {
-      localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach((track) => track.stop());
       localStream = null;
     }
 
@@ -509,22 +640,22 @@ export function useWebRTC() {
       remoteNumber: "",
       startTime: null,
     };
-    
+
     incomingCall.value = {
       show: false,
       remoteNumber: "",
       timestamp: null,
       pendingOffer: null,
     };
-    
+
     callState.value = "idle";
     currentPeerNumber.value = "";
     gatheredCandidates.value = [];
-    
+
     stopCallTimer();
     stopRingtone();
     stopRingbacktone();
-    if(endFromAgent) await terminateCallMeta(channelId.value);
+    if (endFromAgent) await terminateCallMeta(channelId.value);
 
     // Clear audio elements
     const remoteAudio = document.getElementById("audio-remote");
@@ -534,7 +665,8 @@ export function useWebRTC() {
 
     receivedSdpAnswer.value = null;
     callData.value = {};
-    channelId.value = '';
+    channelId.value = "";
+
     updateCallHistory("ended");
     sendPostMessage("call-ended", {
       description: "HANGUP",
@@ -542,41 +674,41 @@ export function useWebRTC() {
     });
   };
   const getChannelList = async () => {
-    try{
+    try {
       const resp = await PhoneStore.getChannels();
       return resp.data;
-    }catch(e){
-      console.error("channels list", e)
+    } catch (e) {
+      console.error("channels list", e);
     }
-  }
+  };
   const getAction = (actions = [], name) => {
-    return actions.find(a => a.action_name === name);
+    return actions.find((a) => a.action_name === name);
   };
   const formatPermissionLimits = (limits = []) => {
-      return limits.map(l => {
-          const remaining = Math.max(0,l.max_allowed - l.current_usage);
+    return limits.map((l) => {
+      const remaining = Math.max(0, l.max_allowed - l.current_usage);
 
-          let periodLabel = l.time_period;
-          if (l.time_period === "PT24H") periodLabel = "today";
-          if (l.time_period === "P7D") periodLabel = "this week";
+      let periodLabel = l.time_period;
+      if (l.time_period === "PT24H") periodLabel = "today";
+      if (l.time_period === "P7D") periodLabel = "this week";
 
-          return `${remaining} ${periodLabel}`;
-      });
+      return `${remaining} ${periodLabel}`;
+    });
   };
   const makeCall = async (channel_id, remoteNumber, agent) => {
     if (activeCall.value.show || incomingCall.value.show) {
       throw new Error("Call already in progress");
     }
     let resp = {};
-    try{
+    try {
       resp = await askIfPermissionPresent(remoteNumber, channel_id);
-      console.log("asked perm vue3", resp)
+      console.log("asked perm vue3", resp);
       const { permission, actions } = resp.data;
       const status = permission?.status;
       currentPeerNumber.value = remoteNumber;
 
       if (status === "permanent" || status === "temporary") {
-          const startCallAction = getAction(actions, "start_call");
+        const startCallAction = getAction(actions, "start_call");
 
           if (startCallAction?.can_perform_action) {
               channelId.value = channel_id;
@@ -599,16 +731,19 @@ export function useWebRTC() {
               toast.error("Call limit reached. You cannot place a call right now.");
               console.error("Call limit reached. You cannot place a call right now.");
           }
-          return;
+        return;
       } else {
-          // this.$toast.error('Access denied, Request user permission by sending template.');
-          const requestAction = getAction(actions,"send_call_permission_request");
-          if (!requestAction) {
-              toast.error("Permission request action not available.");
-              return;
-          }
+        // this.$toast.error('Access denied, Request user permission by sending template.');
+        const requestAction = getAction(
+          actions,
+          "send_call_permission_request"
+        );
+        if (!requestAction) {
+          toast.error("Permission request action not available.");
+          return;
+        }
 
-          const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
+        const limitSummary = formatPermissionLimits(requestAction.limits).join(", ");
           if (requestAction.can_perform_action) {
             sendPostMessage("no-call-permission", {
               remoteNumber: currentPeerNumber.value,
@@ -618,8 +753,9 @@ export function useWebRTC() {
           // toast.info(`User has not granted call permission.\nPermission requests available:: ${limitSummary}.`,{ timeout: 0 });
           else toast.error(`You cannot send a permission request right now.\nLimits: ${limitSummary}.`,{ timeout: 0 });
           console.log("Access for call denied.");
+
       }
-    }catch(e){
+    } catch (e) {
       console.error("Failed to make call:", e);
       // this.$toast.error('Access denied, Request user permission to call.');
     }
@@ -635,11 +771,431 @@ export function useWebRTC() {
     receivedSdpAnswer.value = answer.event_data.session;
     callData.value = answer.event_data;
     console.log(" got ans", answer);
-  }
+  };
   const getCallsSuggestion = async (val) => {
     const resp = await PhoneStore.getCallSuggestion({ agentCode: window.CONST.APP_USER, contactWaId: val})
     console.log("rsults", resp.data.results)
     return resp.data.results;
+
+  };
+
+
+  //Calling Functionalities
+
+  const toggleCamera = async () => {
+  if (!localStream || !pc) return;
+  if (cameraToggleLock) return;
+  cameraToggleLock = true;
+
+  
+  try {
+    const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+    if (Camera.value) {
+      const realTrack = localStream.getVideoTracks()[0];
+      const canvas = document.createElement("canvas");
+      Object.assign(canvas, { width: 2, height: 2 });
+      canvas.getContext("2d").fillRect(0, 0, 2, 2);
+      const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
+
+      if (sender) await sender.replaceTrack(blackTrack);
+      if (realTrack) { realTrack.stop(); localStream.removeTrack(realTrack); }
+      localStream.addTrack(blackTrack);
+      Camera.value = false;
+      sendCameraState(false, false);
+      reattachMediaStreams();
+    } else {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
+        const newTrack = newStream.getVideoTracks()[0];
+        const blackTrack = localStream.getVideoTracks()[0];
+        if (sender) await sender.replaceTrack(newTrack);
+        if (blackTrack) {localStream.removeTrack(blackTrack);blackTrack.stop();}
+        localStream.addTrack(newTrack);
+        Camera.value = true;
+        sendCameraState(true, false);
+        reattachMediaStreams();
+      } catch (error) {
+        console.error("Error restarting camera:", error);
+        Camera.value = false;
+        sendCameraState(false, false);
+      }
+    }
+    reattachMediaStreams();
+  } catch (error){
+    console.error("Camera Toggle Error:", error);
+  }
+    finally {
+    cameraToggleLock = false;
+  }
+};
+
+  const sendCameraState = (state, isScreen = false) => {
+    if (dataChannel.value?.readyState === "open") {
+      dataChannel.value.send(JSON.stringify({ type: "cameraState", value: state, isScreen }));
+    }
+  };
+
+  const onRemoteCameraState = (callback) => {
+    onCameraStateCallback.value = callback;
+  };
+  
+  const toggleMic = () => {
+    if (!localStream) return;
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (!audioTrack) return;
+
+    audioTrack.enabled = !audioTrack.enabled;
+    Mic.value = audioTrack.enabled;
+  };
+
+  const stopScreenShare = () => {
+    if (!ScreenStream) return;
+
+    ScreenStream.getTracks().forEach((track) => track.stop());
+    ScreenShare.value = false;
+
+    if (localStream && pc) {
+      const videoSender = pc
+        .getSenders()
+        .find((s) => s.track && s.track.kind === "video");
+      const cameraTrack = localStream.getVideoTracks()[0];
+
+      if (videoSender && cameraTrack) {
+        videoSender.replaceTrack(cameraTrack);
+      }
+    }
+
+    ScreenStream = null;
+    sendCameraState(Camera.value, false);
+  };
+
+  const toggleScreenShare = async () => {
+    if (ScreenShare.value) {
+      stopScreenShare();
+      return;
+    }
+
+    try {
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: {width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { max: 30 }},
+        audio: false,
+      });
+      const screenTrack = screenStream.getVideoTracks()[0];
+      if(screenTrack.contentHint != undefined){ screenTrack.contentHint = 'detail'}
+      ScreenStream = screenStream;
+
+      screenTrack.onended = () => {
+        if (ScreenShare.value) stopScreenShare();
+      };
+
+      if (pc) {
+        const videoSender = pc
+          .getSenders()
+          .find((s) => s.track && s.track.kind === "video");
+        if (videoSender) {
+          await videoSender.replaceTrack(screenTrack);
+        }
+      }
+      ScreenShare.value = true;
+      sendCameraState(true, true);
+    } catch (error) {
+      console.error("Screen share error:", error);
+    }
+  };
+
+  const reattachMediaStreams = () => {
+    const localVideoPip = document.getElementById("local-video-pip");
+    if (localVideoPip && localStream) {
+      if (localVideoPip.srcObject !== localStream) {
+      localVideoPip.srcObject = localStream;
+    }
+    }
+    const remoteAudio = document.getElementById("audio-remote");
+    if (remoteAudio && remoteStream.value) {
+      if (remoteAudio.srcObject !== remoteStream.value) {
+        remoteAudio.srcObject = remoteStream.value;
+      }
+    }
+    const remoteVideoEl = document.getElementById("remote-video");
+    if (localStream) {
+      const audioTrack = localStream.getAudioTracks()[0];
+      if (audioTrack) audioTrack.enabled = Mic.value;
+    }
+    if (remoteVideoEl) {
+      const isScreenTrack = remoteStream.value
+        ?.getVideoTracks()[0]
+        ?.label.toLowerCase()
+        .includes("screen");
+
+      remoteVideoEl.style.objectFit = isScreenTrack ? "contain" : "cover";
+    }
+    if (remoteStream.value && remoteVideoEl){
+      if (remoteVideoEl.srcObject !== remoteStream.value) {
+      remoteVideoEl.srcObject = remoteStream.value;
+      remoteVideoEl.play().catch(e => console.warn("Auto-play prevented:", e));
+      }
+    }
+  };
+
+  const initP2PCall = async () => {
+    callMode.value = "p2p";
+    cameraToggleLock = false;
+    dataChannel.value = null;
+    gatheredCandidates.value = [];
+
+    if (pc) {
+      pc.close();
+      pc = null;
+    }
+    if (localStream) {
+      localStream.getTracks().forEach((t) => t.stop());
+      localStream = null;
+    }
+
+    // Get audio only — no camera light
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+
+    // Mute mic by default
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.enabled = false;
+      Mic.value = false;
+    }
+
+    // blank video track so the transceiver exists for replaceTrack later
+    const canvas = document.createElement("canvas");
+    Object.assign(canvas, { width: 2, height: 2 });
+    const ctx = canvas.getContext("2d");
+    const keepAlive = setInterval(() => ctx.fillRect(0, 0, 2, 2), 100);
+    const blankTrack = canvas.captureStream(10).getVideoTracks()[0];
+    blankTrack.onended = () => clearInterval(keepAlive);
+    localStream.addTrack(blankTrack);
+    Camera.value = false;
+
+    // Build PeerConnection manually
+    pc = new RTCPeerConnection({
+      iceServers: iceServers.value,
+      iceTransportPolicy: "all",
+    });
+    localStream.getTracks().forEach((track) => pc.addTrack(track, localStream));
+    setupRTCEventListeners();
+
+    setupLocalVideo(localStream);
+  };
+
+  const setupDataChannel = (dc) => {
+  dc.onopen = () => {
+    remoteDisconnected.value = false;
+    sendCameraState(Camera.value || ScreenShare.value);
+    reattachMediaStreams();
+  };
+  dc.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === "cameraState" && onCameraStateCallback.value) {
+        onCameraStateCallback.value(msg.value, msg.isScreen);
+      }
+    } catch (_) {}
+  };
+};
+
+const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
+  return new Promise((resolve) => {
+    if (gatheredCandidates.value.length >= n) {
+      resolve(); return;
+    }
+
+    const timer = setTimeout(() => {
+      pc.onicecandidate = original;
+      resolve();
+    }, timeoutMs);
+
+    const original = pc.onicecandidate;
+    pc.onicecandidate = (event) => {
+      if (original) original(event);
+      if (gatheredCandidates.value.length >= n) {
+        clearTimeout(timer)
+          pc.onicecandidate = original;
+          resolve();
+      }
+    };
+  });
+};
+
+  const createP2POffer = async (remoteNumber) => {
+    p2pRoomId = remoteNumber;
+    if (callMode.value !== "p2p") await initP2PCall();
+    if (!pc) await initWebRTC();
+    gatheredCandidates.value = [];
+
+    callState.value = "calling";
+    currentPeerNumber.value = remoteNumber;
+
+    dataChannel.value = pc.createDataChannel("p2p-state");
+    setupDataChannel(dataChannel.value);
+
+    const offer = await pc.createOffer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true,
+    });
+    await pc.setLocalDescription(offer);
+
+    await waitForNCandidates(10);  // ← wait for 10 or 3s
+
+    activeCall.value = { show: true, remoteNumber, startTime: null };
+
+    return {
+        type: offer.type,
+        sdp: offer.sdp,
+        candidates: gatheredCandidates.value.slice(0, 10),
+    };
+};
+
+  const createP2PAnswer = async (remoteOffer) => {
+    if (!pc) await initP2PCall();
+    gatheredCandidates.value = [];
+
+    const sdpData = remoteOffer.sdp || remoteOffer;
+    const type = sdpData.type || "offer";
+    const sdp = sdpData.sdp || sdpData;
+
+    if (typeof sdp !== "string") {
+      console.error("Invalid SDP Data:", remoteOffer);
+      throw new Error("Failed to parse SDP: Invalid format");
+    }
+
+    await pc.setRemoteDescription(new RTCSessionDescription({ type, sdp }));
+
+    if (remoteOffer.candidates?.length) {
+        for (const c of remoteOffer.candidates) {
+            try { await pc.addIceCandidate(new RTCIceCandidate(c)); } catch (_) {}
+        }
+    }
+
+    const answer = await pc.createAnswer();
+    await pc.setLocalDescription(answer);
+
+    await waitForNCandidates(10);
+
+    return {
+      type: answer.type,
+      sdp: answer.sdp,
+      candidates: gatheredCandidates.value.slice(0, 10),
+    };
+  };
+
+  const addRemoteCandidate = async (candidate) => {
+    if (pc && pc.remoteDescription) {
+      try {
+        await pc.addIceCandidate(new RTCIceCandidate(candidate));
+      } catch (e) {
+        console.error("Error adding ICE candidate", e);
+      }
+    }
+  };
+    const increaseBitrate = async () => {
+    if (!pc) return;
+    const videoSender = pc.getSenders().filter(s => s.track?.kind === 'video');
+
+    for (const sender of videoSender) {
+      try {
+        const parameters = sender.getParameters();
+        if (!parameters.encodings || parameters.encodings.length === 0) {
+          parameters.encodings = [{}];
+        }
+        const isScreen = sender.track?.label?.toLowerCase().includes("screen");
+        parameters.encodings[0].maxBitrate = isScreen ? 3500000 : 2500000; 
+        
+        parameters.degradationPreference = 'maintain-resolution'; 
+        await sender.setParameters(parameters);
+      } catch (e) {
+        console.warn("[WebRTC] Could not set bitrate:", e);
+      }
+    }
+  };
+
+  const resetP2PWithMedia = async (hadCamera, hadMic) => {
+    connectionStatus.value = "connecting";
+    isConnected.value = false;
+    callMode.value = "p2p";
+    cameraToggleLock = false;
+    gatheredCandidates.value = [];
+    remoteStream.value = null;
+    dataChannel.value = null;
+    remoteDisconnected.value = false;
+    if (pc) { pc.close(); pc = null; }
+    if (localStream) { localStream.getTracks().forEach(t => {if (t.kind === "video" && ScreenShare.value) return; t.stop()});}
+
+    
+    try {
+      const constraints = {
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+        video: hadCamera ? { width: { min: 640, ideal: 1280, max: 1920 },
+        height: { min: 480, ideal: 720, max: 1080 },
+        frameRate: { ideal: 30, max: 60 } } : false
+      };
+    localStream = await navigator.mediaDevices.getUserMedia(constraints);
+    if (!hadCamera) {
+       const canvas = document.createElement("canvas");
+       canvas.width = canvas.height = 2;
+       const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
+       localStream.addTrack(blackTrack);
+    }
+    Mic.value = hadMic;
+    Camera.value = hadCamera;
+    localStream.getAudioTracks()[0].enabled = hadMic;
+    if (ScreenStream) {
+      ScreenStream.getTracks().forEach(t => t.stop());
+      ScreenStream = null;
+    }
+
+    pc = new RTCPeerConnection({ iceServers: iceServers.value, iceTransportPolicy: "all" });
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+    setupRTCEventListeners();
+    await nextTick()
+    setupLocalVideo(localStream);
+    if (ScreenShare.value && ScreenStream) {
+      const screenTrack = ScreenStream.getVideoTracks()[0];
+      if (screenTrack && pc) {
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender) {await sender.replaceTrack(screenTrack);}
+      }
+    }
+  }catch (error){
+    console.error("[WebRTC:reset] Hardware grab failed", { message: error.message, hadCamera, hadMic });
+  }
+};
+  const endP2PCall = async () => {
+    if (callMode.value !== "p2p") return;
+    dataChannel.value = null;
+
+    await endCall(false);
+
+    if (ScreenStream) {
+      ScreenStream.getTracks().forEach((t) => t.stop());
+      ScreenStream = null;
+    }
+
+    const remoteVideo = document.getElementById("remote-video");
+    const localVideo = document.getElementById("local-video");
+    const localVideoPip = document.getElementById("local-video-pip");
+
+    if (remoteVideo) remoteVideo.srcObject = null;
+    if (localVideo) localVideo.srcObject = null;
+    if (localVideoPip) localVideoPip.srcObject = null;
+
+    remoteStream.value = null;
+    ScreenStream = null;
+
+    Mic.value = false;
+    Camera.value = false;
+    ScreenShare.value = false;
   };
 
   onUnmounted(() => {
@@ -658,6 +1214,16 @@ export function useWebRTC() {
     callHistory,
     receivedSdpAnswer,
     receivedAnswer,
+    dataChannel,
+
+    Mic,
+    Camera,
+    ScreenShare,
+    ScreenStream,
+    toggleMic,
+    toggleCamera,
+    toggleScreenShare,
+    sendCameraState,
 
     initWebRTC,
     disconnect,
@@ -671,5 +1237,19 @@ export function useWebRTC() {
     gotAnswer,
     getChannelList,
     getCallsSuggestion,
+    createOfferr,
+    createAnswer,
+    remoteStream,
+
+    reattachMediaStreams,
+    initP2PCall,
+    createP2POffer,
+    createP2PAnswer,
+    addRemoteCandidate,
+    onRemoteCameraState,
+    increaseBitrate,
+    resetP2PWithMedia,
+    remoteDisconnected,
+    endP2PCall,
   };
 }

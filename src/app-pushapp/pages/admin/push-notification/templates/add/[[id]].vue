@@ -13,9 +13,14 @@ const max50 = (v) => !v || v.length <= 50 || "Title must be 50 characters or les
 const max120 = (v) => !v || v.length <= 120 || "Message must be 120 characters or less";
 // const urlRule = (v) =>
 //   !v || /^https?:\/\/\S+$/.test(v) || "Must be a valid URL";
+const urlRequired = v => {
+  if (!template.style.category) return true;
+  const value = typeof v === 'string' ? v : v?.code || v?.value || '';
+  return !!value || 'URL is required';
+};
 const urlRule = (v) => {
-  if (!v) return true;
-  const value = typeof v === 'string' ? v : v.code || v.value || '';
+  const value = typeof v === 'string' ? v : v?.code || v?.value || '';
+  if (!value) return true;
   return /^https?:\/\/\S+$/.test(value) || 'Must be a valid URL';
 };
 const lineOpen = reactive({ 1: false, 2: false, 3: false });
@@ -213,9 +218,14 @@ const onCreate = async () => {
     delete template._id;
     delete template.__v;
     if (template.type === "simple") {
-      if (Array.isArray(template.style.image_url) && template.style.image_url.length === 1) template.style.image_url = template.style.image_url[0];
+      const imageUrl = Array.isArray(template.style.image_url) && template.style.image_url.length === 1
+        ? template.style.image_url[0] || "" : template.style.image_url;
       payload = {
         ...template,
+        style: {
+          ...template.style,
+          image_url: imageUrl,
+        },
         options: {
           ...(template.options || {}),
           buttons: buttonGroupFields.value.map((b) => ({
@@ -444,7 +454,7 @@ watch(
                               v-model="template.style.image_url[index]"
                               :key="index"
                               :label="`Upload Image ${index + 1}`"
-                              :max-size="10240"
+                              :max-size="20240"
                               helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 10 kb"
                             />
                           </div>
@@ -483,7 +493,7 @@ watch(
                           v-model="buttonGroupValue[b.text]"
                           :label="'Button > ' + b.text"
                           placeholder="Enter URL"
-                          :rules="[urlRule]"
+                          :rules="[urlRequired, urlRule]"
                           prepend-inner-icon="mdi-link"
                           :items="optionsPath || []"
                           :clearable=true item-title="code" item-value="code"
@@ -580,7 +590,7 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Upload Image" :max-size="10240"
+                          label="Upload Image" :max-size="20240"
                           helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 10 kb"
                         />
                       </VCol>

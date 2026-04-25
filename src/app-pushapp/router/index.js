@@ -3,6 +3,7 @@ import { CDN_CONTEXT } from "@common/constants";
 import { routes } from "vue-router/auto-routes";
 import DefaultLayout from '../layouts/default.vue';
 import Dashboard from '../pages/dashboards/analytics.vue';
+import Events from "../pages/dashboards/events.vue";
 import TemplateList from '../pages/admin/app-engagements/templates/list/index.vue';
 import TemplateAdd from '../pages/admin/app-engagements/templates/add/[[id]].vue';
 import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vue';
@@ -10,6 +11,7 @@ import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue'
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index.vue';
+import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.vue';
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
@@ -51,6 +53,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "dashboards-analytics",
           component: Dashboard,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/events",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-events",
+          component: Events,
           props: true,
           meta: { layout: "default" },
         },
@@ -155,6 +170,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-app-engagements-campaigns-add",
           component: CampaignAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/push-notification/campaigns/add",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-campaigns-add",
+          component: CampaignAdd2,
           props: true,
           meta: { layout: "default" },
         },

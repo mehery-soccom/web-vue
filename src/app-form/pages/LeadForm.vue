@@ -99,6 +99,7 @@ onMounted(async () => {
       title: formDef.title,
       desc: formDef.desc,
       fields: mappedFields,
+      displayTitle: formDef.displayTitle !== undefined ? formDef.displayTitle : true,
       banner: formDef.banner || { bgImg: null, logo: null }
     }
 
@@ -195,16 +196,21 @@ const submitForm = async () => {
               </div>
 
               <div class="flex-grow-1">
-                <VCardTitle class="text-h3 pa-0 font-weight-bold" :class="{'text-white': formStructure.banner?.bgImg?.url}">
-                  {{ formStructure.title }}
-                </VCardTitle>
-                <VCardSubtitle
-                  v-if="formStructure.desc"
-                  class="mt-1 pa-0 opacity-90"
-                  :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
-                >
-                  {{ formStructure.desc }}
-                </VCardSubtitle>
+                <template v-if="formStructure.displayTitle !== false">
+                  <VCardTitle 
+                    class="text-h3 pa-0 font-weight-bold" 
+                    :class="{'text-white': formStructure.banner?.bgImg?.url}"
+                  >
+                    {{ formStructure.title }}
+                  </VCardTitle>
+                  <VCardSubtitle
+                    v-if="formStructure.desc"
+                    class="mt-1 pa-0 opacity-90"
+                    :style="formStructure.banner?.bgImg?.url ? 'color: rgba(255,255,255,0.9) !important' : ''"
+                  >
+                    {{ formStructure.desc }}
+                  </VCardSubtitle>
+                </template>
               </div>
             </div>
           </VCard>

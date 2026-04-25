@@ -25,10 +25,11 @@ const formData = ref({
   scale: 5,
   positiveScore: 60,
   segmentation: [
-    { label: 'Poor Feedback', min: 0, max: 40 },
-    { label: 'Satisfactory', min: 41, max: 65 },
-    { label: 'Good to Excellent', min: 66, max: 100 },
+    { label: 'Not Satisfied', min: 0, max: 40 },
+    { label: 'Neutral', min: 41, max: 65 },
+    { label: 'Satisfied', min: 66, max: 100 },
   ],
+  displayTitle: true,
   banner: {
     bgImg: null,
     logo: null,
@@ -62,6 +63,7 @@ onMounted(async () => {
         scale: existingForm.scale || 5,
         positiveScore: existingForm.positiveScore || 0,
         segmentation: existingForm.segmentation?.length ? existingForm.segmentation : formData.value.segmentation,
+        displayTitle: existingForm.displayTitle !== undefined ? existingForm.displayTitle : true,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
       hasTikats.value = !!existingForm.hasTikats;
@@ -222,6 +224,7 @@ const openPreview = () => {
     banner: formData.value.banner,
     scale: formData.value.scale,
     fields: formFields.value.filter(f => f.key !== 'question'),
+    displayTitle: formData.value.displayTitle,
     questions: formFields.value.filter(f => f.key === 'question'),
   };
   sessionStorage.setItem('form-preview-data', JSON.stringify(previewData));
@@ -313,13 +316,41 @@ const openPreview = () => {
                 />
               </VCol>
               <VCol cols="12">
+                <VSwitch
+                  v-model="formData.displayTitle"
+                  label="Display Name and Description over Background Image"
+                  inset
+                  density="comfortable"
+                />
+              </VCol>
+              <VCol cols="12" md="6">
+                <AppSelect
+                  v-model="formData.scale"
+                  label="Rating Scale"
+                  :items="[2, 3, 5, 10]"
+                  :disabled="hasTikats"
+                />
+              </VCol>
+
+              <VCol cols="12" md="6">
+                <AppTextField
+                  v-model="formData.positiveScore"
+                  type="number"
+                  label="Minimum Score for Positive Feedback (%)"
+                  suffix="%"
+                  :rules="[v => (v >= 0 && v <= 100) || 'Between 0-100']"
+                  placeholder="60"
+                  :disabled="hasTikats"
+                />
+              </VCol>
+              <VCol cols="12">
                 <div class="text-subtitle-1 font-weight-bold mb-3">Response Segmentation (%)</div>
                 
                 <VCol cols="12" md="6" class="pa-0 mb-3">
                   <AppTextField
                     v-model="formData.segmentation[0].max"
                     type="number"
-                    label="Poor Feedback"
+                    label="Not Satisfied"
                     :disabled="hasTikats"
                     prefix="<"
                     suffix="%"
@@ -327,7 +358,7 @@ const openPreview = () => {
                 </VCol>
 
                 <VCol cols="12" md="6" class="pa-0 mb-3">
-                  <div class="text-body-2 mb-1">Satisfactory</div>
+                  <div class="text-body-2 mb-1">Neutral</div>
                   <VRow dense align="center">
                     <VCol cols="5">
                       <AppTextField
@@ -357,7 +388,7 @@ const openPreview = () => {
                 <VCol cols="12" md="6" class="pa-0 mb-3">
                   <AppTextField
                     v-model="formData.segmentation[2].min"
-                    label="Good to Excellent"
+                    label="Satisfied"
                     prefix=">"
                     suffix="%"
                     readonly

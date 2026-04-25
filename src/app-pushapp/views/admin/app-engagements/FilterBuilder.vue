@@ -5,6 +5,9 @@ import FilterItem from "./FilterItem.vue";
 const props = defineProps({
   modelValue: { type: Object, required: true },
   level: { type: Number, default: 0 },
+  ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreCohortfilterType: { type: Boolean, default: false },
+  readonly: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "delete-group"]);
 
@@ -14,7 +17,7 @@ const childRefs = ref([]);
 const addFilter = () => {
   props.modelValue.children.push({
     type: "filter",
-    filterType: "event",
+    filterType: null,
     field: null,
     operator: null,
     value: null,
@@ -71,7 +74,7 @@ const isValid = async (silent = false) => {
       const valid = await refComp.isValid(silent);
       if (!valid && !firstInvalid) firstInvalid = refComp;
       return valid;
-    }
+    },
   );
 
   if (!allValid && firstInvalid && !silent) {
@@ -86,7 +89,10 @@ defineExpose({ isValid });
 </script>
 
 <template>
-  <div class="pa-3 rounded-lg border mb-3">
+  <div
+    class="pa-3 rounded-lg border mb-3"
+    :class="{ 'readonly-container': readonly }"
+  >
     <!-- Group Header -->
     <div class="d-flex align-center justify-space-between mb-3">
       <VBtnToggle
@@ -126,6 +132,9 @@ defineExpose({ isValid });
         :level="level"
         @remove="removeChild(index)"
         @update="emit('update:modelValue', modelValue)"
+        :ignoreEventfilterType="ignoreEventfilterType"
+        :ignoreCohortfilterType="ignoreCohortfilterType"
+        :readonly="readonly"
       />
     </div>
 
@@ -144,5 +153,17 @@ defineExpose({ isValid });
 <style scoped>
 .border {
   border: 1px solid #ddd;
+}
+
+.readonly-container {
+  opacity: 0.9;
+  background-color: rgba(var(--v-theme-on-surface), 0.03);
+  transition: all 0.2s ease;
+}
+
+/* disable only interactive elements */
+.readonly-container .v-btn {
+  pointer-events: none;
+  opacity: 0.7;
 }
 </style>
