@@ -4,13 +4,16 @@ import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebRTC } from "@/app-phone/composables/useWebRTC";
 import { RealDB } from '@/app-phone/composables/apiSignaling';
+import { decryptPayload } from '@/@common/services/P2PCrypto';
+import { useCallRecording } from '@/app-phone/composables/useCallRecording';
+import { computed } from 'vue';
 
 const {
   initP2PCall, createP2POffer, createP2PAnswer,
   setRemoteDescription, addRemoteCandidate,
-  endP2PCall, toggleMic, toggleCamera, toggleScreenShare,
+  endP2PCall, toggleMic, toggleCamera, toggleScreenShare, screenShareOwner, activeScreenStream, localScreenStream, clearRemoteScreenShare,
   reattachMediaStreams, Mic, Camera, ScreenShare, isConnected, onRemoteCameraState, sendCameraState, connectionStatus, resetP2PWithMedia,
-  remoteDisconnected, dataChannel, remoteStream
+  remoteDisconnected, dataChannel, remoteStream, sendDataChannelMessage, onRemoteRecordingState, increaseBitrate, ScreenStream
 } = useWebRTC();
 
 const route = useRoute();
@@ -18,6 +21,12 @@ const router = useRouter();
 const roomId = route.params.id;
 const callStore = RealDB
 
+const p2pRecording = useCallRecording({ mode: "p2p", recordingTrigger: "manual" });
+const { isRecording, isUploading, recordingError, startRecording, stopAndUploadRecording, updateRemoteStream, updateScreenStream  } = p2pRecording;
+const remoteIsRecording = ref(false);
+const isScreenShareActive = computed(() => !!screenShareOwner.value);
+const localScreenSharing = computed(() => screenShareOwner.value === 'local');
+const remoteScreenSharing = computed(() => screenShareOwner.value === 'remote');
 const userName = ref(localStorage.getItem('p2p_username') || "");
 const userId = (() => {
   let id = sessionStorage.getItem('p2p_userId');
@@ -49,15 +58,78 @@ let lastAnsweredOfferSdp = null;
 let currentSessionId = null;
 const isCreatingNewSession = ref(false);
 let remoteDescSet = false;
+let currentCallId = null;
+let currentCallParticipants = null;
+
+function _attachRemoteStream() {
+  if (!remoteStream.value) return;
+  nextTick(() => {
+    const el = document.getElementById("remote-video");
+    if (el && el.srcObject !== remoteStream.value) {
+      el.srcObject = remoteStream.value;
+      el.play().catch(() => {});
+    }
+  });
+}
+
+function _getStreamsForRecording() {
+  const localPip = document.getElementById("local-video-pip");
+  const localAudio = document.getElementById("audio-local");
+  const localSrc   =
+    (localPip?.srcObject   instanceof MediaStream ? localPip.srcObject   : null) ||
+    (localAudio?.srcObject instanceof MediaStream ? localAudio.srcObject : null);
+  const remoteSrc  = remoteStream.value;
+ 
+  return { localSrc, remoteSrc };
+}
+
+const toggleRecording = async () => {
+  if (isRecording.value) {
+    await stopAndUploadRecording();
+  } else {
+    const { localSrc, remoteSrc } = _getStreamsForRecording();
+    const currentScreenStream = localScreenSharing.value
+      ? (typeof ScreenStream === 'object' && ScreenStream !== null ? ScreenStream : null)
+      : remoteScreenSharing.value ? remoteStream.value : null;
+    await startRecording({
+      localStream: localSrc,
+      remoteStream: remoteSrc,
+      screenStream: currentScreenStream,
+      roomId,
+      callId: currentCallId || currentSessionId || roomId,
+      notifyPeerCallback: sendDataChannelMessage,
+      screenShareOwner: screenShareOwner.value,
+    });
+  }
+};
+
+function _setupRemoteCameraCallback() {
+  onRemoteCameraState((cameraOn, isScreen) => {
+    if (isScreen) {remoteIsScreen.value = cameraOn;} else {remoteCameraOn.value = cameraOn;}
+    nextTick(() => _attachRemoteStream());
+  });
+}
+function _resolveCallId(roomData) {
+  const hostId  = roomData?.host?.userId;
+  const guestId = roomData?.guest?.userId;
+  if (!hostId || !guestId) return;
+  
+  const pairKey = [hostId, guestId].sort().join("::");
+  if (pairKey !== currentCallParticipants) {
+    currentCallParticipants = pairKey;
+    currentCallId = `${roomId}_${Date.now()}`;
+    console.log(`[CallRoom] New call established — callId:${currentCallId} pair:${pairKey}`);
+  }
+}
 
 const resetWebRTC = async () => {
+  if (isRecording.value) await stopAndUploadRecording();
   const hadCamera = Camera.value;
   const hadMic = Mic.value;
-  const hadScreen = ScreenShare.value;
   await resetP2PWithMedia(hadCamera, hadMic);
-  remoteDescSet = false;lastAnsweredOfferSdp = null;
-  if (hadScreen) isScreenSharePending.value = true;
-  onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
+  remoteDescSet = false; lastAnsweredOfferSdp = null;
+  _setupRemoteCameraCallback();
+  onRemoteRecordingState((val) => { remoteIsRecording.value = val; });
 };
 
 const stopPolling = () => { if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; } };
@@ -92,10 +164,9 @@ const setupAsGuest = async (initialSession) => {
   statusMessage.value = "Connecting...";
 };
 
-// if 2 peers try joinng and same time then guest peer and refreshing
 const rejoinAsParticipant = async () => {
   await resetWebRTC();
-  onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
+  _setupRemoteCameraCallback();
   const joined = await callStore.createRoom(roomId, userName.value, userId, null);
   if (joined.waitingForNewSession) {
     currentSessionId = joined.sessionId;
@@ -106,27 +177,28 @@ const rejoinAsParticipant = async () => {
   if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(joined); }
 };
 
-// on refresh rejoin as host
 const handleSessionEnded = async () => {
   if (isCreatingNewSession.value || isEndingCall.value) return;
   isCreatingNewSession.value = true;
   stopPolling();
   remoteName.value = "";
   remoteCameraOn.value = false;
+  currentCallParticipants = null;
+  remoteIsRecording.value = false;
+  remoteIsScreen.value = false;
+  clearRemoteScreenShare();
   try {
     const session = await callStore.createRoom(roomId, userName.value, userId, null);
     if (session.waitingForNewSession) {
-      // another peer already created new session, wait for polling to detect it
       currentSessionId = session.sessionId;
       return;
     }
-
     currentSessionId = session.sessionId;
     isHost.value = session.host?.userId === userId;
     wasEverConnected.value = false;
 
     await resetWebRTC();
-    onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
+    _setupRemoteCameraCallback();
 
     if (isHost.value) {
       await setupAsHost();
@@ -164,7 +236,7 @@ const joinRoom = async () => {
     currentSessionId = session.sessionId;
     isHost.value = session.host?.userId === userId;
     await resetWebRTC();
-    onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
+    _setupRemoteCameraCallback();
     if (isHost.value) { await setupAsHost(); } else { await setupAsGuest(session); }
     if (stagingCameraOn) {
       Camera.value = false; 
@@ -201,18 +273,15 @@ const startPolling = (rate = 1500) => {
       return;
     }
 
-    //detect new session after refresh
     if (hasJoined.value && roomData && roomData.sessionId !== currentSessionId) {
       const alreadyIn = roomData.host?.userId === userId || roomData.guest?.userId === userId;
       if (alreadyIn) {
-        // We're already registered in the new session (e.g. fast page-refresh flow)
         currentSessionId = roomData.sessionId;
         isHost.value = roomData.host?.userId === userId;
         remoteDescSet = false;
         lastAnsweredOfferSdp = null;
         wasEverConnected.value = false;
       } else if (roomData.status === "waiting" || (roomData.status === "active" && !roomData.guest?.userId)) {
-        // New session with open guest slot
         if (isJoining.value || isCreatingNewSession.value) return;
         stopPolling();
         isJoining.value = true;
@@ -231,7 +300,6 @@ const startPolling = (rate = 1500) => {
       return;
     }
 
-    // apply answer (host side)
     if (isHost.value && roomData.answer?.sdp) {
       if (!remoteDescSet) {
           try {
@@ -244,20 +312,19 @@ const startPolling = (rate = 1500) => {
               if (!e.message?.includes('not initialized')) console.error("[POLL/HOST]", e); 
           }
       }
-
       if (remoteDescSet && roomData.answer.candidates?.length) {
         roomData.answer.candidates.forEach(c => addRemoteCandidate(c));
       }
     }    
 
-    // re-answer on new offer (guest side)
     const roomIsReconnecting = roomData.status === 'reconnecting';
     const isNewOffer = roomData.offer?.sdp && roomData.offer.sdp !== lastAnsweredOfferSdp;
     if (!isHost.value && (isNewOffer || (roomIsReconnecting && !remoteDescSet))) {
       try {
         const sId = currentSessionId;
         await resetP2PWithMedia(Camera.value, Mic.value);
-        onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
+        _setupRemoteCameraCallback();
+        onRemoteRecordingState((val) => { remoteIsRecording.value = val; });
         remoteDescSet = false;
         const answer = await createP2PAnswer(roomData.offer);
         if (currentSessionId !== sId) return;
@@ -267,7 +334,6 @@ const startPolling = (rate = 1500) => {
       } catch (e) { console.error("[CallRoom:poll] Guest re-answer failed", { message: e.message }); }
     }
 
-    // Name sync
     const remotePeer = isHost.value ? roomData.guest : roomData.host;
     if (roomData.sessionId === currentSessionId) {
       if (remotePeer?.userId) {
@@ -276,10 +342,12 @@ const startPolling = (rate = 1500) => {
         remoteName.value = "";
       }
     }
+    _resolveCallId(roomData);
     const target = !isConnected.value && roomData.guest?.userId ? 500 : isConnected.value ? 4000 : 1500;
     if (target !== pollRate) startPolling(target);
   }, pollRate);
 };
+
 const resumeScreenShare = async () => {
   try {
     await toggleScreenShare();
@@ -301,75 +369,156 @@ watch(isConnected, async (connected) => {
     }
     await nextTick();
     setTimeout(() => reattachMediaStreams(), 800);
+    if (isRecording.value && remoteStream.value) {
+      updateRemoteStream(remoteStream.value);
+    }
     let attempts = 0;
     const trySend = setInterval(() => {
-      const dcState = dataChannel.value?.readyState ?? "null";
-    const dcOpen = dataChannel.value?.readyState === "open";
-    if (dcOpen) {
-      sendCameraState(Camera.value);
-      if (ScreenShare.value) sendCameraState(true, true);
-      clearInterval(trySend);
-      return
-    }
-
-    attempts++;
-
-    if (attempts >= 10) {
-      reattachMediaStreams();
-      if (remoteStream.value?.getVideoTracks().length) {
-        remoteCameraOn.value = true;
+      const dcOpen = dataChannel.value?.readyState === "open";
+      if (dcOpen) {
+        if (ScreenShare.value) {sendCameraState(true, true);}
+        sendCameraState(Camera.value, false);
+        if (isRecording.value) {
+          sendDataChannelMessage({ type: "recordingState", value: true });
+        }
+        clearInterval(trySend);
+        return;
       }
-      clearInterval(trySend);
-      return; 
-    }
-  }, 500);
-  setTimeout(() => {
-      increaseBitrate(); 
-    }, 2000);
+      attempts++;
+      if (attempts >= 10) {
+        reattachMediaStreams();
+        if (remoteStream.value?.getVideoTracks().length) {
+          remoteCameraOn.value = true;
+        }
+        clearInterval(trySend);
+        return; 
+      }
+    }, 500);
+    setTimeout(() => { increaseBitrate(); }, 2000);
   } else if (wasEverConnected.value && !isEndingCall.value && !isCreatingNewSession.value) {
-    remoteCameraOn.value = false;
+    remoteCameraOn.value = false; remoteIsRecording.value = false;
     startPolling(1000);
+  }
+});
+
+watch(localScreenStream, async (stream) => {
+  if (stream) {
+    await nextTick();
+    const el = document.getElementById("local-screen-video");
+    if (el) { el.srcObject = stream; el.play().catch(() => {}); }
+    if (remoteStream.value) {
+      const remotePip = document.getElementById("remote-pip-video");
+      if (remotePip) { remotePip.srcObject = remoteStream.value; remotePip.play().catch(() => {}); }
+    }
+  }
+});
+
+watch(isScreenShareActive, async (active, wasActive) => {
+  if (active) {
+    await nextTick();
+    if (localScreenSharing.value) {
+      const screenEl = document.getElementById("local-screen-video");
+      if (screenEl && localScreenStream.value) {
+        screenEl.srcObject = localScreenStream.value;
+        screenEl.play().catch(() => {});
+      }
+      const remotePip = document.getElementById("remote-pip-video");
+      if (remotePip && remoteStream.value) {
+        remotePip.srcObject = remoteStream.value;
+        remotePip.play().catch(() => {});
+      }
+    } else if (remoteScreenSharing.value) {
+      _attachRemoteStream();
+      await nextTick();
+      reattachMediaStreams();
+    }
+ 
+  } else if (wasActive) {
+    await nextTick();
+    await nextTick();
+    const localPip = document.getElementById("local-video-pip");
+    if (localPip) {
+      const pipSrc = localPip.srcObject;
+      if (!pipSrc || pipSrc.getTracks().every(t => t.readyState !== "live")) {
+        const stagingVid = document.getElementById("local-video");
+        const src = stagingVid?.srcObject ?? null;
+        if (src) {
+          localPip.srcObject = src;
+          localPip.play().catch(() => {});
+        }
+      }
+    }
+     const remoteVid = document.getElementById("remote-video");
+    if (remoteVid && remoteStream.value) {
+      if (remoteVid.srcObject !== remoteStream.value) {
+        remoteVid.srcObject = remoteStream.value;
+        remoteVid.play().catch(() => {});
+      }
+    }
+    reattachMediaStreams();
+  }
+});
+ 
+watch(screenShareOwner, async (owner) => {
+  if (owner === 'remote') {
+    await nextTick();
+    await nextTick();
+    _attachRemoteStream();
+  }
+});
+watch(remoteIsScreen, async (val) => {
+  if (val) {
+    await nextTick();
+    await nextTick();
+    _attachRemoteStream();
   }
 });
 
 watch(connectionStatus, async (status) => {
   if ((status === 'failed' || status === 'error') && isHost.value && wasEverConnected.value) {
     stopPolling();
-      if (isReconnecting){console.warn("[CallRoom:connStatus] Reconnect already in progress, skipping");
-      return
-    } 
-    isReconnecting = true;
-    try{
-
-    await resetP2PWithMedia(Camera.value, Mic.value);
-    onRemoteCameraState((val, isScreen) => { remoteCameraOn.value = val; remoteIsScreen.value = isScreen ?? false;});
-    remoteDescSet = false;
-    let offer;
-    try {
-      offer = await createP2POffer(roomId);
-    } catch (e) {
-      await resetP2PWithMedia(Camera.value, Mic.value);
-      offer = await createP2POffer(roomId);
+    if (isReconnecting) {
+      console.warn("[CallRoom:connStatus] Reconnect already in progress, skipping");
+      return;
     }
-    await callStore.updateRoom(roomId, {
-      offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates },
-      answer: null, 
-      status: 'reconnecting' 
-    });
+    isReconnecting = true;
+    try {
+      await resetP2PWithMedia(Camera.value, Mic.value);
+      _setupRemoteCameraCallback();
+      onRemoteRecordingState((val) => { remoteIsRecording.value = val; });
+      remoteDescSet = false;
+      let offer;
+      try {
+        offer = await createP2POffer(roomId);
+      } catch (e) {
+        await resetP2PWithMedia(Camera.value, Mic.value);
+        offer = await createP2POffer(roomId);
+      }
+      await callStore.updateRoom(roomId, {
+        offer: { type: 'offer', sdp: offer.sdp, candidates: offer.candidates },
+        answer: null,
+        status: 'reconnecting'
+      });
+    } finally {
+      isReconnecting = false;
+      startPolling(800);
+    }
   }
-  finally{
-    isReconnecting = false;
-    startPolling(800);
-  }}
 });
 
 watch(remoteCameraOn, async (val) => {
   if (val) {
     await nextTick();
+    if (isScreenShareActive.value && localScreenSharing.value && remoteStream.value) {
+      const remotePip = document.getElementById("remote-pip-video");
+      if (remotePip && remotePip.srcObject !== remoteStream.value) {
+        remotePip.srcObject = remoteStream.value;
+        remotePip.play().catch(() => {});
+      }
+    }
     reattachMediaStreams();
     if (remoteStream.value) {
       const dead = remoteStream.value.getTracks().every(t => t.readyState !== "live");
-    
       if (dead) {
         await resetP2PWithMedia(Camera.value, Mic.value);
       }
@@ -381,13 +530,24 @@ watch(userName, v => {
   localStorage.setItem('p2p_username', v);
   if (v.trim()) nameError.value = "";
 });
+
 watch(remoteDisconnected, (dropped) => {
   if (dropped) {
-    remoteCameraOn.value = false;
+    remoteCameraOn.value = false; remoteIsRecording.value = false; remoteIsScreen.value = false; clearRemoteScreenShare();
   }
 });
+
 onMounted(async () => {
   await initP2PCall();
+  const params = new URLSearchParams(window.location.search);
+  const encoded = params.get('s');
+  if (encoded) {
+    const payload = await decryptPayload(encoded);
+    if (payload) { userName.value = payload.role === 'agent' ? (payload.agentCode || '') : (payload.contactName || ''); }
+  }
+  if (userName.value) {
+    await joinRoom();
+  }
   window.addEventListener('beforeunload', () => {
     sessionStorage.setItem('p2p_prevUserId', userId);
     if (hasJoined.value && !isEndingCall.value) {
@@ -399,8 +559,12 @@ onMounted(async () => {
   });
 });
 
-onUnmounted(() => {
-  stopPolling(); endP2PCall();
+onUnmounted(async () => {
+  stopPolling(); 
+  if (isRecording.value) {
+    await stopAndUploadRecording();
+  }
+  endP2PCall();
   if (hasJoined.value && !isEndingCall.value) {
     callStore.leaveRoom(roomId, userId);
   }
@@ -409,6 +573,7 @@ onUnmounted(() => {
 const handleLeave = async (updateDB = true) => {
   stopPolling();
   isEndingCall.value = true;
+  if (isRecording.value) await stopAndUploadRecording();
   if (updateDB) await callStore.leaveRoom(roomId, userId);
   await endP2PCall();
   router.push('/call');
@@ -458,47 +623,113 @@ const handleLeave = async (updateDB = true) => {
     </div>
 
     <!-- In-call -->
-    <div v-else class="room">
+    <div v-else class="room" :class="{ 'screen-share-layout': isScreenShareActive }">
 
-      <!-- Remote video -->
-      <video id="remote-video" autoplay playsinline class="main-video"
-        :class="{ hidden: !isConnected || !remoteCameraOn }" :style="{ objectFit: remoteCameraOn && remoteIsScreen ? 'contain' : 'cover' }"></video>
+      <template v-if="!isScreenShareActive">
+        <video id="remote-video" autoplay playsinline class="main-video"
+          :class="{ hidden: !isConnected || (!remoteCameraOn && !remoteIsScreen) }"
+          :style="{ objectFit: remoteCameraOn && remoteIsScreen ? 'contain' : 'cover' }">
+        </video>
 
-      <!-- remote peer not connected -->
-      <div v-if="!isConnected || !remoteCameraOn" class="remote-placeholder">
-        <template v-if="remoteName && !isCreatingNewSession">
-          <div class="avatar-ring">
-            <div class="avatar">{{ remoteName.charAt(0).toUpperCase() }}</div>
-          </div>
-          <p class="placeholder-name">{{ remoteName }}</p>
-          <div v-if="remoteDisconnected && !isConnected" class="reconnecting-badge">
-            <span class="buffer-dot"></span>
-            <span class="buffer-dot"></span>
-            <span class="buffer-dot"></span>
-            <span style="margin-left:6px; font-size:0.78rem; opacity:0.6">Connection lost…</span>
-          </div>
-          <div v-else-if="!isConnected" class="connecting-dots">
-            <span></span><span></span><span></span>
-          </div>
-        </template>
-        <template v-else>
-          <div class="avatar-ring empty">
-            <Icon icon="tabler:user" width="40" color="rgba(255,255,255,0.2)" />
-          </div>
-          <p class="placeholder-name muted">Waiting for someone to join…</p>
-        </template>
-      </div>
-
-      <!-- Remote name -->
-      <div v-if="remoteName && !isCreatingNewSession" class="remote-name-badge">{{ remoteName }}</div>
-
-      <!-- Local  -->
-      <div class="pip-wrapper">
-        <video id="local-video-pip" autoplay muted playsinline class="pip-video" :class="{ hidden: !Camera }"></video>
-        <div v-if="!Camera" class="pip-avatar">
-          {{ userName.charAt(0).toUpperCase() }}
+        <div v-if="!isConnected || (!remoteCameraOn && !remoteIsScreen)" class="remote-placeholder">
+          <template v-if="remoteName && !isCreatingNewSession">
+            <div class="avatar-ring">
+              <div class="avatar">{{ remoteName.charAt(0).toUpperCase() }}</div>
+            </div>
+            <p class="placeholder-name">{{ remoteName }}</p>
+            <div v-if="remoteDisconnected && !isConnected" class="reconnecting-badge">
+              <span class="buffer-dot"></span>
+              <span class="buffer-dot"></span>
+              <span class="buffer-dot"></span>
+              <span style="margin-left:6px; font-size:0.78rem; opacity:0.6">Connection lost…</span>
+            </div>
+            <div v-else-if="!isConnected" class="connecting-dots">
+              <span></span><span></span><span></span>
+            </div>
+          </template>
+          <template v-else>
+            <div class="avatar-ring empty">
+              <Icon icon="tabler:user" width="40" color="rgba(255,255,255,0.2)" />
+            </div>
+            <p class="placeholder-name muted">Waiting for someone to join…</p>
+          </template>
         </div>
-        <span>{{ userName }} (You)</span>
+
+        <!-- Remote name badge -->
+        <div v-if="remoteName && !isCreatingNewSession" class="remote-name-badge">{{ remoteName }}</div>
+
+        <!-- Local PiP -->
+        <div class="pip-wrapper">
+          <video id="local-video-pip" autoplay muted playsinline class="pip-video" :class="{ hidden: !Camera }"></video>
+          <div v-if="!Camera" class="pip-avatar">
+            {{ userName.charAt(0).toUpperCase() }}
+          </div>
+          <span>{{ userName }} (You)</span>
+        </div>
+      </template>
+
+      <!-- SCREEN SHARE LAYOUT -->
+      <template v-else>
+        <!-- Main screen area -->
+        <div class="screen-main">
+          <video
+            v-if="localScreenSharing"
+            id="local-screen-video"
+            autoplay muted playsinline
+            class="screen-video">
+          </video>
+          <video
+            v-else
+            id="remote-video"
+            autoplay playsinline
+            class="screen-video"
+            :class="{ hidden: !isConnected }">
+          </video>
+
+          <div v-if="remoteScreenSharing && !isConnected" class="screen-placeholder">
+            <Icon icon="tabler:screen-share-off" width="48" color="rgba(255,255,255,0.2)" />
+            <p>Screen share connecting...</p>
+          </div>
+
+          <div class="screen-owner-badge">
+            <Icon icon="tabler:screen-share" width="14" />
+            {{ localScreenSharing ? 'You are sharing' : (remoteName || 'Participant') + ' is sharing' }}
+          </div>
+        </div>
+
+        <!-- ── Right PiP panel ── -->
+        <div class="pip-panel">
+          <!-- Remote participant pip card -->
+          <div class="pip-card" v-if="localScreenSharing">
+            <video id="remote-pip-video" autoplay playsinline class="pip-card-video"
+              :class="{ hidden: !remoteCameraOn }">
+            </video>
+            <div v-if="!remoteCameraOn" class="pip-card-avatar">
+              {{ (remoteName || '?').charAt(0).toUpperCase() }}
+            </div>
+            <span class="pip-card-name">{{ remoteName || 'Waiting...' }}</span>
+          </div>
+
+          <!-- Local self pip card -->
+          <div class="pip-card">
+            <video id="local-video-pip" autoplay muted playsinline class="pip-card-video"
+              :class="{ hidden: !Camera }">
+            </video>
+            <div v-if="!Camera" class="pip-card-avatar">
+              {{ userName.charAt(0).toUpperCase() }}
+            </div>
+            <span class="pip-card-name">{{ userName }} (You)</span>
+          </div>
+        </div>
+        <div v-if="remoteName && !isCreatingNewSession" class="remote-name-badge">{{ remoteName }}</div>
+      </template>
+
+      <!--SHARED OVERLAYS-->
+      <div v-if="isConnected && (isRecording || remoteIsRecording)" class="recording-badge">
+        <span class="rec-dot"></span>
+        <span v-if="isRecording">Recording</span>
+        <span v-else>{{ remoteName || 'Other participant' }} is recording</span>
+        <span v-if="isUploading" class="uploading-dot" title="Uploading…">↑</span>
       </div>
 
       <div v-if="wasEverConnected && !isConnected" class="reconnecting-overlay">
@@ -508,6 +739,7 @@ const handleLeave = async (updateDB = true) => {
         <p>Reconnecting...</p>
         <span>Trying to restore your connection</span>
       </div>
+
       <!-- Controls -->
       <div class="controls">
         <button @click="toggleCamera" :class="{ 'btn-off': !Camera }">
@@ -518,6 +750,10 @@ const handleLeave = async (updateDB = true) => {
         </button>
         <button @click="toggleScreenShare" :class="{ 'btn-active': ScreenShare }">
           <Icon :icon="ScreenShare ? 'tabler:screen-share-off' : 'tabler:screen-share'" />
+        </button>
+        <button v-if="isConnected" @click="toggleRecording" :class="{ 'btn-recording': isRecording }"
+          :title="isRecording ? 'Stop Recording' : 'Start Recording'">
+          <Icon :icon="isRecording ? 'tabler:player-stop-filled' : 'tabler:player-record'" />
         </button>
         <div v-if="isScreenSharePending" class="resume-overlay">
           <button @click="resumeScreenShare" class="btn-resume">
@@ -613,7 +849,6 @@ const handleLeave = async (updateDB = true) => {
   flex-direction: column;
   gap: 14px;
   justify-content: space-between;
-
 }
 
 .name-field {
@@ -738,27 +973,12 @@ const handleLeave = async (updateDB = true) => {
   animation: dot-pulse 1.4s ease-in-out infinite;
 }
 
-.connecting-dots span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.connecting-dots span:nth-child(3) {
-  animation-delay: 0.4s;
-}
+.connecting-dots span:nth-child(2) { animation-delay: 0.2s; }
+.connecting-dots span:nth-child(3) { animation-delay: 0.4s; }
 
 @keyframes dot-pulse {
-
-  0%,
-  80%,
-  100% {
-    transform: scale(0.7);
-    opacity: 0.3;
-  }
-
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0%, 80%, 100% { transform: scale(0.7); opacity: 0.3; }
+  40% { transform: scale(1); opacity: 1; }
 }
 
 /* ── Remote name badge ── */
@@ -776,7 +996,45 @@ const handleLeave = async (updateDB = true) => {
   backdrop-filter: blur(4px);
 }
 
-/* ── PiP ── */
+.recording-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: rgba(217, 48, 37, 0.88);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  backdrop-filter: blur(6px);
+  z-index: 10;
+  box-shadow: 0 2px 12px rgba(217, 48, 37, 0.4);
+}
+
+.rec-dot {
+  width: 8px;
+  height: 8px;
+  background: white;
+  border-radius: 50%;
+  flex-shrink: 0;
+  animation: rec-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes rec-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.75); }
+}
+
+.uploading-dot {
+  font-size: 0.75rem;
+  opacity: 0.8;
+  animation: dot-pulse 1s ease-in-out infinite;
+}
+
+/* ── PiP (normal layout) ── */
 .pip-wrapper {
   position: absolute;
   bottom: 5rem;
@@ -808,9 +1066,7 @@ const handleLeave = async (updateDB = true) => {
   border-radius: 4px;
 }
 
-.pip-video.hidden {
-  display: none;
-}
+.pip-video.hidden { display: none; }
 
 .pip-avatar {
   position: absolute;
@@ -845,6 +1101,7 @@ const handleLeave = async (updateDB = true) => {
 
 .buffer-dot:nth-child(2) { animation-delay: 0.2s; }
 .buffer-dot:nth-child(3) { animation-delay: 0.4s; }
+
 /* ── Controls ── */
 .controls {
   position: absolute;
@@ -872,21 +1129,18 @@ const handleLeave = async (updateDB = true) => {
   backdrop-filter: blur(6px);
 }
 
-.controls button:hover {
-  background: rgba(255, 255, 255, 0.24);
-}
+.controls button:hover { background: rgba(255, 255, 255, 0.24); }
+.controls button:active { transform: scale(0.93); }
 
-.controls button:active {
-  transform: scale(0.93);
-}
 .resume-overlay {
   position: absolute;
-  top: -60px; /* Position it above the control bar */
+  top: -60px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 100;
   width: max-content;
 }
+
 .btn-resume {
   background: #f9ab00 !important;
   color: #202124 !important;
@@ -902,27 +1156,142 @@ const handleLeave = async (updateDB = true) => {
   box-shadow: 0 4px 12px rgba(0,0,0,0.3);
 }
 
-.btn-resume:hover {
-  background: #f89b00 !important;
+.btn-resume:hover { background: #f89b00 !important; }
+
+/* ── Screen share layout ── */
+.screen-share-layout {
+  display: flex;
 }
-/*.btn-recording {
-  background: #d93025 !important;
-  animation: pulse-red 1.5s ease-in-out infinite;
+
+.screen-main {
+  flex: 1;
+  position: relative;
+  background: #0d0d14;
+  overflow: hidden;
+  height: 100%;
 }
 
-@keyframes pulse-red {
+.screen-video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.4);
-  }
+.screen-video.hidden { display: none; }
 
-  50% {
-    box-shadow: 0 0 0 8px rgba(217, 48, 37, 0);
-  }
-}*/
+.screen-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: rgba(255,255,255,0.3);
+  font-size: 0.9rem;
+}
 
-/* staging controls sit on top of the video preview */
+.screen-owner-badge {
+  position: absolute;
+  bottom: 80px;
+  left: 16px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.8rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  backdrop-filter: blur(4px);
+  z-index: 5;
+}
+
+/* ── PiP panel (screen share mode) ── */
+.pip-panel {
+  width: 180px;
+  flex-shrink: 0;
+  background: #0a0a12;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  z-index: 5;
+  padding-bottom: 90px;
+  overflow-y: auto;
+}
+
+.pip-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #1a1a2e;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1.5px solid rgba(255,255,255,0.08);
+  flex-shrink: 0;
+}
+
+.pip-card-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pip-card-video.hidden { display: none; }
+
+.pip-card-avatar {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #252a4a;
+  color: #7b96e8;
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.pip-card-name {
+  position: absolute;
+  bottom: 5px;
+  left: 6px;
+  background: rgba(0,0,0,0.6);
+  color: white;
+  padding: 1px 6px;
+  font-size: 9px;
+  border-radius: 3px;
+  max-width: calc(100% - 12px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Reconnecting overlay ── */
+.reconnecting-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  z-index: 20;
+  color: white;
+}
+
+.reconnecting-overlay p {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.reconnecting-overlay span {
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
 .staging-controls {
   position: absolute !important;
   bottom: 10px;
@@ -940,20 +1309,30 @@ const handleLeave = async (updateDB = true) => {
   background: #ea4335 !important;
 }
 
-.btn-off:hover {
-  background: #c5221f !important;
-}
+.btn-off:hover { background: #c5221f !important; }
 
 .btn-leave {
   background: #d93025 !important;
 }
 
-.btn-leave:hover {
+.btn-leave:hover { 
   background: #b31412 !important;
 }
 
 .btn-active {
   background: #0d8f4c !important;
+}
+
+.btn-recording {
+  background: #d93025 !important;
+  animation: pulse-red 1.5s ease-in-out infinite;
+}
+
+.btn-recording:hover { background: #b31412 !important; }
+
+@keyframes pulse-red {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(217, 48, 37, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(217, 48, 37, 0); }
 }
 
 /* ── Shared buttons ── */
@@ -970,9 +1349,7 @@ const handleLeave = async (updateDB = true) => {
   transition: background 0.15s;
 }
 
-.btn-join:hover {
-  background: #1557b0;
-}
+.btn-join:hover { background: #1557b0; }
 
 .btn-cancel {
   flex: 1;
@@ -993,13 +1370,8 @@ const handleLeave = async (updateDB = true) => {
 
 /* ── Responsive ── */
 @media (max-width: 700px) {
-  .staging {
-    flex-direction: column;
-  }
-
-  .right-container {
-    width: 100%;
-  }
+  .staging { flex-direction: column; }
+  .right-container { width: 100%; }
 
   .pip-wrapper {
     width: 130px;
@@ -1017,6 +1389,26 @@ const handleLeave = async (updateDB = true) => {
     width: 42px;
     height: 42px;
     font-size: 18px;
+  }
+
+  .screen-share-layout {
+    flex-direction: column;
+  }
+
+  .pip-panel {
+    width: 100%;
+    height: 100px;
+    flex-direction: row;
+    padding: 6px;
+    padding-bottom: 6px;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+
+  .pip-card {
+    width: 140px;
+    aspect-ratio: 16/9;
+    flex-shrink: 0;
   }
 }
 </style>

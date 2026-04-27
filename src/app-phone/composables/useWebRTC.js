@@ -2,6 +2,7 @@
 import { ref, reactive, onUnmounted, nextTick } from "vue";
 import { toast } from "vue3-toastify";
 import { usePhoneStore } from "../views/usePhoneStore";
+import { useCallRecording } from "./useCallRecording";
 
 export function useWebRTC() {
   const PhoneStore = usePhoneStore();
@@ -19,6 +20,8 @@ export function useWebRTC() {
   const dataChannel = ref(null);
   const onCameraStateCallback = ref(null);
   let cameraToggleLock = false;
+  const onRecordingStateCallback = ref(null);
+  const localScreenStream = ref(null);
 
   //Calling Variables
   const remoteStream = ref(null);
@@ -31,6 +34,9 @@ export function useWebRTC() {
   const callMode = ref("meta"); // 'meta' 'p2p'
   const remoteDisconnected = ref(false);
   let p2pRoomId = null;
+  let _metaRecording = null;
+  const screenShareOwner = ref(null); // 'local' | 'remote' | null
+  const activeScreenStream = ref(null);
 
   // ICE servers configuration
   const iceServers = ref([
@@ -170,6 +176,35 @@ export function useWebRTC() {
     }
   };
 
+  const sendDataChannelMessage = (msgObject) => {
+    if (dataChannel.value?.readyState === "open") {
+      try {
+        dataChannel.value.send(JSON.stringify(msgObject));
+      } catch (e) {
+        console.warn("[WebRTC] sendDataChannelMessage failed:", e.message);
+      }
+    }
+  };
+  const onRemoteRecordingState = (callback) => {
+    onRecordingStateCallback.value = callback;
+  };
+  const _startMetaRecording = async () => {
+    if (_metaRecording?.isRecording.value) return; 
+ 
+    _metaRecording = useCallRecording({ mode: "meta"});
+    const remoteAudioEl = document.getElementById("audio-remote");
+    const resolvedRemote =
+      remoteStream.value ||
+      (remoteAudioEl?.srcObject instanceof MediaStream ? remoteAudioEl.srcObject : null);
+ 
+    await _metaRecording.startRecording({
+      localStream,
+      remoteStream: resolvedRemote,
+      roomId: channelId.value,
+      callId: callData.value?.callId || callData.value?.sessionId || channelId.value,
+    });
+  };
+
   const initWebRTC = async () => {
     try {
       isConnecting.value = true;
@@ -227,10 +262,9 @@ export function useWebRTC() {
         remoteStream.value = stream;
         let attempts = 0;
         const attach = () => {
-          const remoteVideo = document.getElementById("remote-video");
-          if (remoteVideo) {
-            if (remoteVideo.srcObject !== stream) {remoteVideo.srcObject = stream;}
-            remoteVideo.muted = false;
+          const el = document.getElementById("remote-video");
+          if (el) {
+            if (el.srcObject !== stream) el.srcObject = stream;
         } else if (attempts < 20) {
           attempts++;
           setTimeout(attach, 150);
@@ -264,6 +298,11 @@ export function useWebRTC() {
           startCallTimer();
           stopRingbacktone();
           stopRingtone();
+          if (callMode.value === "meta") {
+            _startMetaRecording().catch((e) =>
+              console.error("[Recording] Auto-start failed:", e)
+            );
+          }
           if (callMode.value === "p2p") {
             setTimeout(() => {
               if (!remoteStream.value) return;
@@ -279,7 +318,7 @@ export function useWebRTC() {
           console.warn("[WebRTC:connState] Temporary disconnect — waiting for ICE recovery");
           break;
         case "failed":
-          console.error("[WebRTC:connState] ❌ Failed", {
+          console.error("[WebRTC:connState] Failed", {
             iceState: pc.iceConnectionState,
             signalingState: pc.signalingState,
             hadRemoteStream: !!remoteStream.value,
@@ -625,6 +664,15 @@ export function useWebRTC() {
   };
 
   const endCall = async (endFromAgent) => {
+    if (_metaRecording?.isRecording.value) {
+      try {
+        await _metaRecording.stopAndUploadRecording();
+      } catch (e) {
+        console.error("[Recording] Failed to stop meta recording on endCall:", e);
+      } finally {
+        _metaRecording = null;
+      }
+    }
     if (pc) {
       pc.close();
       pc = null;
@@ -797,7 +845,7 @@ export function useWebRTC() {
       canvas.getContext("2d").fillRect(0, 0, 2, 2);
       const blackTrack = canvas.captureStream(1).getVideoTracks()[0];
 
-      if (sender) await sender.replaceTrack(blackTrack);
+      if (!ScreenShare.value && sender) await sender.replaceTrack(blackTrack);
       if (realTrack) { realTrack.stop(); localStream.removeTrack(realTrack); }
       localStream.addTrack(blackTrack);
       Camera.value = false;
@@ -808,7 +856,7 @@ export function useWebRTC() {
         const newStream = await navigator.mediaDevices.getUserMedia({ video: { width: 1280, height: 720 } });
         const newTrack = newStream.getVideoTracks()[0];
         const blackTrack = localStream.getVideoTracks()[0];
-        if (sender) await sender.replaceTrack(newTrack);
+        if (!ScreenShare.value && sender) await sender.replaceTrack(newTrack);
         if (blackTrack) {localStream.removeTrack(blackTrack);blackTrack.stop();}
         localStream.addTrack(newTrack);
         Camera.value = true;
@@ -848,11 +896,14 @@ export function useWebRTC() {
     Mic.value = audioTrack.enabled;
   };
 
-  const stopScreenShare = () => {
+  const stopScreenShare = async () => {
     if (!ScreenStream) return;
 
     ScreenStream.getTracks().forEach((track) => track.stop());
     ScreenShare.value = false;
+    screenShareOwner.value = null;
+    activeScreenStream.value = null;
+    localScreenStream.value = null;
 
     if (localStream && pc) {
       const videoSender = pc
@@ -866,7 +917,10 @@ export function useWebRTC() {
     }
 
     ScreenStream = null;
+    sendCameraState(false, true);
     sendCameraState(Camera.value, false);
+    await nextTick();
+    reattachMediaStreams();
   };
 
   const toggleScreenShare = async () => {
@@ -877,12 +931,15 @@ export function useWebRTC() {
 
     try {
       const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: {width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { max: 30 }},
+        video: {width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { max: 30 }}, cursor: "always",
         audio: false,
       });
       const screenTrack = screenStream.getVideoTracks()[0];
       if(screenTrack.contentHint != undefined){ screenTrack.contentHint = 'detail'}
       ScreenStream = screenStream;
+      screenShareOwner.value = 'local';
+      activeScreenStream.value = screenStream;
+      localScreenStream.value = screenStream;
 
       screenTrack.onended = () => {
         if (ScreenShare.value) stopScreenShare();
@@ -898,17 +955,24 @@ export function useWebRTC() {
       }
       ScreenShare.value = true;
       sendCameraState(true, true);
+      await nextTick();
+      reattachMediaStreams();
     } catch (error) {
       console.error("Screen share error:", error);
+    }
+  };
+  const clearRemoteScreenShare = () => {
+    if (screenShareOwner.value === 'remote') {
+      screenShareOwner.value = null;
+      activeScreenStream.value = null;
     }
   };
 
   const reattachMediaStreams = () => {
     const localVideoPip = document.getElementById("local-video-pip");
     if (localVideoPip && localStream) {
-      if (localVideoPip.srcObject !== localStream) {
       localVideoPip.srcObject = localStream;
-    }
+      localVideoPip.play().catch(() => {});
     }
     const remoteAudio = document.getElementById("audio-remote");
     if (remoteAudio && remoteStream.value) {
@@ -935,8 +999,20 @@ export function useWebRTC() {
       remoteVideoEl.play().catch(e => console.warn("Auto-play prevented:", e));
       }
     }
-  };
 
+    if (screenShareOwner.value === 'local' && localScreenStream.value) {
+      const screenEl = document.getElementById("local-screen-video");
+      if (screenEl && screenEl.srcObject !== localScreenStream.value) {
+        screenEl.srcObject = localScreenStream.value;
+        screenEl.play().catch(() => {});
+      }
+      const remotePip = document.getElementById("remote-pip-video");
+      if (remotePip && remoteStream.value && remotePip.srcObject !== remoteStream.value) {
+        remotePip.srcObject = remoteStream.value;
+        remotePip.play().catch(() => {});
+      }
+    }
+  };
   const initP2PCall = async () => {
     callMode.value = "p2p";
     cameraToggleLock = false;
@@ -992,7 +1068,7 @@ export function useWebRTC() {
   const setupDataChannel = (dc) => {
   dc.onopen = () => {
     remoteDisconnected.value = false;
-    sendCameraState(Camera.value || ScreenShare.value);
+    sendCameraState(Camera.value, ScreenShare.value);
     reattachMediaStreams();
   };
   dc.onmessage = (e) => {
@@ -1000,6 +1076,18 @@ export function useWebRTC() {
       const msg = JSON.parse(e.data);
       if (msg.type === "cameraState" && onCameraStateCallback.value) {
         onCameraStateCallback.value(msg.value, msg.isScreen);
+        if (msg.isScreen && msg.value) {
+          screenShareOwner.value = 'remote';
+          activeScreenStream.value = remoteStream.value;
+        } else if (msg.isScreen && !msg.value) {
+          if (screenShareOwner.value === 'remote') {
+            screenShareOwner.value = null;
+            activeScreenStream.value = null;
+          }
+        }
+      }
+      if (msg.type === "recordingState" && onRecordingStateCallback.value) {
+          onRecordingStateCallback.value(msg.value);
       }
     } catch (_) {}
   };
@@ -1150,10 +1238,6 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     Mic.value = hadMic;
     Camera.value = hadCamera;
     localStream.getAudioTracks()[0].enabled = hadMic;
-    if (ScreenStream) {
-      ScreenStream.getTracks().forEach(t => t.stop());
-      ScreenStream = null;
-    }
 
     pc = new RTCPeerConnection({ iceServers: iceServers.value, iceTransportPolicy: "all" });
     localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
@@ -1223,7 +1307,14 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     toggleMic,
     toggleCamera,
     toggleScreenShare,
+    screenShareOwner,
+    localScreenStream,
+    activeScreenStream,
+    clearRemoteScreenShare,
     sendCameraState,
+
+    sendDataChannelMessage,
+    onRemoteRecordingState,
 
     initWebRTC,
     disconnect,
