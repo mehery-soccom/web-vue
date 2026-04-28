@@ -70,6 +70,19 @@ function _createTickerWorker() {
   return worker;
 }
 
+function _roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
 export function useCallRecording({ mode = "meta", silent, recordingTrigger = "auto" } = {}) {
   const _silent = silent !== undefined ? silent : (recordingTrigger === "auto");
 
@@ -198,7 +211,7 @@ export function useCallRecording({ mode = "meta", silent, recordingTrigger = "au
           ctx.font = "500 12px system-ui, sans-serif";
           const tw = ctx.measureText(ownerText).width;
           ctx.fillStyle = "rgba(0,0,0,0.6)";
-          ctx.beginPath(); ctx.roundRect(12, HEIGHT - 90, tw + 20, 24, 5); ctx.fill();
+          _roundRect(ctx, 12, HEIGHT - 90, tw + 20, 24, 5); ctx.fill();
           ctx.fillStyle = "white"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
           ctx.fillText(ownerText, 22, HEIGHT - 78);
         }
@@ -215,7 +228,7 @@ export function useCallRecording({ mode = "meta", silent, recordingTrigger = "au
           const cw = PANEL_W - PAD * 2, ch = CARD_H;
 
           ctx.save();
-          ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 6); ctx.clip();
+          _roundRect(ctx, cx, cy, cw, ch, 6); ctx.clip();
 
           const vid  = card.querySelector("video");
           const avatarEl = card.querySelector(".pip-card-avatar");
@@ -231,14 +244,14 @@ export function useCallRecording({ mode = "meta", silent, recordingTrigger = "au
           ctx.restore();
 
           ctx.strokeStyle = "rgba(255,255,255,0.08)"; ctx.lineWidth = 1.5;
-          ctx.beginPath(); ctx.roundRect(cx, cy, cw, ch, 6); ctx.stroke();
+          _roundRect(ctx, cx, cy, cw, ch, 6); ctx.stroke();
 
           const name = card.querySelector(".pip-card-name")?.textContent?.trim() || "";
           if (name) {
             ctx.font = "500 9px system-ui, sans-serif";
             const nw = ctx.measureText(name).width;
             ctx.fillStyle = "rgba(0,0,0,0.6)";
-            ctx.beginPath(); ctx.roundRect(cx + 4, cy + ch - 16, nw + 10, 12, 3); ctx.fill();
+            _roundRect(ctx, cx + 4, cy + ch - 16, nw + 10, 12, 3); ctx.fill();
             ctx.fillStyle = "white"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
             ctx.fillText(name, cx + 9, cy + ch - 10);
           }
@@ -267,7 +280,7 @@ export function useCallRecording({ mode = "meta", silent, recordingTrigger = "au
           ctx.font = "600 14px system-ui, sans-serif";
           const tw = ctx.measureText(remoteName).width;
           ctx.fillStyle = "rgba(0,0,0,0.55)";
-          ctx.beginPath(); ctx.roundRect(12, HEIGHT - 42, tw + 18, 28, 6); ctx.fill();
+          _roundRect(ctx, 12, HEIGHT - 42, tw + 18, 28, 6); ctx.fill();
           ctx.fillStyle = "white"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
           ctx.fillText(remoteName, 21, HEIGHT - 28);
         }
@@ -276,7 +289,7 @@ export function useCallRecording({ mode = "meta", silent, recordingTrigger = "au
         const PIP_X = WIDTH - PIP_W - 14, PIP_Y = HEIGHT - PIP_H - 14;
 
         ctx.save();
-        ctx.beginPath(); ctx.roundRect(PIP_X, PIP_Y, PIP_W, PIP_H, 10); ctx.clip();
+        _roundRect(ctx, PIP_X, PIP_Y, PIP_W, PIP_H, 10); ctx.clip();
         if (pipVid?.readyState >= 2 && !pipVid.classList.contains("hidden")) {
           ctx.drawImage(pipVid, PIP_X, PIP_Y, PIP_W, PIP_H);
         } else {
@@ -291,21 +304,21 @@ export function useCallRecording({ mode = "meta", silent, recordingTrigger = "au
         ctx.restore();
 
         ctx.strokeStyle = "rgba(255,255,255,0.15)"; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.roundRect(PIP_X, PIP_Y, PIP_W, PIP_H, 10); ctx.stroke();
+        _roundRect(ctx, PIP_X, PIP_Y, PIP_W, PIP_H, 10); ctx.stroke();
 
         const localName = document.querySelector(".pip-wrapper span")?.textContent?.replace("(You)", "").trim() || "";
         if (localName) {
           ctx.font = "600 11px system-ui, sans-serif";
           const tw = ctx.measureText(localName).width;
           ctx.fillStyle = "rgba(0,0,0,0.55)";
-          ctx.beginPath(); ctx.roundRect(PIP_X + 6, PIP_Y + PIP_H - 24, tw + 14, 18, 4); ctx.fill();
+          _roundRect(ctx, PIP_X + 6, PIP_Y + PIP_H - 24, tw + 14, 18, 4); ctx.fill();
           ctx.fillStyle = "white"; ctx.textAlign = "left"; ctx.textBaseline = "middle";
           ctx.fillText(localName, PIP_X + 13, PIP_Y + PIP_H - 15);
         }
       }
 
       ctx.fillStyle = "rgba(217,48,37,0.88)";
-      ctx.beginPath(); ctx.roundRect(WIDTH - 86, 14, 72, 26, 13); ctx.fill();
+      _roundRect(ctx, WIDTH - 86, 14, 72, 26, 13); ctx.fill();
       ctx.fillStyle = "white";
       ctx.beginPath(); ctx.arc(WIDTH - 74, 27, 4, 0, Math.PI * 2); ctx.fill();
       ctx.font = "bold 11px system-ui, sans-serif";
