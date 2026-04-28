@@ -4,7 +4,7 @@ import { onMounted, onUnmounted, ref, watch, nextTick } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useWebRTC } from "@/app-phone/composables/useWebRTC";
 import { RealDB } from '@/app-phone/composables/apiSignaling';
-import { decryptPayload } from '@/@common/services/P2PCrypto';
+// import { decryptPayload } from '@/@common/services/P2PCrypto';
 import { useCallRecording } from '@/app-phone/composables/useCallRecording';
 import { computed } from 'vue';
 
@@ -539,15 +539,15 @@ watch(remoteDisconnected, (dropped) => {
 
 onMounted(async () => {
   await initP2PCall();
-  const params = new URLSearchParams(window.location.search);
-  const encoded = params.get('s');
-  if (encoded) {
-    const payload = await decryptPayload(encoded);
-    if (payload) { userName.value = payload.role === 'agent' ? (payload.agentCode || '') : (payload.contactName || ''); }
-  }
-  if (userName.value) {
-    await joinRoom();
-  }
+  // const params = new URLSearchParams(window.location.search);
+  // const encoded = params.get('s');
+  // if (encoded) {
+  //   const payload = await decryptPayload(encoded);
+  //   if (payload) { userName.value = payload.role === 'agent' ? (payload.agentCode || '') : (payload.contactName || ''); }
+  // }
+  // if (userName.value) {
+  //   await joinRoom();
+  // }
   window.addEventListener('beforeunload', () => {
     sessionStorage.setItem('p2p_prevUserId', userId);
     if (hasJoined.value && !isEndingCall.value) {
