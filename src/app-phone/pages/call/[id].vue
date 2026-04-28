@@ -89,7 +89,7 @@ const toggleRecording = async () => {
   } else {
     const { localSrc, remoteSrc } = _getStreamsForRecording();
     const currentScreenStream = localScreenSharing.value
-      ? (typeof ScreenStream === 'object' && ScreenStream !== null ? ScreenStream : null)
+      ? (ScreenStream.value ?? null)
       : remoteScreenSharing.value ? remoteStream.value : null;
     await startRecording({
       localStream: localSrc,

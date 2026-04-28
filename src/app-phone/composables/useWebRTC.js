@@ -30,7 +30,7 @@ export function useWebRTC() {
   const Mic = ref(false);
   const Camera = ref(false);
   const ScreenShare = ref(false);
-  let ScreenStream = null;
+  const ScreenStream = ref(null);
   const callMode = ref("meta"); // 'meta' 'p2p'
   const remoteDisconnected = ref(false);
   let p2pRoomId = null;
@@ -897,9 +897,9 @@ export function useWebRTC() {
   };
 
   const stopScreenShare = async () => {
-    if (!ScreenStream) return;
+    if (!ScreenStream.value) return;
 
-    ScreenStream.getTracks().forEach((track) => track.stop());
+    ScreenStream.value.getTracks().forEach((track) => track.stop());
     ScreenShare.value = false;
     screenShareOwner.value = null;
     activeScreenStream.value = null;
@@ -916,7 +916,7 @@ export function useWebRTC() {
       }
     }
 
-    ScreenStream = null;
+    ScreenStream.value = null;
     sendCameraState(false, true);
     sendCameraState(Camera.value, false);
     await nextTick();
@@ -936,7 +936,7 @@ export function useWebRTC() {
       });
       const screenTrack = screenStream.getVideoTracks()[0];
       if(screenTrack.contentHint != undefined){ screenTrack.contentHint = 'detail'}
-      ScreenStream = screenStream;
+      ScreenStream.value = screenStream;
       screenShareOwner.value = 'local';
       activeScreenStream.value = screenStream;
       localScreenStream.value = screenStream;
@@ -1244,8 +1244,8 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     setupRTCEventListeners();
     await nextTick()
     setupLocalVideo(localStream);
-    if (ScreenShare.value && ScreenStream) {
-      const screenTrack = ScreenStream.getVideoTracks()[0];
+    if (ScreenShare.value && ScreenStream.value) {
+      const screenTrack = ScreenStream.value.getVideoTracks()[0];
       if (screenTrack && pc) {
         const sender = pc.getSenders().find(s => s.track?.kind === "video");
         if (sender) {await sender.replaceTrack(screenTrack);}
@@ -1261,9 +1261,9 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
 
     await endCall(false);
 
-    if (ScreenStream) {
-      ScreenStream.getTracks().forEach((t) => t.stop());
-      ScreenStream = null;
+    if (ScreenStream.value) {
+      ScreenStream.value.getTracks().forEach((t) => t.stop());
+      ScreenStream.value = null;
     }
 
     const remoteVideo = document.getElementById("remote-video");
@@ -1275,7 +1275,7 @@ const waitForNCandidates = (n = 10, timeoutMs = 3000) => {
     if (localVideoPip) localVideoPip.srcObject = null;
 
     remoteStream.value = null;
-    ScreenStream = null;
+    ScreenStream.value = null;
 
     Mic.value = false;
     Camera.value = false;
