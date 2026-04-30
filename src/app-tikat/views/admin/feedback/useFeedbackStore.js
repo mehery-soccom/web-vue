@@ -89,6 +89,12 @@ export const useFeedbackStore = defineStore("FeedbackStore", {
       return response.data;
     }, 
     
+    async fetchFollowUps(params) {
+      const response = await DataService.axios.get("/api/feedback/followup/tasks", { params, toast: false });
+      if (response.data.error) throw { response: { data: response.data } };
+      return response.data;
+    }, 
+
     async createFollowup({ feedbackId, payload }) {
       const response = await DataService.axios.post(`/api/feedback/${feedbackId}/followup`, payload, { toast: false });
       if (response.data.error) throw { response: { data: response.data } };

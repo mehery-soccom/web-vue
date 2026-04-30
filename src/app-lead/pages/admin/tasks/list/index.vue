@@ -22,11 +22,14 @@ const pagination = reactive({
   itemsPerPage: 10,
   sortBy: [],
   filters: {
-    title: null, 
-    name: null,
+    title: null,
+    description: null,
+    'creator.code': null,
+    'recipient.name': null,
+    status: null,
   },
 })
-
+//
 const today = new Date()
 const tonight = new Date()
 tonight.setHours(23, 59, 59, 999)
@@ -40,11 +43,12 @@ const dateRange = ref(`${formattedStart} to ${formattedEnd}`)
 const selectedDateObjects = ref([oneWeekAgo, tonight]) 
 
 const headers = computed(() => [
-  { title: 'Subject', key: 'title', sortable: true },
-  { title: 'Description', key: 'description', sortable: false },
-  { title: 'Date and Time', key: 'startDate', sortable: true },
-  { title: 'Contact Name', key: 'name', sortable: true },
-  { title: 'Actions', key: 'actions', sortable: false, align: 'center' },
+    { title: 'Name', key: 'recipient.name', sortable: true },
+    { title: 'Title', key: 'title', sortable: true },
+    { title: 'Description', key: 'description', sortable: true },
+    { title: 'Creator', key: 'creator.code', sortable: true },
+    { title: 'Status', key: 'status', sortable: true },
+    { title: 'Start Time', key: 'startDate', sortable: true },
 ])
 
 const fetchTasks = async (options = pagination) => {
@@ -135,7 +139,7 @@ const formatTime = (timestamp) => {
 }
 
 const handleRowClick = (event, { item }) => {
-    const leadId = item.raw.recipient?.leadId || item.raw.lead?._id
+    const leadId = item?.raw?.lead?.extId || item?.raw?.recipient?.extId || item?.recipient?.extId;
     if (leadId) {
         router.push({
             name: 'admin-leads-add-id?',
@@ -195,7 +199,7 @@ onMounted(() => {
                 </VBtn>
 
                 <AppDateTimePicker
-                    style="width: 240px;"
+                    style="width: 260px;"
                     v-model="dateRange"
                     prepend-inner-icon="tabler-calendar"
                     :config="{
@@ -226,16 +230,16 @@ onMounted(() => {
       hover
       item-value="_id"
     >
-      <template #item.name="{ item }">
+      <template #item.recipient.name="{ item }">
         <div class="d-flex flex-column">
-          <span class="font-weight-medium">
-             {{ item.raw.lead?.contact?.name || '-' }}
-          </span>
+          <span class="font-weight-medium"> {{ item.raw.recipient?.name || '-' }} </span>
         </div>
       </template>
 
       <template #item.title="{ item }">
-        <span class="font-weight-medium">{{ item.raw.title || '-' }}</span>
+        <div class="d-flex align-center">
+          <span class="font-weight-bold" :title="item.raw.title">{{ item.raw.title || '-' }}</span>
+        </div>
       </template>
 
        <template #item.description="{ item }">
@@ -244,23 +248,15 @@ onMounted(() => {
         </span>
       </template>
 
+      <template #item.creator.code="{ item }">
+        {{ item.raw.creator?.code || item.raw.creator?.name || '-' }}
+      </template>
+
       <template #item.startDate="{ item }">
         <span class="text-no-wrap font-weight-medium">
             {{ formatDate(item.raw.startDate) }},
             {{ formatTime(item.raw.startDate) }}
         </span>
-    </template>
-
-      <template #item.actions="{ item }">
-        <IconBtn 
-          @click.stop="openChat(item.raw)"
-          :disabled="!item.raw.lead?.contact?.phone && !item.raw.lead?.contact?.email"
-        >
-          <VIcon icon="tabler-message-circle" />
-          <VTooltip activator="parent" location="top">
-            Chat
-          </VTooltip>
-        </IconBtn>
       </template>
     </MyDataTable>
   </VCard>

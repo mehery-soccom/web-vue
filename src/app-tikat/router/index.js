@@ -13,6 +13,7 @@ import FormsFeedbackAdd from "@/app-tikat/pages/setup/forms/feedback/add/[[id]].
 import FormsFeedbackPreview from "@/app-tikat/pages/setup/forms/feedback/preview/index.vue";
 import FeedbackList from "@/app-tikat/pages/admin/feedbacks/list/index.vue";
 import FeedbackAdd from "@/app-tikat/pages/admin/feedbacks/add/[[id]].vue";
+import TasksList from "@/app-tikat/pages/admin/tasks/list/index.vue";
 
 const baseRoutes = [
   {
@@ -75,6 +76,19 @@ if (!routes || routes?.length < 1) {
           path: "",
           name: "admin-feedbacks-add-id?",
           component: FeedbackAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/tasks/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-tasks-list",
+          component: TasksList,
           props: true,
           meta: { layout: "default" },
         },
