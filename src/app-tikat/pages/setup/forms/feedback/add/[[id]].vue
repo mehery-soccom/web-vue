@@ -36,6 +36,18 @@ const formData = ref({
   },
 });
 
+const UI_TO_BACKEND_LABELS = {
+  'Not Satisfied': 'Poor Feedback',
+  'Neutral': 'Satisfactory',
+  'Satisfied': 'Good to Excellent'
+};
+
+const BACKEND_TO_UI_LABELS = {
+  'Poor Feedback': 'Not Satisfied',
+  'Satisfactory': 'Neutral',
+  'Good to Excellent': 'Satisfied'
+};
+
 const formFields = ref([]);
 const availableFields = ref([]);
 
@@ -62,7 +74,12 @@ onMounted(async () => {
         desc: existingForm.desc,
         scale: existingForm.scale || 5,
         positiveScore: existingForm.positiveScore || 0,
-        segmentation: existingForm.segmentation?.length ? existingForm.segmentation : formData.value.segmentation,
+        segmentation: existingForm.segmentation?.length 
+          ? existingForm.segmentation.map(seg => ({
+              ...seg,
+              label: BACKEND_TO_UI_LABELS[seg.label] || seg.label
+            })) 
+          : formData.value.segmentation,
         displayTitle: existingForm.displayTitle !== undefined ? existingForm.displayTitle : true,
         banner: existingForm.banner || { bgImg: null, logo: null },
       };
@@ -186,6 +203,10 @@ const handleSubmit = async () => {
 
   const payload = {
     ...formData.value,
+    segmentation: formData.value.segmentation.map(seg => ({
+      ...seg,
+      label: UI_TO_BACKEND_LABELS[seg.label] || seg.label
+    })),
     formFields: regularFields.map((field, index) => ({
       id: field._id,
       order: formFields.value.indexOf(field) + 1,
