@@ -74,7 +74,7 @@ const tableProps = computed(() => {
  */
 const tableListeners = computed(() => {
   const _listeners = Object.fromEntries(
-    Object.entries(attrs).filter(([key]) => key.startsWith("on"))
+    Object.entries(attrs).filter(([key]) => key.startsWith("on")),
   );
 
   // console.log("_listeners", _listeners);
@@ -87,7 +87,8 @@ const hasSlot = (name) => Object.prototype.hasOwnProperty.call(slots, name);
 
 const itemScopedSlots = computed(() => {
   let r = Object.entries(slots).filter(
-    ([slotName, fn]) => slotName.startsWith("item.") && typeof fn === "function"
+    ([slotName, fn]) =>
+      slotName.startsWith("item.") && typeof fn === "function",
   );
   return r;
 });
@@ -157,7 +158,8 @@ const currentComponent = computed(() => {
             v-else-if="
               props.filters.hasOwnProperty(header.key) &&
               header.filterType === 'switch'
-            " style="margin-left: 6px;"
+            "
+            style="margin-left: 6px"
             v-model="props.filters[header.key]"
             @update:modelValue="handleFiltersUpdate"
           ></VSwitch>
@@ -235,6 +237,9 @@ const currentComponent = computed(() => {
 .my-data-table {
   .v-table__wrapper {
     min-height: 300px !important;
+  }
+  .v-selection-control__wrapper {
+    width: 100% !important;
   }
 }
 </style>

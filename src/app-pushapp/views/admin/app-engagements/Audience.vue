@@ -103,7 +103,7 @@ function validateFilterStructure(
   if (node.type === "filter") {
     // No special checks here — but could enforce supported filterTypes
     if (
-      !["event", "attribute", "additionalInfo", "cohort"].includes(
+      !["event", "attribute", "additionalInfo", "slice", "cohort"].includes(
         node.filterType,
       )
     ) {

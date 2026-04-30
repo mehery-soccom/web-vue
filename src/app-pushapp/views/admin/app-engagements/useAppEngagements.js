@@ -106,6 +106,35 @@ export const useAppEngagements = (source) => {
       }
     }
 
+    if (type === "slice") {
+      isLoading.value = true;
+      try {
+        const response = await DataService.axios.get(
+          "/api/v1/notification/push/slice",
+        );
+        const resultsMap = {};
+        const results = response.data.results.map((el) => {
+          const r = {
+            type,
+            title: el.name,
+            value: el._id,
+            meta: {
+              projection: null, // el.buildStats?.tokensSubscribed,
+            },
+          };
+          resultsMap[r.value] = r;
+          return r;
+        });
+        localCache[type] = results;
+        Object.assign(FILTER_FIELDS_MAP, resultsMap);
+      } catch (error) {
+        console.error(`Failed to fetch filter options for ${type}:`, error);
+        localCache[type] = [];
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
     if (type === "cohort") {
       isLoading.value = true;
       try {

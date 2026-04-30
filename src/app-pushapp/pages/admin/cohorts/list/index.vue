@@ -1,14 +1,11 @@
 <script setup>
 import debounce from "lodash/debounce";
 import { useCohortsStore } from "@app-pushapp/views/admin/cohorts/useCohortsStore";
-import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { useCohorts } from "@/app-pushapp/views/admin/cohorts/useCohorts";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 const { show } = inject("snackbar");
 
 const CohortsStore = useCohortsStore();
-const channelsStore = useChannelsStore();
-const channelList = ref([]);
 const isLoading = ref(false);
 const items = ref([]);
 const headers = computed(() => [
@@ -17,37 +14,17 @@ const headers = computed(() => [
     key: "name",
     align: "center",
   },
-  // {
-  //   title: "Projection",
-  //   key: "subscribers",
-  //   align: "center",
-  // },
   {
-    title: "Status",
-    key: "status",
-    filterType: "select",
-    filterOptions: [
-      { title: "Created", value: "CREATED" },
-      { title: "Building", value: "BUILDING" },
-      { title: "Ready", value: "READY" },
-      { title: "Expired", value: "EXPIRED" },
-      { title: "Failed", value: "FAILED" },
-    ],
+    title: "Desc",
+    key: "desc",
+    align: "center",
   },
   {
-    title: "Mobile App",
-    key: "channel_id",
-    filterType: "select",
-    filterOptions: channelList.value.map((c) => ({
-      title: c.channel_name,
-      value: c.channel_id,
-    })),
+    title: "Active",
+    key: "active",
+    align: "center",
+    filterType: "switch",
   },
-  // {
-  //   title: "Base Topics",
-  //   key: "baseTopics",
-  //   align: "center",
-  // },
   {
     title: "Created",
     key: "createdAt",
@@ -68,8 +45,7 @@ const pagination = reactive({
   multiSort: true,
   filters: {
     name: null,
-    status: null,
-    channel_id: null,
+    active: null,
   },
 });
 
@@ -121,12 +97,7 @@ const deleteItem = (id, dialogCloseRef) => {
     });
 };
 
-onMounted(async () => {
-  let channelsRes = await channelsStore
-    .fetchChannels()
-    .catch((error) => console.log("[cohort] [list] fetchChannels", error));
-  if (channelsRes.results) channelList.value = channelsRes.results;
-});
+onMounted(async () => {});
 </script>
 
 <template>
@@ -148,7 +119,7 @@ onMounted(async () => {
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
-          :to="{ name: 'admin-push-notification-cohorts-add-id?' }"
+          :to="{ name: 'admin-cohorts-add-id?' }"
         >
           New
         </VBtn>
@@ -165,47 +136,12 @@ onMounted(async () => {
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
     >
-      <!-- baseTopics -->
-      <template #item.baseTopics="{ item }">
-        <VTooltip location="top">
-          <template #activator="{ props }">
-            <div
-              v-bind="props"
-              class="d-inline-flex align-center cursor-pointer"
-            >
-              <VIcon
-                icon="tabler-layers-intersect"
-                size="18"
-                class="me-1 text-primary"
-              />
-              <span>{{ item.raw.baseTopics.length }}</span>
-            </div>
-          </template>
-
-          <div class="d-flex flex-wrap ga-1">
-            <VChip
-              v-for="topic in item.raw.baseTopics"
-              :key="topic"
-              size="x-small"
-              variant="tonal"
-            >
-              {{ topic }}
-            </VChip>
-          </div>
-        </VTooltip>
-      </template>
-
-      <!-- subscribers count -->
-      <template #item.subscribers="{ item }">
-        {{ item.raw.buildStats?.tokensSubscribed || 0 }}
-      </template>
-
-      <!-- channel -->
-      <template #item.channel_id="{ item }">
-        {{
-          channelList.find((c) => c.channel_id === item.raw.channel_id)
-            ?.channel_name || item.raw.channel_id
-        }}
+      <!-- active -->
+      <template #item.active="{ item }">
+        <VIcon v-if="item.raw.active" size="16" color="success" start>
+          mdi-check
+        </VIcon>
+        <VIcon v-else size="16" color="error" start> mdi-close </VIcon>
       </template>
 
       <!-- created at -->
@@ -213,23 +149,18 @@ onMounted(async () => {
         {{ smartFormatDate(item.raw.createdAt) }}
       </template>
 
-      <!-- updated at -->
-      <template #item.updatedAt="{ item }">
-        {{ smartFormatDate(item.raw.updatedAt) }}
-      </template>
-
       <!-- Actions -->
       <template #item.actions="{ item }">
         <IconBtn
           :to="{
-            name: 'admin-push-notification-cohorts-add-id?',
+            name: 'admin-cohorts-add-id?',
             params: { id: item.raw._id },
           }"
         >
           <VIcon icon="mdi-eye" />
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
-        <IconBtn>
+        <IconBtn v-if="item.raw.active">
           <VIcon>mdi-trash</VIcon>
           <v-dialog activator="parent" max-width="340">
             <template v-slot:default="{ isActive }">

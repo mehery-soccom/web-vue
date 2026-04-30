@@ -15,8 +15,7 @@ export default [
       },
       {
         title: "Slices",
-        // icon: { icon: "tabler-users-group" },
-        to: "admin-push-notification-cohorts-list",
+        to: "admin-push-notification-slices-list",
       },
       {
         title: "Blast",
@@ -45,5 +44,10 @@ export default [
         to: "admin-app-engagements-campaigns-list",
       },
     ],
+  },
+  {
+    title: "Cohorts",
+    icon: { icon: "tabler-users-group" },
+    to: "admin-cohorts-list",
   },
 ];

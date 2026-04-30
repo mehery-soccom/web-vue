@@ -1,6 +1,5 @@
 <script setup>
 import { useCohortsStore } from "@app-pushapp/views/admin/cohorts/useCohortsStore";
-import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { useCohorts } from "@/app-pushapp/views/admin/cohorts/useCohorts";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
@@ -11,13 +10,11 @@ const { show } = inject("snackbar");
 const route = useRoute();
 const router = useRouter();
 const CohortsStore = useCohortsStore();
-const channelsStore = useChannelsStore();
 const { clearCache } = useAppEngagements();
-const ChannelList = ref([]);
 const isLoading = ref(false);
 const cohort = reactive({
   name: null,
-  channel_id: null,
+  desc: null,
   filter: null,
 });
 const formRef = ref();
@@ -49,7 +46,7 @@ const onCreate = async () => {
 
     show({ message: "Cohort created successfully", color: "success" });
 
-    router.push({ name: "admin-push-notification-cohorts-list" });
+    router.push({ name: "admin-cohorts-list" });
   } catch (error) {
     const apiErr = error.response.data;
     show({
@@ -63,11 +60,6 @@ const onCreate = async () => {
 };
 
 onMounted(async () => {
-  let channelsRes = await channelsStore
-    .fetchChannels()
-    .catch((error) => console.log("[cohort] [add] fetchChannels", error));
-  if (channelsRes.results) ChannelList.value = channelsRes.results;
-
   if (route.params.id) {
     CohortsStore.fetchCohort({ id: route.params.id })
       .then((response) => {
@@ -110,12 +102,9 @@ onMounted(async () => {
   <v-card>
     <v-card-item class="pb-0">
       <v-card-title
-        >{{ route.params.id ? "View" : "Build" }} Slice</v-card-title
+        >{{ route.params.id ? "View" : "Build" }} Cohort</v-card-title
       >
-      <v-card-subtitle
-        >This slice can be used to send out Push
-        Notifications</v-card-subtitle
-      >
+      <v-card-subtitle></v-card-subtitle>
     </v-card-item>
 
     <VCardText>
@@ -124,21 +113,9 @@ onMounted(async () => {
           <VCol cols="12" md="4">
             <AppTextField
               v-model="cohort.name"
-              placeholder="Slice name"
+              placeholder="Cohort name"
               :rules="[requiredValidator]"
               prepend-inner-icon="mdi-text-box"
-              :readonly="!!route.params.id"
-            />
-          </VCol>
-          <VCol cols="12" md="4">
-            <AppSelect
-              v-model="cohort.channel_id"
-              :items="ChannelList"
-              placeholder="Mobile App"
-              item-title="channel_name"
-              item-value="channel_id"
-              :rules="[requiredValidator]"
-              prepend-inner-icon="mdi-cellphone"
               :readonly="!!route.params.id"
             />
           </VCol>
@@ -148,6 +125,7 @@ onMounted(async () => {
         v-if="cohort.filter"
         v-model="cohort.filter"
         :ignoreEventfilterType="true"
+        :ignoreSlicefilterType="true"
         :ignoreCohortfilterType="true"
         ref="filterRef"
         :readonly="!!route.params.id"
@@ -161,7 +139,7 @@ onMounted(async () => {
       <VBtn
         variant="tonal"
         color="secondary"
-        :to="{ name: 'admin-push-notification-cohorts-list' }"
+        :to="{ name: 'admin-cohorts-list' }"
       >
         Exit
       </VBtn>

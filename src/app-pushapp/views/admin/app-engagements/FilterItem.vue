@@ -8,6 +8,7 @@ const props = defineProps({
   index: { type: Number, required: true },
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
 });
@@ -18,8 +19,8 @@ const hasError = ref(false);
 const furtherGroupRef = ref(null);
 const datePresets = [
   { label: "Today", key: "today" },
-  { label: "Tomorrow", key: "tomorrow" }
-]
+  { label: "Tomorrow", key: "tomorrow" },
+];
 
 // === Constants ===
 const {
@@ -61,7 +62,10 @@ const isValid = async (silent = false) => {
       (!el.freqOperator || !el.freqCount || !el.freqPeriod)
     )
       valid = false;
-    if (FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "date" && Array.isArray(el.value)) {
+    if (
+      FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "date" &&
+      Array.isArray(el.value)
+    ) {
       const v = el.value[0];
       if (!v?.stamp) {
         if (v?.offset === null || v?.offset === undefined || v?.offset === "") {
@@ -123,6 +127,7 @@ defineExpose({ isValid });
           FILTER_TYPES.filter(
             (f) =>
               (ignoreEventfilterType ? f.value !== 'event' : true) &&
+              (ignoreSlicefilterType ? f.value !== 'slice' : true) &&
               (ignoreCohortfilterType ? f.value !== 'cohort' : true),
           )
         "
@@ -284,6 +289,7 @@ defineExpose({ isValid });
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
+      :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
     />
   </div>

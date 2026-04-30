@@ -120,7 +120,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     sendStyled(params) {
       return DataService.axios.post(
         `/api/live-activity/${params.activity_id ? "update" : "start"}`,
-        params
+        params,
       );
     },
 
@@ -190,6 +190,42 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
           "Content-Type": "multipart/form-data",
         },
       });
+    },
+
+    createSlice(params) {
+      return DataService.axios.post("/api/v1/notification/push/slice", params);
+    },
+    fetchSlices(params) {
+      let { page, itemsPerPage, sortBy, filters } = params;
+      let sort = sortBy
+        .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
+        .join(",");
+      return DataService.axios.get("/api/v1/notification/push/slice", {
+        params: {
+          page,
+          limit: itemsPerPage,
+          sort: sort || "-created.stamp",
+          search: filters,
+        },
+      });
+    },
+    fetchSlice({ id, ...params }) {
+      return DataService.axios.get(
+        `/api/v1/notification/push/slice/${id}`,
+        params,
+      );
+    },
+    updateSlice({ id, ...params }) {
+      return DataService.axios.put(
+        `/api/v1/notification/push/slice/${id}`,
+        params,
+      );
+    },
+    deleteSlice({ id, ...params }) {
+      return DataService.axios.delete(
+        `/api/v1/notification/push/slice/${id}`,
+        params,
+      );
     },
   },
 });

@@ -52,13 +52,13 @@ const schedule = reactive({
   monthlyWeekdayTime: null,
 });
 const now = new Date();
-const scheduleDateValidator = value => {
+const scheduleDateValidator = (value) => {
   if (schedule.durationType === "scheduled" && !value) {
     return "Please select schedule date";
   }
   return true;
 };
-const dayOfMonthValidator = value => {
+const dayOfMonthValidator = (value) => {
   if (!value && schedule.schedulePattern === "monthlyDate") {
     return "Date is required";
   }
@@ -68,12 +68,15 @@ const dayOfMonthValidator = value => {
   }
   return true;
 };
-watch(() => schedule.durationType, val => {
-  console.log("dura", val)
-  if (val === "immediate") {
-    schedule.startDate = null;
-  }
-});
+watch(
+  () => schedule.durationType,
+  (val) => {
+    console.log("dura", val);
+    if (val === "immediate") {
+      schedule.startDate = null;
+    }
+  },
+);
 const getTimeParts = (time) => {
   if (!time) return ["00", "00"];
   if (time instanceof Date) return [time.getHours(), time.getMinutes()];
@@ -84,7 +87,7 @@ const getTimeParts = (time) => {
   return ["00", "00"];
 };
 const buildSchedulePayload = (schedule) => {
-  if(!!schedule.recurringType) schedule.durationType = 'recurring';
+  if (!!schedule.recurringType) schedule.durationType = "recurring";
   if (schedule.durationType === "immediate") return { type: "immediate" };
 
   if (schedule.durationType === "scheduled") {
@@ -96,20 +99,28 @@ const buildSchedulePayload = (schedule) => {
 
   if (schedule.durationType === "recurring") {
     let rule = "";
-    const [hour, minute] = getTimeParts(schedule[`${schedule.schedulePattern}Time`]);
+    const [hour, minute] = getTimeParts(
+      schedule[`${schedule.schedulePattern}Time`],
+    );
     switch (schedule.schedulePattern) {
       case "daily":
         rule = `FREQ=DAILY;BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
       case "weekly":
-        rule = `FREQ=WEEKLY;BYDAY=${(schedule.scheduleDays || []).join(",")};BYHOUR=${hour};BYMINUTE=${minute}`;
+        rule = `FREQ=WEEKLY;BYDAY=${(schedule.scheduleDays || []).join(
+          ",",
+        )};BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
       case "monthlyDate":
         rule = `FREQ=MONTHLY;BYMONTHDAY=${schedule.scheduleDate};BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
       case "monthlyWeekday":
-        const weekMap = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1,};
-        rule = `FREQ=MONTHLY;BYDAY=${(schedule.scheduleWeekday || []).join(",")};BYSETPOS=${weekMap[schedule.scheduleWeek]};BYHOUR=${hour};BYMINUTE=${minute}`;
+        const weekMap = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1 };
+        rule = `FREQ=MONTHLY;BYDAY=${(schedule.scheduleWeekday || []).join(
+          ",",
+        )};BYSETPOS=${
+          weekMap[schedule.scheduleWeek]
+        };BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
     }
 
@@ -127,9 +138,9 @@ onMounted(async () => {
   // if (channelsRes.results) ChannelList.value = channelsRes.results;
   if (channelsRes.results) {
     ChannelList.value = channelsRes.results;
-    if (ChannelList.value.length === 1) notification.channel_id = ChannelList.value[0].channel_id;
+    if (ChannelList.value.length === 1)
+      notification.channel_id = ChannelList.value[0].channel_id;
   }
-
 
   let templatesRes = await pushNotificationStore
     .fetchTemplates({ page: 1, itemsPerPage: 200, sortBy: [] })
@@ -304,6 +315,7 @@ const onSendSimple = async () => {
                   <FilterBuilder
                     v-model="filter"
                     :ignoreEventfilterType="true"
+                    :ignoreCohortfilterType="true"
                     ref="filterRef"
                   />
                 </VWindowItem>
@@ -330,7 +342,7 @@ const onSendSimple = async () => {
                               :key="schedule.durationType + '1'"
                               placeholder="Select Date"
                               class="flex-grow-1 tiny-input"
-                              style="min-width:170px"
+                              style="min-width: 170px"
                               :disabled="schedule.durationType != 'scheduled'"
                               :config="{ enableTime: true, minDate: now }"
                               :rules="[scheduleDateValidator]"
@@ -340,7 +352,7 @@ const onSendSimple = async () => {
                       </template>
                     </VRadio>
                   </VRadioGroup>
-                  <div style="display: flex;margin-top: 6px;">
+                  <div style="display: flex; margin-top: 6px">
                     <VSwitch
                       v-model="schedule.recurringType"
                       hide-details
@@ -358,22 +370,32 @@ const onSendSimple = async () => {
                     <VDivider class="my-6" />
 
                     <h3 class="mb-2">Recurring Campaign</h3>
-                    <p class="text-caption mb-4">Choose when the campaign repeats</p>
+                    <p class="text-caption mb-4">
+                      Choose when the campaign repeats
+                    </p>
                     <div class="recurring-group">
-
                       <VRadioGroup v-model="schedule.schedulePattern">
-
                         <VRadio value="daily">
                           <template #label>
-                            Run Daily at 
+                            Run Daily at
                             <AppDateTimePicker
                               v-model="schedule.dailyTime"
-                              :key="schedule.durationType + '1' + schedule.recurringType"
+                              :key="
+                                schedule.durationType +
+                                '1' +
+                                schedule.recurringType
+                              "
                               placeholder="Select Time"
                               class="flex-grow-1 tiny-input ml-2 input-uniform"
-                              style="min-width:170px"
+                              style="min-width: 170px"
                               :disabled="!schedule.recurringType"
-                              :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                              :config="{
+                                enableTime: true,
+                                noCalendar: true,
+                                dateFormat: 'H:i',
+                                time_24hr: true,
+                                allowInput: true,
+                              }"
                             />
                           </template>
                         </VRadio>
@@ -383,21 +405,42 @@ const onSendSimple = async () => {
                             <div class="d-flex align-center gap-2 flex-wrap">
                               Run on scheduled days of week
                               <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
-                                <AppSelect
-                                  v-model="schedule.scheduleDays"
-                                  :items="['MON','TUE','WED','THU','FRI','SAT','SUN']"
-                                  density="compact" multiple placeholder="Week Days"
-                                  style="width:170px" class="input-uniform dif-height"
-                                />
-                                <AppDateTimePicker
-                                  v-model="schedule.weeklyTime"
-                                  :key="schedule.durationType + '1' + schedule.recurringType"
-                                  placeholder="Select Time"
-                                  class="flex-grow-1 tiny-input input-uniform"
-                                  style="min-width:170px"
-                                  :disabled="!schedule.recurringType"
-                                  :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
-                                />
+                              <AppSelect
+                                v-model="schedule.scheduleDays"
+                                :items="[
+                                  'MON',
+                                  'TUE',
+                                  'WED',
+                                  'THU',
+                                  'FRI',
+                                  'SAT',
+                                  'SUN',
+                                ]"
+                                density="compact"
+                                multiple
+                                placeholder="Week Days"
+                                style="width: 170px"
+                                class="input-uniform dif-height"
+                              />
+                              <AppDateTimePicker
+                                v-model="schedule.weeklyTime"
+                                :key="
+                                  schedule.durationType +
+                                  '1' +
+                                  schedule.recurringType
+                                "
+                                placeholder="Select Time"
+                                class="flex-grow-1 tiny-input input-uniform"
+                                style="min-width: 170px"
+                                :disabled="!schedule.recurringType"
+                                :config="{
+                                  enableTime: true,
+                                  noCalendar: true,
+                                  dateFormat: 'H:i',
+                                  time_24hr: true,
+                                  allowInput: true,
+                                }"
+                              />
                               <!-- </div> -->
                             </div>
                           </template>
@@ -409,18 +452,31 @@ const onSendSimple = async () => {
                               Run on date of month
                               <VTextField
                                 v-model="schedule.scheduleDate"
-                                type="number" :rules="[dayOfMonthValidator]"
-                                density="compact" placeholder="Date" 
-                                style="width:157px" class="input-uniform dif-height"
+                                type="number"
+                                :rules="[dayOfMonthValidator]"
+                                density="compact"
+                                placeholder="Date"
+                                style="width: 157px"
+                                class="input-uniform dif-height"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyDateTime"
-                                :key="schedule.durationType + '1' + schedule.recurringType"
+                                :key="
+                                  schedule.durationType +
+                                  '1' +
+                                  schedule.recurringType
+                                "
                                 placeholder="Select Time"
                                 class="flex-grow-1 tiny-input input-uniform"
-                                style="min-width:170px"
+                                style="min-width: 170px"
                                 :disabled="!schedule.recurringType"
-                                :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                                :config="{
+                                  enableTime: true,
+                                  noCalendar: true,
+                                  dateFormat: 'H:i',
+                                  time_24hr: true,
+                                  allowInput: true,
+                                }"
                               />
                             </div>
                           </template>
@@ -432,24 +488,53 @@ const onSendSimple = async () => {
                               Run on
                               <AppSelect
                                 v-model="schedule.scheduleWeek"
-                                :items="['FIRST','SECOND','THIRD','FOURTH','LAST']"
-                                density="compact" placeholder="Week Number"
-                                style="width:170px" class="input-uniform dif-height"
+                                :items="[
+                                  'FIRST',
+                                  'SECOND',
+                                  'THIRD',
+                                  'FOURTH',
+                                  'LAST',
+                                ]"
+                                density="compact"
+                                placeholder="Week Number"
+                                style="width: 170px"
+                                class="input-uniform dif-height"
                               />
                               <AppSelect
                                 v-model="schedule.scheduleWeekday"
-                                :items="['MON','TUE','WED','THU','FRI','SAT','SUN']"
-                                density="compact" multiple placeholder="Week Days"
-                                style="width:170px" class="input-uniform dif-height"
+                                :items="[
+                                  'MON',
+                                  'TUE',
+                                  'WED',
+                                  'THU',
+                                  'FRI',
+                                  'SAT',
+                                  'SUN',
+                                ]"
+                                density="compact"
+                                multiple
+                                placeholder="Week Days"
+                                style="width: 170px"
+                                class="input-uniform dif-height"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyWeekdayTime"
-                                :key="schedule.durationType + '1' + schedule.recurringType"
+                                :key="
+                                  schedule.durationType +
+                                  '1' +
+                                  schedule.recurringType
+                                "
                                 placeholder="Select Time"
                                 class="flex-grow-1 tiny-input input-uniform"
-                                style="min-width:170px"
+                                style="min-width: 170px"
                                 :disabled="!schedule.recurringType"
-                                :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                                :config="{
+                                  enableTime: true,
+                                  noCalendar: true,
+                                  dateFormat: 'H:i',
+                                  time_24hr: true,
+                                  allowInput: true,
+                                }"
                               />
                             </div>
                           </template>

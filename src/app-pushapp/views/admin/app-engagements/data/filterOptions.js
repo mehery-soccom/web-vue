@@ -2,7 +2,8 @@ export const FILTER_TYPES = [
   { title: "System Event", value: "event" },
   { title: "System Attribute", value: "attribute" },
   { title: "Profile Attribute", value: "additionalInfo" },
-  { title: "Slice", value: "cohort" },
+  { title: "Slice", value: "slice" },
+  { title: "Cohort", value: "cohort" },
 ];
 
 export const FILTER_FIELDS_MAP = {
@@ -54,6 +55,9 @@ export const FILTER_FIELDS_MAP = {
   },
 
   /* Profile Attributes */
+  // fetch from api
+
+  /* Slices */
   // fetch from api
 
   /* Cohorts */

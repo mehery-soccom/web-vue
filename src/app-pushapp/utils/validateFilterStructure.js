@@ -47,7 +47,7 @@ export default function validateFilterStructure(
     // No special checks here — but could enforce supported filterTypes
     if (
       node.filterType &&
-      !["event", "attribute", "additionalInfo", "cohort"].includes(
+      !["event", "attribute", "additionalInfo", "slice", "cohort"].includes(
         node.filterType,
       )
     ) {
