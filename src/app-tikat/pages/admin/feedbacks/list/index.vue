@@ -49,6 +49,18 @@ const pagination = reactive({
 const userRoles = window.CONST?.USER?.role || []
 const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('USER')
 
+const UI_TO_BACKEND_MAP = {
+  'Not Satisfied': 'Poor Feedback',
+  'Neutral': 'Satisfactory',
+  'Satisfied': 'Good to Excellent'
+};
+
+const BACKEND_TO_UI_MAP = {
+  'Poor Feedback': 'Not Satisfied',
+  'Satisfactory': 'Neutral',
+  'Good to Excellent': 'Satisfied'
+};
+
 const headers = computed(() => {
   const list = [
     { title: 'Name', key: 'contact.name', sortable: true },
@@ -95,7 +107,11 @@ const fetchFeedbacks = async (options = pagination) => {
     for (const key in options.filters) {
       if (options.filters[key] !== null && options.filters[key] !== undefined) {
         if (key === 'rating') continue;
-        activeFilters[key] = options.filters[key]
+        if (key === 'meta.segmentLabel') {
+          activeFilters[key] = UI_TO_BACKEND_MAP[options.filters[key]] || options.filters[key];
+        } else {
+          activeFilters[key] = options.filters[key];
+        }
       }
     }
 
@@ -324,7 +340,7 @@ const exportToExcel = async () => {
         "Form Title": item.form?.title || '-',
         "Status": item.status || '-',
         "Score": item.meta?.score ? `${item.meta.score}%` : '-',
-        "Category": item.meta?.segmentLabel || '-',
+        "Category": BACKEND_TO_UI_MAP[item.meta?.segmentLabel] || item.meta?.segmentLabel || '-',
         "Date of Feedback": formatDate(item.createdAt),
         "Assigned to": item.assignee?.name || '-',
       }
@@ -514,7 +530,9 @@ const exportToExcel = async () => {
       </template>
 
       <template #item.meta.segmentLabel="{ item }">
-        <span>{{ item.raw.meta?.segmentLabel || '-' }}</span>
+        <span>
+          {{ BACKEND_TO_UI_MAP[item.raw.meta?.segmentLabel] || item.raw.meta?.segmentLabel || '-' }}
+        </span>
       </template>
 
       <template #item.createdAt="{ item }">
