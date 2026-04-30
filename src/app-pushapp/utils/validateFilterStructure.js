@@ -3,6 +3,7 @@ export default function validateFilterStructure(
   parentConjunction = null,
   isRoot = true,
   ignoreEventfilterType,
+  eventFilterMandatory = true,
 ) {
   if (!node) throw new Error("Empty filter node");
 
@@ -31,14 +32,20 @@ export default function validateFilterStructure(
       }
 
       // Root must contain one event filter atleast
-      if (isRoot && directEventChildren.length == 0) {
+      if (eventFilterMandatory && isRoot && directEventChildren.length == 0) {
         throw new Error("Root group must have an event filter");
       }
     }
 
     // Recurse into children
     children.forEach((child) =>
-      validateFilterStructure(child, conjunction, false, ignoreEventfilterType),
+      validateFilterStructure(
+        child,
+        conjunction,
+        false,
+        ignoreEventfilterType,
+        eventFilterMandatory,
+      ),
     );
     return true;
   }

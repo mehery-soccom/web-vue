@@ -27,7 +27,7 @@ const onCreate = async () => {
   let filtervalid = await filterRef.value?.isValid();
   let filterStructureValid = true;
   try {
-    validateFilterStructure(cohort.filter, null, true, true);
+    validateFilterStructure(cohort.filter, null, true, false, false);
   } catch (error) {
     filterStructureValid = false;
     show({ message: error.message, color: "error" });
@@ -119,12 +119,19 @@ onMounted(async () => {
               :readonly="!!route.params.id"
             />
           </VCol>
+          <VCol cols="12" md="8">
+            <AppTextField
+              v-model="cohort.desc"
+              placeholder="Optional Description"
+              prepend-inner-icon="mdi-text-box"
+              :readonly="!!route.params.id"
+            />
+          </VCol>
         </VRow>
       </VForm>
       <FilterBuilder
         v-if="cohort.filter"
         v-model="cohort.filter"
-        :ignoreEventfilterType="true"
         :ignoreSlicefilterType="true"
         :ignoreCohortfilterType="true"
         ref="filterRef"
