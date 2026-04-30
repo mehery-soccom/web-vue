@@ -41,9 +41,9 @@ const segmentationHeaders = [
   { title: "Form Title", key: "formTitle", searchable: true, sortable: true, width: '250px' },
   { title: "Avg Score", key: "averageScore", align: 'center', sortable: true, width: '100px' },
   { title: "Total", key: "total", align: 'center', sortable: true, width: '80px' },
-  { title: "Good", key: "good", align: 'center', sortable: true, width: '100px' },
-  { title: "Satisfactory", key: "satisfactory", align: 'center', sortable: true, width: '100px' },
-  { title: "Poor", key: "poor", align: 'center', sortable: true, width: '100px' },
+  { title: "Satisfied", key: "good", align: 'center', sortable: true, width: '100px' },
+  { title: "Neutral", key: "satisfactory", align: 'center', sortable: true, width: '100px' },
+  { title: "Not Satisfied", key: "poor", align: 'center', sortable: true, width: '100px' },
 ]
 
 const allUniqueStatuses = computed(() => {
@@ -87,9 +87,9 @@ const mappedSegmentationSummary = computed(() => {
 
 const segmentStats = ref([
   { title: 'Total Received', stats: '0', icon: 'tabler-message-2', color: 'primary' },
-  { title: 'Good/Excellent', stats: '0', icon: 'tabler-mood-smile', color: 'success' },
-  { title: 'Satisfactory', stats: '0', icon: 'tabler-mood-neutral', color: 'warning' },
-  { title: 'Poor', stats: '0', icon: 'tabler-mood-sad', color: 'error' },
+  { title: 'Satisfied', stats: '0', icon: 'tabler-mood-smile', color: 'success' },
+  { title: 'Neutral', stats: '0', icon: 'tabler-mood-neutral', color: 'warning' },
+  { title: 'Not Satisfied', stats: '0', icon: 'tabler-mood-sad', color: 'error' },
 ])
 
 const getStatusSummary = async () => {
@@ -107,8 +107,12 @@ const getSegmentationSummary = async (startTs, endTs) => {
       total += form.total || 0; good += form.good || 0;
       sat += form.satisfactory || 0; poor += form.poor || 0
     })
-    segmentStats.value[0].stats = String(total); segmentStats.value[1].stats = String(good)
-    segmentStats.value[2].stats = String(sat); segmentStats.value[3].stats = String(poor)
+    const getPct = (val) => total > 0 ? Math.round((val / total) * 100) : 0
+
+    segmentStats.value[0].stats = String(total)
+    segmentStats.value[1].stats = `${good} (${getPct(good)}%)`
+    segmentStats.value[2].stats = `${sat} (${getPct(sat)}%)`
+    segmentStats.value[3].stats = `${poor} (${getPct(poor)}%)`
   } catch (e) { console.error(e) }
 }
 
