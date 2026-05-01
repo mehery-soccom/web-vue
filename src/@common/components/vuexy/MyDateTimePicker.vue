@@ -189,7 +189,6 @@ const flatpickrConfig = computed(() => {
     allowInput: true,
     // static: true,
     // closeOnScroll: false,
-    position: "above",
     dateFormat: props.enableTime ? "d-m-Y H:i" : "d-m-Y",
     onChange: handleChange,
     onReady(selectedDates, dateStr, instance) {
@@ -256,6 +255,21 @@ watch(
   },
   { immediate: true, deep: true }
 );
+
+const fpRef = ref(null)
+const handleScroll = () => {
+  const fp = fpRef.value?.fp
+  if (!fp) return
+  if (!fp.isOpen) fp.open(undefined, fp._positionElement)
+}
+
+onMounted(() => {
+  window.addEventListener('scroll', handleScroll, true)
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('scroll', handleScroll, true)
+})
 </script>
 
 <template>
@@ -306,7 +320,7 @@ watch(
                 :model-value="internalValue"
                 :config="flatpickrConfig"
                 :placeholder="placeholder"
-                :disabled="disabled"
+                :disabled="disabled" ref="fpRef"
                 class="flatpickr-input w-100"
               />
             </div>
