@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject, watch } from 'vue';
+import { ref, onMounted, computed, inject, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useLeadsStore } from '@/app-lead/views/admin/leads/useLeadsStore';
 import { useFormsStore } from '@/app-lead/views/admin/forms/useFormsStore';
@@ -39,6 +39,7 @@ const originalLeadData = ref(null);
 const closingDate = ref(null);
 const assignedTo = ref(null);
 const maxDocSize = 5 * 1024 * 1024;
+const activityRef = ref(null);
 
 const urlParams = computed(() => {
   const param = route.params.id;
@@ -215,7 +216,13 @@ const fetchLeadData = async () => {
   }
 };
 
-onMounted(fetchLeadData);
+onMounted(async () => {
+  await fetchLeadData();
+  if (route.query.tab === 'activities') {
+    await nextTick();
+    scrollToActivities();
+  }
+});
 const byUser = window.CONST?.USER?.code || null;
 
 const handleSubmit = async () => {
@@ -305,6 +312,9 @@ const fieldsToRender = computed(() => {
       return true;
     });
 });
+const scrollToActivities = () => {
+  setTimeout(() => { activityRef.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'start'}); }, 1500);
+};
 
 const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true');
 
@@ -515,7 +525,7 @@ const shouldShowLeadProgress = computed(() => route.query.showProgress === 'true
                   <LeadDocs :lead-id="leadId" :form-id="selectedFormId" />
                 </VCol>
 
-                <VCol v-if="leadId" cols="12">
+                <VCol v-if="leadId" cols="12" ref="activityRef">
                   <LeadActivities 
                     :lead-id="leadId"
                     :followups="followups"

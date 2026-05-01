@@ -60,16 +60,15 @@ const fetchTasks = async (options = pagination) => {
 
     const activeFilters = {}
     
-    if (options.filters.name) {
-      activeFilters['contact.name'] = options.filters.name
-    }
-    if (options.filters.title) {
-      activeFilters['title'] = options.filters.title
+    for (const key in options.filters) {
+      if (options.filters[key] !== null && options.filters[key] !== undefined && !!options.filters[key]) {
+        activeFilters[key] = options.filters[key]
+      }
     }
 
-    if (userRoles.includes('MODERATOR') || userRoles.includes('AGENT')) {
-      activeFilters['assignedTo'] = byUser 
-    }
+    // if (userRoles.includes('MODERATOR') || userRoles.includes('AGENT')) {
+    //   activeFilters['assignedTo'] = byUser 
+    // }
 
     const apiParams = {
       pageNo: options.page,
@@ -144,7 +143,7 @@ const handleRowClick = (event, { item }) => {
         router.push({
             name: 'admin-leads-add-id?',
             params: { id: leadId },
-            query: { showProgress: 'true' },
+            query: { showProgress: 'true', tab: 'activities' },
         })
     }
 }

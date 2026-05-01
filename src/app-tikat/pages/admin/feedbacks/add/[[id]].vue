@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, computed, inject, watch } from 'vue';
+import { ref, onMounted, computed, inject, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useFeedbackStore } from '@/app-tikat/views/admin/feedback/useFeedbackStore';
 import { useFormsStore } from '@/app-tikat/views/setup/forms/useFormsStore';
@@ -34,7 +34,7 @@ const selectedFormId = ref(null);
 const selectedFormStructure = ref(null);
 const feedbackData = ref({});
 const originalFeedbackData = ref(null);
-const feedbackHistory = ref([]);
+const followRef = ref(null);
 
 const byUser = window.CONST?.USER?.code || null;
 
@@ -243,7 +243,16 @@ const fieldsToRender = computed(() => {
   });
 });
 
-onMounted(fetchFeedbackData);
+const scrollToActivities = () => {
+  setTimeout(() => { followRef.value?.$el?.scrollIntoView({ behavior: 'smooth', block: 'start'}); }, 1000);
+};
+onMounted(async () => {
+  await fetchFeedbackData();
+  if (route.query.tab === 'followups') {
+    await nextTick();
+    scrollToActivities();
+  }
+});
 </script>
 
 <template>
@@ -459,7 +468,7 @@ onMounted(fetchFeedbackData);
                   />
                 </VCol>
 
-                <VCol v-if="feedbackId && selectedFormId" cols="12" class="mt-4">
+                <VCol v-if="feedbackId && selectedFormId" cols="12" class="mt-4" ref="followRef">
                   <TikatFollowups 
                     :feedback-id="feedbackId"
                     :form-id="selectedFormId"

@@ -81,8 +81,7 @@ const fetchFollowUps = async (options = pagination) => {
     const activeFilters = {}
     
     for (const key in options.filters) {
-      if (options.filters[key] !== null && options.filters[key] !== undefined) {
-        // if (key === 'rating') continue;
+      if (options.filters[key] !== null && options.filters[key] !== undefined && !!options.filters[key]) {
         activeFilters[key] = options.filters[key]
       }
     }
@@ -181,7 +180,8 @@ const handleRowClick = (event, { item }) => {
   if (id) {
     router.push({ 
       name: 'admin-feedbacks-add-id?', 
-      params: { id: id } 
+      params: { id: id },
+      query: { tab: 'followups' },
     })
   }
 }
