@@ -321,14 +321,14 @@ const onSendSimple = async () => {
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
-                  <h3 class="mb-2">Campaign Duration</h3>
+                  <h3 class="mb-2">Schedule</h3>
                   <p class="text-caption mb-4">
-                    Choose when the campaign will run
+                    Choose when the campaign will start
                   </p>
                   <VRadioGroup v-model="schedule.durationType" hide-details>
                     <VRadio value="immediate">
                       <template #label>
-                        <span>Run campaign now</span>
+                        <span>Start campaign now</span>
                       </template>
                     </VRadio>
 
@@ -336,7 +336,7 @@ const onSendSimple = async () => {
                       <template #label>
                         <div class="d-flex flex-column gap-2">
                           <div class="d-flex flex-wrap align-center gap-2">
-                            <span>Run campaign at scheduled date/time</span>
+                            <span>Start campaign at scheduled date/time</span>
                             <AppDateTimePicker
                               v-model="schedule.startDate"
                               :key="schedule.durationType + '1'"
@@ -363,21 +363,21 @@ const onSendSimple = async () => {
                     <!-- <VTooltip activator="parent" location="bottom">
                       Make the campaign recurring
                     </VTooltip> -->
-                    <span>Recurring</span>
+                    <span>Make It Recurring</span>
                   </div>
 
                   <div v-if="!!schedule.recurringType">
                     <VDivider class="my-6" />
 
-                    <h3 class="mb-2">Recurring Campaign</h3>
+                    <h3 class="mb-2">Recurring Details</h3>
                     <p class="text-caption mb-4">
-                      Choose when the campaign repeats
+                      Choose when the campaign will repeat
                     </p>
                     <div class="recurring-group">
                       <VRadioGroup v-model="schedule.schedulePattern">
                         <VRadio value="daily">
                           <template #label>
-                            Run Daily at
+                            Repeat Daily at
                             <AppDateTimePicker
                               v-model="schedule.dailyTime"
                               :key="
@@ -403,7 +403,7 @@ const onSendSimple = async () => {
                         <VRadio value="weekly">
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
-                              Run on scheduled days of week
+                              Repeat on day(s) of week
                               <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
                               <AppSelect
                                 v-model="schedule.scheduleDays"
@@ -449,7 +449,7 @@ const onSendSimple = async () => {
                         <VRadio value="monthlyDate">
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
-                              Run on date of month
+                              Repeat on date of month
                               <VTextField
                                 v-model="schedule.scheduleDate"
                                 type="number"
@@ -485,7 +485,7 @@ const onSendSimple = async () => {
                         <VRadio value="monthlyWeekday">
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
-                              Run on
+                              Repeat on week day of month
                               <AppSelect
                                 v-model="schedule.scheduleWeek"
                                 :items="[
@@ -553,7 +553,7 @@ const onSendSimple = async () => {
                 v-if="tab === 'tab-schedule'"
                 @click="onSendSimple"
                 :disabled="isLoading"
-                >{{ isLoading ? "loading..." : "Send Campaign" }}
+                >{{ isLoading ? "loading..." : "Launch" }}
               </VBtn>
               <VBtn
                 v-if="tab === 'tab-audience'"
@@ -561,12 +561,6 @@ const onSendSimple = async () => {
                 @click="tab = 'tab-schedule'"
                 >Next<VIcon end icon="mdi-arrow-right"
               /></VBtn>
-              <!-- <VBtn
-                v-if="tab === 'tab-audience'"
-                @click="onSendSimple"
-                :disabled="isLoading"
-                >{{ isLoading ? "loading..." : "Send Campaign" }}</VBtn
-              > -->
               <VBtn
                 v-if="tab === 'tab-details'"
                 variant="tonal"
