@@ -35,18 +35,58 @@ export const useEventStore = defineStore("EventStore", {
       }
     },
 
+    // Fetch Time Slot (Time of Day) stats
     async fetchTimeSlotStats(params) {
-      return DataService.axios.get("/api/v1/analytics/events/timeSlot", { params });
+      try {
+        return await DataService.axios.get("/api/v1/analytics/events/timeSlot", { params });
+      } catch (error) {
+        console.error("Error fetching time slot stats:", error);
+      }
     },
 
     // Events over time
     async fetchEventOverTime(params) {
-      return DataService.axios.get("/api/v1/analytics/events/event", { params });
+      try {
+        return await DataService.axios.get("/api/v1/analytics/events/event", { params });
+      } catch (error) {
+        console.error("Error fetching event over time:", error);
+      }
     },
 
-    //Users over time
+    // Users over time
     async fetchUserOverTime(params) {
-      return DataService.axios.get("/api/v1/analytics/events/users", { params });
+      try {
+        return await DataService.axios.get("/api/v1/analytics/events/users", { params });
+      } catch (error) {
+        console.error("Error fetching users over time:", error);
+      }
+    },
+
+    // Session Time stats
+    async fetchSessionTimeStats(params) {
+      try {
+        return await DataService.axios.get("/api/v1/analytics/events/sessionTime", { params });
+      } catch (error) {
+        console.error("Error fetching session time stats:", error);
+      }
+    },
+
+    // Session Page stats
+    async fetchSessionPageStats(params) {
+      try {
+        return await DataService.axios.get("/api/v1/analytics/events/sessionPages", { params });
+      } catch (error) {
+        console.error("Error fetching session page stats:", error);
+      }
+    },
+
+    // Device specific stats (platform, model, etc.)
+    async fetchDeviceStats(property, params) {
+      try {
+        return await DataService.axios.get(`/api/v1/analytics/events/device/${property}`, { params });
+      } catch (error) {
+        console.error(`Error fetching device stats for ${property}:`, error);
+      }
     },
   },
 });

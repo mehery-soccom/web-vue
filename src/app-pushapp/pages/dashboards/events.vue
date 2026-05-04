@@ -5,6 +5,8 @@ import CardStatisticsTransactions from '@app-pushapp/views/dashboards/event/Card
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters"
 import Trends from "@app-pushapp/views/dashboards/event/Trends.vue"
+import SessionEvents from "@app-pushapp/views/dashboards/event/SessionEvents.vue"
+import EventDevices from "@app-pushapp/views/dashboards/event/EventDevices.vue"
 
 const eventStore = useEventStore()
 const { customPlugin } = useDatePickerFilters()
@@ -14,8 +16,12 @@ const selectedCohort = ref('All')
 const cohortOptions = ['All']
 const analyticsType = ref('Snap') 
 const options = ['Snap', 'Trends', 'Sessions', 'Users', "Geo's", 'Devices']
+
 const selectedTrend = ref(null)
 const trendOptions = ['Time of Day', 'Events over time', 'Users over time']
+
+const selectedSession = ref(null)
+const sessionOptions = ['Time To', 'Pages To']
 
 // Date Logic: Default last 7 days
 const tonight = new Date().setHours(23, 59, 59, 999)
@@ -33,10 +39,37 @@ const optionIcons = {
 }
 
 const formattedEventList = computed(() => {
-  return eventStore.uniqueEvents.map(event => ({
-    title: event.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase()),
-    value: event
-  }))
+  return eventStore.uniqueEvents
+    .map(event => ({
+      title: event.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase()),
+      value: event
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title))
+})
+
+// sessions cant have event options- app_open and page_open
+const sessionFilteredEvents = computed(() => {
+  if (analyticsType.value === 'Sessions') {
+    return formattedEventList.value.filter(e => 
+      e.value !== 'app_open' && e.value !== 'page_open'
+    )
+  }
+  return formattedEventList.value
+})
+
+watch(analyticsType, (newType) => {
+  if (newType === 'Sessions') {
+    const invalidEvents = ['app_open', 'page_open'];
+    if (invalidEvents.includes(selectedEvent.value)) {
+      selectedEvent.value = null; 
+    }
+  }
+})
+
+watch([selectedEvent, analyticsType], () => {
+  if (analyticsType.value === 'Snap') {
+    getStats()
+  }
 })
 
 const snapStatistics = computed(() => [
@@ -98,7 +131,7 @@ watch([selectedEvent, analyticsType], () => {
         <div class="d-flex gap-4 align-center flex-wrap">
           <VSelect
             v-model="selectedEvent"
-            :items="formattedEventList"
+            :items="sessionFilteredEvents"
             label="Event"
             placeholder="Choose an event"
             density="compact"
@@ -130,11 +163,11 @@ watch([selectedEvent, analyticsType], () => {
     </VCol>
 
     <VCol cols="12">
-      <VBtnToggle v-model="analyticsType" color="primary" variant="text" mandatory class="gap-2" >
+      <VBtnToggle v-slot="{ isSelected, toggle }" v-model="analyticsType" color="primary" variant="text" mandatory class="gap-2">
         <template v-for="option in options" :key="option">
           
           <VBtn 
-            v-if="option !== 'Trends'" 
+            v-if="!['Trends', 'Sessions'].includes(option)" 
             :value="option" 
             :prepend-icon="optionIcons[option]"
             rounded="lg"
@@ -142,29 +175,50 @@ watch([selectedEvent, analyticsType], () => {
             {{ option }}
           </VBtn>
 
-          <VMenu v-else transition="scale-transition" open-on-hover>
-            <template #activator="{ props }">
-              <VBtn 
-                :value="option" 
-                v-bind="props" 
-                :prepend-icon="optionIcons[option]"
-                append-icon="tabler-chevron-down"
-                rounded="lg"
-              >
-                Trends
-              </VBtn>
-            </template>
+          <VBtn 
+            v-else-if="option === 'Trends'" 
+            :value="option" 
+            :prepend-icon="optionIcons[option]"
+            append-icon="tabler-chevron-down"
+            rounded="lg"
+          >
+            Trends
+            
+            <VMenu activator="parent" transition="scale-transition" open-on-hover>
+              <VList>
+                <VListItem 
+                  v-for="trend in trendOptions" 
+                  :key="trend" 
+                  @click="selectedTrend = trend; analyticsType = 'Trends'"
+                >
+                  <VListItemTitle>{{ trend }}</VListItemTitle>
+                </VListItem>
+              </VList>
+            </VMenu>
+          </VBtn>
 
-            <VList>
-              <VListItem 
-                v-for="trend in trendOptions" 
-                :key="trend" 
-                @click="selectedTrend = trend; analyticsType = 'Trends'"
-              >
-                <VListItemTitle>{{ trend }}</VListItemTitle>
-              </VListItem>
-            </VList>
-          </VMenu>
+          <VBtn 
+            v-else-if="option === 'Sessions'" 
+            v-show="selectedEvent !== 'app_open' && selectedEvent !== 'page_open'"
+            :value="option" 
+            :prepend-icon="optionIcons[option]"
+            append-icon="tabler-chevron-down"
+            rounded="lg"
+          >
+            Sessions
+
+            <VMenu activator="parent" transition="scale-transition" open-on-hover>
+              <VList>
+                <VListItem 
+                  v-for="session in sessionOptions" 
+                  :key="session" 
+                  @click="selectedSession = session; analyticsType = 'Sessions'"
+                >
+                  <VListItemTitle>{{ session }}</VListItemTitle>
+                </VListItem>
+              </VList>
+            </VMenu>
+          </VBtn>
 
         </template>
       </VBtnToggle>
@@ -186,6 +240,25 @@ watch([selectedEvent, analyticsType], () => {
               :event="selectedEvent" 
               :dateRange="dateRange" 
               :selectedTrend="selectedTrend"
+            />
+          </VCol>
+        </VRow>
+
+        <VRow v-else-if="analyticsType === 'Sessions'">
+          <VCol cols="12">
+            <SessionEvents
+              :event="selectedEvent" 
+              :dateRange="dateRange" 
+              :selectedSession="selectedSession"
+            />
+          </VCol>
+        </VRow>
+
+        <VRow v-else-if="analyticsType === 'Devices'">
+          <VCol cols="12">
+            <EventDevices
+              :event="selectedEvent" 
+              :dateRange="dateRange" 
             />
           </VCol>
         </VRow>
