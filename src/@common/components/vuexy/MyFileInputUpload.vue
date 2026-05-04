@@ -31,6 +31,14 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  minAspectRatio: {
+    type: Number,
+    default: null,
+  },
+  maxAspectRatio: {
+    type: Number,
+    default: null,
+  },
 });
 
 const emit = defineEmits(["update:modelValue","update:thumbnailUrl"]);
@@ -119,6 +127,23 @@ async function generateVideoThumbnails(videoUrl, count = 5) {
   });
 }
 
+function validateAspectRatio(file, min, max) {
+  return new Promise((resolve) => {
+    const img = new Image()
+    const url = URL.createObjectURL(file)
+    img.onload = () => {
+      const ratio = img.width / img.height
+      URL.revokeObjectURL(url)
+      if (!min && !max) return resolve(true)
+      if (min && ratio < min) return resolve(false)
+      if (max && ratio > max) return resolve(false)
+      resolve(true)
+    }
+    img.onerror = () => resolve(false)
+    img.src = url
+  })
+}
+
 const handleFileUpload = async (event) => {
   document.activeElement?.blur();
   try {
@@ -131,6 +156,16 @@ const handleFileUpload = async (event) => {
         color: "error",
       });
       return;
+    }
+    if (file.type.startsWith("image/") && (props.minAspectRatio || props.maxAspectRatio)) {
+      const isValid = await validateAspectRatio(file, props.minAspectRatio, props.maxAspectRatio);
+
+      if (!isValid) {
+        show({ message: `Image aspect ratio must be between ${props.minAspectRatio} and ${props.maxAspectRatio}.`, color: "error" });
+        event.target.value = null;
+        file.value = null;
+        return;
+      }
     }
     uploading.value = true;
     const formData = new FormData();

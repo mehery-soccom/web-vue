@@ -98,6 +98,8 @@ const removePlatform = () => {
             label="Certificate"
             @change="handleFileUpload"
             accept="application/JSON, .p8"
+            :hint="data.platform_type === 'ios' ? 'ios- p8 file(key that was generated)' : 'Service account in firebase - private key of this app'"
+            persistent-hint
           />
         </VCol>
         <VCol cols="12" md="6" v-if="data.platform_type === 'ios'">
@@ -110,6 +112,8 @@ const removePlatform = () => {
             label="FCM File"
             @change="handleFileUploadFCM"
             accept="application/JSON, .p8"
+            hint="Service account in firebase - private key of this app"
+            persistent-hint
           />
         </VCol>
       </VRow>
