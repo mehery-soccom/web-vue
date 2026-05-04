@@ -316,6 +316,14 @@ const openPreview = () => {
                   @update:modelValue="val => { if(!val) formData.banner.logo = null }"
                 />
               </VCol>
+              <VCol cols="12">
+                <VSwitch
+                  v-model="formData.displayTitle"
+                  label="Display Name and Description over Background Image"
+                  inset
+                  density="comfortable"
+                />
+              </VCol>
               <VCol cols="12" md="6">
                 <AppSelect
                   v-model="formData.scale"
