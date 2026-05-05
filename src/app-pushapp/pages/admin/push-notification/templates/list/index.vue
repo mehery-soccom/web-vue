@@ -389,8 +389,8 @@ const deleteTemplate = (id, dialogCloseRef) => {
                     <VCol cols="12" md="4">
                       <AppTextField
                         v-model="testNotification.user_id"
-                        label="Target Device/  User"
-                        placeholder="Enter Testing User ID"
+                        label="User ID"
+                        placeholder="Enter User ID"
                       />
                     </VCol>
                     <VCol cols="12" md="4">

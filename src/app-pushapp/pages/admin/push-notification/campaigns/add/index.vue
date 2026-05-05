@@ -52,29 +52,46 @@ const schedule = reactive({
   monthlyWeekdayTime: null,
 });
 const now = new Date();
-const scheduleDateValidator = (value) => {
-  if (schedule.durationType === "scheduled" && !value) {
-    return "Please select schedule date";
-  }
+const startDateValidator = (value) => {
+  if (schedule.durationType === "scheduled" && !value) return "Please select schedule date";
   return true;
 };
+const endDateValidator = (value) => {
+  if (!!schedule.recurringType && !value) return "Please select end date";
+  return true;
+};
+
 const dayOfMonthValidator = (value) => {
-  if (!value && schedule.schedulePattern === "monthlyDate") {
-    return "Date is required";
-  }
-  const num = Number(value);
-  if (isNaN(num) || num < 1 || num > 31) {
-    return "Enter valid date(1-31)";
+  if (!value && schedule.schedulePattern === "monthlyWeekday") return "Date is required";
+  return true;
+};
+const timeValidator = (value, type) => {
+  if (!schedule.recurringType) return true;
+  if (schedule.schedulePattern === type && !value) return "Time is required";
+  return true;
+};
+
+const weeklyDaysValidator = (value) => {
+  if ( schedule.recurringType && schedule.schedulePattern === "weekly" && (!value || value.length === 0)) return "Select at least one day";
+  return true;
+};
+const monthlyWeekDaysValidator = (value) => {
+  if ( schedule.recurringType && schedule.schedulePattern === "monthlyWeekday" && (!value || value.length === 0)) return "Select at least one day";
+  return true;
+};
+
+const monthlyDateValidator = (value) => {
+  if (schedule.recurringType && schedule.schedulePattern === "monthlyDate" && !value) {
+    const num = Number(value);
+    if (isNaN(num) || num < 1 || num > 31) {
+      return "Enter valid date(1-31)";
+    } else return "Date is required";
   }
   return true;
 };
-watch(
-  () => schedule.durationType,
+watch(() => schedule.durationType,
   (val) => {
-    console.log("dura", val);
-    if (val === "immediate") {
-      schedule.startDate = null;
-    }
+    if (val === "immediate") schedule.startDate = null;
   },
 );
 const getTimeParts = (time) => {
@@ -87,50 +104,42 @@ const getTimeParts = (time) => {
   return ["00", "00"];
 };
 const buildSchedulePayload = (schedule) => {
-  if (!!schedule.recurringType) schedule.durationType = "recurring";
-  if (schedule.durationType === "immediate") return { type: "immediate" };
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const isRecurring = !!schedule.recurringType;
+  const type = schedule.durationType;
+  const runAt = new Date(schedule.startDate).toISOString();
 
-  if (schedule.durationType === "scheduled") {
-    return {
-      type: "scheduled",
-      runAt: new Date(schedule.startDate),
-    };
-  }
+  let rrule = null;
+  if (isRecurring) {
+    const [hour, minute] = getTimeParts(schedule[`${schedule.schedulePattern}Time`]);
 
-  if (schedule.durationType === "recurring") {
-    let rule = "";
-    const [hour, minute] = getTimeParts(
-      schedule[`${schedule.schedulePattern}Time`],
-    );
     switch (schedule.schedulePattern) {
       case "daily":
-        rule = `FREQ=DAILY;BYHOUR=${hour};BYMINUTE=${minute}`;
+        rrule = `FREQ=DAILY;BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
       case "weekly":
-        rule = `FREQ=WEEKLY;BYDAY=${(schedule.scheduleDays || []).join(
-          ",",
-        )};BYHOUR=${hour};BYMINUTE=${minute}`;
+        rrule = `FREQ=WEEKLY;BYDAY=${(schedule.scheduleDays || []).join(",")};BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
       case "monthlyDate":
-        rule = `FREQ=MONTHLY;BYMONTHDAY=${schedule.scheduleDate};BYHOUR=${hour};BYMINUTE=${minute}`;
+        rrule = `FREQ=MONTHLY;BYMONTHDAY=${schedule.scheduleDate};BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
       case "monthlyWeekday":
         const weekMap = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1 };
-        rule = `FREQ=MONTHLY;BYDAY=${(schedule.scheduleWeekday || []).join(
-          ",",
-        )};BYSETPOS=${
-          weekMap[schedule.scheduleWeek]
-        };BYHOUR=${hour};BYMINUTE=${minute}`;
+        rrule = `FREQ=MONTHLY;BYDAY=${(schedule.scheduleWeekday || []).join(",")};BYSETPOS=${weekMap[schedule.scheduleWeek]};BYHOUR=${hour};BYMINUTE=${minute}`;
         break;
     }
-
-    return {
-      type: "recurring",
-      rrule: rule,
-    };
   }
 
-  return {};
+  return {
+    type,
+    runAt,
+    isRecurring,
+    timezone,
+    ...(isRecurring && { rrule }),
+    ...(schedule.endDate && {
+    until: new Date(schedule.endDate).toISOString(),
+    }),
+  };
 };
 
 onMounted(async () => {
@@ -190,6 +199,10 @@ const onSendSimple = async () => {
     show({ message: error.message, color: "error" });
   }
   if (!filtervalid || !filterStructureValid) return;
+  if (schedule.recurringType && !schedule.schedulePattern) {
+    show({ message: "Please select a recurrence pattern", color: "error",});
+    return;
+  }
 
   try {
     isLoading.value = true;
@@ -345,7 +358,7 @@ const onSendSimple = async () => {
                               style="min-width: 170px"
                               :disabled="schedule.durationType != 'scheduled'"
                               :config="{ enableTime: true, minDate: now }"
-                              :rules="[scheduleDateValidator]"
+                              :rules="[startDateValidator]"
                             />
                           </div>
                         </div>
@@ -363,7 +376,7 @@ const onSendSimple = async () => {
                     <!-- <VTooltip activator="parent" location="bottom">
                       Make the campaign recurring
                     </VTooltip> -->
-                    <span>Make It Recurring</span>
+                    <span>Make it Recurring</span>
                   </div>
 
                   <div v-if="!!schedule.recurringType">
@@ -396,6 +409,7 @@ const onSendSimple = async () => {
                                 time_24hr: true,
                                 allowInput: true,
                               }"
+                              :rules="[val => timeValidator(val, 'daily')]"
                             />
                           </template>
                         </VRadio>
@@ -421,6 +435,7 @@ const onSendSimple = async () => {
                                 placeholder="Week Days"
                                 style="width: 170px"
                                 class="input-uniform dif-height"
+                                :rules="[weeklyDaysValidator]"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.weeklyTime"
@@ -440,6 +455,7 @@ const onSendSimple = async () => {
                                   time_24hr: true,
                                   allowInput: true,
                                 }"
+                                :rules="[val => timeValidator(val, 'weekly')]"
                               />
                               <!-- </div> -->
                             </div>
@@ -453,11 +469,11 @@ const onSendSimple = async () => {
                               <VTextField
                                 v-model="schedule.scheduleDate"
                                 type="number"
-                                :rules="[dayOfMonthValidator]"
                                 density="compact"
                                 placeholder="Date"
                                 style="width: 157px"
-                                class="input-uniform dif-height"
+                                class="input-uniform dif-height date-num"
+                                :rules="[monthlyDateValidator]"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyDateTime"
@@ -477,6 +493,7 @@ const onSendSimple = async () => {
                                   time_24hr: true,
                                   allowInput: true,
                                 }"
+                                :rules="[val => timeValidator(val, 'monthlyDate')]"
                               />
                             </div>
                           </template>
@@ -499,6 +516,7 @@ const onSendSimple = async () => {
                                 placeholder="Week Number"
                                 style="width: 170px"
                                 class="input-uniform dif-height"
+                                :rules="[dayOfMonthValidator]"
                               />
                               <AppSelect
                                 v-model="schedule.scheduleWeekday"
@@ -516,6 +534,7 @@ const onSendSimple = async () => {
                                 placeholder="Week Days"
                                 style="width: 170px"
                                 class="input-uniform dif-height"
+                                :rules="[monthlyWeekDaysValidator]"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyWeekdayTime"
@@ -535,11 +554,24 @@ const onSendSimple = async () => {
                                   time_24hr: true,
                                   allowInput: true,
                                 }"
+                                :rules="[val => timeValidator(val, 'monthlyWeekday')]"
                               />
                             </div>
                           </template>
                         </VRadio>
                       </VRadioGroup>
+                    </div>
+                    <div class="d-flex flex-wrap align-center gap-2 mt-4">
+                        <h3>Campaign will end at</h3>
+                        <AppDateTimePicker
+                          v-model="schedule.endDate"
+                          :key="schedule.durationType + '1'"
+                          placeholder="Select Date"
+                          class="flex-grow-1 tiny-input"
+                          style="min-width: 170px"
+                          :config="{ enableTime: true, minDate: now }"
+                          :rules="[endDateValidator]"
+                        />
                     </div>
                   </div>
                 </VWindowItem>
@@ -600,6 +632,8 @@ const onSendSimple = async () => {
 :deep(.dif-height .v-input__control .v-field .v-field__field .v-field__input) {
   min-height: 32px !important;
   max-height: 32px;
+}
+:deep(.date-num .v-input__control .v-field .v-field__field .v-field__input) {
   padding-top: 3px;
 }
 </style>
