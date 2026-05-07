@@ -2,6 +2,8 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useTheme } from "vuetify"
 import { useEventStore } from './useEventStore'
+import html2canvas from 'html2canvas'
+import * as XLSX from 'xlsx'
 import { getLatestBarChartConfig } from "@app-pushapp/@core/libs/chartjs/chartjsConfig"
 import BarChart from "@app-pushapp/@core/libs/chartjs/components/BarChart"
 
@@ -17,6 +19,7 @@ const vuetifyTheme = useTheme()
 const rawData = ref({})
 const loading = ref(false)
 const chartJsColors = { barChartYellow: '#fdb022' }
+const sessionCard = ref(null)
 
 const chartJsOptions = computed(() => {
   const config = getLatestBarChartConfig(vuetifyTheme.current.value)
@@ -95,15 +98,81 @@ const fetchData = async () => {
   }
 }
 
+const downloadImage = async () => {
+  if (!sessionCard.value.$el) return
+
+  const fileName = `${props.event}_${props.selectedSession}_${props.dateRange}.png`.replace(/\s+/g, '_')
+
+  const canvas = await html2canvas(sessionCard.value.$el, {
+    useCORS: true,
+    backgroundColor: null,
+  })
+
+  const link = document.createElement('a')
+  link.download = fileName
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+const exportToExcel = () => {
+  if (Object.keys(rawData.value).length === 0) return
+
+  const columnLabel = props.selectedSession === 'Time To' ? 'Time Interval' : 'Pages Count'
+  
+  const formattedData = Object.entries(rawData.value).map(([key, value]) => ({
+    [columnLabel]: key,
+    Count: value
+  }))
+
+  const worksheet = XLSX.utils.json_to_sheet(formattedData)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Session Data")
+
+  const fileName = `${props.event}_${props.selectedSession}_${props.dateRange}.xlsx`.replace(/\s+/g, '_')
+  XLSX.writeFile(workbook, fileName)
+}
+
 watch([() => props.event, () => props.dateRange, () => props.selectedSession], fetchData)
 onMounted(fetchData)
 </script>
 
 <template>
-  <VCard>
-    <VCardTitle class="pt-6 ps-8 text-h5 font-weight-bold text-primary">
-      {{ props.selectedSession }}
-    </VCardTitle>
+  <VCard ref="sessionCard">
+    <VCardItem class="pt-6 ps-8">
+      <VCardTitle class="text-h5 font-weight-bold text-primary">
+        {{ props.selectedSession }}
+      </VCardTitle>
+
+      <template #append>
+        <VMenu transition="scale-transition" open-on-hover>
+          <template #activator="{ props }">
+            <VBtn
+              icon="tabler-download"
+              variant="text"
+              color="secondary"
+              size="small"
+              v-bind="props"
+            />
+          </template>
+
+          <VList density="compact">
+            <VListItem @click="downloadImage">
+              <template #prepend>
+                <VIcon icon="tabler-photo" size="18" class="me-2" />
+              </template>
+              <VListItemTitle>Download Image</VListItemTitle>
+            </VListItem>
+
+            <VListItem @click="exportToExcel">
+              <template #prepend>
+                <VIcon icon="tabler-file-spreadsheet" size="18" class="me-2" />
+              </template>
+              <VListItemTitle>Download Excel</VListItemTitle>
+            </VListItem>
+          </VList>
+        </VMenu>
+      </template>
+    </VCardItem>
 
     <VCardText v-if="loading" class="text-center py-10">
       <VProgressCircular indeterminate color="primary" />
@@ -118,7 +187,7 @@ onMounted(fetchData)
     </VCardText>
     
     <VCardText v-else class="text-center py-10 text-disabled">
-      Please select Event and Date Range.
+      {{ !props.event || !props.dateRange ? 'Please select Event and Date Range.' : 'No data available for the selected parameters' }}
     </VCardText>
   </VCard>
 </template>

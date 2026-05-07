@@ -80,12 +80,21 @@ export const useEventStore = defineStore("EventStore", {
       }
     },
 
-    // Device specific stats (platform, model, etc.)
+    // Device stats (platform, model, etc.)
     async fetchDeviceStats(property, params) {
       try {
         return await DataService.axios.get(`/api/v1/analytics/events/device/${property}`, { params });
       } catch (error) {
         console.error(`Error fetching device stats for ${property}:`, error);
+      }
+    },
+
+    // Geo stats (country, state, city)
+    async fetchGeoStats(location, params) {
+      try {
+        return await DataService.axios.get(`/api/v1/analytics/events/geo/${location}`, { params });
+      } catch (error) {
+        console.error(`Error fetching geo stats for ${location}:`, error);
       }
     },
   },
