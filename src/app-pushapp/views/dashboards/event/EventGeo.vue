@@ -2,10 +2,10 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useTheme } from "vuetify"
 import { useEventStore } from './useEventStore'
-import html2canvas from 'html2canvas'
-import * as XLSX from 'xlsx'
 import { getLatestBarChartConfig } from "@app-pushapp/@core/libs/chartjs/chartjsConfig"
 import BarChart from "@app-pushapp/@core/libs/chartjs/components/BarChart"
+import html2canvas from 'html2canvas'
+import * as XLSX from 'xlsx'
 
 const props = defineProps({
   event: String,
@@ -17,17 +17,13 @@ const vuetifyTheme = useTheme()
 
 const rawData = ref({})
 const loading = ref(false)
-const selectedProperty = ref('platform')
-const deviceCard = ref(null)
+const selectedLocation = ref('country')
+const geoCard = ref(null)
 
-const deviceProperties = [
-  { title: 'Platform', value: 'platform' },
-  { title: 'App Version', value: 'appVersion' },
-  { title: 'SDK Version', value: 'sdkVersion' },
-  { title: 'Locale', value: 'locale' },
-  { title: 'Device Model', value: 'deviceModel' },
-  { title: 'OS Name', value: 'osName' },
-  { title: 'OS Version', value: 'osVersion' },
+const geoProperties = [
+  { title: 'Country', value: 'country' },
+  { title: 'State', value: 'state' },
+  { title: 'City', value: 'city' },
 ]
 
 const chartJsOptions = computed(() => {
@@ -41,7 +37,7 @@ const chartJsOptions = computed(() => {
       ...config.scales,
       x: {
         ...config.scales.x,
-        title: { display: true, text: 'Property', font: { weight: 'bold' } }
+        title: { display: true, text: 'Location', font: { weight: 'bold' } }
       },
       y: {
         ...config.scales.y,
@@ -68,7 +64,7 @@ const chartJsData = computed(() => {
     labels,
     datasets: [{
       maxBarThickness: 30,
-      backgroundColor: '#28c76f', 
+      backgroundColor: '#00cfe8', // Different color (Cyan) to distinguish from Devices
       borderColor: "transparent",
       borderRadius: { topRight: 15, topLeft: 15 },
       data: values,
@@ -77,7 +73,7 @@ const chartJsData = computed(() => {
 })
 
 const fetchData = async () => {
-  if (!props.event || !selectedProperty.value) return
+  if (!props.event || !selectedLocation.value) return
   loading.value = true
   
   try {
@@ -92,7 +88,7 @@ const fetchData = async () => {
       timezone: window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata"
     }
 
-    const res = await eventStore.fetchDeviceStats(selectedProperty.value, params)
+    const res = await eventStore.fetchGeoStats(selectedLocation.value, params)
     rawData.value = res?.data?.data || {}
   } catch (e) {
     console.error(e)
@@ -103,11 +99,11 @@ const fetchData = async () => {
 }
 
 const downloadImage = async () => {
-  if (!deviceCard.value.$el) return
+  if (!geoCard.value.$el) return
 
-  const fileName = `${props.event}_${selectedProperty.value}_${props.dateRange}.png`.replace(/\s+/g, '_')
+  const fileName = `${props.event}_${selectedLocation.value}_${props.dateRange}.png`.replace(/\s+/g, '_')
 
-  const canvas = await html2canvas(deviceCard.value.$el, {
+  const canvas = await html2canvas(geoCard.value.$el, {
     useCORS: true,
     backgroundColor: null,
   })
@@ -121,35 +117,36 @@ const downloadImage = async () => {
 const exportToExcel = () => {
   if (Object.keys(rawData.value).length === 0) return
 
-  const formattedData = Object.entries(rawData.value).map(([propValue, count]) => ({
-    [selectedProperty.value.toUpperCase()]: propValue,
+  // Format the { location: count } object into a list for Excel
+  const formattedData = Object.entries(rawData.value).map(([location, count]) => ({
+    [selectedLocation.value.toUpperCase()]: location,
     Count: count
   }))
 
   const worksheet = XLSX.utils.json_to_sheet(formattedData)
   const workbook = XLSX.utils.book_new()
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Device Data")
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Geo Data")
 
-  const fileName = `${props.event}_${selectedProperty.value}_${props.dateRange}.xlsx`.replace(/\s+/g, '_')
+  const fileName = `${props.event}_${selectedLocation.value}_${props.dateRange}.xlsx`.replace(/\s+/g, '_')
   XLSX.writeFile(workbook, fileName)
 }
 
-watch([() => props.event, () => props.dateRange, selectedProperty], fetchData)
+watch([() => props.event, () => props.dateRange, selectedLocation], fetchData)
 onMounted(fetchData)
 </script>
 
 <template>
-  <VCard ref="deviceCard">
+  <VCard ref="geoCard">
     <VCardItem>
-      <VCardTitle class="ps-4 text-h5 font-weight-bold text-primary">Device Properties</VCardTitle>
+      <VCardTitle class="ps-4 text-h5 font-weight-bold text-primary">Geographical Distribution</VCardTitle>
       
       <template #append>
         <div class="d-flex align-center gap-2">
           <div style="width: 200px;">
             <VSelect
-              v-model="selectedProperty"
-              :items="deviceProperties"
-              label="Property"
+              v-model="selectedLocation"
+              :items="geoProperties"
+              label="Location Type"
               density="compact"
               hide-details
             />

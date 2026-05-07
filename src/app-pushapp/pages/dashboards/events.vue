@@ -7,6 +7,7 @@ import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDa
 import Trends from "@app-pushapp/views/dashboards/event/Trends.vue"
 import SessionEvents from "@app-pushapp/views/dashboards/event/SessionEvents.vue"
 import EventDevices from "@app-pushapp/views/dashboards/event/EventDevices.vue"
+import EventGeo from "@app-pushapp/views/dashboards/event/EventGeo.vue"
 
 const eventStore = useEventStore()
 const { customPlugin } = useDatePickerFilters()
@@ -18,7 +19,7 @@ const analyticsType = ref('Snap')
 const options = ['Snap', 'Trends', 'Sessions', 'Users', "Geo's", 'Devices']
 
 const selectedTrend = ref(null)
-const trendOptions = ['Time of Day', 'Events over time', 'Users over time']
+const trendOptions = ['Time of Day', 'Events over period', 'Users over period']
 
 const selectedSession = ref(null)
 const sessionOptions = ['Time To', 'Pages To']
@@ -257,6 +258,15 @@ watch([selectedEvent, analyticsType], () => {
         <VRow v-else-if="analyticsType === 'Devices'">
           <VCol cols="12">
             <EventDevices
+              :event="selectedEvent" 
+              :dateRange="dateRange" 
+            />
+          </VCol>
+        </VRow>
+        
+        <VRow v-else-if="analyticsType === 'Geo\'s'">
+          <VCol cols="12">
+            <EventGeo
               :event="selectedEvent" 
               :dateRange="dateRange" 
             />

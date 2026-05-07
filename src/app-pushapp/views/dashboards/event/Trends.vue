@@ -144,9 +144,9 @@ const fetchData = async () => {
     let res
     if (props.selectedTrend === 'Time of Day') {
       res = await eventStore.fetchTimeSlotStats(params)
-    } else if (props.selectedTrend === 'Events over time') {
+    } else if (props.selectedTrend === 'Events over period') {
       res = await eventStore.fetchEventOverTime(params)
-    } else if (props.selectedTrend === 'Users over time') {
+    } else if (props.selectedTrend === 'Users over period') {
       res = await eventStore.fetchUserOverTime(params)
     }
     
@@ -254,7 +254,7 @@ onMounted(fetchData)
     </VCardText>
     
     <VCardText v-else class="text-center py-10 text-disabled">
-      Please select Event and Date Range.
+      {{ !props.event || !props.dateRange ? 'Please select Event and Date Range.' : 'No data available for the selected parameters' }}
     </VCardText>
   </VCard>
 </template>
