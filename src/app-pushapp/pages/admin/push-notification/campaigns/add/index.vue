@@ -107,7 +107,7 @@ const buildSchedulePayload = (schedule) => {
   const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
   const isRecurring = !!schedule.recurringType;
   const type = schedule.durationType;
-  const runAt = new Date(schedule.startDate).toISOString();
+  const runAt = schedule.startDate ? new Date(schedule.startDate).toISOString() : null;
 
   let rrule = null;
   if (isRecurring) {
@@ -211,20 +211,7 @@ const onSendSimple = async () => {
       (t) => t._id === notification.template,
     );
 
-    let campaignPayload = {
-      template: {
-        code: template.code,
-      },
-      campaignName: notification.campaignName,
-      schedule: buildSchedulePayload(schedule),
-    };
-
-    let campaignRes = await pushNotificationStore.createCampaign(
-      campaignPayload,
-    );
-
     let pushPayload = {
-      campaignId: campaignRes.data.campaignId,
       to: {
         filter: filter,
       },
@@ -240,9 +227,21 @@ const onSendSimple = async () => {
       },
       type: template.type,
     };
-
-    await pushNotificationStore.push(pushPayload);
-
+    console.log("recur", !!pushPayload.schedule.isRecurring, !!pushPayload.schedule.runAt, pushPayload)
+    if(!!pushPayload.schedule.isRecurring || !!pushPayload.schedule.runAt) {
+      pushPayload.campaignName = notification.campaignName;
+      await pushNotificationStore.createScheduledCampaign(pushPayload);
+    } else { 
+      let campaignPayload = {
+        template: { code: template.code },
+        campaignName: notification.campaignName,
+        schedule: buildSchedulePayload(schedule),
+      };
+      let campaignRes = await pushNotificationStore.createCampaign(campaignPayload);
+      pushPayload.campaignId = campaignRes.data.campaignId;
+      await pushNotificationStore.push(pushPayload);
+    }
+    
     show({ message: "Notification sent successfully", color: "success" });
 
     router.push({ name: "admin-push-notification-campaigns-list" });

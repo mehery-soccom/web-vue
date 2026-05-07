@@ -129,6 +129,10 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       return DataService.axios.post(`/api/v1/campaign`, params);
     },
 
+    createScheduledCampaign(params) {
+      return DataService.axios.post(`/api/v1/notification/push/schedule`, params);
+    },
+
     // 👉 Fetch All Campaign
     fetchCampaigns(params) {
       let { page, itemsPerPage, sortBy, filters } = params;
