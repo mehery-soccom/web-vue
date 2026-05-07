@@ -36,6 +36,7 @@ var tonight = new Date();
 tonight.setHours(23, 59, 59, 999);
 var oneWeekAgo = new Date();
 oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
+oneWeekAgo.setHours(0,0,0,0);
 const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-");
 const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
 const dates = `${formattedStart} to ${formattedEnd}`;
