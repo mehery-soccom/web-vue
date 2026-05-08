@@ -172,6 +172,10 @@ onMounted(async () => {
             //   data: {},
             // },
           });
+          if (template.type === "simple") {
+            if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
+            if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+          }
           let _buttonGroupValue = {};
           _template.options.buttons.map((b) => {
             _buttonGroupValue[b.button_text] = b.button_url;

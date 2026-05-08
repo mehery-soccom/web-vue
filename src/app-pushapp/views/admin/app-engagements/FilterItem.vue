@@ -141,7 +141,7 @@ defineExpose({ isValid });
       <AppSelect
         v-model="element.field"
         :items="FILTER_FIELDS"
-        :placeholder="`Select field`"
+        :placeholder="element.filterType === 'slice' ? 'Select slice' : element.filterType === 'cohort' ? 'Select cohort' : 'Select field'"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
       >
