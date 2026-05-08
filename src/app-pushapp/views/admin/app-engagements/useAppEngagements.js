@@ -224,7 +224,7 @@ export const useAppEngagements = (source) => {
     FILTER_OPERATORS,
 
     FILTER_PERIODS,
-
+    fetchFilterFields,
     clearCache,
   };
 };

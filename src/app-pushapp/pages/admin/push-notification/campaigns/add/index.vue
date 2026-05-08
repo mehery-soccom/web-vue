@@ -212,6 +212,7 @@ const onSendSimple = async () => {
     );
 
     let pushPayload = {
+      campaignName: notification.campaignName,
       to: {
         filter: filter,
       },
@@ -227,20 +228,21 @@ const onSendSimple = async () => {
       },
       type: template.type,
     };
-    console.log("recur", !!pushPayload.schedule.isRecurring, !!pushPayload.schedule.runAt, pushPayload)
-    if(!!pushPayload.schedule.isRecurring || !!pushPayload.schedule.runAt) {
-      pushPayload.campaignName = notification.campaignName;
-      await pushNotificationStore.createScheduledCampaign(pushPayload);
-    } else { 
-      let campaignPayload = {
-        template: { code: template.code },
-        campaignName: notification.campaignName,
-        schedule: buildSchedulePayload(schedule),
-      };
-      let campaignRes = await pushNotificationStore.createCampaign(campaignPayload);
-      pushPayload.campaignId = campaignRes.data.campaignId;
-      await pushNotificationStore.push(pushPayload);
-    }
+    await pushNotificationStore.createScheduledCampaign(pushPayload);
+    // console.log("recur", !!pushPayload.schedule.isRecurring, !!pushPayload.schedule.runAt, pushPayload)
+    // if(!!pushPayload.schedule.isRecurring || !!pushPayload.schedule.runAt) {
+    //   pushPayload.campaignName = notification.campaignName;
+    //   await pushNotificationStore.createScheduledCampaign(pushPayload);
+    // } else { 
+    //   let campaignPayload = {
+    //     template: { code: template.code },
+    //     campaignName: notification.campaignName,
+    //     schedule: buildSchedulePayload(schedule),
+    //   };
+    //   let campaignRes = await pushNotificationStore.createCampaign(campaignPayload);
+    //   pushPayload.campaignId = campaignRes.data.campaignId;
+    //   await pushNotificationStore.push(pushPayload);
+    // }
     
     show({ message: "Notification sent successfully", color: "success" });
 

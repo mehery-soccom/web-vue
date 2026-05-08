@@ -216,6 +216,11 @@ const create = async () => {
     if (valid) {
       const payload = {
         ...campaign,
+        schedule: {
+          ...campaign.schedule,
+          startDate: campaign.schedule.startDate ? new Date(campaign.schedule.startDate).getTime() : null,
+          endDate: campaign.schedule.endDate ? new Date(campaign.schedule.endDate).getTime() : null,
+        },
       };
       const templateRes = await (route.query.t_edit
         ? templateRef.value._onUpdate()
