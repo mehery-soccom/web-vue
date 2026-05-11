@@ -10,6 +10,7 @@ import * as XLSX from 'xlsx'
 const props = defineProps({
   event: String,
   dateRange: String,
+  cohortId: String,
 })
 
 const eventStore = useEventStore()
@@ -17,13 +18,14 @@ const vuetifyTheme = useTheme()
 
 const rawData = ref({})
 const loading = ref(false)
-const selectedLocation = ref('country')
+const selectedLocation = ref('area')
 const geoCard = ref(null)
 
 const geoProperties = [
-  { title: 'Country', value: 'country' },
-  { title: 'State', value: 'state' },
+  { title: 'Area', value: 'area' },
   { title: 'City', value: 'city' },
+  { title: 'State', value: 'state' },
+  { title: 'Country', value: 'country' },
 ]
 
 const chartJsOptions = computed(() => {
@@ -85,7 +87,8 @@ const fetchData = async () => {
       event_name: props.event,
       dateRange1: new Date(sY, sM - 1, sD, 0, 0, 0, 0).getTime(),
       dateRange2: new Date(eY, eM - 1, eD, 23, 59, 59, 999).getTime(),
-      timezone: window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata"
+      timezone: window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata",
+      cohortId: props.cohortId
     }
 
     const res = await eventStore.fetchGeoStats(selectedLocation.value, params)
@@ -131,7 +134,7 @@ const exportToExcel = () => {
   XLSX.writeFile(workbook, fileName)
 }
 
-watch([() => props.event, () => props.dateRange, selectedLocation], fetchData)
+watch([() => props.event, () => props.dateRange,() => props.cohortId, selectedLocation], fetchData)
 onMounted(fetchData)
 </script>
 

@@ -11,6 +11,7 @@ const props = defineProps({
   event: String,
   dateRange: String,
   selectedSession: String,
+  cohortId: String,
 })
 
 const eventStore = useEventStore()
@@ -79,7 +80,8 @@ const fetchData = async () => {
       event_name: props.event,
       dateRange1: new Date(sY, sM - 1, sD, 0, 0, 0, 0).getTime(),
       dateRange2: new Date(eY, eM - 1, eD, 23, 59, 59, 999).getTime(),
-      timezone: window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata"
+      timezone: window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata",
+      cohortId: props.cohortId
     }
 
     let res
@@ -132,7 +134,7 @@ const exportToExcel = () => {
   XLSX.writeFile(workbook, fileName)
 }
 
-watch([() => props.event, () => props.dateRange, () => props.selectedSession], fetchData)
+watch([() => props.event, () => props.dateRange, () => props.selectedSession,() => props.cohortId], fetchData)
 onMounted(fetchData)
 </script>
 

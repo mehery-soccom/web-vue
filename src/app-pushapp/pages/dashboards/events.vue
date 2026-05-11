@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEventStore } from '@app-pushapp/views/dashboards/event/useEventStore'
+import { useCohortsStore } from '@app-pushapp/views/admin/cohorts/useCohortsStore'
 import CardStatisticsTransactions from '@app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters"
@@ -12,8 +13,10 @@ import EventGeo from "@app-pushapp/views/dashboards/event/EventGeo.vue"
 const eventStore = useEventStore()
 const { customPlugin } = useDatePickerFilters()
 
+const cohortsStore = useCohortsStore()
+const selectedCohort = ref(null)
+
 const selectedEvent = ref(null)
-const selectedCohort = ref('All')
 const cohortOptions = ['All']
 const analyticsType = ref('Snap') 
 const options = ['Snap', 'Trends', 'Sessions', 'Users', "Geo's", 'Devices']
@@ -45,6 +48,12 @@ const formattedEventList = computed(() => {
       title: event.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase()),
       value: event
     }))
+    .sort((a, b) => a.title.localeCompare(b.title))
+})
+
+const formattedCohortList = computed(() => {
+  return cohortsStore.cohorts
+    .map(c => ({ title: c.name, value: c._id }))
     .sort((a, b) => a.title.localeCompare(b.title))
 })
 
@@ -103,7 +112,8 @@ const getStats = async () => {
     event_name: selectedEvent.value,
     dateRange1: startTs,
     dateRange2: endTs,
-    timezone
+    timezone,
+    cohortId: selectedCohort.value
   })
 }
 
@@ -116,9 +126,12 @@ const onDateClosed = (selectedDates, dateStr) => {
 
 onMounted(async () => {
   await eventStore.fetchUniqueEvents()
+
+  const res = await cohortsStore.fetchCohorts({ page: 1, itemsPerPage: 50, sortBy: [], filters: '' })
+  cohortsStore.cohorts = res.data.results
 })
 
-watch([selectedEvent, analyticsType], () => {
+watch([selectedEvent, analyticsType,selectedCohort], () => {
   getStats()
 })
 </script>
@@ -141,10 +154,12 @@ watch([selectedEvent, analyticsType], () => {
 
           <VSelect
             v-model="selectedCohort"
-            :items="cohortOptions"
+            :items="formattedCohortList"
             label="Cohort"
+            placeholder="All"
             density="compact"
-            style="min-width: 120px;"
+            clearable
+            style="min-width: 200px;"
           />
 
           <AppDateTimePicker
@@ -241,6 +256,7 @@ watch([selectedEvent, analyticsType], () => {
               :event="selectedEvent" 
               :dateRange="dateRange" 
               :selectedTrend="selectedTrend"
+              :cohortId="selectedCohort"
             />
           </VCol>
         </VRow>
@@ -251,6 +267,7 @@ watch([selectedEvent, analyticsType], () => {
               :event="selectedEvent" 
               :dateRange="dateRange" 
               :selectedSession="selectedSession"
+              :cohortId="selectedCohort"
             />
           </VCol>
         </VRow>
@@ -260,6 +277,7 @@ watch([selectedEvent, analyticsType], () => {
             <EventDevices
               :event="selectedEvent" 
               :dateRange="dateRange" 
+              :cohortId="selectedCohort"
             />
           </VCol>
         </VRow>
@@ -269,6 +287,7 @@ watch([selectedEvent, analyticsType], () => {
             <EventGeo
               :event="selectedEvent" 
               :dateRange="dateRange" 
+              :cohortId="selectedCohort"
             />
           </VCol>
         </VRow>
