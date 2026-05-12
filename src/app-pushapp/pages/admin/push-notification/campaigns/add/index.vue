@@ -45,7 +45,7 @@ const schedule = reactive({
   startDate: null,
   endDate: null,
   recurringType: false,
-
+  schedulePattern: 'daily',
   dailyTime: null,
   weeklyTime: null,
   monthlyDateTime: null,
@@ -81,11 +81,10 @@ const monthlyWeekDaysValidator = (value) => {
 };
 
 const monthlyDateValidator = (value) => {
-  if (schedule.recurringType && schedule.schedulePattern === "monthlyDate" && !value) {
+  if (schedule.recurringType && schedule.schedulePattern === "monthlyDate") {
+    if (value === null || value === undefined || value === "") return "Date is required";
     const num = Number(value);
-    if (isNaN(num) || num < 1 || num > 31) {
-      return "Enter valid date(1-31)";
-    } else return "Date is required";
+    if (!Number.isInteger(num) || num < 1 || num > 31) return "Enter valid date (1-31)";
   }
   return true;
 };
@@ -411,6 +410,7 @@ const onSendSimple = async () => {
                                 allowInput: true,
                               }"
                               :rules="[val => timeValidator(val, 'daily')]"
+                              @update:modelValue="schedule.schedulePattern = 'daily'"
                             />
                           </template>
                         </VRadio>
@@ -434,9 +434,10 @@ const onSendSimple = async () => {
                                 density="compact"
                                 multiple
                                 placeholder="Week Days"
-                                style="width: 170px"
+                                style="min-width: 170px; max-width: 500px; width: fit-content;"
                                 class="input-uniform dif-height"
                                 :rules="[weeklyDaysValidator]"
+                                @update:modelValue="schedule.schedulePattern = 'weekly'"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.weeklyTime"
@@ -457,6 +458,7 @@ const onSendSimple = async () => {
                                   allowInput: true,
                                 }"
                                 :rules="[val => timeValidator(val, 'weekly')]"
+                                @update:modelValue="schedule.schedulePattern = 'weekly'"
                               />
                               <!-- </div> -->
                             </div>
@@ -472,9 +474,10 @@ const onSendSimple = async () => {
                                 type="number"
                                 density="compact"
                                 placeholder="Date"
-                                style="width: 157px"
+                                style="width: 160px"
                                 class="input-uniform dif-height date-num"
                                 :rules="[monthlyDateValidator]"
+                                @update:modelValue="schedule.schedulePattern = 'monthlyDate'"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyDateTime"
@@ -495,6 +498,7 @@ const onSendSimple = async () => {
                                   allowInput: true,
                                 }"
                                 :rules="[val => timeValidator(val, 'monthlyDate')]"
+                                @update:modelValue="schedule.schedulePattern = 'monthlyDate'"
                               />
                             </div>
                           </template>
@@ -518,6 +522,7 @@ const onSendSimple = async () => {
                                 style="width: 170px"
                                 class="input-uniform dif-height"
                                 :rules="[dayOfMonthValidator]"
+                                @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'"
                               />
                               <AppSelect
                                 v-model="schedule.scheduleWeekday"
@@ -536,6 +541,7 @@ const onSendSimple = async () => {
                                 style="width: 170px"
                                 class="input-uniform dif-height"
                                 :rules="[monthlyWeekDaysValidator]"
+                                @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'"
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyWeekdayTime"
@@ -556,6 +562,7 @@ const onSendSimple = async () => {
                                   allowInput: true,
                                 }"
                                 :rules="[val => timeValidator(val, 'monthlyWeekday')]"
+                                @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'"
                               />
                             </div>
                           </template>
@@ -636,5 +643,8 @@ const onSendSimple = async () => {
 }
 :deep(.date-num .v-input__control .v-field .v-field__field .v-field__input) {
   padding-top: 3px;
+}
+:deep(.recurring-group .v-radio-group .v-input__control .v-selection-control-group) {
+  gap: 5px;
 }
 </style>
