@@ -365,7 +365,7 @@ const onSendSimple = async () => {
                       </template>
                     </VRadio>
                   </VRadioGroup>
-                  <div style="display: flex; margin-top: 6px">
+                  <!-- <div style="display: flex; margin-top: 6px">
                     <VSwitch
                       v-model="schedule.recurringType"
                       hide-details
@@ -373,11 +373,8 @@ const onSendSimple = async () => {
                       color="primary"
                       class="mr-2"
                     />
-                    <!-- <VTooltip activator="parent" location="bottom">
-                      Make the campaign recurring
-                    </VTooltip> -->
                     <span>Make it Recurring</span>
-                  </div>
+                  </div> -->
 
                   <div v-if="!!schedule.recurringType">
                     <VDivider class="my-6" />

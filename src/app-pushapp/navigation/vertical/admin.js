@@ -45,9 +45,9 @@ export default [
       },
     ],
   },
-  {
-    title: "Cohorts",
-    icon: { icon: "tabler-users-group" },
-    to: "admin-cohorts-list",
-  },
+  // {
+  //   title: "Cohorts",
+  //   icon: { icon: "tabler-users-group" },
+  //   to: "admin-cohorts-list",
+  // },
 ];
