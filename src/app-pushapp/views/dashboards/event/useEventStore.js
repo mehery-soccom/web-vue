@@ -97,5 +97,24 @@ export const useEventStore = defineStore("EventStore", {
         console.error(`Error fetching geo stats for ${location}:`, error);
       }
     },
+
+    // Fetch Event Definition (to get dataProperties)
+    async fetchEventDefinition(eventName) {
+      try {
+        const res = await DataService.axios.get(`/api/v1/event-definition/${eventName}`);
+        return res.data;
+      } catch (error) {
+        console.error("Error fetching event definition:", error);
+      }
+    },
+
+    // Fetch Property specific stats
+    async fetchPropertyStats(key, params) {
+      try {
+        return await DataService.axios.get(`/api/v1/analytics/events/property/${key}`, { params });
+      } catch (error) {
+        console.error(`Error fetching property stats for ${key}:`, error);
+      }
+    },
   },
 });

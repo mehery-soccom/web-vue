@@ -9,6 +9,7 @@ import Trends from "@app-pushapp/views/dashboards/event/Trends.vue"
 import SessionEvents from "@app-pushapp/views/dashboards/event/SessionEvents.vue"
 import EventDevices from "@app-pushapp/views/dashboards/event/EventDevices.vue"
 import EventGeo from "@app-pushapp/views/dashboards/event/EventGeo.vue"
+import EventProperty from "@app-pushapp/views/dashboards/event/EventProperty.vue"
 
 const eventStore = useEventStore()
 const { customPlugin } = useDatePickerFilters()
@@ -19,7 +20,7 @@ const selectedCohort = ref(null)
 const selectedEvent = ref(null)
 const cohortOptions = ['All']
 const analyticsType = ref('Snap') 
-const options = ['Snap', 'Trends', 'Sessions', 'Users', "Geo's", 'Devices']
+const options = ['Snap', 'Trends', 'Sessions', 'Property', "Geo's", 'Devices']
 
 const selectedTrend = ref(null)
 const trendOptions = ['Time of Day', 'Events over period', 'Users over period']
@@ -37,7 +38,7 @@ const optionIcons = {
   Snap: 'tabler-click',
   Trends: 'tabler-trending-up',
   Sessions: 'tabler-clock',
-  Users: 'tabler-users',
+  Property: 'tabler-adjustments',
   "Geo's": 'tabler-map-pin',
   Devices: 'tabler-device-mobile'
 }
@@ -123,6 +124,8 @@ const onDateClosed = (selectedDates, dateStr) => {
     getStats()
   }
 }
+
+const isSessionDisabled = computed(() => ['app_open', 'page_open'].includes(selectedEvent.value))
 
 onMounted(async () => {
   await eventStore.fetchUniqueEvents()
@@ -215,15 +218,29 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
 
           <VBtn 
             v-else-if="option === 'Sessions'" 
-            v-show="selectedEvent !== 'app_open' && selectedEvent !== 'page_open'"
             :value="option" 
+            :disabled="['app_open', 'page_open'].includes(selectedEvent)"
             :prepend-icon="optionIcons[option]"
             append-icon="tabler-chevron-down"
             rounded="lg"
+            style="pointer-events: auto;"
           >
             Sessions
 
-            <VMenu activator="parent" transition="scale-transition" open-on-hover>
+            <VTooltip
+              v-if="['app_open', 'page_open'].includes(selectedEvent)"
+              activator="parent"
+              location="top"
+            >
+              Session analytics are not available for App Open or Page Open events
+            </VTooltip>
+
+            <VMenu 
+              v-if="!['app_open', 'page_open'].includes(selectedEvent)" 
+              activator="parent" 
+              transition="scale-transition" 
+              open-on-hover
+            >
               <VList>
                 <VListItem 
                   v-for="session in sessionOptions" 
@@ -275,6 +292,16 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
         <VRow v-else-if="analyticsType === 'Devices'">
           <VCol cols="12">
             <EventDevices
+              :event="selectedEvent" 
+              :dateRange="dateRange" 
+              :cohortId="selectedCohort"
+            />
+          </VCol>
+        </VRow>
+
+        <VRow v-else-if="analyticsType === 'Property'">
+          <VCol cols="12">
+            <EventProperty
               :event="selectedEvent" 
               :dateRange="dateRange" 
               :cohortId="selectedCohort"
