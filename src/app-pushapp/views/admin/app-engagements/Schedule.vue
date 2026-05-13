@@ -171,7 +171,7 @@ defineExpose({ isValid });
         </template>
       </VRadio>
 
-      <VRadio value="specific">
+      <!-- <VRadio value="specific">
         <template #label>
           <div class="d-flex flex-column gap-2">
             <div class="d-flex flex-wrap align-center gap-2">
@@ -204,10 +204,11 @@ defineExpose({ isValid });
             </div>
           </div>
         </template>
-      </VRadio>
+      </VRadio> -->
     </VRadioGroup>
 
     <!-- Fallback Journey -->
+    <template v-if="false">
     <VDivider class="my-6" />
     <div class="d-flex align-center mb-3">
       <h3>Campaign Fallback Journey</h3>
@@ -233,6 +234,7 @@ defineExpose({ isValid });
       @update:modelValue="(val) => emit('update:journey', val)"
       ref="journeyRef"
     />
+    </template>
 
     <!-- Repeat Campaign -->
     <template v-if="false">
