@@ -1,21 +1,45 @@
 <script setup>
-import { computed } from "vue"
+import { computed, onMounted } from "vue";
+import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 
 const props = defineProps({
   node: { type: Object, required: true },
   level: { type: Number, default: 0 }
-})
+});
+
+const { localCache, fetchFilterFields } = useAppEngagements();
 
 const formatFieldName = (field) => {
-  if (!field) return ""
-  const str = String(field)
-  const withSpaces = str.replace(/_/g, " ")
-  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1)
-}
+  if (!field) return "";
+  const str = String(field);
+  const withSpaces = str.replace(/_/g, " ");
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+};
 
 const indent = computed(() => ({
-  marginLeft: "10px"
-}))
+  marginLeft: "10px",
+}));
+
+const resolvedFieldName = computed(() => {
+  const filterType = props.node?.filterType;
+  const field = props.node?.field;
+
+  if (!filterType || !field) return "";
+  if (!["cohort", "slice"].includes(filterType)) {
+    return formatFieldName(field);
+  }
+
+  const cached = localCache[filterType] || [];
+  const found = cached.find((x) => x.value === field);
+  return found?.title || field;
+});
+
+onMounted(async () => {
+  const filterType = props.node?.filterType;
+  if (["cohort", "slice"].includes(filterType) && !localCache[filterType]) {
+    await fetchFilterFields({ type: filterType });
+  }
+});
 </script>
 
 <template>
@@ -43,7 +67,7 @@ const indent = computed(() => ({
         <div class="filter-row">
           <!-- frequency filter -->
           <template v-if="node.freqOperator && (node.freqCount || node.value)">
-            <strong> {{ formatFieldName(node.field) }}</strong>
+            <strong> {{ resolvedFieldName }}</strong>
             {{
               " has" +
               (node.operator === "is_not" ? " not" : "") +
@@ -61,7 +85,7 @@ const indent = computed(() => ({
 
           <!-- normal filter -->
           <template v-else>
-            <strong>{{ formatFieldName(node.field) }}</strong>
+            <strong> {{ resolvedFieldName }}</strong>
             {{ formatFieldName(node.operator) }}
             <strong v-if="node.operator === 'BETWEEN' && node.value?.length === 2 && (node.value[0]?.dateLocal || node.value[0]?.date)">
               {{ node.value[0].dateLocal || node.value[0].date }} and {{ node.value[1].dateLocal || node.value[1].date }}
