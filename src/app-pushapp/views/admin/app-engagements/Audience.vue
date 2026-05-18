@@ -195,7 +195,6 @@ defineExpose({ isValid });
       v-model="filterLocal"
       ref="filterRef"
       :ignoreSlicefilterType="true"
-      :ignoreCohortfilterType="true"
     />
 
     <template v-if="abTestingLocal?.enabled">
