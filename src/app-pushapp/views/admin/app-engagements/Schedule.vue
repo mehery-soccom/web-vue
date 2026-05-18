@@ -171,7 +171,7 @@ const isValid = async (silent = false) => {
   ) {
     e.repeatAfterDays = "Enter valid days count";
   }
-  if (form.recurringType) {
+  if (!!form.recurringType) {
     const validations = {
       daily: [
         ["startTime", timeValidator(form.startTime, "daily")],
@@ -204,7 +204,8 @@ const isValid = async (silent = false) => {
 
   if (!silent) errors.value = e;
 
-  const result = await formRef.value?.validate();
+  let result = { valid: true };
+  if (form.recurringType) result = await formRef.value?.validate();
   const journeyValid = props.journey.enabled
     ? await journeyRef.value?.isValid(silent)
     : true;
