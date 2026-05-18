@@ -121,6 +121,33 @@ var statsLead = ref([
   },
 ]);
 
+var statsBill = ref([
+  {
+    title: "Local Billing Units",
+    color: "primary",
+    icon: "tabler-device-mobile-message",
+    stats: "0",
+  },
+  {
+    title: "Local Total Seconds",
+    color: "success",
+    icon: "tabler-stopwatch",
+    stats: "0",
+  },
+  {
+    title: "International Billing Units",
+    color: "error",
+    icon: "tabler-device-watch",
+    stats: "0",
+  },
+  {
+    title: "International Total Seconds",
+    color: "warning",
+    icon: "tabler-hourglass-empty",
+    stats: "0",
+  },
+]);
+
 const statsCamp = ref([
   {
     title: "Sent",
@@ -640,6 +667,21 @@ const fetchChartData = async (start, end, chan, agent, type) => {
     console.error("fetchChartData error:", error);
   }
 };
+const fetchBillingUnits = async (start, end, chan, agent, type) => {
+  try {
+    const response = await projectStore.fetchBillingUnit(start, end, chan, agent, type);
+    const total1 = response?.data?.data?.LOCAL?.totalBillingUnits;
+    const total2 = response?.data?.data?.LOCAL?.totalDuration;
+    const total3 = response?.data?.data?.INTERNATIONAL?.totalBillingUnits;
+    const total4 = response?.data?.data?.INTERNATIONAL?.totalDuration;
+    if (total1 != null) statsBill.value[0].stats = String(formatDuration(total1));
+    if (total2 != null) statsBill.value[1].stats = String(formatDuration(total2));
+    if (total3 != null) statsBill.value[2].stats = String(formatDuration(total3));
+    if (total4 != null) statsBill.value[3].stats = String(formatDuration(total4));
+  } catch (error) {
+    console.error("analytics error", error);
+  }
+};
 
 const exportToExcel = () => {
   const data = [];
@@ -757,6 +799,7 @@ const allAnalytics = async (start, end, chan, agent, type) => {
       fetchBotResolvedChat(start, end, chan),
       fetchBotSatScore(start, end, chan),
       fetchLeadMsg(start, end, agent, type),
+      fetchBillingUnits(start, end, chan, agent, type),
       fetchStartLag(start, end, chan, agent, type),
       fetchAvgResponse(start, end, chan, agent, type),
       fetchAvgDuration(start, end, chan, agent, type),
@@ -771,22 +814,6 @@ const allAnalytics = async (start, end, chan, agent, type) => {
     console.error("allAnalytics error", error);
     isLoading.value = false;
   }
-  // fetchOpenChat(start, end, chan, agent, type);
-  // fetchResolvedChat(start, end, chan, agent, type);
-  // fetchSatScore(start, end, chan, agent, type);
-  // fetchBotOpenChat(start, end, chan);
-  // fetchBotResolvedChat(start, end, chan);
-  // fetchBotSatScore(start, end, chan);
-  // fetchLeadMsg(start, end, agent, type);
-  // // fetchStartLag(start, end, chan, agent, type);
-  // // fetchAvgResponse(start, end, chan, agent, type);
-  // // fetchAvgDuration(start, end, chan, agent, type);
-  // fetchAvgDurationResponse(start, end, chan, agent, type);
-  // fetchTotalConv(start, end, chan, agent, type);
-  // fetchUniqueConv(start, end, chan, agent, type);
-  // fetchCampaignData(start, end, chan, agent, type);
-  // fetchChartData(start, end, chan, agent, type);
-  // fetchActiveUserStats(start, end, chan);
 };
 
 onBeforeMount(() => {
@@ -937,6 +964,16 @@ onMounted(async () => {
 
     <VCol
       v-for="statistics in statsLead"
+      :key="statistics.title + '_' + statistics.stats"
+      cols="12"
+      sm="6"
+      md="3"
+    >
+      <CardStatisticsHorizontal v-bind="statistics" />
+    </VCol>
+
+    <VCol
+      v-for="statistics in statsBill"
       :key="statistics.title + '_' + statistics.stats"
       cols="12"
       sm="6"

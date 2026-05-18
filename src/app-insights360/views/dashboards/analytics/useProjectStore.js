@@ -259,5 +259,11 @@ export const useProjectStore = defineStore("ProjectStore", {
     fetchSessionTags() {
       return axios.get('/api/v1/dashboard/session-tags');
     },
+    fetchBillingUnit(start, end, contact, agent, agentType) {
+      let url = `/api/v1/dashboard/billingUnits?start=${start}&end=${end}`;
+      if (contact && contact != "All Channels") url += `&contactType=${contact}`;
+      if (agent && agentType && agent != "all_teams") url += `&${agentType}=${agent}`;
+      return axios.get(url);
+    },
   },
 });
