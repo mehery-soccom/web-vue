@@ -88,6 +88,15 @@ const monthlyDateValidator = (value) => {
   }
   return true;
 };
+const Dow = [
+  { title: 'Mon', value: 'MO' },
+  { title: 'Tues', value: 'TU' },
+  { title: 'Wed', value: 'WE' },
+  { title: 'Thur', value: 'TH' },
+  { title: 'Fri', value: 'FR' },
+  { title: 'Sat', value: 'SA' },
+  { title: 'Sun', value: 'SU' },
+];
 watch(() => schedule.durationType,
   (val) => {
     if (val === "immediate") schedule.startDate = null;
@@ -422,15 +431,7 @@ const onSendSimple = async () => {
                               <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
                               <AppSelect
                                 v-model="schedule.scheduleDays"
-                                :items="[
-                                  'MON',
-                                  'TUE',
-                                  'WED',
-                                  'THU',
-                                  'FRI',
-                                  'SAT',
-                                  'SUN',
-                                ]"
+                                :items="Dow"
                                 density="compact"
                                 multiple
                                 placeholder="Week Days"
@@ -526,15 +527,7 @@ const onSendSimple = async () => {
                               />
                               <AppSelect
                                 v-model="schedule.scheduleWeekday"
-                                :items="[
-                                  'MON',
-                                  'TUE',
-                                  'WED',
-                                  'THU',
-                                  'FRI',
-                                  'SAT',
-                                  'SUN',
-                                ]"
+                                :items="Dow"
                                 density="compact"
                                 multiple
                                 placeholder="Week Days"

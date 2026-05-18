@@ -17,7 +17,7 @@ const localCache = reactive({});
 const isLoaded = ref(false);
 const isLoading = ref(false);
 
-export const useAppEngagements = (source) => {
+export const useAppEngagements = (source, config = {}) => {
   // const route = useRoute();
   // const router = useRouter();
 
@@ -27,6 +27,8 @@ export const useAppEngagements = (source) => {
   const FILTER_FIELDS = computed(() => {
     // console.log("FILTER_FIELDS", source?.filterType);
     if (!source?.filterType) return [];
+    if (source.filterType === "cohort") return config.onlyActiveCohorts
+      ? localCache.activeCohorts || [] : localCache.cohort || [];
     return Object.values(FILTER_FIELDS_MAP).filter(
       (o) => o.type === source.filterType,
     );
@@ -140,6 +142,7 @@ export const useAppEngagements = (source) => {
       try {
         const response = await DataService.axios.get("/api/v1/cohort");
         const resultsMap = {};
+        const activeCohorts = [];
         const results = response.data.results.map((el) => {
           const r = {
             type,
@@ -148,11 +151,14 @@ export const useAppEngagements = (source) => {
             meta: {
               projection: null, // el.buildStats?.tokensSubscribed,
             },
+            filter : el.filter,
           };
+          if (el.active) activeCohorts.push(r);
           resultsMap[r.value] = r;
           return r;
         });
         localCache[type] = results;
+        localCache.activeCohorts = activeCohorts;
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${type}:`, error);
@@ -226,5 +232,6 @@ export const useAppEngagements = (source) => {
     FILTER_PERIODS,
     fetchFilterFields,
     clearCache,
+    localCache,
   };
 };

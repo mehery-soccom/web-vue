@@ -2,6 +2,7 @@
 import { reactive, ref } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import AbTestingDetails from "./AbTestingDetails.vue";
+import { useAppEngagements } from "./useAppEngagements";
 const { show } = inject("snackbar");
 
 const props = defineProps({
@@ -14,6 +15,7 @@ const emit = defineEmits([
   "update:filter",
   "update:abTesting",
 ]);
+const { localCache } = useAppEngagements();
 
 // Clone object for internal form usage
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
@@ -58,6 +60,18 @@ const segmentsOptions = [
   { title: "Segment 2", value: "2" },
 ];
 
+function findCohortFilter(node) {
+  if (!node) return null;
+  if (node.type === "filter" && node.filterType === "cohort") return node;
+  if (node.type === "group") {
+    for (const child of node.children || []) {
+      const found = findCohortFilter(child);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 function validateFilterStructure(
   node,
   parentConjunction = null,
@@ -90,7 +104,18 @@ function validateFilterStructure(
 
     // Root must contain one event filter atleast
     if (isRoot && directEventChildren.length == 0) {
-      throw new Error("Root group must have an event filter");
+      // throw new Error("Root group must have an event filter");
+      const cohortFilter = findCohortFilter(node);
+      if (!cohortFilter) throw new Error("Root group must have an event filter");
+
+      const cohortId = cohortFilter.field;
+      const cohort = localCache.activeCohorts?.find((c) => c.value === cohortId );
+      const hasSystemEvent = cohort?.filter?.children?.some(
+        (c) => c.type === "filter" && c.filterType === "event",
+      );
+      // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
+
+      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one system event filter");
     }
 
     // Recurse into children

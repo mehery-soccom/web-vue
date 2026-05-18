@@ -155,12 +155,12 @@ const getCampaignStatus = (
   { durationType, startDate, endDate },
   isAbTesting,
 ) => {
-  if (durationType === "manual") {
+  if (durationType === "ALWAYS" || durationType === "manual") {
     if (isAbTesting) return "TESTING";
     return "ON_GOING";
   }
 
-  if (durationType === "specific") {
+  if (durationType === "DATE_RANGE" || durationType === "specific") {
     const now = Date.now();
 
     if (now < startDate) {
@@ -220,6 +220,32 @@ function formatFieldName(field) {
   const withSpaces = str.replace(/_/g, " ");
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
+const getReadableRecurrence = (schedule) => {
+  if (!schedule) return "N/A";
+
+  const { rrule, activeHours, timezone } = schedule;
+  let text = "";
+  if (rrule?.includes("FREQ=DAILY")) text = "Runs Daily";
+  else if (rrule?.includes("FREQ=WEEKLY")) {
+    const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
+    text = `Runs Weekly on ${days}`;
+  }
+  else if (rrule?.includes("FREQ=MONTHLY")) {
+    if (rrule.includes("BYMONTHDAY")) {
+      const day = rrule.match(/BYMONTHDAY=([^;]+)/)?.[1];
+      text = `Runs Monthly on Day ${day}`;
+    }
+    else if (rrule.includes("BYSETPOS")) {
+      const pos = rrule.match(/BYSETPOS=([^;]+)/)?.[1];
+      const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
+      const map = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", "-1": "Last",};
+      text = `Runs Monthly on ${map[pos]} ${days}`;
+    }
+  }
+
+  if (activeHours?.start && activeHours?.end) text += ` between ${activeHours.start} - ${activeHours.end}`;
+  return text || "N/A";
+};
 
 const onUpdateOptions = (options) => {
   pagination.itemsLength = options.itemsLength;
@@ -468,31 +494,28 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <!-- Schedule -->
             <section v-if="selectedLogs.raw.schedule" class="detail-block">
               <h5>Schedule</h5>
-              <div v-if="selectedLogs.raw.schedule.durationType === 'manual'">
-                <p><strong>Duration Type:</strong> Manual</p>
+              <div>
+                <strong>Duration Type:</strong>
+                {{ formatFieldName(selectedLogs.raw.schedule.type) || formatFieldName(selectedLogs.raw.schedule.durationType) }}
               </div>
-              <div v-else>
-                <p>
-                  <strong>Duration Type:</strong>
-                  {{ formatFieldName(selectedLogs.raw.schedule.durationType) }}
-                </p>
-                <p>
+
+              <template v-if="selectedLogs.raw.schedule.type === 'DATE_RANGE' || selectedLogs.raw.schedule.durationType === 'specific'">
+                <div>
                   <strong>Start Date:</strong>
-                  {{ formatDate(selectedLogs.raw.schedule.startDate) }}
-                </p>
-                <p>
+                  {{ formatDate(selectedLogs.raw.schedule.dateRange?.start) || formatDate(selectedLogs.raw.schedule.startDate) }}
+                </div>
+                <div>
                   <strong>End Date:</strong>
-                  {{ formatDate(selectedLogs.raw.schedule.endDate) }}
-                </p>
-                <p>
-                  <strong>Repeat Type:</strong>
-                  {{
-                    formatFieldName(
-                      selectedLogs.raw.schedule.repeatType || "N/A",
-                    )
-                  }}
-                </p>
-              </div>
+                  {{ formatDate(selectedLogs.raw.schedule.dateRange?.end) || formatDate(selectedLogs.raw.schedule.endDate) }}
+                </div>
+              </template>
+
+              <template v-if="selectedLogs.raw.schedule.enableActiveWindow">
+                <VDivider class="my-3" />
+                <VChip size="medium" color="primary" variant="tonal" style="padding: 5px 10px;">
+                  {{ getReadableRecurrence(selectedLogs.raw.schedule) }}
+                </VChip>
+              </template>
             </section>
           </div>
         </VCardText>

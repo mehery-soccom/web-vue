@@ -62,12 +62,22 @@ const campaign = reactive({
     distributionParameterValues: null,
   },
   schedule: {
-    durationType: "manual",
+    durationType: "ALWAYS",
     startDate: null,
     endDate: null,
     repeatType: null,
     repeatCount: null,
     repeatAfterDays: null,
+    recurringType: false,
+    schedulePattern: 'daily',
+    dailyStartTime: null,
+    weeklyStartTime: null,
+    monthlyDateStartTime: null,
+    monthlyWeekdayStartTime: null,
+    dailyEndTime: null,
+    weeklyEndTime: null,
+    monthlyDateEndTime: null,
+    monthlyWeekdayEndTime: null,
   },
   journey: {
     enabled: false,
@@ -148,6 +158,43 @@ const onSelectTemplate = (param = "t_edit", id) => {
 const clearError = (field) => {
   errors.value[field] = null;
 };
+const buildSchedulePayload = (form) => {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const payload = {
+    durationType: form.durationType,
+    startDate: form.startDate ? new Date(form.startDate).getTime() : null,
+    endDate: form.endDate ? new Date(form.endDate).getTime() : null,
+    // dateRange: { 
+    //   start: form.startDate ? new Date(form.startDate).getTime() : null,
+    //   end: form.endDate ? new Date(form.endDate).getTime() : null,
+    // },
+    enableActiveWindow: !!form.recurringType,
+    timezone,
+  };
+
+  if (form.recurringType) {
+    switch (form.schedulePattern) {
+      case "daily":
+        payload.rrule = "FREQ=DAILY";
+        payload.activeHours = { start: form.startTime, end: form.endTime };
+        break;
+      case "weekly":
+        payload.rrule = `FREQ=WEEKLY;BYDAY=${(form.scheduleDays || []).join(",")}`;
+        payload.activeHours = { start: form.weeklyStartTime, end: form.weeklyEndTime };
+        break;
+      case "monthlyDate":
+        payload.rrule = `FREQ=MONTHLY;BYMONTHDAY=${form.scheduleDate}`;
+        payload.activeHours = { start: form.monthlyDateStartTime, end: form.monthlyDateEndTime };
+        break;
+      case "monthlyWeekday":
+        const weekMap = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1 };
+        payload.rrule = `FREQ=MONTHLY;BYDAY=${(form.scheduleWeekday || []).join(",")};BYSETPOS=${weekMap[form.scheduleWeek]}`;
+        payload.activeHours = { start: form.monthlyWeekdayStartTime, end: form.monthlyWeekdayEndTime };
+        break;
+    }
+  }
+  return payload;
+};
 
 const proceedToNextTab = async () => {
   let valid = await isValidTab(activeTab.value);
@@ -209,18 +256,32 @@ const isValid = async (silent = false) => {
   return !Object.keys(e).length && tabsValid;
 };
 
+const findCohortFilter = (node) => {
+  if (!node) return null;
+  if (node.type === "filter" && node.filterType === "cohort") return node;
+  if (node.type === "group") {
+    for (const child of node.children || []) {
+      const found = findCohortFilter(child);
+      if (found) return found;
+    }
+  }
+  return null;
+};
 const create = async () => {
   try {
     isLoading.value = true;
     const valid = await isValid();
     if (valid) {
+      const cohortFilter = findCohortFilter(campaign.filter);
       const payload = {
         ...campaign,
-        schedule: {
-          ...campaign.schedule,
-          startDate: campaign.schedule.startDate ? new Date(campaign.schedule.startDate).getTime() : null,
-          endDate: campaign.schedule.endDate ? new Date(campaign.schedule.endDate).getTime() : null,
-        },
+        filter: cohortFilter ? { type: "group", conjunction: "and", children: [cohortFilter] } : campaign.filter,
+        schedule: buildSchedulePayload(campaign.schedule)
+        // schedule: {
+        //   ...campaign.schedule,
+        //   startDate: campaign.schedule.startDate ? new Date(campaign.schedule.startDate).getTime() : null,
+        //   endDate: campaign.schedule.endDate ? new Date(campaign.schedule.endDate).getTime() : null,
+        // },
       };
       const templateRes = await (route.query.t_edit
         ? templateRef.value._onUpdate()
@@ -266,7 +327,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <VToolbar flat class="px-4 mb-4 sticky-toolbar">
+    <VToolbar flat class="px-4 mb-4 v-card--variant-elevated" style="background: rgb(var(--v-theme-surface));">
       <!-- Left Section: Icon + Title -->
       <div class="d-flex align-center flex-shrink-0">
         <VIcon size="28" class="mr-3" color="pink">mdi-bullseye-arrow</VIcon>

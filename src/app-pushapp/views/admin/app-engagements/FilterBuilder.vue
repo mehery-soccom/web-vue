@@ -1,5 +1,5 @@
 <script setup>
-import { ref, nextTick } from "vue";
+import { ref, nextTick, computed } from "vue";
 import FilterItem from "./FilterItem.vue";
 
 const props = defineProps({
@@ -51,6 +51,12 @@ const removeChild = (index) => {
   props.modelValue.children.splice(index, 1);
   emit("update:modelValue", props.modelValue);
 };
+const hasCohort = computed(() =>
+  props.modelValue.children.some((c) => c.type === "filter" && c.filterType === "cohort" ),
+);
+const hasNormalFilter = computed(() =>
+  props.modelValue.children.some((c) => c.type === "filter" && c.filterType && c.filterType !== "cohort" ),
+);
 
 // util
 async function asyncEvery(array, predicate) {
@@ -137,15 +143,17 @@ defineExpose({ isValid });
         :ignoreSlicefilterType="ignoreSlicefilterType"
         :ignoreCohortfilterType="ignoreCohortfilterType"
         :readonly="readonly"
+        :hasCohort="hasCohort"
+        :hasNormalFilter="hasNormalFilter"
       />
     </div>
 
     <!-- Actions -->
     <div class="d-flex gap-2 mt-3">
-      <VBtn size="small" variant="tonal" color="primary" @click="addFilter">
+      <VBtn size="small" variant="tonal" color="primary" @click="addFilter" :disabled="hasCohort">
         <VIcon start>mdi-plus</VIcon> Add Filter
       </VBtn>
-      <VBtn size="small" variant="tonal" color="primary" @click="addGroup">
+      <VBtn size="small" variant="tonal" color="primary" @click="addGroup" :disabled="hasCohort">
         <VIcon start>mdi-plus</VIcon> Add Group
       </VBtn>
     </div>

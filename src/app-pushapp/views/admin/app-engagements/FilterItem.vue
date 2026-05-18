@@ -11,11 +11,16 @@ const props = defineProps({
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
+  hasCohort: { type: Boolean, default: false },
+  hasNormalFilter: { type: Boolean, default: false },
 });
 const emit = defineEmits(["remove", "update"]);
 
 const hasError = ref(false);
-
+const showCohortConfirm = ref(false);
+const pendingFilterType = ref(null);
+const previousFilterType = ref(null);
+const skipCohortCheck = ref(false);
 const furtherGroupRef = ref(null);
 const datePresets = [
   { label: "Today", key: "today" },
@@ -29,7 +34,7 @@ const {
   FILTER_FIELDS_MAP,
   FILTER_OPERATORS,
   FILTER_PERIODS,
-} = useAppEngagements(props.element);
+} = useAppEngagements(props.element, { onlyActiveCohorts: true });
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
@@ -80,17 +85,32 @@ const isValid = async (silent = false) => {
   return valid;
 };
 
-watch(
-  () => props.element.filterType,
-  () => {
-    props.element.field = null;
-    props.element.operator = null;
-    props.element.value = null;
-    props.element.freqOperator = null;
-    props.element.freqCount = null;
-    props.element.freqPeriod = null;
+const resetFilterValues = () => {
+  props.element.field = null;
+  props.element.operator = null;
+  props.element.value = null;
+  props.element.freqOperator = null;
+  props.element.freqCount = null;
+  props.element.freqPeriod = null;
 
-    clearErrorAndUpdate();
+  clearErrorAndUpdate();
+};
+
+watch(() => props.element.filterType,
+  (newVal, oldVal) => {
+    if (newVal === oldVal) return;
+    if (skipCohortCheck.value) {
+      skipCohortCheck.value = false;
+      return resetFilterValues();
+    }
+    if (newVal === "cohort" && props.hasNormalFilter) {
+      previousFilterType.value = oldVal;
+      pendingFilterType.value = newVal;
+      showCohortConfirm.value = true;
+      props.element.filterType = oldVal;
+      return;
+    }
+    resetFilterValues();
   },
 );
 watch(
@@ -105,6 +125,16 @@ watch(
     clearErrorAndUpdate();
   },
 );
+const confirmCohortSelection = () => {
+  skipCohortCheck.value = true;
+  props.element.filterType = pendingFilterType.value;
+  showCohortConfirm.value = false;
+};
+
+const cancelCohortSelection = () => {
+  props.element.filterType = previousFilterType.value;
+  showCohortConfirm.value = false;
+};
 
 defineExpose({ isValid });
 </script>
@@ -117,19 +147,29 @@ defineExpose({ isValid });
       class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 position-relative"
       :class="[
         hasError ? 'border-red' : 'border-grey-lighten-1',
-        { readonly: readonly },
+        { readonly: readonly, 'disabled-filter': hasCohort && element.filterType !== 'cohort' },
       ]"
     >
-      <!-- Type -->
-      <AppSelect
-        v-model="element.filterType"
-        :items="
+    <!-- :items="
           FILTER_TYPES.filter(
             (f) =>
               (ignoreEventfilterType ? f.value !== 'event' : true) &&
               (ignoreSlicefilterType ? f.value !== 'slice' : true) &&
               (ignoreCohortfilterType ? f.value !== 'cohort' : true),
           )
+        " -->
+      <!-- Type -->
+      <AppSelect
+        v-model="element.filterType"
+        :items="
+          FILTER_TYPES.filter((f) => {
+            if (ignoreEventfilterType && f.value === 'event') return false;
+            if (ignoreSlicefilterType && f.value === 'slice') return false;
+            if (ignoreCohortfilterType && f.value === 'cohort') return false;
+            if (element.filterType === f.value) return true;
+            if (hasNormalFilter && !element.filterType && f.value === 'cohort') return false;
+            return true;
+          })
         "
         placeholder="Select Type"
         density="compact"
@@ -292,6 +332,18 @@ defineExpose({ isValid });
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
     />
+    <VDialog v-model="showCohortConfirm" max-width="420">
+      <VCard
+        title="Use Cohort Filter?"
+        text="Other filters will become ineligible if Cohort is selected."
+      >
+        <template #actions>
+          <VSpacer />
+          <VBtn text @click="cancelCohortSelection"> Cancel </VBtn>
+          <VBtn color="primary" variant="tonal" @click="confirmCohortSelection"> Continue </VBtn>
+        </template>
+      </VCard>
+    </VDialog>
   </div>
 </template>
 
@@ -328,6 +380,10 @@ defineExpose({ isValid });
 /* disable only interactive elements */
 .readonly .v-btn,
 .readonly .filter-entity {
+  pointer-events: none;
+}
+.disabled-filter {
+  opacity: 0.5;
   pointer-events: none;
 }
 </style>

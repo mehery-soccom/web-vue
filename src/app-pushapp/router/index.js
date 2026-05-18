@@ -14,6 +14,8 @@ import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index
 import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.vue';
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
+import CohortsList from '../pages/admin/cohorts/list/index.vue';
+import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
 import LinksPageList from '../pages/config/library/list/index.vue';
 
@@ -92,6 +94,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-channels-add-id?",
           component: ChannelsAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/cohorts/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-cohorts-list",
+          component: CohortsList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/cohorts/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-cohorts-add-id?",
+          component: CohortsAdd,
           props: true,
           meta: { layout: "default" },
         },

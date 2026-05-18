@@ -116,6 +116,47 @@ const pagination = reactive({
 });
 const logDialog = ref(false);
 const selectedLogs = ref([]);
+function formatDate(timestamp) {
+  if (!timestamp) return "N/A";
+  return new Date(timestamp).toLocaleString();
+}
+function formatFieldName(field) {
+  if (field === null || field === undefined) return "";
+  const str = String(field);
+  const withSpaces = str.replace(/_/g, " ");
+  return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
+}
+const getReadableRecurrence = (schedule) => {
+  if (!schedule) return "N/A";
+
+  const { rrule } = schedule;
+  const hour = rrule.match(/BYHOUR=([^;]+)/)?.[1];
+  const minute = rrule.match(/BYMINUTE=([^;]+)/)?.[1];
+  const runTime = hour !== undefined && minute !== undefined
+      ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` : null;
+  let text = "";
+
+  if (rrule?.includes("FREQ=DAILY")) text = "Runs Daily";
+  else if (rrule?.includes("FREQ=WEEKLY")) {
+    const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
+    text = `Runs Weekly on ${days}`;
+  }
+  else if (rrule?.includes("FREQ=MONTHLY")) {
+    if (rrule.includes("BYMONTHDAY")) {
+      const day = rrule.match(/BYMONTHDAY=([^;]+)/)?.[1];
+      text = `Runs Monthly on Day ${day}`;
+    }
+    else if (rrule.includes("BYSETPOS")) {
+      const pos = rrule.match(/BYSETPOS=([^;]+)/)?.[1];
+      const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
+      const map = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", "-1": "Last",};
+      text = `Runs Monthly on ${map[pos]} ${days}`;
+    }
+  }
+
+  if (runTime) text += ` at ${runTime}`;
+  return text || "N/A";
+};
 
 onMounted(async () => {
   fetchCampaigns({ ...pagination });
@@ -355,12 +396,28 @@ const onUpdateOptionsDebounced = debounce((options) => {
             </section>
 
             <!-- Schedule -->
-            <section class="detail-block">
+            <section v-if="selectedCampaignLogs.raw?.schedule" class="detail-block">
               <h5>Schedule</h5>
               <div>
-                <p><strong>Duration Type:</strong> Manual</p>
+                <strong>Duration Type:</strong> 
+                {{ formatFieldName(selectedCampaignLogs.raw.schedule.type) }}
               </div>
+
+              <template v-if="selectedCampaignLogs.raw.schedule.type === 'scheduled'">
+                <div>
+                  <strong>Time: </strong>
+                  {{ formatDate(selectedCampaignLogs.raw.schedule.runAt) }}
+                </div>
+              </template>
+
+              <template v-if="selectedCampaignLogs.raw.schedule.isRecurring">
+                <VDivider class="my-3" />
+                <VChip size="medium" color="primary" variant="tonal" style="padding: 5px 10px;">
+                  {{ getReadableRecurrence(selectedCampaignLogs.raw.schedule) }}
+                </VChip>
+              </template>
             </section>
+            
           </div>
         </VCardText>
         <VCardActions class="sticky-footer">
