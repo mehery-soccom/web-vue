@@ -123,25 +123,25 @@ var statsLead = ref([
 
 var statsBill = ref([
   {
-    title: "Local Billing Units",
+    title: "Local Billing Units (Mins)",
     color: "primary",
     icon: "tabler-device-mobile-message",
     stats: "0",
   },
   {
-    title: "Local Total Seconds",
+    title: "Local Total Minutes",
     color: "success",
     icon: "tabler-stopwatch",
     stats: "0",
   },
   {
-    title: "International Billing Units",
+    title: "International Billing Units (Mins)",
     color: "error",
     icon: "tabler-device-watch",
     stats: "0",
   },
   {
-    title: "International Total Seconds",
+    title: "International Total Minutes",
     color: "warning",
     icon: "tabler-hourglass-empty",
     stats: "0",
@@ -674,10 +674,10 @@ const fetchBillingUnits = async (start, end, chan, agent, type) => {
     const total2 = response?.data?.data?.LOCAL?.totalDuration;
     const total3 = response?.data?.data?.INTERNATIONAL?.totalBillingUnits;
     const total4 = response?.data?.data?.INTERNATIONAL?.totalDuration;
-    if (total1 != null) statsBill.value[0].stats = String(formatDuration(total1));
-    if (total2 != null) statsBill.value[1].stats = String(formatDuration(total2));
-    if (total3 != null) statsBill.value[2].stats = String(formatDuration(total3));
-    if (total4 != null) statsBill.value[3].stats = String(formatDuration(total4));
+    if (total1 != null) statsBill.value[0].stats = String(formatDurationInMinutes(total1));
+    if (total2 != null) statsBill.value[1].stats = String(formatDurationInMinutes(total2));
+    if (total3 != null) statsBill.value[2].stats = String(formatDurationInMinutes(total3));
+    if (total4 != null) statsBill.value[3].stats = String(formatDurationInMinutes(total4));
   } catch (error) {
     console.error("analytics error", error);
   }
@@ -730,6 +730,23 @@ const formatDuration = (seconds) => {
   } else {
     return `${seconds.toFixed(0)} second${seconds >= 2 ? "s" : ""}`;
   }
+};
+
+const formatDurationInMinutes = (seconds) => {
+  if (!seconds || isNaN(seconds)) return "0 mins";
+
+  let totalMinutes = Math.ceil(seconds / 60000);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  totalMinutes %= 24 * 60;
+  const hours = Math.floor(totalMinutes / 60);
+  totalMinutes %= 60;
+
+  const parts = [];
+  if (days) parts.push(`${days} day${days > 1 ? "s" : ""}`);
+  if (hours) parts.push(`${hours} hour${hours > 1 ? "s" : ""}`);
+  if (totalMinutes || parts.length === 0) parts.push(`${totalMinutes} min${totalMinutes > 1 ? "s" : ""}`);
+
+  return parts.join(" ");
 };
 const onDateSelect = (selectedDates, dateStr) => {
   console.log("Selected:", selectedDates, dateStr);
