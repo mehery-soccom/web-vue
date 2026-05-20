@@ -125,7 +125,7 @@ var statsBill = ref([
   {
     title: "Local Billing Units (Mins)",
     color: "primary",
-    icon: "tabler-device-mobile-message",
+    icon: "tabler-receipt",
     stats: "0",
   },
   {
@@ -137,13 +137,13 @@ var statsBill = ref([
   {
     title: "International Billing Units (Mins)",
     color: "error",
-    icon: "tabler-device-watch",
+    icon: "tabler-receipt",
     stats: "0",
   },
   {
     title: "International Total Minutes",
     color: "warning",
-    icon: "tabler-hourglass-empty",
+    icon: "tabler-stopwatch",
     stats: "0",
   },
 ]);
