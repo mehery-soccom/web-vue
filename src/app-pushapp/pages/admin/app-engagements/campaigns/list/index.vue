@@ -499,14 +499,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
                 {{ formatFieldName(selectedLogs.raw.schedule.type) || formatFieldName(selectedLogs.raw.schedule.durationType) }}
               </div>
 
-              <template v-if="selectedLogs.raw.schedule.type === 'DATE_RANGE' || selectedLogs.raw.schedule.durationType === 'specific'">
+              <template v-if="selectedLogs.raw.schedule.durationType === 'DATE_RANGE' || selectedLogs.raw.schedule.durationType === 'specific'">
                 <div>
                   <strong>Start Date:</strong>
-                  {{ formatDate(selectedLogs.raw.schedule.dateRange?.start) || formatDate(selectedLogs.raw.schedule.startDate) }}
+                  {{ formatDate(selectedLogs.raw.schedule.dateRange?.start || selectedLogs.raw.schedule.startDate) }}
                 </div>
                 <div>
                   <strong>End Date:</strong>
-                  {{ formatDate(selectedLogs.raw.schedule.dateRange?.end) || formatDate(selectedLogs.raw.schedule.endDate) }}
+                  {{ formatDate(selectedLogs.raw.schedule.dateRange?.end || selectedLogs.raw.schedule.endDate) }}
                 </div>
               </template>
 

@@ -45,7 +45,7 @@ const pagination = reactive({
   multiSort: true,
   filters: {
     name: null,
-    active: null,
+    active: true,
   },
 });
 

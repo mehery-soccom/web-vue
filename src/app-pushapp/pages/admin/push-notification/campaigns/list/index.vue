@@ -399,13 +399,13 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <section v-if="selectedCampaignLogs.raw?.schedule" class="detail-block">
               <h5>Schedule</h5>
               <div>
-                <strong>Duration Type:</strong> 
+                <strong>Duration Type :</strong> 
                 {{ formatFieldName(selectedCampaignLogs.raw.schedule.type) }}
               </div>
 
               <template v-if="selectedCampaignLogs.raw.schedule.type === 'scheduled'">
                 <div>
-                  <strong>Time: </strong>
+                  <strong>Start Time :</strong>
                   {{ formatDate(selectedCampaignLogs.raw.schedule.runAt) }}
                 </div>
               </template>
@@ -415,6 +415,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
                 <VChip size="medium" color="primary" variant="tonal" style="padding: 5px 10px;">
                   {{ getReadableRecurrence(selectedCampaignLogs.raw.schedule) }}
                 </VChip>
+                <VDivider class="my-3" />
+                <div>
+                  <strong>End Time :</strong>
+                  {{ formatDate(selectedCampaignLogs.raw.schedule.until) }}
+                </div>
               </template>
             </section>
             

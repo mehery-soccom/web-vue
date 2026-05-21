@@ -1,4 +1,5 @@
 <script setup>
+import CardStatisticsTransactions from '@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue';
 import ChartJsLineChart from '@/app-pushapp/views/dashboards/analytics/ChartJsLineChart.vue';
 import { useProjectStore } from "@app-pushapp/views/dashboards/analytics/useProjectStore";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
@@ -65,6 +66,119 @@ const onDateClosed = (selectedDates, dateStr) => {
   // if (selectedDates.length === 2 && toRaw(oldDates.value) != selectedDates) {
   //   oldDates.value = selectedDates;
 };
+const statsDauCount = ref([
+  {
+    title: "DAU Count (Today)",
+    stats: "0",
+    icon: "tabler-user-plus",
+    color: "primary",
+  }
+]);
+const statsDau = ref([
+  {
+    title: "Notifications Opened",
+    stats: "0",
+    icon: "tabler-bell",
+    color: "primary",
+  },
+  {
+    title: "App Event",
+    stats: "0",
+    icon: "tabler-bolt",
+    color: "info",
+  },
+  {
+    title: "App Engagement",
+    stats: "0",
+    icon: "tabler-heart-handshake",
+    color: "error",
+  },
+  {
+    title: "Profile Update",
+    stats: "0",
+    icon: "tabler-user-edit",
+    color: "success",
+  },
+]);
+const statsMauCount = ref([
+  {
+    title: "MAU Count",
+    stats: "0",
+    icon: "tabler-user-plus",
+    color: "primary",
+  }
+]);
+const statsMau = ref([
+  {
+    title: "Notifications Opened",
+    stats: "0",
+    icon: "tabler-bell",
+    color: "primary",
+  },
+  {
+    title: "App Event",
+    stats: "0",
+    icon: "tabler-bolt",
+    color: "info",
+  },
+  {
+    title: "App Engagement",
+    stats: "0",
+    icon: "tabler-heart-handshake",
+    color: "error",
+  },
+  {
+    title: "Profile Update",
+    stats: "0",
+    icon: "tabler-user-edit",
+    color: "success",
+  },
+]);
+
+const fetchDauMauData = async (type, period) => {
+  try{
+    const resp = await projectStore.fetchDauMauDatas({ type, period })
+    if(type == 'MAU'){
+      statsMauCount.value[0].stats = String(resp.data.data[0].count);
+      const currentMonth = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}`;
+      statsMauCount.value[0].title = period === currentMonth ? "MAU Count (This Month)" : "MAU Count";
+      statsMau.value[0].stats = String(resp.data.data[0].primaryEvents?.notifications || 0);
+      statsMau.value[1].stats = String(resp.data.data[0].primaryEvents?.event_activity || 0);
+      statsMau.value[2].stats = String(resp.data.data[0].primaryEvents?.in_app_engagement || 0);
+      statsMau.value[3].stats = String(resp.data.data[0].primaryEvents?.profile_update || 0);
+    } else {
+      statsDauCount.value[0].stats = String(resp.data.data[0].count);
+      statsDau.value[0].stats = String(resp.data.data[0].primaryEvents?.notifications || 0);
+      statsDau.value[1].stats = String(resp.data.data[0].primaryEvents?.event_activity || 0);
+      statsDau.value[2].stats = String(resp.data.data[0].primaryEvents?.in_app_engagement || 0);
+      statsDau.value[3].stats = String(resp.data.data[0].primaryEvents?.profile_update || 0);
+    }
+    console.log("resp", resp.data[0])
+  }catch(e){
+    console.error(e)
+  }
+};
+
+const todayMonthValue = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}`;
+const selectedMonth = ref(todayMonthValue);
+const selectedMonthOptions = computed(() => {
+  const options = [];
+  const start = new Date(2026, 2);
+  const today = new Date();
+  const current = new Date(start);
+
+  while (current.getFullYear() < today.getFullYear() || (current.getFullYear() === today.getFullYear() && current.getMonth() <= today.getMonth())) {
+    const year = current.getFullYear();
+    const month = current.getMonth() + 1;
+    options.push({
+      label: current.toLocaleString("default", { month: "short", year: "2-digit" }),
+      value: `${year}${String(month).padStart(2, "0")}`,
+    });
+    current.setMonth(current.getMonth() + 1);
+  }
+  return options.reverse();
+});
+
 const buildPayload = (fromDate, toDate) => {
   return {
     from: {
@@ -191,7 +305,13 @@ const onChartDateChange = ([start, end]) => {
 };
 onMounted(async () => {
   globalDateRange.value = [oneWeekAgo, today];
-  await fetchChartData(oneWeekAgo, today)
+  await fetchChartData(oneWeekAgo, today);
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  const DauDate = `${today.getFullYear()}${month}${day}`;
+  await fetchDauMauData("DAU", DauDate);
+  const MauDate = `${today.getFullYear()}${month}`;
+  await fetchDauMauData("MAU", MauDate);
 });
 </script>
 
@@ -216,9 +336,49 @@ onMounted(async () => {
         />
       </div>
     </VRow> -->
+    <VRow>
+      <VCol cols="12" md="3">
+        <CardStatisticsTransactions
+          :statistics="statsDauCount"
+          :title="'Daily Active Users'"
+        />
+      </VCol>
+      <VCol cols="12" md="9">
+        <CardStatisticsTransactions
+          :statistics="statsDau"
+          :title="'DAU Statistics'"
+        />
+      </VCol>
+    </VRow>
+    <div>
+      <div style="width: 100%;margin-top: 10px; display: flex; justify-content: flex-end;">
+        <AppSelect
+            v-model="selectedMonth"
+            :items="selectedMonthOptions"
+            item-title="label"
+            item-value="value"
+            class="mb-2" :style="{ width: '180px', marginLeft: 'auto'}"
+            @update:modelValue="fetchDauMauData('MAU', selectedMonth)"
+          />
+      </div>
+      <VRow>
+        <VCol cols="12" md="3">
+          <CardStatisticsTransactions
+            :statistics="statsMauCount"
+            :title="'Monthly Active Users'"
+          />
+        </VCol>
+        <VCol cols="12" md="9">
+          <CardStatisticsTransactions
+            :statistics="statsMau"
+            :title="'MAU Statistics'"
+          />
+        </VCol>
+      </VRow>
+    </div>
     <VRow justify="center">
       <!-- <VCol cols="12" md="1.5"></VCol> -->
-      <VCol cols="12" md="11" style="height: calc(100vh - 150px);">
+      <VCol cols="12" md="12" style="height: calc(100vh - 150px);">
         <MyChartComponent
           type="line" :key="chartKey"
           :data="chartData"
