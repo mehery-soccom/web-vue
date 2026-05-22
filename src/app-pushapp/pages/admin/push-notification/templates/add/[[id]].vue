@@ -60,6 +60,7 @@ const template = reactive({
 
     image_url: [""],
     logo_url: "",
+    notification_url: null,
 
     /** styled */
     line_1: "",
@@ -224,11 +225,16 @@ const onCreate = async () => {
     if (template.type === "simple") {
       const imageUrl = Array.isArray(template.style.image_url) && template.style.image_url.length === 1
         ? template.style.image_url[0] || "" : template.style.image_url;
+      if(typeof template.style.notification_url != String) {
+        const url = template.style.notification_url.code;
+        template.style.notification_url = url;
+      }
       payload = {
         ...template,
         style: {
           ...template.style,
           image_url: imageUrl,
+
         },
         options: {
           ...(template.options || {}),
@@ -282,6 +288,10 @@ const onUpdate = async () => {
 
     const imageUrl = template.type === "simple" && Array.isArray(template.style.image_url) && template.style.image_url.length === 1
         ? template.style.image_url[0] || "" : template.style.image_url;
+    if(typeof template.style.notification_url != String) {
+        const url = template.style.notification_url.code;
+        template.style.notification_url = url;
+    }
 
     let payload = {
         ...template,
@@ -473,6 +483,18 @@ watch(
                           v-model="template.style.image_url"
                           label="Upload Image" :max-size="10240"
                         /> -->
+                      </VCol>
+
+                      <VCol cols="12">
+                        <AppCombobox
+                          v-model="template.style.notification_url"
+                          :label="'Notification URL'"
+                          placeholder="Enter URL"
+                          :rules="[urlRequired, urlRule]"
+                          prepend-inner-icon="mdi-link"
+                          :items="optionsPath || []"
+                          :clearable=true item-title="code" item-value="code"
+                        />
                       </VCol>
 
                       <VCol cols="12" md="6">
