@@ -122,6 +122,17 @@ const timeValidator = (value, type, label) => {
   if (form.schedulePattern === type && !value) return `${label} is required`;
   return true;
 };
+const isEndTimeAfterStartTime = (start, end, startLabel = "Start time", endLabel = "End time") => {
+  if (!start || !end) return true;
+
+  const [startHour, startMinute] = start.split(":").map(Number);
+  const [endHour, endMinute] = end.split(":").map(Number);
+  const startTotal = startHour * 60 + startMinute;
+  const endTotal = endHour * 60 + endMinute;
+
+  if (startTotal >= endTotal) return `${endLabel} must be greater than ${startLabel.toLowerCase()}`;
+  return true;
+};
 
 const weeklyDaysValidator = (value) => {
   if (form.recurringType && form.schedulePattern === "weekly" && (!value || value.length === 0)) return "Select at least one day";
@@ -174,23 +185,27 @@ const isValid = async (silent = false) => {
   if (!!form.recurringType) {
     const validations = {
       daily: [
-        ["startTime", timeValidator(form.startTime, "daily")],
-        ["endTime", timeValidator(form.endTime, "daily")],
+        ["startTime", timeValidator(form.startTime, "daily", "Start time")],
+        ["endTime", timeValidator(form.endTime, "daily", "End time")],
+        ["endTimeCompare", isEndTimeAfterStartTime(form.startTime, form.endTime)],
       ],
       weekly: [
         ["scheduleDays", weeklyDaysValidator(form.scheduleDays)],
-        ["weeklyStartTime", timeValidator(form.weeklyStartTime, "weekly")],
-        ["weeklyEndTime", timeValidator(form.weeklyEndTime, "weekly")],
+        ["weeklyStartTime", timeValidator(form.weeklyStartTime, "weekly", "Start time")],
+        ["weeklyEndTime", timeValidator(form.weeklyEndTime, "weekly", "End time")],
+        ["weeklyEndTimeCompare", isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)],
       ],
       monthlyDate: [
         ["scheduleDate", monthlyDateValidator(form.scheduleDate)],
-        ["monthlyDateStartTime", timeValidator(form.monthlyDateStartTime, "monthlyDate")],
-        ["monthlyDateEndTime", timeValidator(form.monthlyDateEndTime, "monthlyDate")],
+        ["monthlyDateStartTime", timeValidator(form.monthlyDateStartTime, "monthlyDate", "Start time")],
+        ["monthlyDateEndTime", timeValidator(form.monthlyDateEndTime, "monthlyDate", "End time")],
+        ["monthlyDateEndTimeCompare", isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)],
       ],
       monthlyWeekday: [
         ["scheduleWeekday", monthlyWeekDaysValidator(form.scheduleWeekday)],
-        ["monthlyWeekdayStartTime", timeValidator(form.monthlyWeekdayStartTime, "monthlyWeekday")],
-        ["monthlyWeekdayEndTime", timeValidator(form.monthlyWeekdayEndTime, "monthlyWeekday")],
+        ["monthlyWeekdayStartTime", timeValidator(form.monthlyWeekdayStartTime, "monthlyWeekday", "Start time")],
+        ["monthlyWeekdayEndTime", timeValidator(form.monthlyWeekdayEndTime, "monthlyWeekday", "End time")],
+        ["monthlyWeekdayEndTimeCompare", isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)],
       ],
     };
     (validations[form.schedulePattern] || []).forEach(
@@ -308,7 +323,8 @@ defineExpose({ isValid });
                   class="flex-grow-1 tiny-input ml-2 mr-2 input-uniform"
                   style="min-width:170px"
                   :disabled="!form.recurringType"
-                  :rules="[val => timeValidator(val, 'daily', 'Start time')]"
+                  :rules="[val => timeValidator(val, 'daily', 'Start time'),
+                    () => isEndTimeAfterStartTime(form.startTime, form.endTime)]"
                   :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                   @update:modelValue="form.schedulePattern = 'daily'"
                 /> To 
@@ -319,7 +335,8 @@ defineExpose({ isValid });
                   class="flex-grow-1 tiny-input ml-2 input-uniform"
                   style="min-width:170px"
                   :disabled="!form.recurringType"
-                  :rules="[val => timeValidator(val, 'daily', 'End time')]"
+                  :rules="[val => timeValidator(val, 'daily', 'End time'),
+                    () => isEndTimeAfterStartTime(form.startTime, form.endTime)]"
                   :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                   @update:modelValue="form.schedulePattern = 'daily'"
                 />
@@ -345,7 +362,8 @@ defineExpose({ isValid });
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
                     :disabled="!form.recurringType"
-                    :rules="[val => timeValidator(val,'weekly','Start time')]"
+                    :rules="[val => timeValidator(val,'weekly','Start time'),
+                      () => isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                     @update:modelValue="form.schedulePattern = 'weekly'"
                   /> To
@@ -356,7 +374,8 @@ defineExpose({ isValid });
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
                     :disabled="!form.recurringType"
-                    :rules="[val => timeValidator(val,'weekly','End time')]"
+                    :rules="[val => timeValidator(val,'weekly','End time'),
+                      () => isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                     @update:modelValue="form.schedulePattern = 'weekly'"
                   />
@@ -385,7 +404,8 @@ defineExpose({ isValid });
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
                     :disabled="!form.recurringType"
-                    :rules="[val => timeValidator(val,'monthlyDate','Start time')]"
+                    :rules="[val => timeValidator(val,'monthlyDate','Start time'),
+                      () => isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyDate'"
                   /> To
@@ -396,7 +416,8 @@ defineExpose({ isValid });
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
                     :disabled="!form.recurringType"
-                    :rules="[val => timeValidator(val,'monthlyDate','End time')]"
+                    :rules="[val => timeValidator(val,'monthlyDate','End time'),
+                      () => isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyDate'"
                   />
@@ -431,7 +452,8 @@ defineExpose({ isValid });
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
                     :disabled="!form.recurringType"
-                    :rules="[val => timeValidator(val,'monthlyWeekday','Start time')]"
+                    :rules="[val => timeValidator(val,'monthlyWeekday','Start time'),
+                      () => isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyWeekday'"
                   /> To
@@ -442,7 +464,8 @@ defineExpose({ isValid });
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
                     :disabled="!form.recurringType"
-                    :rules="[val => timeValidator(val,'monthlyWeekday','End time')]"
+                    :rules="[val => timeValidator(val,'monthlyWeekday','End time'),
+                      () => isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyWeekday'"
                   />
