@@ -11,10 +11,10 @@ export default [
         title: "Event Analytics",
         to: "dashboards-events",
       },
-      {
-        title: "Sequence Analytics",
-        to: "dashboards-sequence-list",
-      },
+      // {
+      //   title: "Sequence Analytics",
+      //   to: "dashboards-sequence-list",
+      // },
       // {
       //   title: 'eCommerce',
       //   to: 'dashboards-ecommerce',
