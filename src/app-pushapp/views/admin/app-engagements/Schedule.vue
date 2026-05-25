@@ -325,7 +325,7 @@ defineExpose({ isValid });
                   :disabled="!form.recurringType"
                   :rules="[val => timeValidator(val, 'daily', 'Start time'),
                     () => isEndTimeAfterStartTime(form.startTime, form.endTime)]"
-                  :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                  :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                   @update:modelValue="form.schedulePattern = 'daily'"
                 /> To 
                 <AppDateTimePicker
@@ -337,7 +337,7 @@ defineExpose({ isValid });
                   :disabled="!form.recurringType"
                   :rules="[val => timeValidator(val, 'daily', 'End time'),
                     () => isEndTimeAfterStartTime(form.startTime, form.endTime)]"
-                  :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                  :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                   @update:modelValue="form.schedulePattern = 'daily'"
                 />
               </template>
@@ -364,7 +364,7 @@ defineExpose({ isValid });
                     :disabled="!form.recurringType"
                     :rules="[val => timeValidator(val,'weekly','Start time'),
                       () => isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)]"
-                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                     @update:modelValue="form.schedulePattern = 'weekly'"
                   /> To
                   <AppDateTimePicker
@@ -376,7 +376,7 @@ defineExpose({ isValid });
                     :disabled="!form.recurringType"
                     :rules="[val => timeValidator(val,'weekly','End time'),
                       () => isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)]"
-                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                     @update:modelValue="form.schedulePattern = 'weekly'"
                   />
                 </div>
@@ -406,7 +406,7 @@ defineExpose({ isValid });
                     :disabled="!form.recurringType"
                     :rules="[val => timeValidator(val,'monthlyDate','Start time'),
                       () => isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)]"
-                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyDate'"
                   /> To
                   <AppDateTimePicker
@@ -418,7 +418,7 @@ defineExpose({ isValid });
                     :disabled="!form.recurringType"
                     :rules="[val => timeValidator(val,'monthlyDate','End time'),
                       () => isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)]"
-                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyDate'"
                   />
                 </div>
@@ -454,7 +454,7 @@ defineExpose({ isValid });
                     :disabled="!form.recurringType"
                     :rules="[val => timeValidator(val,'monthlyWeekday','Start time'),
                       () => isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)]"
-                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyWeekday'"
                   /> To
                   <AppDateTimePicker
@@ -466,7 +466,7 @@ defineExpose({ isValid });
                     :disabled="!form.recurringType"
                     :rules="[val => timeValidator(val,'monthlyWeekday','End time'),
                       () => isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)]"
-                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true, allowInput: true }"
+                    :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
                     @update:modelValue="form.schedulePattern = 'monthlyWeekday'"
                   />
                 </div>

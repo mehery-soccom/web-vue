@@ -27,9 +27,7 @@ const formattedItems = computed(() =>
           : 0,
     },
     status:
-      item.status === "DERIVE"
-        ? getCampaignStatus(item.schedule, item.abTesting?.enabled)
-        : item.status,
+      getCampaignStatus(item.schedule, item.abTesting?.enabled, item.status),
   })),
 );
 const headers = [
@@ -153,8 +151,9 @@ const openLogDialog = (logs) => {
 
 const getCampaignStatus = (
   { durationType, startDate, endDate },
-  isAbTesting,
+  isAbTesting, status
 ) => {
+  if(status === 'ENDED' || status === 'AWAITING_RESULT' || status === 'ABORTED') return status;
   if (durationType === "ALWAYS" || durationType === "manual") {
     if (isAbTesting) return "TESTING";
     return "ON_GOING";

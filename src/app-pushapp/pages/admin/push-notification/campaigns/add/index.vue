@@ -416,7 +416,6 @@ const onSendSimple = async () => {
                                 noCalendar: true,
                                 dateFormat: 'H:i',
                                 time_24hr: true,
-                                allowInput: true,
                               }"
                               :rules="[val => timeValidator(val, 'daily')]"
                               @update:modelValue="schedule.schedulePattern = 'daily'"
@@ -456,7 +455,6 @@ const onSendSimple = async () => {
                                   noCalendar: true,
                                   dateFormat: 'H:i',
                                   time_24hr: true,
-                                  allowInput: true,
                                 }"
                                 :rules="[val => timeValidator(val, 'weekly')]"
                                 @update:modelValue="schedule.schedulePattern = 'weekly'"
@@ -496,7 +494,6 @@ const onSendSimple = async () => {
                                   noCalendar: true,
                                   dateFormat: 'H:i',
                                   time_24hr: true,
-                                  allowInput: true,
                                 }"
                                 :rules="[val => timeValidator(val, 'monthlyDate')]"
                                 @update:modelValue="schedule.schedulePattern = 'monthlyDate'"
@@ -552,7 +549,6 @@ const onSendSimple = async () => {
                                   noCalendar: true,
                                   dateFormat: 'H:i',
                                   time_24hr: true,
-                                  allowInput: true,
                                 }"
                                 :rules="[val => timeValidator(val, 'monthlyWeekday')]"
                                 @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'"
