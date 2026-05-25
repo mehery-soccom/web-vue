@@ -339,7 +339,7 @@ const exportToExcel = () => {
               <VBtn 
                 color="primary" 
                 prepend-icon="tabler-plus" 
-                @click="router.push({ name: 'dashboards-sequence-add' })"
+                @click="router.push({ name: 'dashboards-sequence-add-id?' })"
                 :disabled="store.sequences.length >= 5"
               >
                 Add Sequence
