@@ -201,12 +201,12 @@ const isValid = async (silent = false) => {
         ["monthlyDateEndTime", timeValidator(form.monthlyDateEndTime, "monthlyDate", "End time")],
         ["monthlyDateEndTimeCompare", isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)],
       ],
-      monthlyWeekday: [
-        ["scheduleWeekday", monthlyWeekDaysValidator(form.scheduleWeekday)],
-        ["monthlyWeekdayStartTime", timeValidator(form.monthlyWeekdayStartTime, "monthlyWeekday", "Start time")],
-        ["monthlyWeekdayEndTime", timeValidator(form.monthlyWeekdayEndTime, "monthlyWeekday", "End time")],
-        ["monthlyWeekdayEndTimeCompare", isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)],
-      ],
+      // monthlyWeekday: [
+      //   ["scheduleWeekday", monthlyWeekDaysValidator(form.scheduleWeekday)],
+      //   ["monthlyWeekdayStartTime", timeValidator(form.monthlyWeekdayStartTime, "monthlyWeekday", "Start time")],
+      //   ["monthlyWeekdayEndTime", timeValidator(form.monthlyWeekdayEndTime, "monthlyWeekday", "End time")],
+      //   ["monthlyWeekdayEndTimeCompare", isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)],
+      // ],
     };
     (validations[form.schedulePattern] || []).forEach(
       ([field, result]) => {
@@ -346,7 +346,7 @@ defineExpose({ isValid });
             <VRadio value="weekly">
               <template #label>
                 <div class="d-flex align-center gap-2 flex-wrap">
-                  Run on scheduled days of week from 
+                  Run on scheduled days of week
                   <AppSelect
                     v-model="form.scheduleDays"
                     :items="Dow"
@@ -354,7 +354,7 @@ defineExpose({ isValid });
                     :rules="[weeklyDaysValidator]"
                     style="min-width: 170px; max-width: 500px; width: fit-content;" class="input-uniform dif-height"
                     @update:modelValue="form.schedulePattern = 'weekly'"
-                  />
+                  /> From
                   <AppDateTimePicker
                     v-model="form.weeklyStartTime"
                     :key="form.durationType + '1' + form.recurringType"
@@ -386,7 +386,7 @@ defineExpose({ isValid });
             <VRadio value="monthlyDate">
               <template #label>
                 <div class="d-flex align-center gap-2 flex-wrap">
-                  Run on date of month from
+                  Run on date of month 
                   <VTextField
                     v-model="form.scheduleDate"
                     type="number"
@@ -396,7 +396,7 @@ defineExpose({ isValid });
                     :rules="[monthlyDateValidator]"
                     class="input-uniform dif-height date-num"
                     @update:modelValue="form.schedulePattern = 'monthlyDate'"
-                  />
+                  /> From
                   <AppDateTimePicker
                     v-model="form.monthlyDateStartTime"
                     :key="form.durationType + '1' + form.recurringType"
@@ -425,7 +425,7 @@ defineExpose({ isValid });
               </template>
             </VRadio>
 
-            <VRadio value="monthlyWeekday">
+            <!-- <VRadio value="monthlyWeekday">
               <template #label>
                 <div class="d-flex align-center gap-2 flex-wrap">
                   Run from
@@ -471,7 +471,7 @@ defineExpose({ isValid });
                   />
                 </div>
               </template>
-            </VRadio>
+            </VRadio> -->
           </VRadioGroup>
         </div>
       </div>
@@ -479,6 +479,7 @@ defineExpose({ isValid });
     </template>
 
     <!-- Fallback Journey -->
+    <template v-if="false">
     <VDivider class="my-6" />
     <div class="d-flex align-center mb-3">
       <h3>Campaign Fallback Journey</h3>
@@ -504,6 +505,7 @@ defineExpose({ isValid });
       @update:modelValue="(val) => emit('update:journey', val)"
       ref="journeyRef"
     />
+  </template>
 
     <!-- Repeat Campaign -->
     <template v-if="false">
