@@ -94,7 +94,7 @@ const handleSubmit = async () => {
   try {
     await store.createSequence(payload);
     show({ message: 'Sequence created successfully!', color: 'success' });
-    router.push({ name: 'dashboards-sequence-index' });
+    router.push({ name: 'dashboards-sequence-list' });
   } catch (error) {
     const errorMessage = error.response?.data?.message || 'Failed to create sequence.';
     show({ message: errorMessage, color: 'error' });
@@ -223,7 +223,7 @@ const handleSubmit = async () => {
             <VBtn 
               color="secondary" 
               variant="tonal" 
-              :to="{ name: 'dashboards-sequence-index' }"
+              :to="{ name: 'dashboards-sequence-list' }"
             >
               Cancel
             </VBtn>

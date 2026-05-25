@@ -13,7 +13,7 @@ export default [
       },
       {
         title: "Sequence Analytics",
-        to: "dashboards-sequence-index",
+        to: "dashboards-sequence-list",
       },
       // {
       //   title: 'eCommerce',
