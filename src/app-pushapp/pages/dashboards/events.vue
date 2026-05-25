@@ -130,7 +130,7 @@ const isSessionDisabled = computed(() => ['app_open', 'page_open'].includes(sele
 onMounted(async () => {
   await eventStore.fetchUniqueEvents()
 
-  const res = await cohortsStore.fetchCohorts({ page: 1, itemsPerPage: 50, sortBy: [], filters: '' })
+  const res = await cohortsStore.fetchCohorts({  paginate: false  })
   cohortsStore.cohorts = res.data.results
 })
 

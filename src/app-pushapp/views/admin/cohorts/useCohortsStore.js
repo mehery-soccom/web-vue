@@ -11,16 +11,19 @@ export const useCohortsStore = defineStore("CohortsStore", {
       return DataService.axios.post("/api/v1/cohort", params);
     },
     fetchCohorts(params) {
-      let { page, itemsPerPage, sortBy, filters } = params;
+      let { page, itemsPerPage, sortBy = [], filters, paginate } = params; 
+      
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
+        
       return DataService.axios.get("/api/v1/cohort", {
         params: {
           page,
           limit: itemsPerPage,
           sort: sort || "-created.stamp",
           search: filters,
+          paginate,
         },
       });
     },
