@@ -225,7 +225,7 @@ const onCreate = async () => {
     if (template.type === "simple") {
       const imageUrl = Array.isArray(template.style.image_url) && template.style.image_url.length === 1
         ? template.style.image_url[0] || "" : template.style.image_url;
-      if(typeof template.style.notification_url != String) {
+      if(!!template.style.notification_url && typeof template.style.notification_url != String) {
         const url = template.style.notification_url.code;
         template.style.notification_url = url;
       }
@@ -288,7 +288,7 @@ const onUpdate = async () => {
 
     const imageUrl = template.type === "simple" && Array.isArray(template.style.image_url) && template.style.image_url.length === 1
         ? template.style.image_url[0] || "" : template.style.image_url;
-    if(typeof template.style.notification_url != String) {
+    if(!!template.style.notification_url && typeof template.style.notification_url != String) {
         const url = template.style.notification_url.code;
         template.style.notification_url = url;
     }
