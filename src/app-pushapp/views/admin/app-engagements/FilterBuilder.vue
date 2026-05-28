@@ -9,6 +9,7 @@ const props = defineProps({
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
+  channelId: { type: [String, Number], default: null },
 });
 const emit = defineEmits(["update:modelValue", "delete-group"]);
 
@@ -145,6 +146,7 @@ defineExpose({ isValid });
         :readonly="readonly"
         :hasCohort="hasCohort"
         :hasNormalFilter="hasNormalFilter"
+        :channelId="channelId"
       />
     </div>
 

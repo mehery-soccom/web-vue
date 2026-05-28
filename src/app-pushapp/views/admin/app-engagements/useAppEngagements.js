@@ -29,9 +29,13 @@ export const useAppEngagements = (source, config = {}) => {
     if (!source?.filterType) return [];
     if (source.filterType === "cohort") return config.onlyActiveCohorts
       ? localCache.activeCohorts || [] : localCache.cohort || [];
-    return Object.values(FILTER_FIELDS_MAP).filter(
-      (o) => o.type === source.filterType,
-    );
+    return Object.values(FILTER_FIELDS_MAP).filter((o) => {
+      if (o.type !== source.filterType) return false;
+      if (source.filterType === "slice" && config.channelId.value) {
+        return String(o.channelId) === String(config.channelId.value);
+      }
+      return true;
+    });
   });
   const FILTER_OPERATORS = computed(() => {
     // console.log("FILTER_OPERATORS", source.field);
@@ -123,6 +127,7 @@ export const useAppEngagements = (source, config = {}) => {
             meta: {
               projection: null, // el.buildStats?.tokensSubscribed,
             },
+            channelId: el.channel_id,
           };
           resultsMap[r.value] = r;
           return r;

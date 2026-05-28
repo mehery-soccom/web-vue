@@ -13,6 +13,7 @@ const props = defineProps({
   readonly: { type: Boolean, default: false },
   hasCohort: { type: Boolean, default: false },
   hasNormalFilter: { type: Boolean, default: false },
+  channelId: { type: [String, Number], default: null },
 });
 const emit = defineEmits(["remove", "update"]);
 
@@ -26,7 +27,7 @@ const datePresets = [
   { label: "Today", key: "today" },
   { label: "Tomorrow", key: "tomorrow" },
 ];
-
+const channelId = computed(() => props.channelId);
 // === Constants ===
 const {
   FILTER_TYPES,
@@ -34,7 +35,7 @@ const {
   FILTER_FIELDS_MAP,
   FILTER_OPERATORS,
   FILTER_PERIODS,
-} = useAppEngagements(props.element, { onlyActiveCohorts: true });
+} = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId });
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
@@ -111,6 +112,21 @@ watch(() => props.element.filterType,
       return;
     }
     resetFilterValues();
+  },
+);
+
+watch(() => props.channelId,
+  () => {
+    if (props.element.filterType !== "slice") return;
+    const exists = FILTER_FIELDS.value.some(
+      (f) => f.value === props.element.field,
+    );
+    if (!exists) {
+      props.element.field = null;
+      props.element.operator = null;
+      props.element.value = null;
+      clearErrorAndUpdate();
+    }
   },
 );
 watch(
@@ -331,6 +347,7 @@ defineExpose({ isValid });
       :ignoreEventfilterType="ignoreEventfilterType"
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
+      :channelId="channelId"
     />
     <VDialog v-model="showCohortConfirm" max-width="420">
       <VCard
