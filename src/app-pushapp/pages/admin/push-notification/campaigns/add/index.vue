@@ -544,7 +544,7 @@ const onSendSimple = async () => {
                           </template>
                         </VRadio>
 
-                        <!-- <VRadio value="monthlyWeekday">
+                        <VRadio value="monthlyWeekday">
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
                               Repeat on week day of month
@@ -597,7 +597,7 @@ const onSendSimple = async () => {
                               />
                             </div>
                           </template>
-                        </VRadio> -->
+                        </VRadio>
                       </VRadioGroup>
                     </div>
                     <div class="d-flex flex-wrap align-center gap-2 mt-4">
