@@ -138,20 +138,21 @@ const statsMau = ref([
 const fetchDauMauData = async (type, period) => {
   try{
     const resp = await projectStore.fetchDauMauDatas({ type, period })
+    const item = resp?.data?.data?.[0] || {};
     if(type == 'MAU'){
-      statsMauCount.value[0].stats = String(resp.data.data[0].count);
+      statsMauCount.value[0].stats = String(item.count || 0);
       const currentMonth = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}`;
       statsMauCount.value[0].title = period === currentMonth ? "MAU Count (This Month)" : "MAU Count";
-      statsMau.value[0].stats = String(resp.data.data[0].primaryEvents?.notifications || 0);
-      statsMau.value[1].stats = String(resp.data.data[0].primaryEvents?.event_activity || 0);
-      statsMau.value[2].stats = String(resp.data.data[0].primaryEvents?.in_app_engagement || 0);
-      statsMau.value[3].stats = String(resp.data.data[0].primaryEvents?.profile_update || 0);
+      statsMau.value[0].stats = String(item.primaryEvents?.notifications || 0);
+      statsMau.value[1].stats = String(item.primaryEvents?.event_activity || 0);
+      statsMau.value[2].stats = String(item.primaryEvents?.in_app_engagement || 0);
+      statsMau.value[3].stats = String(item.primaryEvents?.profile_update || 0);
     } else {
-      statsDauCount.value[0].stats = String(resp.data.data[0].count);
-      statsDau.value[0].stats = String(resp.data.data[0].primaryEvents?.notifications || 0);
-      statsDau.value[1].stats = String(resp.data.data[0].primaryEvents?.event_activity || 0);
-      statsDau.value[2].stats = String(resp.data.data[0].primaryEvents?.in_app_engagement || 0);
-      statsDau.value[3].stats = String(resp.data.data[0].primaryEvents?.profile_update || 0);
+      statsDauCount.value[0].stats = String(item.count || 0);
+      statsDau.value[0].stats = String(item.primaryEvents?.notifications || 0);
+      statsDau.value[1].stats = String(item.primaryEvents?.event_activity || 0);
+      statsDau.value[2].stats = String(item.primaryEvents?.in_app_engagement || 0);
+      statsDau.value[3].stats = String(item.primaryEvents?.profile_update || 0);
     }
     console.log("resp", resp.data[0])
   }catch(e){
