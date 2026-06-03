@@ -27,7 +27,7 @@ const onCreate = async () => {
   let filtervalid = await filterRef.value?.isValid();
   let filterStructureValid = true;
   try {
-    validateFilterStructure(cohort.filter, null, true, false, false);
+    validateFilterStructure(cohort.filter, null, true, false, false, false);
   } catch (error) {
     filterStructureValid = false;
     show({ message: error.message, color: "error" });

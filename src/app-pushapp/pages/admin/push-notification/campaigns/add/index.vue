@@ -61,7 +61,7 @@ const validateTab = async (tabName, silent = false) => {
       let filterStructureValid = true;
 
       try {
-        validateFilterStructure(filter, null, true, true);
+        validateFilterStructure(filter, null, true, true, true);
       } catch (error) {
         filterStructureValid = false;
         if (!silent) show({ message: error.message, color: "error",});
@@ -377,6 +377,7 @@ const onSendSimple = async () => {
                   <FilterBuilder
                     v-model="filter"
                     :ignoreEventfilterType="true"
+                    :ignoreCustomEventfilterType="true"
                     :ignoreCohortfilterType="true"
                     :channelId="notification.channel_id"
                     ref="filterRef"

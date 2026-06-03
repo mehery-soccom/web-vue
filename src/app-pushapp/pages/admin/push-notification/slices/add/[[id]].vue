@@ -29,7 +29,7 @@ const onCreate = async () => {
   let filtervalid = await filterRef.value?.isValid();
   let filterStructureValid = true;
   try {
-    validateFilterStructure(slice.filter, null, true, true);
+    validateFilterStructure(slice.filter, null, true, true, true);
   } catch (error) {
     filterStructureValid = false;
     show({ message: error.message, color: "error" });
@@ -147,6 +147,7 @@ onMounted(async () => {
         v-if="slice.filter"
         v-model="slice.filter"
         :ignoreEventfilterType="true"
+        :ignoreCustomEventfilterType="true"
         :ignoreSlicefilterType="true"
         :ignoreCohortfilterType="true"
         ref="filterRef"

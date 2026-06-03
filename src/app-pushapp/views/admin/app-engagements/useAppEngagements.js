@@ -172,6 +172,35 @@ export const useAppEngagements = (source, config = {}) => {
         isLoading.value = false;
       }
     }
+
+    if (type === "customEvent") {
+      isLoading.value = true;
+      try {
+        const response = await DataService.axios.get(
+          "/api/v1/event-definition",
+        );
+        const resultsMap = {};
+        const results = response.data.data.map((el) => {
+          const r = {
+            type,
+            title: el.eventName,
+            value: el._id,
+            meta: {
+              projection: null,
+            },
+          };
+          resultsMap[r.value] = r;
+          return r;
+        });
+        localCache[type] = results;
+        Object.assign(FILTER_FIELDS_MAP, resultsMap);
+      } catch (error) {
+        console.error(`Failed to fetch filter options for ${type}:`, error);
+        localCache[type] = [];
+      } finally {
+        isLoading.value = false;
+      }
+    }
   }
 
   async function fetchFilterFieldValues() {

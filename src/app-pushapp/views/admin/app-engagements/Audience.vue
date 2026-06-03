@@ -87,7 +87,7 @@ function validateFilterStructure(
 
     // Check: If group has multiple event filters as direct children, it must be OR
     const directEventChildren = children.filter(
-      (c) => c.type === "filter" && c.filterType === "event",
+      (c) => c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
     );
     if (directEventChildren.length > 1 && conjunction !== "or") {
       throw new Error(
@@ -106,16 +106,16 @@ function validateFilterStructure(
     if (isRoot && directEventChildren.length == 0) {
       // throw new Error("Root group must have an event filter");
       const cohortFilter = findCohortFilter(node);
-      if (!cohortFilter) throw new Error("Root group must have an event filter");
+      if (!cohortFilter) throw new Error("Root group must have an event or custom event filter");
 
       const cohortId = cohortFilter.field;
       const cohort = localCache.activeCohorts?.find((c) => c.value === cohortId );
       const hasSystemEvent = cohort?.filter?.children?.some(
-        (c) => c.type === "filter" && c.filterType === "event",
+        (c) => c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
       );
       // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
 
-      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one system event filter");
+      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one system or custom event filter");
     }
 
     // Recurse into children
@@ -128,7 +128,7 @@ function validateFilterStructure(
   if (node.type === "filter") {
     // No special checks here — but could enforce supported filterTypes
     if (
-      !["event", "attribute", "additionalInfo", "slice", "cohort"].includes(
+      !["event", "customEvent", "attribute", "additionalInfo", "slice", "cohort"].includes(
         node.filterType,
       )
     ) {

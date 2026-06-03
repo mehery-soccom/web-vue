@@ -3,6 +3,7 @@ export default function validateFilterStructure(
   parentConjunction = null,
   isRoot = true,
   ignoreEventfilterType,
+  ignoreCustomEventfilterType,
   eventFilterMandatory = true,
 ) {
   if (!node) throw new Error("Empty filter node");
@@ -13,10 +14,10 @@ export default function validateFilterStructure(
       throw new Error("Group must have children");
     }
 
-    if (!ignoreEventfilterType) {
+    if (!ignoreEventfilterType && !ignoreCustomEventfilterType) {
       // Check: If group has multiple event filters as direct children, it must be OR
-      const directEventChildren = children.filter(
-        (c) => c.type === "filter" && c.filterType === "event",
+      const directEventChildren = children.filter(c =>
+          c.type === "filter" && ["event", "customEvent"].includes(c.filterType)
       );
       if (directEventChildren.length > 1 && conjunction !== "or") {
         throw new Error(
@@ -44,6 +45,7 @@ export default function validateFilterStructure(
         conjunction,
         false,
         ignoreEventfilterType,
+        ignoreCustomEventfilterType,
         eventFilterMandatory,
       ),
     );
@@ -54,7 +56,7 @@ export default function validateFilterStructure(
     // No special checks here — but could enforce supported filterTypes
     if (
       node.filterType &&
-      !["event", "attribute", "additionalInfo", "slice", "cohort"].includes(
+      !["event", "customEvent", "attribute", "additionalInfo", "slice", "cohort"].includes(
         node.filterType,
       )
     ) {

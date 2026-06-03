@@ -8,6 +8,7 @@ const props = defineProps({
   index: { type: Number, required: true },
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreCustomEventfilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
@@ -180,6 +181,7 @@ defineExpose({ isValid });
         :items="
           FILTER_TYPES.filter((f) => {
             if (ignoreEventfilterType && f.value === 'event') return false;
+            if (ignoreCustomEventfilterType && f.value === 'customEvent') return false;
             if (ignoreSlicefilterType && f.value === 'slice') return false;
             if (ignoreCohortfilterType && f.value === 'cohort') return false;
             if (element.filterType === f.value) return true;
@@ -345,6 +347,7 @@ defineExpose({ isValid });
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
+      :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
       :channelId="channelId"
