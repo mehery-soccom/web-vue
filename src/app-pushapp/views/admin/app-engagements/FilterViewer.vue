@@ -25,7 +25,7 @@ const resolvedFieldName = computed(() => {
   const field = props.node?.field;
 
   if (!filterType || !field) return "";
-  if (!["cohort", "slice"].includes(filterType)) {
+  if (!["cohort", "slice", "customEvent"].includes(filterType)) {
     return formatFieldName(field);
   }
 
@@ -36,7 +36,7 @@ const resolvedFieldName = computed(() => {
 
 onMounted(async () => {
   const filterType = props.node?.filterType;
-  if (["cohort", "slice"].includes(filterType) && !localCache[filterType]) {
+  if (["cohort", "slice", "customEvent"].includes(filterType) && !localCache[filterType]) {
     await fetchFilterFields({ type: filterType });
   }
 });
