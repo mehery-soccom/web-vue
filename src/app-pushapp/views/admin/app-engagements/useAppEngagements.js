@@ -184,7 +184,7 @@ export const useAppEngagements = (source, config = {}) => {
           const r = {
             type,
             title: el.eventName,
-            value: el._id,
+            value: el.eventName,
             meta: {
               projection: null,
             },
