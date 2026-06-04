@@ -6,6 +6,8 @@ import Dashboard from '../pages/dashboards/analytics.vue';
 import Events from "../pages/dashboards/events.vue";
 import SequenceIndex from '../pages/dashboards/sequence/list/index.vue'
 import AddSequence from "../pages/dashboards/sequence/add/[[id]].vue";
+import UserList from "../pages/dashboards/user/list/index.vue"
+import UserProfile from "../pages/dashboards/user/add/[[id]].vue";
 import TemplateList from '../pages/admin/app-engagements/templates/list/index.vue';
 import TemplateAdd from '../pages/admin/app-engagements/templates/add/[[id]].vue';
 import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vue';
@@ -96,6 +98,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "dashboards-sequence-add-id?",
           component: AddSequence,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/user/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-user-list",
+          component: UserList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/user/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-user-add-id?",
+          component: UserProfile,
           props: true,
           meta: { layout: "default" },
         },

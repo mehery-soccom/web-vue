@@ -8,6 +8,10 @@ export default [
         to: "dashboards-analytics",
       },
       {
+        title: "User Analytics",
+        to: "dashboards-user-list",
+      },
+      {
         title: "Event Analytics",
         to: "dashboards-events",
       },
