@@ -89,6 +89,10 @@ const removePlatform = () => {
 
       <VRow>
         <VCol cols="12" md="6">
+          <div v-if="data.file_path" class="text-success mb-2">
+            <VIcon size="18" class="mr-1">mdi-check-circle</VIcon>
+            File already uploaded
+          </div>
           <VFileInput
             class="mt-2"
             show-size
@@ -103,6 +107,10 @@ const removePlatform = () => {
           />
         </VCol>
         <VCol cols="12" md="6" v-if="data.platform_type === 'ios'">
+          <div v-if="data.fcm_file_path" class="text-success mb-2">
+            <VIcon size="18" class="mr-1">mdi-check-circle</VIcon>
+            File already uploaded
+          </div>
           <VFileInput
             class="mt-2"
             show-size
