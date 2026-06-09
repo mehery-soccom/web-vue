@@ -8,16 +8,16 @@ export default [
         to: "dashboards-analytics",
       },
       {
-        title: "User Analytics",
-        to: "dashboards-user-list",
-      },
-      {
         title: "Event Analytics",
         to: "dashboards-events",
       },
       {
         title: "Sequence Analytics",
         to: "dashboards-sequence-list",
+      },
+      {
+        title: "User Analytics",
+        to: "dashboards-user-list",
       },
       // {
       //   title: 'eCommerce',

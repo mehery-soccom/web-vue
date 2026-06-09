@@ -479,7 +479,7 @@ defineExpose({ isValid });
     </template>
 
     <!-- Fallback Journey -->
-    <VDivider class="my-6" />
+    <!-- <VDivider class="my-6" />
     <div class="d-flex align-center mb-3">
       <h3>Campaign Fallback Journey</h3>
       <div>
@@ -492,12 +492,12 @@ defineExpose({ isValid });
           inset
           color="primary"
           class="ml-2"
-        />
+        /> -->
         <!-- <VTooltip activator="parent" location="right">
           Configure a fallback communication
         </VTooltip> -->
-      </div>
-    </div>
+      <!-- </div>
+    </div> -->
     <Fallback
       v-if="journey.enabled"
       :model-value="journey"
