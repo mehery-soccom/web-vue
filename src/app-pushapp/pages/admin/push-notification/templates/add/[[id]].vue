@@ -490,7 +490,7 @@ watch(
                           v-model="template.style.notification_url"
                           :label="'Notification URL'"
                           placeholder="Enter URL"
-                          :rules="[urlRequired, urlRule]"
+                          :rules="[urlRule]"
                           prepend-inner-icon="mdi-link"
                           :items="optionsPath || []"
                           :clearable=true item-title="code" item-value="code"
