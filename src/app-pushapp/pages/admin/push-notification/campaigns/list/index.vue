@@ -370,7 +370,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
           || (item.raw.schedule?.type == 'scheduled' && new Date(item.raw.schedule?.runAt) > now && !item.raw.schedule?.canceledAt)"
           @click="openCancelDialog(item.raw._id || item.raw.id)"
         >
-          <VIcon>mdi-delete</VIcon>
+          <VIcon>mdi-calendar-remove</VIcon>
+          <VTooltip activator="parent">Cancel Campaign</VTooltip>
         </IconBtn>
         <IconBtn
           v-if="item.raw.logs?.length"
@@ -389,7 +390,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <VCardActions>
           <VSpacer />
           <VBtn variant="text" @click="cancelDialog = false"> No </VBtn>
-          <VBtn color="error" @click="confirmCancelCampaign"> Cancel </VBtn>
+          <VBtn color="error" @click="confirmCancelCampaign"> Yes </VBtn>
         </VCardActions>
       </VCard>
     </VDialog>
