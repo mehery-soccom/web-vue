@@ -6,8 +6,8 @@ import { useStatusStore } from '@/app-tikat/views/setup/status/useStatusStore'
 import { useRouter } from 'vue-router'
 import * as XLSX from "xlsx"
 import { useRoute } from 'vue-router'
-import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue"
-import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters"
+import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue"
+import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters"
 
 const route = useRoute()
 const { show } = inject('snackbar')
@@ -47,13 +47,14 @@ const today = new Date()
 const tonight = new Date()
 tonight.setHours(23, 59, 59, 999)
 
-const oneWeekAgo = new Date()
-oneWeekAgo.setDate(oneWeekAgo.getDate() - 6)
+const thirtyDaysAhead = new Date()
+thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30)
+thirtyDaysAhead.setHours(23, 59, 59, 999)
 
-const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-")
-const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-")
+const formattedStart = today.toLocaleDateString("en-GB").split("/").join("-")
+const formattedEnd = thirtyDaysAhead.toLocaleDateString("en-GB").split("/").join("-")
 const dateRange = ref(`${formattedStart} to ${formattedEnd}`)
-const selectedDateObjects = ref([oneWeekAgo, tonight])
+const selectedDateObjects = ref([today, thirtyDaysAhead])
 
 const userRoles = window.CONST?.USER?.role || []
 // const canAssign = !userRoles.includes('MODERATOR') && !userRoles.includes('USER')
@@ -247,7 +248,6 @@ onMounted(() => {
               :config="{
                   mode: 'range',
                   dateFormat: 'd-m-Y',
-                  maxDate: tonight,
                   position: 'auto right',
                   onClose: onDateClosed,
                   plugins: [customPlugin],
