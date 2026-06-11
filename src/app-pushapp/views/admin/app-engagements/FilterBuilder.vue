@@ -6,9 +6,11 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreCustomEventfilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
+  channelId: { type: [String, Number], default: null },
 });
 const emit = defineEmits(["update:modelValue", "delete-group"]);
 
@@ -140,11 +142,13 @@ defineExpose({ isValid });
         @remove="removeChild(index)"
         @update="emit('update:modelValue', modelValue)"
         :ignoreEventfilterType="ignoreEventfilterType"
+        :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
         :ignoreSlicefilterType="ignoreSlicefilterType"
         :ignoreCohortfilterType="ignoreCohortfilterType"
         :readonly="readonly"
         :hasCohort="hasCohort"
         :hasNormalFilter="hasNormalFilter"
+        :channelId="channelId"
       />
     </div>
 

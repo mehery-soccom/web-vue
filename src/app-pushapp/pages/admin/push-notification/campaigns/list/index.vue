@@ -114,6 +114,7 @@ const pagination = reactive({
     templateCode: "",
   },
 });
+const now = new Date();
 const logDialog = ref(false);
 const selectedLogs = ref([]);
 function formatDate(timestamp) {
@@ -177,6 +178,29 @@ const fetchCampaigns = async (params) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const cancelCampaigns = async (id) => {
+  try{
+    isLoading.value = true;
+    const response = await pushNotificationStore.cancelCampaign(id);
+    if(response.data) await fetchCampaigns({ ...pagination });
+  } catch (error) {
+    console.error(error);
+  } finally {
+    isLoading.value = false;
+  }
+}
+const cancelDialog = ref(false);
+const campaignToCancel = ref(null);
+const openCancelDialog = id => {
+  campaignToCancel.value = id;
+  cancelDialog.value = true;
+};
+const confirmCancelCampaign = async () => {
+  await cancelCampaigns(campaignToCancel.value);
+  cancelDialog.value = false;
+  campaignToCancel.value = null;
 };
 
 const campaignDialog = ref(false);
@@ -342,6 +366,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VTooltip activator="parent">Logs</VTooltip>
         </IconBtn>
         <IconBtn
+          v-if="(item.raw.schedule?.isRecurring && new Date(item.raw.schedule?.until) > now && !item.raw.schedule?.canceledAt) 
+          || (item.raw.schedule?.type == 'scheduled' && new Date(item.raw.schedule?.runAt) > now && !item.raw.schedule?.canceledAt)"
+          @click="openCancelDialog(item.raw._id || item.raw.id)"
+        >
+          <VIcon>mdi-calendar-remove</VIcon>
+          <VTooltip activator="parent">Cancel Campaign</VTooltip>
+        </IconBtn>
+        <IconBtn
           v-if="item.raw.logs?.length"
           @click="openLogDialog(item.raw.logs)"
         >
@@ -351,6 +383,17 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template>
     </MyDataTable>
     <!-- Modal -->
+    <VDialog v-model="cancelDialog" max-width="450">
+      <VCard>
+        <VCardTitle class="text-h6">Cancel Campaign</VCardTitle>
+        <VCardText>Are you sure you want to cancel this campaign?</VCardText>
+        <VCardActions>
+          <VSpacer />
+          <VBtn variant="text" @click="cancelDialog = false"> No </VBtn>
+          <VBtn color="error" @click="confirmCancelCampaign"> Yes </VBtn>
+        </VCardActions>
+      </VCard>
+    </VDialog>
     <VDialog v-model="logDialog" max-width="800">
       <VCard>
         <VCardTitle class="text-h6">Logs</VCardTitle>

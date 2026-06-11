@@ -1,5 +1,6 @@
 export const FILTER_TYPES = [
   { title: "System Event", value: "event" },
+  { title: "Custom Event", value: "customEvent" },
   { title: "System Attribute", value: "attribute" },
   { title: "Profile Attribute", value: "additionalInfo" },
   { title: "Slice", value: "slice" },

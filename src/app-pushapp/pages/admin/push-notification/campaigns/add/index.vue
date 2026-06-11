@@ -39,6 +39,52 @@ const ChannelList = ref([]);
 const TemplateListSimple = ref([]);
 const formRef = ref();
 const filterRef = ref(null);
+const scheduleFormRef = ref();
+
+const tabErrors = ref({
+  "tab-details": false,
+  "tab-audience": false,
+  "tab-schedule": false,
+});
+
+const validateTab = async (tabName, silent = false) => {
+  let valid = true;
+
+  switch (tabName) {
+    case "tab-details":
+      const detailsValidation = await formRef.value?.validate();
+      if (!detailsValidation?.valid) valid = false;
+      break;
+
+    case "tab-audience":
+      let filterValid = await filterRef.value?.isValid();
+      let filterStructureValid = true;
+
+      try {
+        validateFilterStructure(filter, null, true, true, true);
+      } catch (error) {
+        filterStructureValid = false;
+        if (!silent) show({ message: error.message, color: "error",});
+      }
+
+      if (!filterValid || !filterStructureValid) valid = false;
+      break;
+
+    case "tab-schedule":
+      // if (schedule.recurringType && !schedule.schedulePattern) valid = false;
+      const scheduleValidation = await scheduleFormRef.value?.validate();
+      if (!scheduleValidation?.valid) valid = false;
+      break;
+  }
+  if (!silent) tabErrors.value[tabName] = !valid;
+  return valid;
+};
+
+const validateAllTabs = async (silent = false) => {
+  const tabs = ["tab-details", "tab-audience", "tab-schedule" ];
+  const results = await Promise.all(tabs.map(tab => validateTab(tab, silent)));
+  return results.every(Boolean);
+};
 
 const schedule = reactive({
   durationType: "immediate",
@@ -193,22 +239,10 @@ onMounted(async () => {
 });
 
 const onSendSimple = async () => {
-  let validationResult = await formRef.value.validate();
-  if (!validationResult.valid) {
-    return;
-  }
-
-  let filtervalid = await filterRef.value?.isValid();
-  let filterStructureValid = true;
-  try {
-    validateFilterStructure(filter, null, true, true);
-  } catch (error) {
-    filterStructureValid = false;
-    show({ message: error.message, color: "error" });
-  }
-  if (!filtervalid || !filterStructureValid) return;
-  if (schedule.recurringType && !schedule.schedulePattern) {
-    show({ message: "Please select a recurrence pattern", color: "error",});
+  const valid = await validateAllTabs();
+  if (!valid) {
+    const firstInvalidTab = Object.keys(tabErrors.value).find(key => tabErrors.value[key]);
+    if (firstInvalidTab) tab.value = firstInvalidTab;
     return;
   }
 
@@ -271,9 +305,15 @@ const onSendSimple = async () => {
     <v-col cols="12" md="12">
       <v-card title="Push Notification">
         <VTabs v-model="tab">
-          <VTab value="tab-details"> Details </VTab>
-          <VTab value="tab-audience"> Audience </VTab>
-          <VTab value="tab-schedule"> Scheduling </VTab>
+          <VTab value="tab-details" :class="{ 'error-tab': tabErrors['tab-details'] }"> Details 
+            <VIcon v-if="tabErrors['tab-details']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
+          </VTab>
+          <VTab value="tab-audience" :class="{ 'error-tab': tabErrors['tab-audience'] }"> Audience 
+            <VIcon v-if="tabErrors['tab-audience']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
+          </VTab>
+          <VTab value="tab-schedule" :class="{ 'error-tab': tabErrors['tab-schedule'] }"> Scheduling 
+            <VIcon v-if="tabErrors['tab-schedule']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
+          </VTab>
         </VTabs>
 
         <VForm ref="formRef">
@@ -337,12 +377,15 @@ const onSendSimple = async () => {
                   <FilterBuilder
                     v-model="filter"
                     :ignoreEventfilterType="true"
+                    :ignoreCustomEventfilterType="true"
                     :ignoreCohortfilterType="true"
+                    :channelId="notification.channel_id"
                     ref="filterRef"
                   />
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
+                  <VForm ref="scheduleFormRef">
                   <h3 class="mb-2">Schedule</h3>
                   <p class="text-caption mb-4">
                     Choose when the campaign will start
@@ -502,7 +545,7 @@ const onSendSimple = async () => {
                           </template>
                         </VRadio>
 
-                        <!-- <VRadio value="monthlyWeekday">
+                        <VRadio value="monthlyWeekday">
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
                               Repeat on week day of month
@@ -555,7 +598,7 @@ const onSendSimple = async () => {
                               />
                             </div>
                           </template>
-                        </VRadio> -->
+                        </VRadio>
                       </VRadioGroup>
                     </div>
                     <div class="d-flex flex-wrap align-center gap-2 mt-4">
@@ -571,6 +614,7 @@ const onSendSimple = async () => {
                         />
                     </div>
                   </div>
+                  </VForm>
                 </VWindowItem>
               </VWindow>
             </VCardText>

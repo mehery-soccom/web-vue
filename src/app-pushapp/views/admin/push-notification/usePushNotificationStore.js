@@ -149,6 +149,10 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       return DataService.axios.get(`/api/v1/campaign/${id}`);
     },
 
+    cancelCampaign(id) {
+      return DataService.axios.post(`/api/v1/notification/push/schedule/cancel`,{ campaignId: id });
+    },
+
     // 👉 Fetch all Templates
     fetchTemplates(params) {
       if (!params) return DataService.axios.get(`/api/templates/push`);

@@ -425,7 +425,7 @@ defineExpose({ isValid });
               </template>
             </VRadio>
 
-            <!-- <VRadio value="monthlyWeekday">
+            <VRadio value="monthlyWeekday">
               <template #label>
                 <div class="d-flex align-center gap-2 flex-wrap">
                   Run from
@@ -471,7 +471,7 @@ defineExpose({ isValid });
                   />
                 </div>
               </template>
-            </VRadio> -->
+            </VRadio>
           </VRadioGroup>
         </div>
       </div>
@@ -479,8 +479,7 @@ defineExpose({ isValid });
     </template>
 
     <!-- Fallback Journey -->
-    <template v-if="false">
-    <VDivider class="my-6" />
+    <!-- <VDivider class="my-6" />
     <div class="d-flex align-center mb-3">
       <h3>Campaign Fallback Journey</h3>
       <div>
@@ -493,19 +492,18 @@ defineExpose({ isValid });
           inset
           color="primary"
           class="ml-2"
-        />
+        /> -->
         <!-- <VTooltip activator="parent" location="right">
           Configure a fallback communication
         </VTooltip> -->
-      </div>
-    </div>
+      <!-- </div>
+    </div> -->
     <Fallback
       v-if="journey.enabled"
       :model-value="journey"
       @update:modelValue="(val) => emit('update:journey', val)"
       ref="journeyRef"
     />
-  </template>
 
     <!-- Repeat Campaign -->
     <template v-if="false">

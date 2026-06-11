@@ -8,11 +8,13 @@ const props = defineProps({
   index: { type: Number, required: true },
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
+  ignoreCustomEventfilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   hasCohort: { type: Boolean, default: false },
   hasNormalFilter: { type: Boolean, default: false },
+  channelId: { type: [String, Number], default: null },
 });
 const emit = defineEmits(["remove", "update"]);
 
@@ -26,7 +28,7 @@ const datePresets = [
   { label: "Today", key: "today" },
   { label: "Tomorrow", key: "tomorrow" },
 ];
-
+const channelId = computed(() => props.channelId);
 // === Constants ===
 const {
   FILTER_TYPES,
@@ -34,7 +36,7 @@ const {
   FILTER_FIELDS_MAP,
   FILTER_OPERATORS,
   FILTER_PERIODS,
-} = useAppEngagements(props.element, { onlyActiveCohorts: true });
+} = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId });
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
@@ -113,6 +115,21 @@ watch(() => props.element.filterType,
     resetFilterValues();
   },
 );
+
+watch(() => props.channelId,
+  () => {
+    if (props.element.filterType !== "slice") return;
+    const exists = FILTER_FIELDS.value.some(
+      (f) => f.value === props.element.field,
+    );
+    if (!exists) {
+      props.element.field = null;
+      props.element.operator = null;
+      props.element.value = null;
+      clearErrorAndUpdate();
+    }
+  },
+);
 watch(
   () => props.element.field,
   () => {
@@ -164,6 +181,7 @@ defineExpose({ isValid });
         :items="
           FILTER_TYPES.filter((f) => {
             if (ignoreEventfilterType && f.value === 'event') return false;
+            if (ignoreCustomEventfilterType && f.value === 'customEvent') return false;
             if (ignoreSlicefilterType && f.value === 'slice') return false;
             if (ignoreCohortfilterType && f.value === 'cohort') return false;
             if (element.filterType === f.value) return true;
@@ -329,8 +347,10 @@ defineExpose({ isValid });
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
+      :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
+      :channelId="channelId"
     />
     <VDialog v-model="showCohortConfirm" max-width="420">
       <VCard

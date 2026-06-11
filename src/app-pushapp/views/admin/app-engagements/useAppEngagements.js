@@ -29,9 +29,13 @@ export const useAppEngagements = (source, config = {}) => {
     if (!source?.filterType) return [];
     if (source.filterType === "cohort") return config.onlyActiveCohorts
       ? localCache.activeCohorts || [] : localCache.cohort || [];
-    return Object.values(FILTER_FIELDS_MAP).filter(
-      (o) => o.type === source.filterType,
-    );
+    return Object.values(FILTER_FIELDS_MAP).filter((o) => {
+      if (o.type !== source.filterType) return false;
+      if (source.filterType === "slice" && config.channelId.value) {
+        return String(o.channelId) === String(config.channelId.value);
+      }
+      return true;
+    });
   });
   const FILTER_OPERATORS = computed(() => {
     // console.log("FILTER_OPERATORS", source.field);
@@ -123,6 +127,7 @@ export const useAppEngagements = (source, config = {}) => {
             meta: {
               projection: null, // el.buildStats?.tokensSubscribed,
             },
+            channelId: el.channel_id,
           };
           resultsMap[r.value] = r;
           return r;
@@ -159,6 +164,35 @@ export const useAppEngagements = (source, config = {}) => {
         });
         localCache[type] = results;
         localCache.activeCohorts = activeCohorts;
+        Object.assign(FILTER_FIELDS_MAP, resultsMap);
+      } catch (error) {
+        console.error(`Failed to fetch filter options for ${type}:`, error);
+        localCache[type] = [];
+      } finally {
+        isLoading.value = false;
+      }
+    }
+
+    if (type === "customEvent") {
+      isLoading.value = true;
+      try {
+        const response = await DataService.axios.get(
+          "/api/v1/event-definition",
+        );
+        const resultsMap = {};
+        const results = response.data.data.map((el) => {
+          const r = {
+            type,
+            title: el.eventName,
+            value: el.eventName,
+            meta: {
+              projection: null,
+            },
+          };
+          resultsMap[r.value] = r;
+          return r;
+        });
+        localCache[type] = results;
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${type}:`, error);
