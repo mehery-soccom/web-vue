@@ -460,20 +460,28 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
           <VTooltip activator="parent">End this campaign</VTooltip>
         </VBtn>
-        <IconBtn @click="openLogDialog(item)">
+        <IconBtn
+          :to="{
+            name: 'admin-app-engagements-campaigns-view-id?',
+            params: { id: item.raw._id },
+          }"
+        >
+          <VIcon>mdi-eye</VIcon>
+          <VTooltip activator="parent">View Campaign Details</VTooltip>
+        </IconBtn>
+        <!-- <IconBtn @click="openLogDialog(item)">
           <VIcon>mdi-eye</VIcon>
           <VTooltip activator="parent">Logs</VTooltip>
-        </IconBtn>
+        </IconBtn> -->
       </template>
     </MyDataTable>
-    <VDialog v-model="logDialog" max-width="600">
+    <!-- <VDialog v-model="logDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
         <VCardText>
           <div class="campaign-details">
             <div><strong>Campaign ID:</strong> {{ selectedLogs.raw._id }}</div>
 
-            <!-- Audience -->
             <section class="detail-block">
               <h5>Audience</h5>
               <div>
@@ -484,13 +492,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
               </div>
             </section>
 
-            <!-- Filter -->
             <section v-if="selectedLogs.raw.filter" class="detail-block">
               <h5>Filter</h5>
               <FilterViewer :node="selectedLogs.raw.filter" />
             </section>
 
-            <!-- Schedule -->
             <section v-if="selectedLogs.raw.schedule" class="detail-block">
               <h5>Schedule</h5>
               <div>
@@ -523,7 +529,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VBtn text @click="logDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
-    </VDialog>
+    </VDialog> -->
   </VCard>
 </template>
 

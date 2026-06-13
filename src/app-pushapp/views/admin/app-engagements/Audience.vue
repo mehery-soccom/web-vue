@@ -9,6 +9,7 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   filter: { type: Object, required: true },
   abTesting: { type: Object, required: false },
+  readonly: { type: Boolean, default: false }
 });
 const emit = defineEmits([
   "update:modelValue",
@@ -218,7 +219,7 @@ defineExpose({ isValid });
 
     <FilterBuilder
       v-model="filterLocal"
-      ref="filterRef"
+      ref="filterRef" :readonly="readonly"
       :ignoreSlicefilterType="true"
     />
 

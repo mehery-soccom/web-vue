@@ -15,6 +15,10 @@ const props = defineProps({
     type: String,
     default: "",
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  }
 })
 
 const emit = defineEmits(['update:modelValue', 'update:thumbnailUrl'])
@@ -80,10 +84,10 @@ function addFileInput() {
         @update:thumbnailUrl="val => {
           fileObj.thumbnailUrl = val;
           emit('update:thumbnailUrl', val)
-        }" :helper-text="props.helperText"
+        }" :helper-text="props.helperText" :disabled="disabled"
       />
       <MyFileInputUpload v-else
-        v-model="fileObj.value" :label="`${props.label || 'File'} ${index + 1}`"
+        v-model="fileObj.value" :label="`${props.label || 'File'} ${index + 1}`" :disabled="disabled"
         :placeholder="props.placeholder" :max-size="props.maxSize" :helper-text="props.helperText"
       />
       <!-- <MyFileInputUpload
@@ -92,7 +96,7 @@ function addFileInput() {
         :placeholder="props.placeholder" :max-size="props.maxSize"
       /> -->
     </div>
-    <div v-if="visibleCount < props.max">
+    <div v-if="visibleCount < props.max" v-show="!disabled">
       <v-btn variant="tonal" color="primary" @click="addFileInput">+ Add File</v-btn>
     </div>
   </div>
