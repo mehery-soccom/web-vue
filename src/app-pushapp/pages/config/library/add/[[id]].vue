@@ -6,12 +6,13 @@ import OptionsSchema from "@/app-pushapp/views/config/library/OptionsSchema.vue"
 
 const { show } = inject("snackbar");
 
-const toCode = (v) => {
-  return String(v || "")
-    .trim()
-    .replace(/\s+/g, "_")
-    .toLowerCase();
-};
+// const toCode = (v) => {
+//   return String(v || "")
+//     .trim()
+//     .replace(/\s+/g, "_")
+//     .toLowerCase();
+// };
+const toCode = (v) => { return String(v || "").trim().replace(/[^a-zA-Z0-9_]/g, ""); };
 
 const DEFAULT_OPTION_SCHEMA = {
   properties: [

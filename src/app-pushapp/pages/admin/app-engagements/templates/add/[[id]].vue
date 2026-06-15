@@ -526,7 +526,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
             <template v-if="IS_PAGE">
               <VDivider />
               <VCardText class="d-flex gap-4">
-                <VBtn :disabled="isLoading || TEMPLATE_ID.value" @click="submit">{{
+                <VBtn :disabled="isLoading || TEMPLATE_ID" @click="submit">{{
                   isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
                 }}</VBtn>
                 <VBtn
