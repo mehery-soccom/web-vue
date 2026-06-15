@@ -39,6 +39,10 @@ const props = defineProps({
     type: Number,
     default: null,
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 const emit = defineEmits(["update:modelValue","update:thumbnailUrl"]);
@@ -247,7 +251,7 @@ watch(url, (val) => {
         placeholder="Select a file"
         prepend-inner-icon="mdi-image"
         prepend-icon=""
-        v-bind="_props"
+        v-bind="_props" :disabled="disabled"
       />
       <div v-else class="d-flex align-center ga-3">
         <VTextField
@@ -262,7 +266,7 @@ watch(url, (val) => {
         {{ helperText }}
       </div>
     </VCol>
-    <VCol v-if="url" cols="1" class="d-flex align-center justify-end">
+    <VCol v-if="url && !disabled" cols="1" class="d-flex align-center justify-end">
       <VBtn icon variant="text" @click="clearUpload">
         <VIcon>mdi-trash</VIcon>
       </VBtn>

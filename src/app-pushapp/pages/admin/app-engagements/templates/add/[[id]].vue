@@ -16,6 +16,11 @@ const { show } = inject("snackbar");
 
 const props = defineProps({
   edit: { type: String },
+  templateId: String,
+  readonly: {
+    type: Boolean,
+    default: false,
+  },
   // embedded: { type: Boolean, default: false },
 });
 
@@ -24,8 +29,10 @@ const AppEngagementsStore = useAppEngagementsStore();
 
 const route = useRoute();
 const IS_PAGE = route.name?.includes("admin-app-engagements-templates-add");
-const PARAM_ID = route.params.id;
+// const PARAM_ID = route.params.id;
+const PARAM_ID = IS_PAGE && !props.templateId ? route.params.id : null;
 const QUERY_COPY = route.query.t_copy;
+const TEMPLATE_ID = computed(() => { return props.templateId });
 // const QUERY_EDIT = route.query.t_edit; // stop using
 
 const router = useRouter();
@@ -281,11 +288,7 @@ const saveTemplate = async () => {
 
 const isValid = async () => {
   let validationResult = await formRef.value?.validate();
-
-  if (!validationResult?.valid) {
-    return false;
-  }
-
+  if (!validationResult?.valid) return false;
   return true;
 };
 
@@ -317,13 +320,14 @@ const fetchDetails = async (val, isCopy = false) => {
 };
 
 onMounted(async () => {
-  if (PARAM_ID || QUERY_COPY) isPreStep.value = false;
-  if (PARAM_ID) await fetchDetails(PARAM_ID);
+  if (PARAM_ID || QUERY_COPY || TEMPLATE_ID.value) isPreStep.value = false;
+  if (TEMPLATE_ID.value) await fetchDetails(TEMPLATE_ID.value);
+  else if (PARAM_ID) await fetchDetails(PARAM_ID);
   else {
     if (QUERY_COPY) await fetchDetails(QUERY_COPY, true);
     else isInitialLoad.value = false;
   }
-  setInterval(()=> console.log("id page", isPreStep.value), 10000);
+  // setInterval(()=> console.log("id page", isPreStep.value), 10000);
 });
 function goToPreStep() {
   if(props.edit) router.push({ name: "admin-app-engagements-campaigns-add" });
@@ -415,7 +419,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
             <v-col
               class="pa-0"
               cols="auto"
-              v-if="!(PARAM_ID || QUERY_COPY || props.edit)"
+              v-if="!(PARAM_ID || QUERY_COPY || props.edit || TEMPLATE_ID)"
             >
               <v-btn variant="outlined" color="primary" @click="goToPreStep">
                 ← Back to pre step
@@ -472,8 +476,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                               availableSubTypes.length > 1 ||
                               (availableSubTypes.length === 1 &&
                                 availableSubTypes[0].value !== template.type)
-                                ? [required]
-                                : []
+                                ? [required] : []
                             "
                             label="Subtype"
                           />
@@ -484,7 +487,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                             label="Template Name"
                             placeholder="Enter name"
                             :rules="[required]"
-                            :disabled="!!(PARAM_ID || props.edit)"
+                            :disabled="!!(PARAM_ID || props.edit || TEMPLATE_ID)"
                             prepend-inner-icon="mdi-text-box"
                           />
                         </VCol>
@@ -493,6 +496,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                       <DynamicForm
                         :formData="template"
                         :fields="formFields"
+                        :readonly="props.readonly"
                         @update:formData="onFormUpdate"
                       />
                     </VForm>
@@ -522,7 +526,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
             <template v-if="IS_PAGE">
               <VDivider />
               <VCardText class="d-flex gap-4">
-                <VBtn :disabled="isLoading" @click="submit">{{
+                <VBtn :disabled="isLoading || TEMPLATE_ID.value" @click="submit">{{
                   isLoading ? "loading..." : PARAM_ID ? "Update" : "Create"
                 }}</VBtn>
                 <VBtn

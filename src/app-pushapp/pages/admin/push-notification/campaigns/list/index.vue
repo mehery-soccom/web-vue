@@ -203,12 +203,12 @@ const confirmCancelCampaign = async () => {
   campaignToCancel.value = null;
 };
 
-const campaignDialog = ref(false);
-const selectedCampaignLogs = ref([]);
-const openCampaignDialog = (logs) => {
-  selectedCampaignLogs.value = logs || [];
-  campaignDialog.value = true;
-};
+// const campaignDialog = ref(false);
+// const selectedCampaignLogs = ref([]);
+// const openCampaignDialog = (logs) => {
+//   selectedCampaignLogs.value = logs || [];
+//   campaignDialog.value = true;
+// };
 const openLogDialog = (logs) => {
   selectedLogs.value = logs || [];
   logDialog.value = true;
@@ -361,16 +361,22 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
         </IconBtn> -->
-        <IconBtn @click="openCampaignDialog(item)">
+        <IconBtn
+          :to="{
+            name: 'admin-push-notification-campaigns-view-id?',
+            params: { id: item.raw._id },
+          }"
+        >
           <VIcon>mdi-eye</VIcon>
-          <VTooltip activator="parent">Logs</VTooltip>
+          <VTooltip activator="parent">View Campaign Details</VTooltip>
         </IconBtn>
         <IconBtn
           v-if="(item.raw.schedule?.isRecurring && new Date(item.raw.schedule?.until) > now && !item.raw.schedule?.canceledAt) 
           || (item.raw.schedule?.type == 'scheduled' && new Date(item.raw.schedule?.runAt) > now && !item.raw.schedule?.canceledAt)"
           @click="openCancelDialog(item.raw._id || item.raw.id)"
         >
-          <VIcon>mdi-delete</VIcon>
+          <VIcon>mdi-calendar-remove</VIcon>
+          <VTooltip activator="parent">Cancel Campaign</VTooltip>
         </IconBtn>
         <IconBtn
           v-if="item.raw.logs?.length"
@@ -389,7 +395,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <VCardActions>
           <VSpacer />
           <VBtn variant="text" @click="cancelDialog = false"> No </VBtn>
-          <VBtn color="error" @click="confirmCancelCampaign"> Cancel </VBtn>
+          <VBtn color="error" @click="confirmCancelCampaign"> Yes </VBtn>
         </VCardActions>
       </VCard>
     </VDialog>
@@ -423,7 +429,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VCardActions>
       </VCard>
     </VDialog>
-    <VDialog v-model="campaignDialog" max-width="600">
+    <!-- <VDialog v-model="campaignDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
         <VCardText>
@@ -431,13 +437,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <div style="font-size: 15px;"><strong>Campaign Name:</strong> {{ selectedCampaignLogs.raw.campaignName }}</div>
             <div style="margin-top: 4px;font-size: 15px;"><strong>Template Code:</strong> {{ selectedCampaignLogs.raw.templateCode }}</div>
 
-            <!-- Filter -->
             <section v-if="selectedCampaignLogs.raw.filter" class="detail-block">
               <h5>Filter</h5>
               <FilterViewer :node="selectedCampaignLogs.raw.filter" />
             </section>
 
-            <!-- Schedule -->
             <section v-if="selectedCampaignLogs.raw?.schedule" class="detail-block">
               <h5>Schedule</h5>
               <div>
@@ -472,7 +476,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VBtn text @click="campaignDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
-    </VDialog>
+    </VDialog> -->
   </VCard>
 </template>
 

@@ -18,7 +18,8 @@ const props = defineProps({
   placeholder: String,
   children: Array,
   optionsPath: Array,
-  formData: Object 
+  formData: Object,
+  disabled: { type: Boolean, default: false }
 })
 
 const emit = defineEmits(['update:modelValue', 'updateChild'])
@@ -85,7 +86,7 @@ function onChildUpdate(index, val) {
       :placeholder="placeholder"
       item-title="label"
       item-value="value"
-      return-object
+      return-object :disabled="disabled"
     />
     <div v-if="modelValue?.value && activeOption.children?.length">
       <component
@@ -95,7 +96,7 @@ function onChildUpdate(index, val) {
         :model-value="localButtons[index]?.button_url || ''"
         @update:modelValue="val => onChildUpdate(index, val)"
         v-bind="child"
-        style="margin: 10px 0;"
+        style="margin: 10px 0;" :disabled="disabled"
       />
     </div>
   </div>
