@@ -5,13 +5,10 @@ import { useProjectStore } from "@app-pushapp/views/dashboards/analytics/useProj
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { ref, onMounted, toRaw, nextTick } from "vue";
-import html2canvas from 'html2canvas';
-import * as XLSX from 'xlsx';
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
 
-const chartCard = ref(null);
 const chartData = ref({ labels: [], datasets: [] });
 const chartOptions = ref({});
 const chartJsCustomColors = {
@@ -299,30 +296,6 @@ const fetchChartData = async (fromDate, toDate) => {
     console.error("fetchChartData error:", error);
   }
 };
-const downloadImage = async () => {
-  if (!chartCard.value?.$el) return;
-  const fileName = `Device_Analytics_${dateRange.value}.png`.replace(/\s+/g, '_');
-  const canvas = await html2canvas(chartCard.value.$el, { useCORS: true, backgroundColor: null });
-  const link = document.createElement('a');
-  link.download = fileName;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
-};
-const exportToExcel = () => {
-  if (!chartData.value?.datasets?.length) return;
-  const formattedData = chartData.value.labels.map((label, i) => {
-    const row = { Time: label };
-    chartData.value.datasets.forEach(ds => {
-      row[ds.label] = ds.data[i];
-    });
-    return row;
-  });
-  const worksheet = XLSX.utils.json_to_sheet(formattedData);
-  const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Device Analytics");
-  const fileName = `Device_Analytics_${dateRange.value}.xlsx`.replace(/\s+/g, '_');
-  XLSX.writeFile(workbook, fileName);
-};
 const onChartDateChange = ([start, end]) => {
   const from = new Date(start);
   from.setHours(0,0,0,0);
@@ -407,64 +380,28 @@ onMounted(async () => {
     <VRow justify="center">
       <!-- <VCol cols="12" md="1.5"></VCol> -->
       <VCol cols="12" md="12" style="height: calc(100vh - 150px);">
-        <VCard ref="chartCard" style="height: 100%;">
-          <VCardItem class="pb-0 pt-3">
-            <template #append>
-              <div class="d-flex align-center gap-2">
-                <AppDateTimePicker
-                  v-model="dateRange"
-                  prepend-inner-icon="tabler-calendar"
-                  style="width: 220px;"
-                  :config="{
-                    mode: 'range',
-                    dateFormat: 'd-m',
-                    maxDate: tonight,
-                    onClose: onDateClosed,
-                    plugins: [customPlugin]
-                  }"
-                />
-                <VMenu transition="scale-transition" open-on-hover>
-                  <template #activator="{ props }">
-                    <VBtn
-                      icon="tabler-download"
-                      variant="tonal"
-                      color="secondary"
-                      size="small"
-                      v-bind="props"
-                      :disabled="!chartData?.datasets?.length"
-                    />
-                  </template>
-                  <VList density="compact">
-                    <VListItem @click="downloadImage">
-                      <template #prepend>
-                        <VIcon icon="tabler-photo" size="18" class="me-2" />
-                      </template>
-                      <VListItemTitle>Download Image</VListItemTitle>
-                    </VListItem>
-                    <VListItem @click="exportToExcel">
-                      <template #prepend>
-                        <VIcon icon="tabler-file-spreadsheet" size="18" class="me-2" />
-                      </template>
-                      <VListItemTitle>Download Excel</VListItemTitle>
-                    </VListItem>
-                  </VList>
-                </VMenu>
-              </div>
-            </template>
-          </VCardItem>
-          <VCardText style="height: calc(100% - 50px); padding: 0;">
-            <MyChartComponent
-              type="line" :key="chartKey"
-              :data="chartData"
-              :chartOption="chartOptions"
-              :colors="chartJsCustomColors"
-              :title="'Device Statistics'"
-              :modelValue="globalDateRange"
-              :enableDatePicker="false"
-              @dateChange="onChartDateChange"
-            />
-          </VCardText>
-        </VCard>
+        <MyChartComponent
+          type="line" :key="chartKey"
+          :data="chartData"
+          :chartOption="chartOptions"
+          :colors="chartJsCustomColors"
+          :title="'Device Statistics'"
+          :modelValue="globalDateRange"
+          :enableDatePicker="true"
+          :dateConfig="{
+            mode: 'range',
+            dateFormat: 'd-m',
+            maxDate: tonight,
+            plugins: [customPlugin]
+          }"
+          :enableDownload="true"
+          :downloadConfig="{
+            fileName: `Device_Analytics_${dateRange}`,
+            types: ['image', 'excel'],
+            sheetName: 'Device Analytics'
+          }"
+          @dateChange="onChartDateChange"
+        />
       </VCol>
     </VRow>
 
