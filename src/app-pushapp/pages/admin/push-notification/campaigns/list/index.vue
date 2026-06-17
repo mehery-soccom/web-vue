@@ -46,10 +46,10 @@ const headers = [
     title: "Template",
     key: "templateCode",
   },
-  {
-    title: "Status",
-    key: "status",
-  },
+  // {
+  //   title: "Status",
+  //   key: "status",
+  // },
   {
     title: "Start",
     key: "createdStamp",
@@ -275,9 +275,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template>
 
       <!-- status -->
-      <template #item.status="{ item }">
+      <!-- <template #item.status="{ item }">
         <div class="d-flex gap-2">{{ item.raw.status }}</div>
-      </template>
+      </template> -->
 
       <!-- sent at -->
       <template #item.createdStamp="{ item }">
