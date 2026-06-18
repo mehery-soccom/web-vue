@@ -17,15 +17,7 @@ const headers = [
   { title: "Button Code", key: "buttonCode", searchable: true },
   { title: "Recieved at", key: "timestamp", searchable: true },
 ];
-const statsCamp = ref([
-  { title: "Total", stats: "0", icon: "tabler-send", color: "info" },
-  { title: "Sent", stats: "0", icon: "tabler-send", color: "primary" },
-  { title: "Delivered", stats: "0", icon: "tabler-mailbox", color: "info" },
-  { title: "Read", stats: "0", icon: "tabler-book", color: "error" },
-  { title: "Replied", stats: "0", icon: "tabler-message-reply", color: "success"},
-  { title: "Failed", stats: "0", icon: "tabler-exclamation-circle", color: "error" },
-  { title: "Bounced", stats: "0", icon: "tabler-message-reply", color: "warning" },
-]);
+const statsCamp = ref([]);
 const pagination = reactive({
   itemsLength: 0,
   page: 1,
@@ -68,12 +60,32 @@ const fetchCampaignData = async (id, pagination) => {
     if(response?.data?.pagination) pagination.itemsLength = response.data.pagination.total;
     console.log("sa", pagination.itemsLength, response.data.pagination.total)
     if (response?.data?.data != null) {
-      campTable.value = response?.data?.results;
-      if(response?.data?.data && response?.data?.data?.stats) fetchBlockData(response.data.data.stats, response.data.data.contactType)
+      campTable.value = response?.data?.results || [];
+      
+      const summary = response?.data?.data?.campaignSummary;
+      const newStats = [];
+      const defaultColors = ["primary", "success", "info"];
+      
+      if (summary && Object.keys(summary).length > 0) {
+        let index = 0;
+        for (const [key, value] of Object.entries(summary)) {
+          newStats.push({
+            title: key,
+            stats: String(value),
+            icon: "tabler-click",
+            color: defaultColors[index % defaultColors.length]
+          });
+          index++;
+        }
+      } else {
+        newStats.push({ title: "No Data", stats: "0", icon: "tabler-circle-minus", color: "secondary" });
+      }
+      
+      statsCamp.value = newStats;
     }
   } catch (error) {
     console.error("analytics error", error);
-  }finally{
+  } finally {
     isLoading.value = false;
   }
 };
@@ -140,7 +152,7 @@ function formatTimestamp(ts) {
       </VBtn>
     </div>
     <VCol cols="12">
-      <CardStatisticsTransactions :statistics="statsCamp" :title="'Campaign Statistics'"/>
+      <CardStatisticsTransactions :statistics="statsCamp" :title="'CTA Statistics'"/>
     </VCol>
     <VCol cols="12">
       <!-- <DemoDataTableKitchenSink

@@ -115,11 +115,11 @@ export default BootRouter.route({
       ],
     },
     {
-      path: "/views/outbound/:id", 
+      path: "/views/outbound", 
       component: DefaultLayout,
       children: [
         {
-          path: "",
+          path: ":id",
           name: "views-outbound-id", 
           component: Outbound,
           props: true,
@@ -128,11 +128,11 @@ export default BootRouter.route({
       ],
     },
     {
-      path: "/views/cta/:id", 
+      path: "/views/cta", 
       component: DefaultLayout,
       children: [
         {
-          path: "",
+          path: ":id",
           name: "views-cta-id", 
           component: Cta,
           props: true, 
