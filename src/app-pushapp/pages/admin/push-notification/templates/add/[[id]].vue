@@ -468,8 +468,8 @@ watch(
                               v-model="template.style.image_url[index]"
                               :key="index"
                               :label="`Upload Image ${index + 1} (Aspect ratio : 1.8/1 - 2/1)`"
-                              :max-size="1048600" 
-                              helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 20 mb"
+                              :max-size="1048600" :min-aspect-ratio="1.8" :max-aspect-ratio="2.0"
+                              helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 1 mb"
                             />
                           </div>
                         </div>
@@ -617,7 +617,7 @@ watch(
                         <MyFileInputUpload
                           v-model="template.style.image_url"
                           label="Upload Image (Aspect ratio : 1/1)" :max-size="1048600"
-                          helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 20 mb"
+                          helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 1 mb"
                         />
                       </VCol>
 
