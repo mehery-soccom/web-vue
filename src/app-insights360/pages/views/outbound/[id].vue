@@ -98,7 +98,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 const fetchBlockData = (result, contactType, lane) => {
   if (result) {
     statsCamp.value[0].stats = String(lane ?? "-");
-    statsCamp.value[1].stats = String(result.SENT || 0);   
+    statsCamp.value[1].stats = String(result.SCHLD || 0);   
     statsCamp.value[2].stats = String(result.SENT || 0);
     if (contactType === 'EMAIL') statsCamp.value[3].stats = String(result.READ || 0);
     else statsCamp.value[3].stats = String(result.DLVRD || 0);
