@@ -7,6 +7,7 @@ const props = defineProps({
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
   ignoreCustomEventfilterType: { type: Boolean, default: false },
+  ignoreEventDatafilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
@@ -23,6 +24,7 @@ const addFilter = () => {
     filterType: null,
     field: null,
     operator: null,
+    dataProperty: null,
     value: null,
     freqOperator: null,
     freqCount: null,
@@ -40,6 +42,7 @@ const addGroup = () => {
         filterType: "event",
         field: null,
         operator: null,
+        dataProperty: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -143,6 +146,7 @@ defineExpose({ isValid });
         @update="emit('update:modelValue', modelValue)"
         :ignoreEventfilterType="ignoreEventfilterType"
         :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
+        :ignoreEventDatafilterType="ignoreEventDatafilterType"
         :ignoreSlicefilterType="ignoreSlicefilterType"
         :ignoreCohortfilterType="ignoreCohortfilterType"
         :readonly="readonly"

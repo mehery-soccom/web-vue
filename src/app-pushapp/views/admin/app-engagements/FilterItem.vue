@@ -9,6 +9,7 @@ const props = defineProps({
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
   ignoreCustomEventfilterType: { type: Boolean, default: false },
+  ignoreEventDatafilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
@@ -80,6 +81,7 @@ const isValid = async (silent = false) => {
         }
       }
     }
+    if (el.filterType === 'eventData' && !el.dataProperty) valid = false;
   }
 
   if (!valid && !silent) hasError.value = true;
@@ -89,6 +91,7 @@ const isValid = async (silent = false) => {
 
 const resetFilterValues = () => {
   props.element.field = null;
+  props.element.dataProperty = null;
   props.element.operator = null;
   props.element.value = null;
   props.element.freqOperator = null;
@@ -133,6 +136,7 @@ watch(() => props.channelId,
 watch(
   () => props.element.field,
   () => {
+    props.element.dataProperty = null;
     props.element.operator = null;
     props.element.value = null;
     props.element.freqOperator = null;
@@ -182,6 +186,7 @@ defineExpose({ isValid });
           FILTER_TYPES.filter((f) => {
             if (ignoreEventfilterType && f.value === 'event') return false;
             if (ignoreCustomEventfilterType && f.value === 'customEvent') return false;
+            if (ignoreEventDatafilterType && f.value === 'eventData') return false;
             if (ignoreSlicefilterType && f.value === 'slice') return false;
             if (ignoreCohortfilterType && f.value === 'cohort') return false;
             if (element.filterType === f.value) return true;
@@ -213,6 +218,15 @@ defineExpose({ isValid });
           </VListItem>
         </template>
       </AppSelect>
+
+      <AppSelect
+        v-if="element.filterType === 'eventData' && FILTER_FIELDS_MAP[element.field]"
+        v-model="element.dataProperty"
+        :items="FILTER_FIELDS_MAP[element.field]?.meta?.dataProperties || []"
+        placeholder="Select Property"
+        class="filter-entity data-property"
+        @update:modelValue="clearErrorAndUpdate"
+      />
 
       <!-- Operator -->
       <AppSelect
@@ -347,6 +361,7 @@ defineExpose({ isValid });
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
+      :ignoreEventDatafilterType="ignoreEventDatafilterType"
       :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"

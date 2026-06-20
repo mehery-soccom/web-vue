@@ -377,6 +377,7 @@ const onSendSimple = async () => {
                   <FilterBuilder
                     v-model="filter"
                     :ignoreEventfilterType="true"
+                    :ignoreEventDatafilterType="true"
                     :ignoreCustomEventfilterType="true"
                     :ignoreCohortfilterType="true"
                     :channelId="notification.channel_id"
