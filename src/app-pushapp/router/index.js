@@ -6,14 +6,18 @@ import Dashboard from '../pages/dashboards/analytics.vue';
 import Events from "../pages/dashboards/events.vue";
 import SequenceIndex from '../pages/dashboards/sequence/list/index.vue'
 import AddSequence from "../pages/dashboards/sequence/add/[[id]].vue";
+import UserList from "../pages/dashboards/user/list/index.vue"
+import UserProfile from "../pages/dashboards/user/add/[[id]].vue";
 import TemplateList from '../pages/admin/app-engagements/templates/list/index.vue';
 import TemplateAdd from '../pages/admin/app-engagements/templates/add/[[id]].vue';
 import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vue';
 import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue';
+import CampaignView from '../pages/admin/app-engagements/campaigns/view/[[id]].vue';
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index.vue';
 import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.vue';
+import CampaignView2 from '../pages/admin/push-notification/campaigns/view/[[id]].vue';
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
 import FlowList from '../pages/admin/journey/list/index.vue';
@@ -98,6 +102,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "dashboards-sequence-add-id?",
           component: AddSequence,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/user/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-user-list",
+          component: UserList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/user/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-user-add-id?",
+          component: UserProfile,
           props: true,
           meta: { layout: "default" },
         },
@@ -247,6 +277,19 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
+      path: "/admin/app-engagements/campaigns/view/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-app-engagements-campaigns-view-id?",
+          component: CampaignView,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/admin/app-engagements/campaigns/add",
       component: DefaultLayout,
       children: [
@@ -280,6 +323,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-push-notification-campaigns-list",
           component: CampaignList2,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/push-notification/campaigns/view/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-campaigns-view-id?",
+          component: CampaignView2,
           props: true,
           meta: { layout: "default" },
         },

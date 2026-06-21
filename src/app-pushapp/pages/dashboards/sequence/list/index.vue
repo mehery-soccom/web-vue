@@ -96,7 +96,11 @@ const executeDelete = async () => {
   try {
     await store.deleteSequence(sequenceToDelete.value._id);
     show({ message: 'Sequence deleted successfully.', color: 'success' });
-    window.location.reload(); 
+    if (selectedSequence.value === sequenceToDelete.value._id) {
+      selectedSequence.value = null;
+    }
+    
+    await loadSequences();
   } catch (error) {
     show({ message: 'Failed to delete sequence.', color: 'error' });
   } finally {

@@ -394,6 +394,12 @@ onMounted(async () => {
             maxDate: tonight,
             plugins: [customPlugin]
           }"
+          :enableDownload="true"
+          :downloadConfig="{
+            fileName: `Device_Analytics_${dateRange}`,
+            types: ['image', 'excel'],
+            sheetName: 'Device Analytics'
+          }"
           @dateChange="onChartDateChange"
         />
       </VCol>

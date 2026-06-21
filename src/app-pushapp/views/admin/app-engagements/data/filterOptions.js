@@ -1,11 +1,11 @@
 export const FILTER_TYPES = [
-  { title: "System Event", value: "event" },
+  { title: "Cohort", value: "cohort" },
   { title: "Custom Event", value: "customEvent" },
   { title: "Event Data", value: "eventData" },
-  { title: "System Attribute", value: "attribute" },
   { title: "Profile Attribute", value: "additionalInfo" },
   { title: "Slice", value: "slice" },
-  { title: "Cohort", value: "cohort" },
+  { title: "System Attribute", value: "attribute" },
+  { title: "System Event", value: "event" },
 ];
 
 export const FILTER_FIELDS_MAP = {

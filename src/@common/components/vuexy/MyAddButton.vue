@@ -19,6 +19,7 @@ const props = defineProps({
   swatches: Array,
   buttonSize: Boolean,
   combobox: { type: Boolean, default: false },
+  disabled: { type: Boolean, default: false }
   // optionsPath: { type: Array, default: [] },
 })
 
@@ -125,7 +126,7 @@ onMounted(() => {
       <div>
         <div style="display: flex;width: 100%;justify-content: space-between;">
           <div style="display: flex;align-items: center;">Button > {{ i+1 }}</div>
-          <div><VBtn icon variant="text" color="error" @click="removeButton(i)"><VIcon>mdi-trash</VIcon></VBtn></div>
+          <div v-show="!disabled"><VBtn icon variant="text" color="error" @click="removeButton(i)"><VIcon>mdi-trash</VIcon></VBtn></div>
         </div>
         <VRow>
           <VCol cols="5.5">
@@ -133,7 +134,7 @@ onMounted(() => {
               :model-value="btn.label"
               @update:modelValue="val => updateField(i, 'label', val)"
               label="Label"
-              placeholder="Enter label"
+              placeholder="Enter label" :disabled="disabled"
             />
           </VCol>
           <VCol cols="5.5">
@@ -142,7 +143,7 @@ onMounted(() => {
               @update:modelValue="val => updateField(i, 'value', typeof val === 'string' ? val : val?.code || val?.value || '')"
               label="Value 2" :items="optionsPath || []"
               :clearable=true item-title="code" item-value="code"
-              placeholder="Enter value"
+              placeholder="Enter value" :disabled="disabled"
             >
               <template #item="{ props, item }">
                 <VListItem v-bind="props">
@@ -158,7 +159,7 @@ onMounted(() => {
               :model-value="btn.value"
               @update:modelValue="val => updateField(i, 'value', val)"
               label="Value 1"
-              placeholder="Enter value"
+              placeholder="Enter value" :disabled="disabled"
             />
           </VCol>
           <VCol cols="1" class="d-flex align-center">
@@ -173,14 +174,14 @@ onMounted(() => {
               :model-value="btn.desc"
               @update:modelValue="val => updateField(i, 'desc', val)"
               label="Description"
-              placeholder="Enter description"
+              placeholder="Enter description" :disabled="disabled"
             />
           </v-col>
           <v-col v-if="props.buttonSize" cols="3">
             <AppSelect
               :model-value="props.styleData[`button${i + 1}_font_size`]"
               @update:modelValue="val => updateStyle(`button${i + 1}_font_size`, val)"
-              label="Button Font Size" item-title="title" item-value="value"
+              label="Button Font Size" item-title="title" item-value="value" :disabled="disabled"
               :items="[
                 { title: '14px', value: 14 },
                 { title: '12px', value: 12 },
@@ -190,14 +191,14 @@ onMounted(() => {
           </v-col>
           <v-col :cols="props.buttonSize ? 3 : 4">
               <MyColorPicker
-                :model-value="props.styleData[`button${i + 1}_bg_color`]"
+                :model-value="props.styleData[`button${i + 1}_bg_color`]" :disabled="disabled"
                 @update:modelValue="val => updateStyle(`button${i + 1}_bg_color`, val)"
                 label="Button Background Color" :showSwatch="true" :swatches="props.swatches"
               />
           </v-col>
           <v-col :cols="props.buttonSize ? 3 : 4">
               <MyColorPicker
-                :model-value="props.styleData[`button${i + 1}_font_color`]"
+                :model-value="props.styleData[`button${i + 1}_font_color`]" :disabled="disabled"
                 @update:modelValue="val => updateStyle(`button${i + 1}_font_color`, val)"
                 label="Button Font Color" :showSwatch="true" :swatches="props.swatches"
               />
@@ -205,7 +206,7 @@ onMounted(() => {
         </VRow>
       </div>
     </div>
-    <div v-if="visibleCount < props.max" class="mt-4">
+    <div v-if="visibleCount < props.max" class="mt-4" v-show="!disabled">
       <v-btn variant="tonal" color="primary" @click="addButton">+ Add Button</v-btn>
     </div>
   </div>

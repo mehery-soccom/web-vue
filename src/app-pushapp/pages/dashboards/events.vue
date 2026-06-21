@@ -35,7 +35,7 @@ const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6))
 const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`)
 
 const optionIcons = {
-  Snap: 'tabler-click',
+  Snap: 'tabler-bolt',
   Trends: 'tabler-trending-up',
   Sessions: 'tabler-clock',
   Property: 'tabler-adjustments',
@@ -87,7 +87,7 @@ const snapStatistics = computed(() => [
   { 
     title: 'Events', 
     stats: String(eventStore.eventStats.total_events || 0), 
-    icon: 'tabler-activity', 
+    icon: 'tabler-click', 
     color: 'primary' 
   },
   { 

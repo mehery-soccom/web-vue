@@ -148,6 +148,7 @@ onMounted(async () => {
         if (template.type === "simple") {
           if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
           if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+          if (template.style.category == 'CAROUSEL_CATEGORY') template.style.category = null;
         }
         let _buttonGroupValue = {};
         _template.options.buttons.map((b) => {
@@ -176,6 +177,7 @@ onMounted(async () => {
           if (template.type === "simple") {
             if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
             if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+            if (template.style.category == 'CAROUSEL_CATEGORY') template.style.category = null;
           }
           let _buttonGroupValue = {};
           _template.options.buttons.map((b) => {
@@ -225,10 +227,11 @@ const onCreate = async () => {
     if (template.type === "simple") {
       const imageUrl = Array.isArray(template.style.image_url) && template.style.image_url.length === 1
         ? template.style.image_url[0] || "" : template.style.image_url;
-      if(!!template.style.notification_url && typeof template.style.notification_url != String) {
+      if(!!template.style.notification_url && typeof template.style.notification_url != "string") {
         const url = template.style.notification_url.code;
         template.style.notification_url = url;
       }
+      if(!template.style.category && Array.isArray(imageUrl)) template.style.category = 'CAROUSEL_CATEGORY';
       payload = {
         ...template,
         style: {
@@ -288,10 +291,11 @@ const onUpdate = async () => {
 
     const imageUrl = template.type === "simple" && Array.isArray(template.style.image_url) && template.style.image_url.length === 1
         ? template.style.image_url[0] || "" : template.style.image_url;
-    if(!!template.style.notification_url && typeof template.style.notification_url != String) {
+    if(!!template.style.notification_url && typeof template.style.notification_url != "string") {
         const url = template.style.notification_url.code;
         template.style.notification_url = url;
     }
+    if(!template.style.category && Array.isArray(imageUrl)) template.style.category = 'CAROUSEL_CATEGORY';
 
     let payload = {
         ...template,
@@ -468,8 +472,8 @@ watch(
                               v-model="template.style.image_url[index]"
                               :key="index"
                               :label="`Upload Image ${index + 1} (Aspect ratio : 1.8/1 - 2/1)`"
-                              :max-size="20840" :min-aspect-ratio="1.8" :max-aspect-ratio="2.0"
-                              helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 20 kb"
+                              :max-size="1048600" :min-aspect-ratio="1.8" :max-aspect-ratio="2.0"
+                              helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 1 mb"
                             />
                           </div>
                         </div>
@@ -490,7 +494,7 @@ watch(
                           v-model="template.style.notification_url"
                           :label="'Notification URL'"
                           placeholder="Enter URL"
-                          :rules="[urlRequired, urlRule]"
+                          :rules="[urlRule]"
                           prepend-inner-icon="mdi-link"
                           :items="optionsPath || []"
                           :clearable=true item-title="code" item-value="code"
@@ -616,8 +620,8 @@ watch(
                       <VCol cols="12">
                         <MyFileInputUpload
                           v-model="template.style.image_url"
-                          label="Upload Image (Aspect ratio : 1/1)" :max-size="20840"
-                          helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 20 kb"
+                          label="Upload Image (Aspect ratio : 1/1)" :max-size="1048600"
+                          helper-text="Supported formats: JPG, JPEG, PNG, GIF, WebP, SVG (any image format supported by your browser). Max file size is 1 mb"
                         />
                       </VCol>
 
