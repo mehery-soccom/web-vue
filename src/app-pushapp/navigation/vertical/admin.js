@@ -13,10 +13,10 @@ export default [
         title: "Templates",
         to: "admin-push-notification-templates-list",
       },
-      {
-        title: "Slices",
-        to: "admin-push-notification-slices-list",
-      },
+      // {
+      //   title: "Slices",
+      //   to: "admin-push-notification-slices-list",
+      // },
       {
         title: "Blast",
         to: "admin-push-notification-campaigns-add",
@@ -49,5 +49,10 @@ export default [
     title: "Cohorts",
     icon: { icon: "tabler-users-group" },
     to: "admin-cohorts-list",
+  },
+  {
+    title: "Journeys",
+    icon: { icon: "mdi-vector-polyline" },
+    to: "admin-journey-list",
   },
 ];
