@@ -19,6 +19,7 @@ import { FILTER_FIELDS_MAP } from '../app-engagements/data/filterOptions'
 
 const props = defineProps({
   initialFlow: { type: Object, default: null },
+  disabled: { type: Boolean, default: false },
 })
 
 
@@ -46,14 +47,12 @@ function extractArray(response) {
 }
 
 // ── Global, request-deduped caches (NOT per-node) ──────────────────────────
-// These endpoints return the same data regardless of which node is open, so
-// they're fetched once for the whole app session and reused everywhere.
 const globalCache = reactive({
-  customEvents: null,       // [{title, value}] | null until loaded
-  whatsappChannels: null,   // [{title, value}] | null until loaded
-  whatsappTemplatesRaw: null, // raw template records (pre-filter) | null until loaded
+  customEvents: null,
+  whatsappChannels: null,
+  whatsappTemplatesRaw: null,
 })
-const globalCacheInFlight = {} // url -> Promise, to dedupe concurrent calls
+const globalCacheInFlight = {}
 
 async function fetchRaw(url, params = {}) {
   try {
@@ -65,9 +64,6 @@ async function fetchRaw(url, params = {}) {
   }
 }
 
-// Generic single-flight fetch+cache: if a request for this exact key is
-// already in progress, every caller awaits the same promise instead of
-// firing a duplicate request.
 async function fetchOnce(key, url, params, mapFn) {
   if (globalCache[key] !== null && globalCache[key] !== undefined) {
     return globalCache[key]
@@ -83,12 +79,6 @@ async function fetchOnce(key, url, params, mapFn) {
   return globalCacheInFlight[key]
 }
 
-// async function loadCustomEventsOnce() {
-//   return fetchOnce('customEvents', API.customEvents, {}, (data) => {
-//     const items = extractArray(data)
-//     return items.map((i) => ({ title: i.eventName, value: i.eventName }))
-//   })
-// }
 async function loadSystemAndCustomEventsOnce() {
   const systemEvents = Object.values(FILTER_FIELDS_MAP).filter(e => e.type === 'event')
       .map(e => ({ title: e.title, value: e.value }))
@@ -109,17 +99,12 @@ async function loadWhatsappChannelsOnce() {
   })
 }
 
-// Fetched once, kept RAW (un-filtered) — filtering by channel happens
-// client-side per node since "approved" status depends on the chosen channel.
 async function loadWhatsappTemplatesRawOnce() {
   return fetchOnce('whatsappTemplatesRaw', API.whatsappTemplates, { limit: 500 }, (data) => {
-    return extractArray(data) // raw template records, not yet {title,value}
+    return extractArray(data)
   })
 }
 
-// Filter the raw WhatsApp template list down to only templates approved for
-// the given channelId: approved[] must contain an entry where
-// approved.channelId === channelId && approved.status === 'APPROVED'.
 function filterWhatsappTemplatesForChannel(rawTemplates, channelId) {
   if (!channelId) return []
   return rawTemplates
@@ -130,10 +115,6 @@ function filterWhatsappTemplatesForChannel(rawTemplates, channelId) {
     .map((t) => ({ ...t, title: t.desc || t.name || t.code, value: t.code }))
 }
 
-// Non-WhatsApp templates (push / in-app) — these DO take a per-app/channel
-// param server-side, so they're fetched per channel selection, not cached
-// globally. Still single-flighted per (endpoint+param) key to avoid dup calls
-// if multiple things trigger a refetch in the same tick.
 async function loadParameterizedTemplates(url, paramName, paramValue) {
   const key = `${url}::${paramValue}`
   if (!globalCacheInFlight[key]) {
@@ -269,7 +250,7 @@ function getOutputs(node) {
       id: `listener_${index + 1}`,
       label: l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'Default'
     }))
-    
+
   }
   return def.fixedOutputs
 }
@@ -338,10 +319,9 @@ function ensureCache(nodeId) {
   return optionCache[nodeId]
 }
 
-// checks the global cache first; only fetches if missing ──
 async function loadEventOptionsFor(nodeId) {
   const cache = ensureCache(nodeId)
-  if (cache.eventOptions.length > 0) return // already loaded for this node
+  if (cache.eventOptions.length > 0) return
   cache.loadingEvents = true
   cache.eventOptions = await loadSystemAndCustomEventsOnce()
   cache.loadingEvents = false
@@ -420,9 +400,13 @@ onInit(() => {
     loadEventOptionsFor('node_1')
   }
 })
+watch(() => props.initialFlow,
+  (val) => { if (val) loadFlow(val)}
+);
 
 // Connect
 onConnect((connection) => {
+  if (props.disabled) return
   const outputId = connection.sourceHandle
   const sourceNode = nodes.value.find((n) => n.id === connection.source)
   const outputDef = sourceNode ? getOutputs(sourceNode).find((o) => o.id === outputId) : null
@@ -437,11 +421,12 @@ onConnect((connection) => {
   })
 })
 
-// Delete with confirmation
+// Delete with confirmation (blocked entirely in view mode)
 onNodesChange(async (changes) => {
   const next = []
   for (const c of changes) {
     if (c.type === 'remove') {
+      if (props.disabled) continue
       const node = nodes.value.find((n) => n.id === c.id)
       if (node?.data?.code === 'TRIGGER') continue
       const ok = await openConfirm(`Delete node "${c.id}"?`)
@@ -450,7 +435,11 @@ onNodesChange(async (changes) => {
         if (inspectedNodeId.value === c.id) inspectedNodeId.value = null
         delete optionCache[c.id]
       }
+    } else if (c.type === 'position' || c.type === 'dimensions' || c.type === 'select') {
+      // harmless layout/selection changes, always allowed (even in view mode)
+      next.push(c)
     } else {
+      if (props.disabled) continue
       next.push(c)
     }
   }
@@ -460,22 +449,26 @@ onEdgesChange(async (changes) => {
   const next = []
   for (const c of changes) {
     if (c.type === 'remove') {
+      if (props.disabled) continue
       const ok = await openConfirm(`Delete this connection?`)
       if (ok) next.push(c)
+    } else if (c.type === 'select') {
+      next.push(c)
     } else {
+      if (props.disabled) continue
       next.push(c)
     }
   }
   applyEdgeChanges(next)
 })
 
-// Node click → open inspector, lazy-load only what's missing
+// Node click → open inspector, lazy-load only what's missing (always allowed, even in view mode)
 function onNodeClick({ node }) {
   inspectedNodeId.value = node.id
   const cache = ensureCache(node.id)
 
   if (node.data.code === 'TRIGGER' || node.data.code === 'EXPECTATION') {
-    loadEventOptionsFor(node.id) 
+    loadEventOptionsFor(node.id)
   }
   if (node.data.code === 'ACTOR') {
     if (cache.channelOptions.length === 0) {
@@ -493,11 +486,9 @@ function closeInspector() {
   inspectedNodeId.value = null
 }
 
-// Update a node's attrs (deep-merge one key at a time, called from inspector
-// inputs). IMPORTANT: this only ever touches node data — it never triggers
-// any network call by itself. Network calls happen only from the explicit
-// onChannelTypeChange / onChannelIdChange handlers below.
+// Update a node's attrs — blocked in view mode
 function setNodeAttr(path, value) {
+  if (props.disabled) return
   if (!inspectedNode.value) return
   const nodeId = inspectedNode.value.id
   updateNode(nodeId, (n) => {
@@ -515,6 +506,7 @@ function setNodeAttr(path, value) {
 
 // ── Channel-type cascade ──
 async function onChannelTypeChange(nodeId, channelType) {
+  if (props.disabled) return
   setNodeAttr('channelType', channelType)
   setNodeAttr('channelId', null)
   setNodeAttr('template.code', null)
@@ -524,6 +516,7 @@ async function onChannelTypeChange(nodeId, channelType) {
   await loadChannelOptionsFor(nodeId, channelType)
 }
 async function onChannelIdChange(nodeId, channelType, channelId) {
+  if (props.disabled) return
   setNodeAttr('channelId', channelId)
   setNodeAttr('template.code', null)
   const cache = ensureCache(nodeId)
@@ -532,10 +525,10 @@ async function onChannelIdChange(nodeId, channelType, channelId) {
 }
 
 function onTemplateChange(nodeId, templateCode) {
+  if (props.disabled) return
   setNodeAttr('template.code', templateCode)
   const selectedTemplate = optionCache[nodeId]?.templateOptions?.find( o => o.value === templateCode)
   setNodeAttr('template.name', selectedTemplate?.title || '')
-  console.log("temsp sel", selectedTemplate)
 
   let buttons = selectedTemplate?.options?.buttons || []
   if (!buttons.length) buttons = selectedTemplate?.style?.btn || []
@@ -557,6 +550,7 @@ function onTemplateChange(nodeId, templateCode) {
 }
 // ── ACTOR listener management ──
 function addListener() {
+  if (props.disabled) return
   if (!inspectedNode.value) return
   const nodeId = inspectedNode.value.id
   updateNode(nodeId, (n) => {
@@ -567,6 +561,7 @@ function addListener() {
   })
 }
 function updateListenerText(index, value) {
+  if (props.disabled) return
   if (!inspectedNode.value) return
   const nodeId = inspectedNode.value.id
 
@@ -579,6 +574,7 @@ function updateListenerText(index, value) {
   })
 }
 function setListenerType(index, value) {
+  if (props.disabled) return
   if (!inspectedNode.value) return
   const nodeId = inspectedNode.value.id
 
@@ -602,6 +598,7 @@ function setListenerType(index, value) {
   })
 }
 function removeListener(index) {
+  if (props.disabled) return
   if (!inspectedNode.value) return
   const nodeId = inspectedNode.value.id
   const listener = inspectedNode.value.data.attrs.listeners[index]
@@ -613,13 +610,15 @@ function removeListener(index) {
   edges.value = edges.value.filter((e) => !(e.source === nodeId && e.data?.output === listener.emit))
 }
 
-// Drag & drop from sidebar palette
+// Drag & drop from sidebar palette — no-ops in view mode
 function onDragStart(event, code) {
+  if (props.disabled) return
   event.dataTransfer?.setData('application/flownode', code)
   draggedType.value = code
   document.body.style.userSelect = 'none'
 }
 function onDragOver(event) {
+  if (props.disabled) return
   event.preventDefault()
   if (draggedType.value) {
     isDragOver.value = true
@@ -628,6 +627,7 @@ function onDragOver(event) {
 }
 function onDragLeave() { isDragOver.value = false }
 function onDrop(event) {
+  if (props.disabled) return
   isDragOver.value = false
   document.body.style.userSelect = ''
   const code = event.dataTransfer?.getData('application/flownode') || draggedType.value
@@ -760,6 +760,7 @@ function loadFlow(payload) {
 }
 
 function confirmLoad() {
+  if (props.disabled) return
   try {
     const payload = JSON.parse(loadJsonText.value)
     loadFlow(payload)
@@ -770,6 +771,7 @@ function confirmLoad() {
   }
 }
 function onLoadFileChange(event) {
+  if (props.disabled) return
   const file = event.target.files?.[0]
   if (!file) return
   const reader = new FileReader()
@@ -779,8 +781,9 @@ function onLoadFileChange(event) {
 function formatLabel(value) {
   const str = String(value || '').toLowerCase().replaceAll('_', ' ')
   return str.charAt(0).toUpperCase() + str.slice(1)
-} 
+}
 function clearAll() {
+  if (props.disabled) return
   const trigger = nodes.value.find((n) => n.data.code === 'TRIGGER')
   nodes.value = trigger ? [trigger] : []
   edges.value = []
@@ -796,9 +799,10 @@ defineExpose({ loadFlow, buildFlowPayload })
     <aside class="sidebar">
       <div class="sidebar-header">
         <span class="sidebar-title">Journey Builder</span>
+        <span v-if="disabled" class="view-only-badge">View only</span>
       </div>
 
-      <div class="sidebar-section">
+      <div v-if="!disabled" class="sidebar-section">
         <p class="section-label">Nodes</p>
         <p class="field-hint" style="margin:0 0 4px">Trigger is added automatically and can't be duplicated.</p>
         <div
@@ -816,7 +820,7 @@ defineExpose({ loadFlow, buildFlowPayload })
         <p class="section-label">Actions</p>
         <button class="action-btn" @click="fitView()">⊞ Fit view</button>
         <button class="action-btn" @click="setViewport({ x: 0, y: 0, zoom: 1 })">Move to Start</button>
-        <button class="action-btn danger" @click="clearAll">✕ Clear canvas</button>
+        <button v-if="!disabled" class="action-btn danger" @click="clearAll">✕ Clear canvas</button>
       </div>
 
       <div class="sidebar-section hint-section">
@@ -847,12 +851,15 @@ defineExpose({ loadFlow, buildFlowPayload })
         :min-zoom="0.15"
         :max-zoom="3"
         fit-view-on-init
-        delete-key-code="Backspace"
+        :delete-key-code="disabled ? null : 'Backspace'"
+        :nodes-draggable="!disabled"
+        :nodes-connectable="!disabled"
+        :elements-selectable="true"
         @node-click="onNodeClick"
         @pane-click="onPaneClick"
       >
         <Background :variant="BackgroundVariant.Dots" :gap="20" pattern-color="#d6d3cb" />
-        <Controls position="top-left" />
+        <Controls position="top-left" :show-interactive="false" />
         <MiniMap :node-color="(n) => NODE_DEFS[n.data?.code]?.color || '#94a3b8'" />
 
         <!-- ── FLOW NODE ── -->
@@ -923,6 +930,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               item-title="title"
               item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingEvents"
+              :disabled="disabled"
               @update:model-value="value => {
                 setNodeAttr('appevent', value)
                 setNodeAttr('name', optionCache[inspectedNode.id]?.eventOptions?.find(o => o.value === value)?.title || '')
@@ -938,6 +946,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               :items="CHANNEL_TYPE_OPTIONS"
               item-title="title"
               item-value="value"
+              :disabled="disabled"
               @update:model-value="value =>
                 onChannelTypeChange(inspectedNode.id, value)"
             />
@@ -949,6 +958,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               item-title="title"
               item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingChannel"
+              :disabled="disabled"
               @update:model-value="value =>
                 onChannelIdChange(
                   inspectedNode.id,
@@ -964,7 +974,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               item-title="title"
               item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingTemplate"
-              :disabled="!inspectedNode.data.attrs.channelId"
+              :disabled="disabled || !inspectedNode.data.attrs.channelId"
               clearable
               @update:model-value="value => onTemplateChange(inspectedNode.id, value)"
             />
@@ -976,6 +986,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               <div class="listeners-head">
                 <span class="field-label" style="margin:0">Listeners (outputs)</span>
                 <VBtn
+                  v-if="!disabled"
                   size="small"
                   color="success"
                   prepend-icon="mdi-plus"
@@ -998,16 +1009,19 @@ defineExpose({ loadFlow, buildFlowPayload })
                     { title:'Code', value:'code' },
                     { title:'Default', value:'default' }
                   ]"
+                  :disabled="disabled"
                   @update:model-value="value => setListenerType(i, value)"
                 />
                 <AppTextField
                   density="compact"
                   :model-value="l.type === 'text' ? l.text : l.code"
                   :placeholder="l.type === 'text' ? 'Text' : 'Code'"
+                  :disabled="disabled"
                   @update:model-value="value =>
                     updateListenerText(i, value)"
                 />
                 <VBtn
+                  v-if="!disabled"
                   icon
                   size="small"
                   color="error"
@@ -1029,6 +1043,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               item-title="title"
               item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingEvents"
+              :disabled="disabled"
               @update:model-value="value => {
                 setNodeAttr('appevent', value)
                 setNodeAttr('name', optionCache[inspectedNode.id]?.eventOptions?.find(o => o.value === value)?.title || '')
@@ -1038,6 +1053,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               label="Time"
               type="number"
               :model-value="inspectedNode.data.attrs.window?.value"
+              :disabled="disabled"
               @update:model-value="value => setNodeAttr('window.value', Number(value))"
             />
             <AppSelect
@@ -1048,6 +1064,7 @@ defineExpose({ loadFlow, buildFlowPayload })
                 { title:'Hours', value:'hour'},
                 { title:'Days', value:'day'}
               ]"
+              :disabled="disabled"
               @update:model-value="value => setNodeAttr('window.unit', value)"
             />
 
@@ -1057,6 +1074,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               :items="CHANNEL_TYPE_OPTIONS"
               item-title="title"
               item-value="value"
+              :disabled="disabled"
               @update:model-value="value =>
                 onChannelTypeChange(inspectedNode.id, value)"
             />
@@ -1068,6 +1086,7 @@ defineExpose({ loadFlow, buildFlowPayload })
               item-title="title"
               item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingChannel"
+              :disabled="disabled"
               @update:model-value="value =>
                 onChannelIdChange(
                   inspectedNode.id,
@@ -1083,13 +1102,13 @@ defineExpose({ loadFlow, buildFlowPayload })
               item-title="title"
               item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingTemplate"
-              :disabled="!inspectedNode.data.attrs.channelId"
+              :disabled="disabled || !inspectedNode.data.attrs.channelId"
               clearable
               @update:model-value="value => onTemplateChange(inspectedNode.id, value)"
             />
             <p v-if="inspectedNode.data.attrs.channelType === 'SEND_MESSAGE' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
               No approved templates for this channel yet.
-            </p> 
+            </p>
 
             <p class="field-hint">Outputs: <code>Success</code> / <code>Failed</code></p>
           </template>
@@ -1103,6 +1122,7 @@ defineExpose({ loadFlow, buildFlowPayload })
                 { title:'Succeeded', value:'SUCCESS' },
                 { title:'Failed', value:'FAILED' }
               ]"
+              :disabled="disabled"
               @update:model-value="value => setNodeAttr('status', value)"
             />
             <p class="field-hint"> Terminates the flow here. </p>
@@ -1127,7 +1147,7 @@ defineExpose({ loadFlow, buildFlowPayload })
 
     <!-- ════════════════ LOAD PANEL ════════════════ -->
     <Teleport to="body">
-      <div v-if="loadPanelOpen" class="dialog-mask" @mousedown.self="loadPanelOpen = false">
+      <div v-if="loadPanelOpen && !disabled" class="dialog-mask" @mousedown.self="loadPanelOpen = false">
         <div class="save-box">
           <div class="save-head">
             <span>Load flow</span>
@@ -1182,8 +1202,12 @@ defineExpose({ loadFlow, buildFlowPayload })
   background: var(--paper); border-right: 1px solid var(--hairline);
   overflow-y: auto; z-index: 10;
 }
-.sidebar-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--hairline); }
+.sidebar-header { padding: 16px 16px 12px; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; gap: 8px; }
 .sidebar-title { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; }
+.view-only-badge {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  background: #f1efe8; color: #9a9486; padding: 2px 7px; border-radius: 99px;
+}
 .sidebar-section {
   padding: 12px 14px; border-bottom: 1px solid var(--hairline);
   display: flex; flex-direction: column; gap: 7px;
@@ -1270,7 +1294,7 @@ defineExpose({ loadFlow, buildFlowPayload })
   top: auto !important;
   right: -0px !important;
   border-radius: 50% !important;
-  background: var(--node-color, var(--accent)) !important; 
+  background: var(--node-color, var(--accent)) !important;
 }
 .port-label {
   position: absolute;
@@ -1295,10 +1319,6 @@ defineExpose({ loadFlow, buildFlowPayload })
   opacity: 1;
   visibility: visible;
 }
-/* .flow-handle-out {
-  width: 10px !important; height: 10px !important; border-radius: 50% !important;
-  background: var(--node-color, var(--accent)) !important; border: 2px solid var(--paper) !important;
-} */
 .flow-handle-in {
   width: 10px !important; height: 10px !important; border-radius: 50% !important;
   background: #9a9486 !important; border: 2px solid var(--paper) !important;

@@ -5,9 +5,13 @@ import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure
 import { useFlowsStore } from '@/app-pushapp/views/admin/journeys/useFlowsStore'
 
 const FlowsStore = useFlowsStore();
+const route = useRoute();
 const router = useRouter();
 const { show } = inject("snackbar");
 const isLoading = ref(false);
+const isFetching = ref(false);
+const flowRecord = ref(null);
+const isViewMode = computed(() => !!route.params.id);
 
 const flow = reactive({
   name: "",
@@ -136,6 +140,30 @@ async function launchFlow() {
     isLoading.value = false;
   }
 }
+async function loadRecordIntoForm(record) {
+  if (!record) return;
+  flow.name = record.name || "";
+  flow.desc = record.desc || "";
+  flow.flow = record.flow || {};
+  flow.flowRenderer = record.flowRenderer || { drawflow: { Home: {} } };
+  if (record.filter) Object.assign(flow.filter, structuredClone(record.filter));
+}
+
+onMounted(async () => {
+  if (!route.params.id) return;
+  try {
+    isFetching.value = true;
+    const response = await FlowsStore.fetchFlow({ id: route.params.id });
+    flowRecord.value = response.data.data;
+    // console.log("data", JSON.parse(JSON.stringify(flowRecord.value)));
+    await loadRecordIntoForm(flowRecord.value);
+  } catch (e) {
+    console.log(e);
+    show({ message: "Failed to load flow", color: "error" });
+  } finally {
+    isFetching.value = false;
+  }
+});
 
 </script>
 
@@ -163,6 +191,7 @@ async function launchFlow() {
               placeholder="Untitled Flow"
               :error="!!errors.name"
               @update:model-value="clearError('name')"
+              :disabled="isViewMode"
             />
           </VCol>
 
@@ -170,6 +199,7 @@ async function launchFlow() {
             <AppTextField
               v-model="flow.desc"
               placeholder="Description"
+              :disabled="isViewMode"
             />
           </VCol>
         </VRow>
@@ -184,7 +214,7 @@ async function launchFlow() {
           <VIcon end icon="mdi-arrow-right"/>
         </VBtn>
 
-        <VBtn v-else color="success" :loading="isLoading" @click="launchFlow">
+        <VBtn v-else color="success" :loading="isLoading" v-if="!isViewMode" @click="launchFlow">
           Launch Flow
           <VIcon end icon="mdi-check"/>
         </VBtn>
@@ -222,13 +252,14 @@ async function launchFlow() {
           :ignoreCustomEventfilterType="true"
           :ignoreCohortfilterType="true"
           :ignoreSlicefilterType="true"
+          :readonly="isViewMode"
           ref="filterRef"
         />
       </VWindowItem>
 
       <!-- Flow -->
       <VWindowItem>
-        <FlowEditor ref="flowEditorRef" />
+        <FlowEditor ref="flowEditorRef" :initial-flow="flowRecord" :disabled="isViewMode"/>
       </VWindowItem>
     </VWindow>
   </div>

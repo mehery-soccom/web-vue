@@ -104,18 +104,20 @@ const resetFilterValues = () => {
 watch(() => props.element.filterType,
   (newVal, oldVal) => {
     if (newVal === oldVal) return;
-    if (skipCohortCheck.value) {
-      skipCohortCheck.value = false;
-      return resetFilterValues();
+    if(!props.readonly){
+      if (skipCohortCheck.value) {
+        skipCohortCheck.value = false;
+        return resetFilterValues();
+      }
+      if (newVal === "cohort" && props.hasNormalFilter) {
+        previousFilterType.value = oldVal;
+        pendingFilterType.value = newVal;
+        showCohortConfirm.value = true;
+        props.element.filterType = oldVal;
+        return;
+      }
+      resetFilterValues();
     }
-    if (newVal === "cohort" && props.hasNormalFilter) {
-      previousFilterType.value = oldVal;
-      pendingFilterType.value = newVal;
-      showCohortConfirm.value = true;
-      props.element.filterType = oldVal;
-      return;
-    }
-    resetFilterValues();
   },
 );
 
@@ -136,14 +138,16 @@ watch(() => props.channelId,
 watch(
   () => props.element.field,
   () => {
-    props.element.dataProperty = null;
-    props.element.operator = null;
-    props.element.value = null;
-    props.element.freqOperator = null;
-    props.element.freqCount = null;
-    props.element.freqPeriod = null;
+    if(!props.readonly) {
+      props.element.dataProperty = null;
+      props.element.operator = null;
+      props.element.value = null;
+      props.element.freqOperator = null;
+      props.element.freqCount = null;
+      props.element.freqPeriod = null;
 
-    clearErrorAndUpdate();
+      clearErrorAndUpdate();
+    }
   },
 );
 const confirmCohortSelection = () => {

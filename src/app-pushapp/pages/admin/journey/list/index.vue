@@ -167,7 +167,7 @@ onMounted(async () => {});
 
       <!-- Actions -->
       <template #item.actions="{ item }">
-        <!-- <IconBtn
+        <IconBtn
           :to="{
             name: 'admin-journey-add-id?',
             params: { id: item.raw._id },
@@ -175,7 +175,7 @@ onMounted(async () => {});
         >
           <VIcon icon="mdi-eye" />
           <VTooltip activator="parent">View</VTooltip>
-        </IconBtn> -->
+        </IconBtn>
         <IconBtn>
           <VIcon>mdi-trash</VIcon>
           <v-dialog activator="parent" max-width="340">

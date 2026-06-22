@@ -136,7 +136,7 @@ defineExpose({ isValid });
     </div>
 
     <!-- Filters & Groups -->
-    <div v-for="(child, index) in modelValue.children" :key="index">
+    <div v-for="(child, index) in modelValue.children" :key="index + child.filterType + child.value">
       <FilterItem
         :ref="(el) => (childRefs[index] = el)"
         :element="child"
