@@ -467,6 +467,10 @@ function onNodeClick({ node }) {
   inspectedNodeId.value = node.id
   const cache = ensureCache(node.id)
 
+  if (invalidNodeIds.value.has(node.id)) {
+    invalidNodeIds.value.delete(node.id)
+    invalidNodeIds.value = new Set(invalidNodeIds.value)
+  }
   if (node.data.code === 'TRIGGER' || node.data.code === 'EXPECTATION') {
     loadEventOptionsFor(node.id)
   }
@@ -548,6 +552,7 @@ function onTemplateChange(nodeId, templateCode) {
     }
   }))
 }
+
 // ── ACTOR listener management ──
 function addListener() {
   if (props.disabled) return
@@ -610,6 +615,63 @@ function removeListener(index) {
   edges.value = edges.value.filter((e) => !(e.source === nodeId && e.data?.output === listener.emit))
 }
 
+const invalidNodeIds = ref(new Set())
+
+function isOutputConnected(nodeId, outputId) {
+  return edges.value.some(
+    (e) => e.source === nodeId && (e.data?.output === outputId || e.sourceHandle === outputId)
+  )
+}
+
+function validateFlow() {
+  const errors = []
+  const invalidIds = new Set()
+
+  for (const n of nodes.value) {
+    const code = n.data.code
+    const attrs = n.data.attrs || {}
+    const messages = []
+
+    if (code === 'TRIGGER') {
+      if (!attrs.appevent) messages.push('Select an app event')
+      if (!isOutputConnected(n.id, 'triggered')) messages.push('Connect the Start output to a node')
+    } else if (code === 'ACTOR') {
+      if (!attrs.channelType) messages.push('Select an action')
+      if (!attrs.channelId) messages.push('Select a channel/app')
+      if (!attrs.template?.code) messages.push('Select a template')
+
+      const listeners = attrs.listeners || []
+      if (listeners.length > 0) {
+        listeners.forEach((l, index) => {
+          const outId = `listener_${index + 1}`
+          const label = l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'Default'
+          if (!isOutputConnected(n.id, outId)) {
+            messages.push(`Connect output "${label || outId}" to a node`)
+          }
+        })
+      }
+    } else if (code === 'EXPECTATION') {
+      if (!attrs.appevent) messages.push('Select an expected event')
+      if (!attrs.window?.value) messages.push('Set the wait time')
+      if (!attrs.window?.unit) messages.push('Select the time unit')
+      if (!isOutputConnected(n.id, 'SUCCESS')) messages.push('Connect the Success output to a node')
+      if (!isOutputConnected(n.id, 'FAILED')) messages.push('Connect the Failed output to a node')
+    } else if (code === 'END') {
+      if (!attrs.status) messages.push('Select a status (Succeeded / Failed)')
+    }
+
+    if (messages.length) {
+      invalidIds.add(n.id)
+      errors.push({ nodeId: n.id, label: NODE_DEFS[code]?.label || code, messages })
+    }
+  }
+  invalidNodeIds.value = invalidIds
+  return { valid: errors.length === 0, errors }
+}
+
+function clearValidation() {
+  invalidNodeIds.value = new Set()
+}
 // Drag & drop from sidebar palette — no-ops in view mode
 function onDragStart(event, code) {
   if (props.disabled) return
@@ -789,7 +851,7 @@ function clearAll() {
   edges.value = []
 }
 
-defineExpose({ loadFlow, buildFlowPayload })
+defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
 </script>
 
 <template>
@@ -868,7 +930,7 @@ defineExpose({ loadFlow, buildFlowPayload })
 
           <div
             class="flow-node"
-            :class="{ selected }"
+            :class="{ selected, invalid: invalidNodeIds.has(id) }"
             :style="{ '--node-color': NODE_DEFS[data.code]?.color }"
           >
             <div class="flow-node-head">
@@ -1278,7 +1340,15 @@ defineExpose({ loadFlow, buildFlowPayload })
   color: color-mix(in srgb, var(--node-color) 75%, black);
 }
 .flow-node-body { padding: 9px 11px 11px; font-size: 12px; min-height: 16px; word-break: break-word; }
-
+.flow-node.invalid {
+  border-color: #dc2626 !important;
+  box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25), 0 6px 16px rgba(0,0,0,0.08);
+  animation: invalid-pulse 1.4s ease-in-out 2;
+}
+@keyframes invalid-pulse {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25), 0 6px 16px rgba(0,0,0,0.08); }
+  50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15), 0 6px 16px rgba(0,0,0,0.08); }
+}
 .output-port { position: relative; }
 .output-ports {
   position: absolute;

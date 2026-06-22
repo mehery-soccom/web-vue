@@ -120,6 +120,16 @@ async function launchFlow() {
     const valid = await isValid();
     if (!valid) return;
 
+    const flowValidation = flowEditorRef.value?.validateFlow();
+    if (!flowValidation?.valid) {
+      tabErrors.value[1] = true;
+      activeTab.value = 1;
+      const summary = flowValidation.errors.map(e => `${e.label}: ${e.messages.join(', ')}`).join(' • ');
+      show({ message: `Fix the highlighted nodes — ${summary}`, color: 'error'});
+      return;
+    }
+    tabErrors.value[1] = false;
+
     const editorPayload = flowEditorRef.value.buildFlowPayload()
     const payload = {
       name: flow.name,
