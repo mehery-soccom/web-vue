@@ -61,11 +61,11 @@ const headers = [
     //   { title: "Disabled", value: false },
     // ],
   },
-  {
-    title: "Window ",
-    key: "schedule.enableActiveWindow",
-    filterType: "switch",
-  },
+  // {
+  //   title: "Window ",
+  //   key: "schedule.enableActiveWindow",
+  //   filterType: "switch",
+  // },
   {
     title: "Status",
     key: "status",
@@ -139,7 +139,7 @@ const pagination = reactive({
     "action.template.type": null,
     "action.template.subType": null,
     "abTesting.enabled": false,
-    "schedule.enableActiveWindow": null,
+    // "schedule.enableActiveWindow": null,
     status: null,
   },
 });
@@ -365,13 +365,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
         }}</VTooltip>
       </template>
 
-      <template #item.schedule.enableActiveWindow="{ item }">
+      // backend filtering not supported
+      <!-- <template #item.schedule.enableActiveWindow="{ item }">
         <div class="d-flex justify-center">
           <VIcon v-if="item.raw.schedule?.enableActiveWindow" size="16" color="success">
             mdi-clock-outline
           </VIcon>
         </div>
-      </template>
+      </template> -->
 
       <!-- Template codes -->
       <template #item.action.template.code="{ item }">

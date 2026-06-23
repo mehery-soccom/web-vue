@@ -280,7 +280,9 @@ const save = async ({ publish }) => {
 
     if (optionsErrors.value.length) return;
 
-    item.key = toCode(item.label);
+    if (!item._id) {
+      item.key = toCode(item.label);
+    }
 
     let res;
     if (!item._id) {
