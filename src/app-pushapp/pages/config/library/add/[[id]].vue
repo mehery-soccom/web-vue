@@ -63,10 +63,14 @@ const disableSave = computed(() => {
   return JSON.stringify(item) === JSON.stringify(itemCopy);
 });
 const disablePublish = computed(() => {
-  return !!(
-    (JSON.stringify(item.options) === JSON.stringify(itemCopy.options))
-    // && !item.options.length
-  );
+  if (!item.versions || item.versions.length === 0) {
+    return !item.options || item.options.length === 0;
+  }
+  const activeVersionDoc = item.versions.find(v => v.version === item.defaultVersion || v.isDefault);
+  if (activeVersionDoc) {
+    return JSON.stringify(item.options) === JSON.stringify(activeVersionDoc.options);
+  }
+  return false;
 });
 const formRef = ref();
 
@@ -173,6 +177,10 @@ const makeDefault = async (ver) => {
       version: ver.version,
     });
     setItem(res.data.data);
+
+    if (item.key === 'pages' && res.data?.results) {
+      libraryStore.$state.pageList = res.data.data.options;
+    }
 
     show({
       message: `Version - ${res.data.data.defaultVersion} activated successfully`,
@@ -308,6 +316,9 @@ const publish = async () => {
       const res = await libraryStore.publish({ id: item.key });
       setItem(res.data.data);
 
+      if (item.key === 'pages' && res.data?.results) {
+        libraryStore.$state.pageList = res.data.data.options;
+      }
       show({
         message: `Version - ${res.data.data.defaultVersion} published successfully`,
         color: "success",
