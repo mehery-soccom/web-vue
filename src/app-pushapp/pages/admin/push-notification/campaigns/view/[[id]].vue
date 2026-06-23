@@ -259,7 +259,7 @@ const populateSchedule = scheduleData => {
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
-                  <VForm ref="scheduleFormRef">
+                  <VForm ref="scheduleFormRef" class="scheduling-panel-wrapper">
                   <h3 class="mb-2">Schedule</h3>
                   <p class="text-caption mb-4">
                     Choose when the campaign will start
@@ -534,5 +534,24 @@ const populateSchedule = scheduleData => {
 }
 :deep(.recurring-group .v-radio-group .v-input__control .v-selection-control-group) {
   gap: 5px;
+}
+:deep(.scheduling-panel-wrapper .v-input--disabled),
+:deep(.scheduling-panel-wrapper .v-input--disabled .v-field),
+:deep(.scheduling-panel-wrapper .v-selection-control--disabled) {
+  opacity: 0.90 !important;
+}
+
+:deep(.scheduling-panel-wrapper .v-input--disabled .v-field__input),
+:deep(.scheduling-panel-wrapper .v-input--disabled input::placeholder),
+:deep(.scheduling-panel-wrapper .v-input--disabled input) {
+  color: rgba(0, 0, 0, 0.50) !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.50) !important;
+}
+
+:deep(.scheduling-panel-wrapper .v-label),
+:deep(.scheduling-panel-wrapper .v-input--disabled .v-label){
+  color: rgba(0, 0, 0, 0.50) !important;
+  opacity: 1 !important;
+  -webkit-text-fill-color: rgba(0, 0, 0, 0.50) !important;
 }
 </style>

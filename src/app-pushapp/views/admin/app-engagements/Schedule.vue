@@ -12,8 +12,38 @@ const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 
 watch(
   () => props.modelValue,
-  (val) => Object.assign(form, val),
-  { deep: true }
+  (val) => {
+    Object.assign(form, val);
+    if (val?.rrule) {
+      const rule = val.rrule;
+      const hours = val.activeHours || {};
+      form.recurringType = !!val.enableActiveWindow;
+
+      if (rule.includes("FREQ=DAILY")) {
+        form.schedulePattern = "daily";
+        form.startTime = hours.start || null;
+        form.endTime = hours.end || null;
+      } else if (rule.includes("FREQ=WEEKLY")) {
+        form.schedulePattern = "weekly";
+        form.scheduleDays = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
+        form.weeklyStartTime = hours.start || null;
+        form.weeklyEndTime = hours.end || null;
+      } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYMONTHDAY")) {
+        form.schedulePattern = "monthlyDate";
+        form.scheduleDate = rule.match(/BYMONTHDAY=(\d+)/)?.[1];
+        form.monthlyDateStartTime = hours.start || null;
+        form.monthlyDateEndTime = hours.end || null;
+      } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYSETPOS")) {
+        form.schedulePattern = "monthlyWeekday";
+        const weekMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+        form.scheduleWeek = weekMap[rule.match(/BYSETPOS=(-?\d+)/)?.[1]];
+        form.scheduleWeekday = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
+        form.monthlyWeekdayStartTime = hours.start || null;
+        form.monthlyWeekdayEndTime = hours.end || null;
+      }
+    }
+  },
+  { deep: true, immediate: true }
 );
 
 watch(form, (val) => emit("update:modelValue", val), { deep: true });
@@ -600,6 +630,29 @@ defineExpose({ isValid });
   }
   .v-label {
     width: auto !important;
+  }
+  .v-input--disabled,
+  .v-input--disabled .v-field,
+  .v-selection-control--disabled {
+    opacity: 0.90 !important; 
+  }
+  .v-input--disabled .v-field__input,
+  .v-input--disabled input::placeholder,
+  .v-input--disabled input {
+    color: rgba(0, 0, 0, 0.60) !important;
+    -webkit-text-fill-color: rgba(0, 0, 0, 0.50) !important;
+  }
+  .v-label,
+  .v-input--disabled .v-label,
+  .v-selection-control--disabled .v-label {
+    color: rgba(0, 0, 0, 0.50) !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: rgba(0, 0, 0, 0.50) !important;
+  }
+  .v-icon,
+  .v-selection-control__wrapper {
+    color: rgba(0, 0, 0, 0.50) !important;
+    opacity: 1 !important;
   }
 }
 </style>
