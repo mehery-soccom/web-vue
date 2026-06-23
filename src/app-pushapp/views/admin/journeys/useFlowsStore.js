@@ -31,7 +31,7 @@ export const useFlowsStore = defineStore("FlowsStore", {
       return DataService.axios.get(`/api/v1/journi/${id}`, params);
     },
     updateFlow({ id, ...params }) {
-      return DataService.axios.put(`/api/v1/journi/${id}`, params);
+      return DataService.axios.put(`/api/v1/journi/${id}/status`, params);
     },
     deleteFlow({ id, ...params }) {
       return DataService.axios.delete(`/api/v1/journi/${id}`, params);

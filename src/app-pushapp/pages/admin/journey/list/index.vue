@@ -23,6 +23,13 @@ const headers = computed(() => [
     title: "Status",
     key: "status",
     align: "center",
+    filterType: "select",
+    filterOptions: [
+      { title: "Draft", value: "DRAFT" },
+      { title: "Live", value: "ON_GOING" },
+      { title: "Paused", value: "PAUSED" },
+      { title: "Terminated", value: "ENDED" },
+    ],
   },
   {
     title: "Created",
@@ -49,6 +56,8 @@ const pagination = reactive({
   multiSort: true,
   filters: {
     name: null,
+    desc: null,
+    status: null,
   },
 });
 
@@ -83,6 +92,28 @@ const fetchItems = async (params) => {
   } finally {
     isLoading.value = false;
   }
+};
+
+const updateFlowStatus = (id, status) => {
+  isLoading.value = true;
+
+  FlowsStore.updateFlow({ id, status })
+    .then(() => {
+      fetchItems({ ...pagination });
+      show({
+        message: `Flow ${status === "ON_GOING" ? "started" : "paused"} successfully`,
+        color: "success",
+      });
+    })
+    .catch(() => {
+      show({
+        message: "Something went wrong",
+        color: "error",
+      });
+    })
+    .finally(() => {
+      isLoading.value = false;
+    });
 };
 
 // 👉 Delete Item
@@ -151,7 +182,26 @@ onMounted(async () => {});
       </template>
 
       <template #item.status="{ item }">
-        <span>{{ (item.raw.status).replace(/_/g, ' ') }}</span>
+        <!-- <span>{{ (item.raw.status).replace(/_/g, ' ') }}</span> -->
+        <VChip
+          :color="{
+            DRAFT: 'secondary',
+            ON_GOING: 'success',
+            PAUSED: 'warning',
+            ENDED: 'error',
+          }[item.raw.status]"
+          variant="tonal"
+          size="small"
+        >
+          {{
+            {
+              DRAFT: "Draft",
+              ON_GOING: "Live",
+              PAUSED: "Paused",
+              ENDED: "Terminated",
+            }[item.raw.status]
+          }}
+        </VChip>
       </template>
 
       <!-- created at -->
@@ -176,14 +226,37 @@ onMounted(async () => {});
           <VIcon icon="mdi-eye" />
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
-        <IconBtn>
-          <VIcon>mdi-trash</VIcon>
+        <IconBtn
+          v-if="item.raw.status === 'DRAFT'"
+          @click="updateFlowStatus(item.raw._id, 'ON_GOING')"
+        >
+          <VIcon icon="mdi-rocket-launch" />
+          <VTooltip activator="parent">Launch Flow</VTooltip>
+        </IconBtn>
+
+        <IconBtn
+          v-else-if="item.raw.status === 'ON_GOING'"
+          @click="updateFlowStatus(item.raw._id, 'PAUSED')"
+        >
+          <VIcon icon="mdi-pause" />
+          <VTooltip activator="parent">Pause Flow</VTooltip>
+        </IconBtn>
+
+        <IconBtn
+          v-else-if="item.raw.status === 'PAUSED'"
+          @click="updateFlowStatus(item.raw._id, 'ON_GOING')"
+        >
+          <VIcon icon="mdi-play-circle" />
+          <VTooltip activator="parent">Resume Flow</VTooltip>
+        </IconBtn>
+        <IconBtn v-if="['ON_GOING', 'PAUSED'].includes(item.raw.status)">
+          <VIcon icon="mdi-close-circle" />
           <v-dialog activator="parent" max-width="340">
             <template v-slot:default="{ isActive }">
               <v-card
                 class=""
                 prepend-icon="mdi-alert"
-                text="Are you certain, you want to delete ?"
+                text="Are you certain, you want to end the flow ?"
                 title="Confirm"
               >
                 <template v-slot:actions>
@@ -201,7 +274,7 @@ onMounted(async () => {});
               </v-card>
             </template>
           </v-dialog>
-          <VTooltip activator="parent">Delete</VTooltip>
+          <VTooltip activator="parent">End flow</VTooltip>
         </IconBtn>
       </template>
     </MyDataTable>

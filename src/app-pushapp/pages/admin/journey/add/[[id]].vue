@@ -139,12 +139,12 @@ async function launchFlow() {
     }
     await FlowsStore.createFlow(payload)
 
-    show({ message: "Flow launched successfully", color: "success" });
+    show({ message: "Flow saved successfully", color: "success" });
     router.push({ name: "admin-journey-list",});
   }
   catch (e) {
     console.log(e);
-    show({ message: "Failed to launch flow", color: "error" });
+    show({ message: "Failed to save flow", color: "error" });
   }
   finally {
     isLoading.value = false;
@@ -225,7 +225,7 @@ onMounted(async () => {
         </VBtn>
 
         <VBtn v-else color="success" :loading="isLoading" v-if="!isViewMode" @click="launchFlow">
-          Launch Flow
+          Save Flow
           <VIcon end icon="mdi-check"/>
         </VBtn>
       </div>
