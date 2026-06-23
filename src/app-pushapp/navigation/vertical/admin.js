@@ -13,10 +13,10 @@ export default [
         title: "Templates",
         to: "admin-push-notification-templates-list",
       },
-      // {
-      //   title: "Slices",
-      //   to: "admin-push-notification-slices-list",
-      // },
+      {
+        title: "Slices",
+        to: "admin-push-notification-slices-list",
+      },
       {
         title: "Blast",
         to: "admin-push-notification-campaigns-add",
