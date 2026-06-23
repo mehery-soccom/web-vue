@@ -195,8 +195,8 @@ const NODE_DEFS = {
     color: '#7c3aed',
     hasInput: true,
     fixedOutputs: [
-      { id: 'SUCCESS', label: 'Success' },
-      { id: 'FAILED', label: 'Failed' },
+      { id: 'fulfilled', label: 'Success' },
+      { id: 'expired', label: 'Failed' },
     ],
     defaultAttrs: () => ({
       type: 'appevent',
@@ -654,8 +654,8 @@ function validateFlow() {
       if (!attrs.appevent) messages.push('Select an expected event')
       if (!attrs.window?.value) messages.push('Set the wait time')
       if (!attrs.window?.unit) messages.push('Select the time unit')
-      if (!isOutputConnected(n.id, 'SUCCESS')) messages.push('Connect the Success output to a node')
-      if (!isOutputConnected(n.id, 'FAILED')) messages.push('Connect the Failed output to a node')
+      if (!isOutputConnected(n.id, 'fulfilled')) messages.push('Connect the Success output to a node')
+      if (!isOutputConnected(n.id, 'expired')) messages.push('Connect the Failed output to a node')
     } else if (code === 'END') {
       if (!attrs.status) messages.push('Select a status (Succeeded / Failed)')
     }
