@@ -50,4 +50,9 @@ export default [
     icon: { icon: "tabler-users-group" },
     to: "admin-cohorts-list",
   },
+  {
+    title: "Journeys",
+    icon: { icon: "mdi-vector-polyline" },
+    to: "admin-journey-list",
+  },
 ];

@@ -173,7 +173,7 @@ export const useAppEngagements = (source, config = {}) => {
       }
     }
 
-    if (type === "customEvent") {
+    if (type === "customEvent" || type === "eventData") {
       isLoading.value = true;
       try {
         const response = await DataService.axios.get(
@@ -184,11 +184,17 @@ export const useAppEngagements = (source, config = {}) => {
           const r = {
             type,
             title: el.eventName,
-            value: el.eventName,
+            value: type === "eventData" ? `edata_${el._id}` : el._id, 
             meta: {
               projection: null,
+              dataProperties: el.dataProperties || [],
             },
           };
+          
+          if (type === "eventData") {
+            r.inputFieldMeta = { type: "text" };
+          }
+
           resultsMap[r.value] = r;
           return r;
         });

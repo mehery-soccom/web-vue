@@ -283,7 +283,7 @@ const populateSchedule = scheduleData => {
                               class="flex-grow-1 tiny-input"
                               style="min-width: 170px"
                               :disabled="schedule.durationType != 'scheduled'"
-                              :config="{ enableTime: true, minDate: now }"
+                              :config="{ enableTime: true }"
                             />
                           </div>
                         </div>
