@@ -61,6 +61,11 @@ const headers = [
     align: "center",
   },
   {
+    title: "Recurring",
+    key: "schedule.isRecurring",
+    filterType: "switch",
+  },
+  {
     title: "Sent",
     key: "stats.sent",
     sortable: false,
@@ -112,6 +117,7 @@ const pagination = reactive({
   filters: {
     campaignName: "",
     templateCode: "",
+    "schedule.isRecurring": false,
   },
 });
 const now = new Date();
@@ -282,6 +288,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- sent at -->
       <template #item.createdStamp="{ item }">
         {{ smartFormatDate(item.raw.createdStamp) }}
+      </template>
+
+      <template #item.schedule.isRecurring="{ item }">
+        <div class="d-flex justify-center">
+          <VIcon v-if="item.raw.schedule?.isRecurring" size="16" color="info">
+            mdi-repeat
+          </VIcon>
+        </div>
       </template>
 
       <!-- platforms -->

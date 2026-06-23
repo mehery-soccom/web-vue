@@ -62,6 +62,11 @@ const headers = [
     // ],
   },
   {
+    title: "Window ",
+    key: "schedule.enableActiveWindow",
+    filterType: "switch",
+  },
+  {
     title: "Status",
     key: "status",
     filterType: "select",
@@ -134,6 +139,7 @@ const pagination = reactive({
     "action.template.type": null,
     "action.template.subType": null,
     "abTesting.enabled": false,
+    "schedule.enableActiveWindow": null,
     status: null,
   },
 });
@@ -357,6 +363,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <VTooltip v-if="item.raw.abTesting?.enabled" activator="parent">{{
           item.raw.abTesting?.state || "Expand row for more details"
         }}</VTooltip>
+      </template>
+
+      <template #item.schedule.enableActiveWindow="{ item }">
+        <div class="d-flex justify-center">
+          <VIcon v-if="item.raw.schedule?.enableActiveWindow" size="16" color="success">
+            mdi-clock-outline
+          </VIcon>
+        </div>
       </template>
 
       <!-- Template codes -->
