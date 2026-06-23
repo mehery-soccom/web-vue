@@ -528,29 +528,31 @@ async function onChannelIdChange(nodeId, channelType, channelId) {
   await loadTemplateOptionsFor(nodeId, channelType, channelId)
 }
 
-function onTemplateChange(nodeId, templateCode) {
+function onTemplateChange(nodeId, templateCode, code) {
   if (props.disabled) return
   setNodeAttr('template.code', templateCode)
   const selectedTemplate = optionCache[nodeId]?.templateOptions?.find( o => o.value === templateCode)
   setNodeAttr('template.name', selectedTemplate?.title || '')
 
-  let buttons = selectedTemplate?.options?.buttons || []
-  if (!buttons.length) buttons = selectedTemplate?.style?.btn || []
+  if(code === 'ACTOR'){
+    let buttons = selectedTemplate?.options?.buttons || []
+    if (!buttons.length) buttons = selectedTemplate?.style?.btn || []
 
-  updateNode(nodeId, n => ({
-    ...n,
-    data: {
-      ...n.data,
-      attrs: {
-        ...n.data.attrs,
-        listeners: buttons.map((b, index) => ({
-          id: `listener_${index + 1}`,
-          type: 'text',
-          text: b.label || b.button_text,
-        }))
+    updateNode(nodeId, n => ({
+      ...n,
+      data: {
+        ...n.data,
+        attrs: {
+          ...n.data.attrs,
+          listeners: buttons.map((b, index) => ({
+            id: `listener_${index + 1}`,
+            type: 'text',
+            text: b.label || b.button_text,
+          }))
+        }
       }
-    }
-  }))
+    }))
+  }
 }
 
 // ── ACTOR listener management ──
@@ -756,8 +758,33 @@ function buildFlowPayload() {
         }))
         entry.outputs = entry.listeners.map(l => ({ id: l.emit}))
       }
-    }
-    else if (outputs.length) {
+    } else if (code === 'EXPECTATION') {
+      const a = n.data.attrs || {}
+      entry.attrs = {
+        type: a.type,
+        appevent: a.appevent,
+        name: a.name,
+        window: {
+          value: a.window?.value,
+          unit: a.window?.unit,
+        },
+        actions: [
+          {
+            id: 'action_1',
+            code: a.channelType,
+            attrs: {
+              channelId: a.channelId,
+              template: {
+                code: a.template?.code,
+                id: a.template?.id,
+                name: a.template?.name,
+              },
+            },
+          },
+        ],
+      }
+      entry.outputs = outputs.map(o => ({ id: o.id })) // fulfilled / expired — fixed, never listener-driven
+    } else if (outputs.length) {
       entry.outputs = outputs.map(o => ({ id: o.id}))
     }
     nodesDict[n.id] = entry
@@ -943,7 +970,8 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
                 {{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
               <template v-else-if="data.code === 'EXPECTATION'">
-                {{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})
+                <div>{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
+                <div v-if="data.attrs.channelType">{{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
               </template>
               <template v-else-if="data.code === 'END'">
                 <span v-if="data.attrs.status">{{ formatLabel(data.attrs.status) }}</span>
@@ -1038,7 +1066,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
               :loading="optionCache[inspectedNode.id]?.loadingTemplate"
               :disabled="disabled || !inspectedNode.data.attrs.channelId"
               clearable
-              @update:model-value="value => onTemplateChange(inspectedNode.id, value)"
+              @update:model-value="value => onTemplateChange(inspectedNode.id, value, inspectedNode.data.code)"
             />
             <p v-if="inspectedNode.data.attrs.channelType === 'SEND_MESSAGE' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
               No approved templates for this channel yet.
@@ -1166,7 +1194,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
               :loading="optionCache[inspectedNode.id]?.loadingTemplate"
               :disabled="disabled || !inspectedNode.data.attrs.channelId"
               clearable
-              @update:model-value="value => onTemplateChange(inspectedNode.id, value)"
+              @update:model-value="value => onTemplateChange(inspectedNode.id, value, inspectedNode.data.code)"
             />
             <p v-if="inspectedNode.data.attrs.channelType === 'SEND_MESSAGE' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
               No approved templates for this channel yet.

@@ -251,7 +251,7 @@ onMounted(async () => {});
         </IconBtn>
         <IconBtn v-if="['ON_GOING', 'PAUSED'].includes(item.raw.status)">
           <VIcon icon="mdi-close-circle" />
-          <v-dialog activator="parent" max-width="340">
+          <v-dialog activator="parent" max-width="350">
             <template v-slot:default="{ isActive }">
               <v-card
                 class=""
