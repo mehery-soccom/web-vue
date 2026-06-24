@@ -16,6 +16,9 @@ const props = defineProps({
   hasCohort: { type: Boolean, default: false },
   hasNormalFilter: { type: Boolean, default: false },
   channelId: { type: [String, Number], default: null },
+  vertical: { type: Boolean, default: false },
+  rootFilter: { type: Object, default: null },
+  connectedAppEvent: { type: String, default: null },
 });
 const emit = defineEmits(["remove", "update"]);
 
@@ -81,7 +84,7 @@ const isValid = async (silent = false) => {
         }
       }
     }
-    if (el.filterType === 'eventData' && !el.dataProperty) valid = false;
+    // if (el.filterType === 'eventData' && !el.dataProperty) valid = false;
   }
 
   if (!valid && !silent) hasError.value = true;
@@ -150,6 +153,45 @@ watch(
     }
   },
 );
+
+const findCustomEvent = (node, result = []) => {
+  if (!node) return result;
+  if (node.type === "filter" && node.filterType === "customEvent" && node.field) result.push(node.field);
+  if (node.children) node.children.forEach(child => findCustomEvent(child, result));
+
+  return result;
+};
+const customEventIds = computed(() =>
+  findCustomEvent(props.rootFilter)
+);
+const eventDataFields = computed(() => {
+  if (props.element.filterType !== "eventData") return [];
+
+  const ids = customEventIds.value;
+  const matchedDefs = Object.values(FILTER_FIELDS_MAP).filter((f) => {
+    if (f.type !== "eventData") return false;
+    if (ids.includes(f.eventId)) return true;
+    if (props.connectedAppEvent && f.title === props.connectedAppEvent) return true;
+    return false;
+  });
+
+  if (!matchedDefs.length) return [];
+  return [
+    ...new Set(
+      matchedDefs.flatMap((e) => e.meta?.dataProperties || []),
+    ),
+  ].map((p) => ({ title: p, value: p }));
+});
+const selectedFieldMeta = computed(() => {
+  if (props.element.filterType === "eventData") {
+    return {
+      inputFieldMeta: {
+        type: "text",
+      },
+    };
+  }
+  return FILTER_FIELDS_MAP[props.element.field];
+});
 const confirmCohortSelection = () => {
   skipCohortCheck.value = true;
   props.element.filterType = pendingFilterType.value;
@@ -172,7 +214,7 @@ defineExpose({ isValid });
       class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 position-relative"
       :class="[
         hasError ? 'border-red' : 'border-grey-lighten-1',
-        { readonly: readonly, 'disabled-filter': hasCohort && element.filterType !== 'cohort' },
+        { readonly: readonly, 'disabled-filter': hasCohort && element.filterType !== 'cohort', 'flex-column': vertical },
       ]"
     >
     <!-- :items="
@@ -207,7 +249,7 @@ defineExpose({ isValid });
       <!-- Field -->
       <AppSelect
         v-model="element.field"
-        :items="FILTER_FIELDS"
+        :items="element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS"
         :placeholder="element.filterType === 'slice' ? 'Select slice' : element.filterType === 'cohort' ? 'Select cohort' : 'Select field'"
         class="filter-entity field"
         @update:modelValue="clearErrorAndUpdate"
@@ -223,20 +265,20 @@ defineExpose({ isValid });
         </template>
       </AppSelect>
 
-      <AppSelect
+      <!-- <AppSelect
         v-if="element.filterType === 'eventData' && FILTER_FIELDS_MAP[element.field]"
         v-model="element.dataProperty"
         :items="FILTER_FIELDS_MAP[element.field]?.meta?.dataProperties || []"
         placeholder="Select Property"
         class="filter-entity data-property"
         @update:modelValue="clearErrorAndUpdate"
-      />
+      /> -->
 
       <!-- Operator -->
       <AppSelect
         v-if="
-          FILTER_FIELDS_MAP[element.field]?.inputFieldMeta &&
-          FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type !== 'frequency'
+          (selectedFieldMeta?.inputFieldMeta &&
+          selectedFieldMeta?.inputFieldMeta?.type !== 'frequency')
         "
         v-model="element.operator"
         :items="FILTER_OPERATORS"
@@ -246,7 +288,7 @@ defineExpose({ isValid });
       />
 
       <!-- Value -->
-      <template v-if="FILTER_FIELDS_MAP[element.field]?.inputFieldMeta">
+      <template v-if="selectedFieldMeta?.inputFieldMeta">
         <AppSelect
           v-if="
             FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
@@ -362,6 +404,8 @@ defineExpose({ isValid });
       ref="furtherGroupRef"
       :model-value="element"
       :level="level + 1"
+      :vertical="vertical"
+      :connected-app-event="connectedAppEvent"
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
@@ -424,5 +468,11 @@ defineExpose({ isValid });
 .disabled-filter {
   opacity: 0.5;
   pointer-events: none;
+}
+</style>
+<style>
+.flex-column.d-flex > .filter-entity {
+  max-width: 100%;
+  width: 100%;
 }
 </style>

@@ -13,7 +13,7 @@ import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import axios from 'axios'
 import { FILTER_FIELDS_MAP } from '../app-engagements/data/filterOptions'
-
+import FilterBuilder from '../app-engagements/FilterBuilder.vue'
 
 // Props
 
@@ -147,24 +147,36 @@ const NODE_DEFS = {
     fixedOutputs: [{ id: 'triggered', label: 'Start' }],
     defaultAttrs: () => ({ type: 'appevent', appevent: '' }),
   },
-  // CONDITION: {
-  //   label: 'Checkpoint',
-  //   icon: '◆',
-  //   color: '#d97706',
-  //   hasInput: true,
-  //   fixedOutputs: [
-  //     { id: 'matched', label: 'Matched' },
-  //     { id: 'not_matched', label: 'Not matched' },
-  //   ],
-  //   defaultAttrs: () => ({
-  //     // Same channel/template cascade shape as ACTOR
-  //     channelType: 'WHATSAPP',
-  //     channelId: null,
-  //     template: { code: null },
-  //     // Wait/delay
-  //     wait: { value: 0, unit: 'minutes' },
-  //   }),
-  // },
+  CONDITION: {
+    label: 'Checkpoint',
+    icon: '◆',
+    color: '#d97706',
+    hasInput: true,
+    fixedOutputs: [
+      { id: 'matched', label: 'Matched' },
+      { id: 'not_matched', label: 'Not matched' },
+    ],
+    defaultAttrs: () => ({
+      type: 'filter',
+      filter: {
+        type: 'group',
+        conjunction: 'and',
+        children: [
+          {
+            type: 'filter',
+            filterType: null,
+            field: null,
+            operator: null,
+            dataProperty: null,
+            value: null,
+            freqOperator: null,
+            freqCount: null,
+            freqPeriod: null,
+          },
+        ],
+      },
+    }),
+  },
   // WAIT: {
   //   label: 'Pause',
   //   icon: '⏱',
@@ -216,7 +228,7 @@ const NODE_DEFS = {
   },
 }
 
-const PALETTE_CODES = [ 'ACTOR', 'EXPECTATION', 'END']
+const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'END']
 
 const CHANNEL_TYPE_OPTIONS = [
   { title: 'Send WhatsApp', value: 'SEND_MESSAGE' },
@@ -625,6 +637,26 @@ function isOutputConnected(nodeId, outputId) {
   )
 }
 
+function findUpstreamAppEvent(nodeId, visited = new Set()) {
+  if (visited.has(nodeId)) return null
+  visited.add(nodeId)
+  const edge = edges.value.find((e) => e.target === nodeId)
+  if (!edge) return null
+  const sourceNode = nodes.value.find((n) => n.id === edge.source)
+  if (!sourceNode) return null
+  if (sourceNode.data.code === 'TRIGGER' || sourceNode.data.code === 'EXPECTATION') {
+    return sourceNode.data.attrs?.appevent || null
+  }
+  if (sourceNode.data.code === 'CONDITION') {
+    return findUpstreamAppEvent(sourceNode.id, visited)
+  }
+  return null
+}
+
+const connectedAppEventForInspectedNode = computed(() => {
+  if (!inspectedNode.value || inspectedNode.value.data.code !== 'CONDITION') return null
+  return findUpstreamAppEvent(inspectedNode.value.id)
+})
 function validateFlow() {
   const errors = []
   const invalidIds = new Set()
@@ -637,6 +669,14 @@ function validateFlow() {
     if (code === 'TRIGGER') {
       if (!attrs.appevent) messages.push('Select an app event')
       if (!isOutputConnected(n.id, 'triggered')) messages.push('Connect the Start output to a node')
+    } else if (code === 'CONDITION') {
+      const hasConfiguredFilter = (attrs.filter?.children || []).some(
+        (c) => c.field || (c.children && c.children.length)
+      )
+      if (!hasConfiguredFilter) messages.push('Configure the condition filter')
+      if (!isOutputConnected(n.id, 'matched')) messages.push('Connect the Matched output to a node')
+      if (!isOutputConnected(n.id, 'not_matched')) messages.push('Connect the Not matched output to a node')
+
     } else if (code === 'ACTOR') {
       if (!attrs.channelType) messages.push('Select an action')
       if (!attrs.channelId) messages.push('Select a channel/app')
@@ -966,6 +1006,9 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             </div>
             <div class="flow-node-body">
               <template v-if="data.code === 'TRIGGER'">{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No Event Selected' }}</template>
+              <template v-else-if="data.code === 'CONDITION'">
+                {{ (data.attrs.filter?.children?.length || 0) }} condition(s)
+              </template>
               <template v-else-if="data.code === 'ACTOR'">
                 {{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
@@ -1028,6 +1071,22 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             />
           </template>
 
+          <template v-else-if="inspectedNode.data.code === 'CONDITION'">
+            <p v-if="!connectedAppEventForInspectedNode" class="field-hint">
+              Connect this node to Start or Monitor to auto-fill the event.
+            </p>
+            <FilterBuilder
+              v-model="inspectedNode.data.attrs.filter"
+              vertical
+              :connected-app-event="connectedAppEventForInspectedNode"
+              :ignoreEventDatafilterType="!connectedAppEventForInspectedNode"
+              :ignoreEventfilterType="true"
+              :ignoreCustomEventfilterType="true"
+              :ignoreCohortfilterType="true"
+              :ignoreSlicefilterType="true"
+              :readonly="disabled"
+            />
+          </template>
           <!-- ACTOR -->
           <template v-else-if="inspectedNode.data.code === 'ACTOR'">
             <AppSelect
@@ -1388,6 +1447,8 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
   justify-content: space-evenly;
 }
 .flow-handle-out {
+  width: 8px;
+  height: 8px;
   position: relative !important;
   top: auto !important;
   right: -0px !important;
