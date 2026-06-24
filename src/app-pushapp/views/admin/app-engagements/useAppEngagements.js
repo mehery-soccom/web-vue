@@ -221,8 +221,13 @@ export const useAppEngagements = (source, config = {}) => {
 
       // If options is a string, assume it's an API URL
       if (typeof meta.options === "string") {
+        meta._optionsUrl = meta.options;
+      }
+        const url = meta._optionsUrl;
+        if (!url) continue;
+
         try {
-          const response = await DataService.get(meta.options);
+          const response = await DataService.get(url);
           const { results } = response;
           FILTER_FIELDS_MAP[key].inputFieldMeta.options = results.map(
             (item) => ({
@@ -238,7 +243,6 @@ export const useAppEngagements = (source, config = {}) => {
           console.error(`Failed to fetch options for ${key}:`, error);
 
           FILTER_FIELDS_MAP[key].inputFieldMeta.options = [];
-        }
       }
     }
     isLoaded.value = true;
@@ -273,6 +277,7 @@ export const useAppEngagements = (source, config = {}) => {
 
     FILTER_PERIODS,
     fetchFilterFields,
+    fetchFilterFieldValues,
     clearCache,
     localCache,
   };

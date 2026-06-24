@@ -1,7 +1,9 @@
 <script setup>
-import { ref } from "vue";
+import { ref, onMounted } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
+import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
+const libraryStore = useLibraryStore();
 
 const props = defineProps({
   element: { type: Object, required: true },
@@ -40,6 +42,7 @@ const {
   FILTER_FIELDS_MAP,
   FILTER_OPERATORS,
   FILTER_PERIODS,
+  fetchFilterFieldValues
 } = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId });
 
 // === Clear error on change ===
@@ -203,6 +206,23 @@ const cancelCohortSelection = () => {
   showCohortConfirm.value = false;
 };
 
+onMounted(async () => {
+  await fetchFilterFieldValues()
+  if (!libraryStore.$state.pageList || libraryStore.$state.pageList.length === 0) {
+    try {
+      console.log("Fresh login detected. Auto-fetching pages list from server...");
+      const response = await libraryStore.read({ id: 'pages' });
+      
+      if (response.data?.data?.options) {
+        libraryStore.$state.pageList = response.data.data.options;
+        console.log("Global page list cache successfully hydrated:", libraryStore.$state.pageList);
+      }
+    } catch (error) {
+      console.error("Failed to auto-fetch pages on clean login boot:", error);
+    }
+  }
+});
+
 defineExpose({ isValid });
 </script>
 
@@ -291,15 +311,28 @@ defineExpose({ isValid });
       <template v-if="selectedFieldMeta?.inputFieldMeta">
         <AppSelect
           v-if="
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
-              'select' ||
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
-              'dropdown'
+            (FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'select' ||
+             FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'dropdown') && 
+            typeof FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.options === 'string'
           "
           v-model="element.value"
-          :items="
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.options || []
+          :items="libraryStore.$state.pageList || []"
+          item-title="label"
+          item-value="code"
+          placeholder="Select Value"
+          class="filter-entity value"
+          :multiple="true"
+          :clearable="true"
+          @update:modelValue="clearErrorAndUpdate"
+        />
+
+        <AppSelect
+          v-else-if="
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'select' ||
+            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'dropdown'
           "
+          v-model="element.value"
+          :items="FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.options || []"
           placeholder="Select Value"
           class="filter-entity value"
           :multiple="true"
