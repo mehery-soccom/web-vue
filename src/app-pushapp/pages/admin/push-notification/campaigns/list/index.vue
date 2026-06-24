@@ -290,7 +290,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         {{ smartFormatDate(item.raw.createdStamp) }}
       </template>
 
-      // backend filtering not supported
+      <!-- backend filtering not supported -->
       <!-- <template #item.schedule.isRecurring="{ item }">
         <div class="d-flex justify-center">
           <VIcon v-if="item.raw.schedule?.isRecurring" size="16" color="info">

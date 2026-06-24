@@ -365,7 +365,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         }}</VTooltip>
       </template>
 
-      // backend filtering not supported
+      <!-- backend filtering not supported -->
       <!-- <template #item.schedule.enableActiveWindow="{ item }">
         <div class="d-flex justify-center">
           <VIcon v-if="item.raw.schedule?.enableActiveWindow" size="16" color="success">
