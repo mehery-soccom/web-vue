@@ -808,7 +808,7 @@ function buildFlowPayload() {
           value: a.window?.value,
           unit: a.window?.unit,
         },
-        actions: [
+        actions: a.template?.code ? [
           {
             id: 'action_1',
             code: a.channelType,
@@ -821,7 +821,7 @@ function buildFlowPayload() {
               },
             },
           },
-        ],
+        ] : [],
       }
       entry.outputs = outputs.map(o => ({ id: o.id })) // fulfilled / expired — fixed, never listener-driven
     } else if (outputs.length) {
