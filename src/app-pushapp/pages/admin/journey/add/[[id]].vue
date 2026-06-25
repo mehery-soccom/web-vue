@@ -159,19 +159,32 @@ async function loadRecordIntoForm(record) {
   if (record.filter) Object.assign(flow.filter, structuredClone(record.filter));
 }
 
+async function loadCloneIntoForm(data) {
+  flow.flow = data.flow || {};
+  flow.flowRenderer = data.flowRenderer || { drawflow: { Home: {} } };
+  if (data.filter) Object.assign(flow.filter, structuredClone(data.filter));
+}
+
 onMounted(async () => {
-  if (!route.params.id) return;
-  try {
-    isFetching.value = true;
-    const response = await FlowsStore.fetchFlow({ id: route.params.id });
-    flowRecord.value = response.data.data;
-    // console.log("data", JSON.parse(JSON.stringify(flowRecord.value)));
-    await loadRecordIntoForm(flowRecord.value);
-  } catch (e) {
-    console.log(e);
-    show({ message: "Failed to load flow", color: "error" });
-  } finally {
-    isFetching.value = false;
+  if (route.params.id) {
+    try {
+      isFetching.value = true;
+      const response = await FlowsStore.fetchFlow({ id: route.params.id });
+      flowRecord.value = response.data.data;
+      await loadRecordIntoForm(flowRecord.value);
+    } catch (e) {
+      console.log(e);
+      show({ message: "Failed to load flow", color: "error" });
+    } finally {
+      isFetching.value = false;
+    }
+    return;
+  }
+  const cloneData = FlowsStore.consumeCloneData();
+  if (cloneData) {
+    flowRecord.value = cloneData;
+    await loadCloneIntoForm(cloneData);
+    show({ message: "Cloned flow loaded — set a new name to save", color: "info" });
   }
 });
 

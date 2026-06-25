@@ -177,17 +177,6 @@ const NODE_DEFS = {
       },
     }),
   },
-  // WAIT: {
-  //   label: 'Pause',
-  //   icon: '⏱',
-  //   color: '#0891b2',
-  //   hasInput: true,
-  //   fixedOutputs: [{ id: 'completed', label: 'Completed' }],
-  //   defaultAttrs: () => ({
-  //     type: 'duration',
-  //     duration: { value: 2, unit: 'hours' },
-  //   }),
-  // },
   ACTOR: {
     label: 'Engage',
     icon: '▶',
@@ -216,6 +205,16 @@ const NODE_DEFS = {
       window: { value: 2, unit: 'hour' },
     }),
   },
+  // WAIT: {
+  //   label: 'WAIT',
+  //   icon: '⏱',
+  //   color: '#0891b2',
+  //   hasInput: true,
+  //   fixedOutputs: [{ id: 'completed', label: 'Completed' }],
+  //   defaultAttrs: () => ({
+  //     duration: { value: 2, unit: 'hours' },
+  //   }),
+  // },
   END: {
     label: 'Complete',
     icon: '⏹',
@@ -698,6 +697,10 @@ function validateFlow() {
       if (!attrs.window?.unit) messages.push('Select the time unit')
       if (!isOutputConnected(n.id, 'fulfilled')) messages.push('Connect the Success output to a node')
       if (!isOutputConnected(n.id, 'expired')) messages.push('Connect the Failed output to a node')
+    } else if (code === 'WAIT') {
+      if (!attrs.window?.value) messages.push('Set the wait time')
+      if (!attrs.window?.unit) messages.push('Select the time unit')
+      if (!isOutputConnected(n.id, 'completed')) messages.push('Connect the output to a node')
     } else if (code === 'END') {
       if (!attrs.status) messages.push('Select a status (Succeeded / Failed)')
     }
@@ -1016,6 +1019,9 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
                 <div>{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
                 <div v-if="data.attrs.channelType">{{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
               </template>
+              <template v-else-if="data.code === 'WAIT'">
+                <div>Wait for ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
+              </template>
               <template v-else-if="data.code === 'END'">
                 <span v-if="data.attrs.status">{{ formatLabel(data.attrs.status) }}</span>
                 <span v-else>Terminates Flow</span>
@@ -1262,6 +1268,29 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             <p class="field-hint">Outputs: <code>Success</code> / <code>Failed</code></p>
           </template>
 
+          <!-- WAIT/DELAY -->
+          <template v-else-if="inspectedNode.data.code === 'WAIT'">
+            <AppTextField
+              label="Time"
+              type="number"
+              :model-value="inspectedNode.data.attrs.window?.value"
+              :disabled="disabled"
+              @update:model-value="value => setNodeAttr('window.value', Number(value))"
+            />
+            <AppSelect
+              label="Time Unit"
+              :model-value="inspectedNode.data.attrs.window?.unit"
+              :items="[
+                { title:'Minutes', value:'minute'},
+                { title:'Hours', value:'hour'},
+                { title:'Days', value:'day'}
+              ]"
+              :disabled="disabled"
+              @update:model-value="value => setNodeAttr('window.unit', value)"
+            />
+            <p class="field-hint">Outputs: <code>Continue flow</code> should be connected to other node.</p>
+          </template>
+
           <!-- END -->
           <template v-else-if="inspectedNode.data.code === 'END'">
             <AppSelect
@@ -1447,8 +1476,8 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
   justify-content: space-evenly;
 }
 .flow-handle-out {
-  width: 8px;
-  height: 8px;
+  width: 9px;
+  height: 9px;
   position: relative !important;
   top: auto !important;
   right: -0px !important;

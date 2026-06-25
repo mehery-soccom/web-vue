@@ -33,7 +33,7 @@ const headers = computed(() => [
   {
     title: "Actions",
     key: "actions",
-    align: "center",
+    // align: "center",
     sortable: false,
   },
 ]);
