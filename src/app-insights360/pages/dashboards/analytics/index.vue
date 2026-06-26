@@ -123,7 +123,7 @@ var statsLead = ref([
 
 var statsBill = ref([
   {
-    title: "Local Billing Units (Mins)",
+    title: "Local Billing Units",
     color: "primary",
     icon: "tabler-receipt",
     stats: "0",
@@ -135,7 +135,7 @@ var statsBill = ref([
     stats: "0",
   },
   {
-    title: "International Billing Units (Mins)",
+    title: "International Billing Units",
     color: "error",
     icon: "tabler-receipt",
     stats: "0",
@@ -674,9 +674,9 @@ const fetchBillingUnits = async (start, end, chan, agent, type) => {
     const total2 = response?.data?.data?.LOCAL?.totalDuration;
     const total3 = response?.data?.data?.INTERNATIONAL?.totalBillingUnits;
     const total4 = response?.data?.data?.INTERNATIONAL?.totalDuration;
-    if (total1 != null) statsBill.value[0].stats = String(formatDurationInMinutes(total1));
+    if (total1 != null) statsBill.value[0].stats = String(total1);
     if (total2 != null) statsBill.value[1].stats = String(formatDurationInMinutes(total2));
-    if (total3 != null) statsBill.value[2].stats = String(formatDurationInMinutes(total3));
+    if (total3 != null) statsBill.value[2].stats = String(total3);
     if (total4 != null) statsBill.value[3].stats = String(formatDurationInMinutes(total4));
   } catch (error) {
     console.error("analytics error", error);
@@ -735,7 +735,7 @@ const formatDuration = (seconds) => {
 const formatDurationInMinutes = (seconds) => {
   if (!seconds || isNaN(seconds)) return "0 mins";
 
-  let totalMinutes = Math.ceil(seconds / 60000);
+  let totalMinutes = Math.ceil(seconds / 60);
   const days = Math.floor(totalMinutes / (24 * 60));
   totalMinutes %= 24 * 60;
   const hours = Math.floor(totalMinutes / 60);
