@@ -92,12 +92,14 @@ onMounted(() => {
 });
 
 const emitModelValue = (val) => {
-  if (typeof val === "string" && val.includes(":")) {
-    emit("update:modelValue", val);
-    return;
-  }
-  const ts = val ? new Date(val).getTime() : null
-  emit("update:modelValue", ts);
+  // if (typeof val === "string" && val.includes(":")) {
+  //   emit("update:modelValue", val);
+  //   return;
+  // }
+  // const ts = val ? new Date(val).getTime() : null
+  // emit("update:modelValue", ts);
+  
+  emit("update:modelValue", val);
 };
 
 const elementId = computed(() => {

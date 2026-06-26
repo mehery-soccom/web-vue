@@ -5,6 +5,11 @@ import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/use
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
 import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
+import AppDateTimePicker from "@/app-pushapp/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
+import * as XLSX from "xlsx";
+
+const isExporting = ref(false);
 const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -127,6 +132,16 @@ const headers = [
     sortable: false,
   },
 ];
+
+const { customPlugin } = useDatePickerFilters();
+
+const tonight = new Date().setHours(23, 59, 59, 999);
+const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-");
+const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
+const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
+
+const timezone = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata";
+
 const pagination = reactive({
   itemsLength: 0,
   page: 1,
@@ -142,11 +157,25 @@ const pagination = reactive({
     // "schedule.enableActiveWindow": null,
     status: null,
   },
+  dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
+  dateRange2: new Date().setHours(23, 59, 59, 999),
+  timezone: timezone
 });
 
-onMounted(async () => {
-  fetchCampaigns({ ...pagination });
-});
+const onDateClosed = (selectedDates, dateStr) => {
+  if (selectedDates.length === 2) {
+    dateRange.value = dateStr;
+    const start = new Date(selectedDates[0]);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(selectedDates[1]);
+    end.setHours(23, 59, 59, 999);
+    pagination.dateRange1 = start.getTime();
+    pagination.dateRange2 = end.getTime();
+    fetchCampaigns({ ...pagination });
+  }
+};
+
+onMounted(async () => {});
 
 const logDialog = ref(false);
 const selectedLogs = ref([]);
@@ -215,7 +244,7 @@ const endCampaign = async (item, dialogCloseRef) => {
     isLoading.value = false;
   }
 };
-function formatDate(timestamp) {
+function formatDate2(timestamp) {
   if (!timestamp) return "N/A";
   return new Date(timestamp).toLocaleString();
 }
@@ -262,6 +291,58 @@ const onUpdateOptions = (options) => {
   fetchCampaigns({ ...pagination });
 };
 
+const exportToExcel = async () => {
+  try {
+    isExporting.value = true;
+    const response = await appEngagementsStore.fetchFilters({
+      ...pagination,
+      page: -1,
+    });
+
+    const rawResults = response.data.results || [];
+    const formattedData = rawResults.map((item) => {
+      const total = item.stats?.total || 0;
+      const sent = item.stats?.sent || 0;
+      const ctaCount = item.stats?.cta?.__count || 0;
+      const sentPercent = total > 0 ? Math.round((sent / total) * 100) : 0;
+      const ctaPercent = sent > 0 ? Math.round((ctaCount / sent) * 100) : 0;
+
+      const baseRow = {
+        "Name": item.title,
+        "Template": item.action?.template?.code,
+        "Type": item.action?.template?.type,
+        "SubType": item.action?.template?.subType,
+        "A/B Testing": item.abTesting?.enabled ? "Yes" : "No",
+        "Status": item.status,
+        "Count": total,
+        "Delivered": sent,
+        "Delivery %": `${sentPercent}%`,
+        "Total CTA": ctaCount,
+        "CTA %": `${ctaPercent}%`,
+      };
+
+      const dynamicCTAs = {};
+      if (item.stats?.cta) {
+        Object.entries(item.stats.cta).forEach(([key, val]) => {
+          if (key !== "__count") dynamicCTAs[`CTA - ${key}`] = val;
+        });
+      }
+
+      return { ...baseRow, ...dynamicCTAs };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "App Engagements");
+    const fileName = `AppEngagements-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+    XLSX.writeFile(workbook, fileName);
+  } catch (error) {
+    console.error("Export failed", error);
+  } finally {
+    isExporting.value = false;
+  }
+};
+
 const onUpdateOptionsDebounced = debounce((options) => {
   onUpdateOptions(options);
 }, 300);
@@ -283,6 +364,29 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
+        <VBtn
+          @click="exportToExcel"
+          color="primary"
+          :loading="isExporting"
+          style="width: 40px; height: 40px; min-width: 40px"
+          class="pa-0"
+          variant="flat"
+        >
+          <VIcon>mdi-download</VIcon>
+          <VTooltip activator="parent">Export to Excel</VTooltip>
+        </VBtn>
+        <AppDateTimePicker
+          v-model="dateRange"
+          style="width: 260px"
+          prepend-inner-icon="tabler-calendar"
+          :config="{
+            mode: 'range',
+            dateFormat: 'd-m-Y',
+            maxDate: tonight,
+            onClose: onDateClosed,
+            plugins: [customPlugin]
+          }"
+        />
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
