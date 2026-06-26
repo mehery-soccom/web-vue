@@ -4,6 +4,7 @@ import DataService from "@/@common/services/DataService";
 export const useFlowsStore = defineStore("FlowsStore", {
   state: () => ({
     flows: [],
+    // cloneData: null,
   }),
   getters: {},
   actions: {
@@ -36,5 +37,13 @@ export const useFlowsStore = defineStore("FlowsStore", {
     deleteFlow({ id, ...params }) {
       return DataService.axios.delete(`/api/v1/journi/${id}`, params);
     },
+    // setCloneData(data) {
+    //   this.cloneData = data;
+    // },
+    // consumeCloneData() {
+    //   const data = this.cloneData;
+    //   this.cloneData = null;
+    //   return data;
+    // },
   },
 });

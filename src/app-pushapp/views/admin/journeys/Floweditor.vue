@@ -13,7 +13,7 @@ import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import axios from 'axios'
 import { FILTER_FIELDS_MAP } from '../app-engagements/data/filterOptions'
-
+import FilterBuilder from '../app-engagements/FilterBuilder.vue'
 
 // Props
 
@@ -147,35 +147,36 @@ const NODE_DEFS = {
     fixedOutputs: [{ id: 'triggered', label: 'Start' }],
     defaultAttrs: () => ({ type: 'appevent', appevent: '' }),
   },
-  // CONDITION: {
-  //   label: 'Checkpoint',
-  //   icon: '◆',
-  //   color: '#d97706',
-  //   hasInput: true,
-  //   fixedOutputs: [
-  //     { id: 'matched', label: 'Matched' },
-  //     { id: 'not_matched', label: 'Not matched' },
-  //   ],
-  //   defaultAttrs: () => ({
-  //     // Same channel/template cascade shape as ACTOR
-  //     channelType: 'WHATSAPP',
-  //     channelId: null,
-  //     template: { code: null },
-  //     // Wait/delay
-  //     wait: { value: 0, unit: 'minutes' },
-  //   }),
-  // },
-  // WAIT: {
-  //   label: 'Pause',
-  //   icon: '⏱',
-  //   color: '#0891b2',
-  //   hasInput: true,
-  //   fixedOutputs: [{ id: 'completed', label: 'Completed' }],
-  //   defaultAttrs: () => ({
-  //     type: 'duration',
-  //     duration: { value: 2, unit: 'hours' },
-  //   }),
-  // },
+  CONDITION: {
+    label: 'Checkpoint',
+    icon: '◆',
+    color: '#d97706',
+    hasInput: true,
+    fixedOutputs: [
+      { id: 'matched', label: 'Matched' },
+      { id: 'not_matched', label: 'Not matched' },
+    ],
+    defaultAttrs: () => ({
+      type: 'filter',
+      filter: {
+        type: 'group',
+        conjunction: 'and',
+        children: [
+          {
+            type: 'filter',
+            filterType: null,
+            field: null,
+            operator: null,
+            dataProperty: null,
+            value: null,
+            freqOperator: null,
+            freqCount: null,
+            freqPeriod: null,
+          },
+        ],
+      },
+    }),
+  },
   ACTOR: {
     label: 'Engage',
     icon: '▶',
@@ -204,6 +205,16 @@ const NODE_DEFS = {
       window: { value: 2, unit: 'hour' },
     }),
   },
+  // WAIT: {
+  //   label: 'WAIT',
+  //   icon: '⏱',
+  //   color: '#0891b2',
+  //   hasInput: true,
+  //   fixedOutputs: [{ id: 'completed', label: 'Completed' }],
+  //   defaultAttrs: () => ({
+  //     duration: { value: 2, unit: 'hours' },
+  //   }),
+  // },
   END: {
     label: 'Complete',
     icon: '⏹',
@@ -216,7 +227,7 @@ const NODE_DEFS = {
   },
 }
 
-const PALETTE_CODES = [ 'ACTOR', 'EXPECTATION', 'END']
+const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'END']
 
 const CHANNEL_TYPE_OPTIONS = [
   { title: 'Send WhatsApp', value: 'SEND_MESSAGE' },
@@ -625,6 +636,26 @@ function isOutputConnected(nodeId, outputId) {
   )
 }
 
+function findUpstreamAppEvent(nodeId, visited = new Set()) {
+  if (visited.has(nodeId)) return null
+  visited.add(nodeId)
+  const edge = edges.value.find((e) => e.target === nodeId)
+  if (!edge) return null
+  const sourceNode = nodes.value.find((n) => n.id === edge.source)
+  if (!sourceNode) return null
+  if (sourceNode.data.code === 'TRIGGER' || sourceNode.data.code === 'EXPECTATION') {
+    return sourceNode.data.attrs?.appevent || null
+  }
+  if (sourceNode.data.code === 'CONDITION') {
+    return findUpstreamAppEvent(sourceNode.id, visited)
+  }
+  return null
+}
+
+const connectedAppEventForInspectedNode = computed(() => {
+  if (!inspectedNode.value || inspectedNode.value.data.code !== 'CONDITION') return null
+  return findUpstreamAppEvent(inspectedNode.value.id)
+})
 function validateFlow() {
   const errors = []
   const invalidIds = new Set()
@@ -637,6 +668,14 @@ function validateFlow() {
     if (code === 'TRIGGER') {
       if (!attrs.appevent) messages.push('Select an app event')
       if (!isOutputConnected(n.id, 'triggered')) messages.push('Connect the Start output to a node')
+    } else if (code === 'CONDITION') {
+      const hasConfiguredFilter = (attrs.filter?.children || []).some(
+        (c) => c.field || (c.children && c.children.length)
+      )
+      if (!hasConfiguredFilter) messages.push('Configure the condition filter')
+      if (!isOutputConnected(n.id, 'matched')) messages.push('Connect the Matched output to a node')
+      if (!isOutputConnected(n.id, 'not_matched')) messages.push('Connect the Not matched output to a node')
+
     } else if (code === 'ACTOR') {
       if (!attrs.channelType) messages.push('Select an action')
       if (!attrs.channelId) messages.push('Select a channel/app')
@@ -658,6 +697,10 @@ function validateFlow() {
       if (!attrs.window?.unit) messages.push('Select the time unit')
       if (!isOutputConnected(n.id, 'fulfilled')) messages.push('Connect the Success output to a node')
       if (!isOutputConnected(n.id, 'expired')) messages.push('Connect the Failed output to a node')
+    } else if (code === 'WAIT') {
+      if (!attrs.window?.value) messages.push('Set the wait time')
+      if (!attrs.window?.unit) messages.push('Select the time unit')
+      if (!isOutputConnected(n.id, 'completed')) messages.push('Connect the output to a node')
     } else if (code === 'END') {
       if (!attrs.status) messages.push('Select a status (Succeeded / Failed)')
     }
@@ -768,7 +811,7 @@ function buildFlowPayload() {
           value: a.window?.value,
           unit: a.window?.unit,
         },
-        actions: [
+        actions: a.template?.code ? [
           {
             id: 'action_1',
             code: a.channelType,
@@ -781,7 +824,7 @@ function buildFlowPayload() {
               },
             },
           },
-        ],
+        ] : [],
       }
       entry.outputs = outputs.map(o => ({ id: o.id })) // fulfilled / expired — fixed, never listener-driven
     } else if (outputs.length) {
@@ -966,12 +1009,18 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             </div>
             <div class="flow-node-body">
               <template v-if="data.code === 'TRIGGER'">{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No Event Selected' }}</template>
+              <template v-else-if="data.code === 'CONDITION'">
+                {{ (data.attrs.filter?.children?.length || 0) }} condition(s)
+              </template>
               <template v-else-if="data.code === 'ACTOR'">
                 {{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
               <template v-else-if="data.code === 'EXPECTATION'">
                 <div>{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
                 <div v-if="data.attrs.channelType">{{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
+              </template>
+              <template v-else-if="data.code === 'WAIT'">
+                <div>Wait for ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
               </template>
               <template v-else-if="data.code === 'END'">
                 <span v-if="data.attrs.status">{{ formatLabel(data.attrs.status) }}</span>
@@ -1028,6 +1077,22 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             />
           </template>
 
+          <template v-else-if="inspectedNode.data.code === 'CONDITION'">
+            <p v-if="!connectedAppEventForInspectedNode" class="field-hint">
+              Connect this node to Start or Monitor to auto-fill the event.
+            </p>
+            <FilterBuilder
+              v-model="inspectedNode.data.attrs.filter"
+              vertical
+              :connected-app-event="connectedAppEventForInspectedNode"
+              :ignoreEventDatafilterType="!connectedAppEventForInspectedNode"
+              :ignoreEventfilterType="true"
+              :ignoreCustomEventfilterType="true"
+              :ignoreCohortfilterType="true"
+              :ignoreSlicefilterType="true"
+              :readonly="disabled"
+            />
+          </template>
           <!-- ACTOR -->
           <template v-else-if="inspectedNode.data.code === 'ACTOR'">
             <AppSelect
@@ -1201,6 +1266,29 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             </p>
 
             <p class="field-hint">Outputs: <code>Success</code> / <code>Failed</code></p>
+          </template>
+
+          <!-- WAIT/DELAY -->
+          <template v-else-if="inspectedNode.data.code === 'WAIT'">
+            <AppTextField
+              label="Time"
+              type="number"
+              :model-value="inspectedNode.data.attrs.window?.value"
+              :disabled="disabled"
+              @update:model-value="value => setNodeAttr('window.value', Number(value))"
+            />
+            <AppSelect
+              label="Time Unit"
+              :model-value="inspectedNode.data.attrs.window?.unit"
+              :items="[
+                { title:'Minutes', value:'minute'},
+                { title:'Hours', value:'hour'},
+                { title:'Days', value:'day'}
+              ]"
+              :disabled="disabled"
+              @update:model-value="value => setNodeAttr('window.unit', value)"
+            />
+            <p class="field-hint">Outputs: <code>Continue flow</code> should be connected to other node.</p>
           </template>
 
           <!-- END -->
@@ -1388,6 +1476,8 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
   justify-content: space-evenly;
 }
 .flow-handle-out {
+  width: 9px;
+  height: 9px;
   position: relative !important;
   top: auto !important;
   right: -0px !important;

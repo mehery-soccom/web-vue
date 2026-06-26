@@ -39,6 +39,7 @@ export const useAppEngagements = (source, config = {}) => {
   });
   const FILTER_OPERATORS = computed(() => {
     // console.log("FILTER_OPERATORS", source.field);
+    if (source.filterType === "eventData") return _FILTER_OPERATORS;
     const filterField = FILTER_FIELDS_MAP[source.field];
     if (!filterField) return [];
     const filterFieldInputType = filterField.inputFieldMeta?.type;
@@ -184,7 +185,8 @@ export const useAppEngagements = (source, config = {}) => {
           const r = {
             type,
             title: el.eventName,
-            value: type === "eventData" ? `edata_${el._id}` : el._id, 
+            value: type === "eventData" ? `edata_${el._id}` : el._id,
+            eventId: el._id,
             meta: {
               projection: null,
               dataProperties: el.dataProperties || [],

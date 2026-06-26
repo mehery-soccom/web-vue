@@ -1,12 +1,14 @@
 <script setup>
 import debounce from "lodash/debounce";
 import { useFlowsStore } from "@app-pushapp/views/admin/journeys/useFlowsStore";
-import { useFlows } from "@/app-pushapp/views/admin/journeys/useFlows";
+// import { useRoute, useRouter } from 'vue-router';
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 const { show } = inject("snackbar");
 
 const FlowsStore = useFlowsStore();
 const isLoading = ref(false);
+// const route = useRoute();
+// const router = useRouter();
 const items = ref([]);
 const headers = computed(() => [
   {
@@ -93,6 +95,15 @@ const fetchItems = async (params) => {
     isLoading.value = false;
   }
 };
+
+// const cloneItem = (record) => {
+//   FlowsStore.setCloneData({
+//     filter: record.filter,
+//     flow: record.flow,
+//     flowRenderer: record.flowRenderer,
+//   });
+//   router.push({ name: "admin-journey-add-id?" });
+// };
 
 const updateFlowStatus = (id, status) => {
   isLoading.value = true;
@@ -249,6 +260,10 @@ onMounted(async () => {});
           <VIcon icon="mdi-play-circle" />
           <VTooltip activator="parent">Resume Flow</VTooltip>
         </IconBtn>
+        <!-- <IconBtn @click="cloneItem(item.raw)">
+          <VIcon icon="mdi-content-copy" />
+          <VTooltip activator="parent">Clone Flow</VTooltip>
+        </IconBtn> -->
         <IconBtn v-if="['ON_GOING', 'PAUSED'].includes(item.raw.status)">
           <VIcon icon="mdi-close-circle" />
           <v-dialog activator="parent" max-width="350">
