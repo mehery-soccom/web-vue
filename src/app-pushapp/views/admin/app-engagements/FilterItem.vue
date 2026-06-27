@@ -41,6 +41,16 @@ const {
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
   hasError.value = false;
+
+  const inputType = FILTER_FIELDS_MAP[props.element.field]?.inputFieldMeta?.type;
+  if (inputType === 'number' && props.element.value !== null && props.element.value !== '') {
+    props.element.value = Number(props.element.value);
+  }
+
+  if (props.element.freqCount !== null && props.element.freqCount !== '') {
+    props.element.freqCount = Number(props.element.freqCount);
+  }
+
   emit("update", props.element);
 };
 
@@ -313,6 +323,7 @@ defineExpose({ isValid });
         <AppTextField
           v-else
           v-model="element.value"
+          :type="FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'number' ? 'number' : 'text'"
           placeholder="Enter Value"
           class="filter-entity value"
           @update:modelValue="clearErrorAndUpdate"
