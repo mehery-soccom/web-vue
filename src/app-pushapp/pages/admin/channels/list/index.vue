@@ -6,6 +6,15 @@ const { show } = inject("snackbar");
 const channelsStore = useChannelsStore();
 const isLoading = ref(false);
 const channels = ref([]);
+const showDetailsDrawer = ref(false)
+const detailsLoading = ref(false)
+const generatingKey = ref(false)
+
+const appDetails = ref({
+  app_id: "",
+  app_secret: "",
+  lane: ""
+})
 // const totalChannels = ref(0);
 const headers = [
   {
@@ -13,7 +22,7 @@ const headers = [
     key: "channel_name",
   },
   {
-    title: "App ID",
+    title: "Channel ID",
     key: "channel_id",
   },
   {
@@ -68,6 +77,51 @@ const deleteChannel = (id, dialogCloseRef) => {
       isLoading.value = false;
     });
 };
+
+const viewAppDetails = async id => {
+  detailsLoading.value = true
+  try {
+    const response = await channelsStore.getAppInfo(id)
+    const resp = response.data.data;
+    appDetails.value = {
+      app_id: resp?.pa?.appId,
+      app_secret: '**********',
+      lane: resp?.lane
+    }
+    showDetailsDrawer.value = true
+  }
+  catch (e) {
+    show({ message: "Unable to fetch app details", color: "error" })
+  }
+  finally {
+    detailsLoading.value = false
+  }
+}
+
+const generateKey = async id => {
+  generatingKey.value = true
+  try {
+    const response = await channelsStore.updateAppInfo(id)
+    appDetails.value.app_secret = response.data?.data?.appKey;
+    appDetails.value.app_id = response.data?.data?.appId;
+    show({ message: "New secret generated successfully", color: "success" })
+  }
+  catch (e) {
+    show({ message: "Unable to generate key", color: "error" })
+  }
+  finally {
+    generatingKey.value = false
+  }
+}
+const copyToClipboard = async (text) => {
+  try {
+    await window.navigator.clipboard.writeText(text)
+    show({ message: "Copied to clipboard", color: "success" })
+  } catch (err) {
+    console.error(err)
+    show({ message: "Failed to copy", color: "error" })
+  }
+}
 </script>
 
 <template>
@@ -158,8 +212,37 @@ const deleteChannel = (id, dialogCloseRef) => {
         >
           <VIcon icon="mdi-pencil-outline" />
         </IconBtn>
+        <IconBtn @click="viewAppDetails(item.raw.channel_id)">
+          <VIcon icon="tabler-key" />
+        </IconBtn>
       </template>
     </MyDataTable>
+    <VNavigationDrawer v-model="showDetailsDrawer" location="end" temporary width="420">
+      <div class="pa-6" style="margin-top: 85px;">
+        <div class="text-h5 mb-6"> App Credentials </div>
+        <VProgressCircular v-if="detailsLoading" indeterminate />
+        <template v-else>
+          <VTextField
+            class="mb-5"
+            label="App ID"
+            :model-value="appDetails.app_id"
+            readonly
+            append-inner-icon="tabler-copy"
+            @click:append-inner="copyToClipboard(appDetails.app_id)"
+          />
+          <VTextField
+            label="App Secret Key"
+            :model-value="appDetails.app_secret"
+            readonly
+            append-inner-icon="tabler-copy"
+            @click:append-inner="copyToClipboard(appDetails.app_secret)"
+          />
+          <VBtn class="mt-5" color="warning" :loading="generatingKey" @click="generateKey(appDetails.lane)">
+            Generate New Key
+          </VBtn>
+        </template>
+      </div>
+    </VNavigationDrawer>
   </VCard>
 </template>
 

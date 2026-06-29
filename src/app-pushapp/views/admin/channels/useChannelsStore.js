@@ -60,5 +60,13 @@ export const useChannelsStore = defineStore("ChannelsStore", {
         toast: false,
       });
     },
+
+    getAppInfo(id, params) {
+      return DataService.axios.get(`/api/v1/channel/${id}`, params );
+    },
+
+    updateAppInfo(id, params) {
+      return DataService.axios.get(`/api/v1/channel/${id}/credentials`, params );
+    },
   },
 });
