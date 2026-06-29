@@ -951,8 +951,24 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
       <div class="sidebar-section">
         <p class="section-label">Actions</p>
         <button class="action-btn" @click="fitView()">⊞ Fit view</button>
-        <button class="action-btn" @click="setViewport({ x: 0, y: 0, zoom: 1 })">Move to Start</button>
-        <button v-if="!disabled" class="action-btn danger" @click="clearAll">✕ Clear canvas</button>
+        <!-- <button class="action-btn" @click="setViewport({ x: 0, y: 0, zoom: 1 })">Move to Start</button> -->
+        <!-- <button v-if="!disabled" class="action-btn danger" @click="clearAll">✕ Clear canvas</button> -->
+          <button v-if="!disabled" class="action-btn danger" @click="showClearDialog = true"> ✕ Clear canvas </button>
+
+          <VDialog v-model="showClearDialog" max-width="420">
+            <VCard>
+              <VCardTitle>Clear Canvas?</VCardTitle>
+              <VCardText>
+                This will remove all nodes and connections from the canvas except Start node.
+                This action cannot be undone.
+              </VCardText>
+              <VCardActions>
+                <VSpacer />
+                <VBtn variant="text" @click="showClearDialog = false"> Cancel </VBtn>
+                <VBtn color="error" @click="confirmClear"> Clear Canvas </VBtn>
+              </VCardActions>
+            </VCard>
+          </VDialog>
       </div>
 
       <div class="sidebar-section hint-section">
