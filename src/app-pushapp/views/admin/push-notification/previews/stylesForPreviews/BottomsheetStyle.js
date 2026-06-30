@@ -54,8 +54,7 @@ html, body {
   justify-content: center;
   align-items: center;
   padding: 6px 14px 14px 14px;
-  width: 92%;
-  height: 92%;
+  height: 100%;
   gap: 10px;
   flex: 1;
   text-align: center;
