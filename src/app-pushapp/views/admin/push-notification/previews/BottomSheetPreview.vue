@@ -132,8 +132,12 @@ onBeforeUnmount(() => {
 
             <!-- Media (image/video) -->
             <div class="media-preview" v-if="hasMedia">
-                <img v-if="props.template.style.image_url" :src="props.template.style.image_url" class="media-item" />
-                <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" />
+                <img v-if="props.template.style.image_url" :src="props.template.style.image_url" class="media-item" 
+                    :onclick="props.template.style.notification_url 
+                    ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null" />
+                <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" 
+                    :onclick="props.template.style.notification_url 
+                    ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null" />
             </div>
 
             <!-- More Text -->

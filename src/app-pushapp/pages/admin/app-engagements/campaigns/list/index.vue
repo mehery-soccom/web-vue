@@ -45,14 +45,14 @@ const headers = [
     title: "Template",
     key: "action.template.code",
   },
+  // {
+  //   title: "Type",
+  //   key: "action.template.type",
+  //   filterType: "select",
+  //   filterOptions: TYPES2,
+  // },
   {
     title: "Type",
-    key: "action.template.type",
-    filterType: "select",
-    filterOptions: TYPES2,
-  },
-  {
-    title: "SubType",
     key: "action.template.subType",
     filterType: "select",
     filterOptions: SUB_TYPES,
@@ -83,6 +83,12 @@ const headers = [
       { title: "On-going", value: "ON_GOING" },
       { title: "Ended", value: "ENDED" },
     ],
+  },
+  {
+    title: "Time",
+    key: "created.stamp",
+    sortable: false,
+    align: "center",
   },
   {
     title: "Count",
@@ -136,7 +142,7 @@ const headers = [
 const { customPlugin } = useDatePickerFilters();
 
 const tonight = new Date().setHours(23, 59, 59, 999);
-const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-");
+const formatDate = (dat) => dat.toLocaleDateString("en-GB").split("/").join("-");
 const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
 const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
 
@@ -151,7 +157,7 @@ const pagination = reactive({
   filters: {
     title: null,
     "action.template.code": null,
-    "action.template.type": null,
+    // "action.template.type": null,
     "action.template.subType": null,
     "abTesting.enabled": false,
     // "schedule.enableActiveWindow": null,
@@ -244,9 +250,12 @@ const endCampaign = async (item, dialogCloseRef) => {
     isLoading.value = false;
   }
 };
-function formatDate2(timestamp) {
-  if (!timestamp) return "N/A";
-  return new Date(timestamp).toLocaleString();
+const endedStamp = history => {
+  return history?.find(h => h.status === "ENDED")?.time?.stamp
+}
+const formatDate2 = stamp => {
+  if (!stamp) return "-"
+  return new Date(stamp).toLocaleString()
 }
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
@@ -441,11 +450,6 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VChip>
       </template>
 
-      <!-- created at -->
-      <template #item.created.stamp="{ item }">
-        {{ smartFormatDate(item.raw.created.stamp) }}
-      </template>
-
       <!-- A/B enabled -->
       <template #item.abTesting.enabled="{ item }">
         <VIcon
@@ -489,13 +493,31 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template>
 
       <!-- Template types -->
-      <template #item.action.template.type="{ item }">
+      <!-- <template #item.action.template.type="{ item }">
         {{ item.raw.action.template.type }}
         {{
           item.raw.action.templateB?.type
             ? "| " + item.raw.action.templateB?.type
             : ""
         }}
+      </template> -->
+      <template #item.created.stamp="{ item }">
+        <IconBtn>
+          <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
+          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
+            <div class="py-1">
+              <div v-if="item.raw.created && item.raw.created.stamp">
+                <strong>Created:</strong> {{ formatDate2(item.raw.created.stamp) }}
+              </div>
+              <div v-if="item.raw.schedule && item.raw.schedule.startDate">
+                <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.startDate) }}
+              </div>
+              <div v-if="endedStamp(item.raw.statusHistory)">
+                <strong>Ended:</strong> {{ formatDate2(endedStamp(item.raw.statusHistory)) }}
+              </div>
+            </div>
+          </VTooltip>
+        </IconBtn>
       </template>
 
       <!-- Template sub types -->

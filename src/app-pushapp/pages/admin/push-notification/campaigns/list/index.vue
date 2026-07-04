@@ -55,8 +55,9 @@ const headers = [
   //   key: "status",
   // },
   {
-    title: "Start",
-    key: "createdStamp",
+    title: "Time",
+    key: "created.stamp",
+    align: "center",
   },
   {
     title: "Total",
@@ -157,9 +158,9 @@ const onDateClosed = (selectedDates, dateStr) => {
 const now = new Date();
 const logDialog = ref(false);
 const selectedLogs = ref([]);
-function formatDate2(timestamp) {
-  if (!timestamp) return "N/A";
-  return new Date(timestamp).toLocaleString();
+const formatDate2 = stamp => {
+  if (!stamp) return "-"
+  return new Date(stamp).toLocaleString()
 }
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
@@ -405,9 +406,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template> -->
 
       <!-- sent at -->
-      <template #item.createdStamp="{ item }">
+      <!-- <template #item.createdStamp="{ item }">
         {{ smartFormatDate(item.raw.createdStamp) }}
-      </template>
+      </template> -->
 
       <!-- backend filtering not supported -->
       <!-- <template #item.schedule.isRecurring="{ item }">
@@ -431,6 +432,25 @@ const onUpdateOptionsDebounced = debounce((options) => {
             {{ PLATFORM_COLORS[p]?.text }}
           </VChip>
         </div>
+      </template>
+
+      <template #item.created.stamp="{ item }">
+        <IconBtn>
+          <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
+          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
+            <div class="py-1">
+              <div v-if="item.raw.createdStamp">
+                <strong>Created:</strong> {{ formatDate2(item.raw.createdStamp) }}
+              </div>
+              <div v-if="item.raw.schedule && item.raw.schedule.runAt">
+                <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.runAt) }}
+              </div>
+              <div v-if="item.raw.schedule && item.raw.schedule.canceledAt">
+                <strong>Cancelled:</strong> {{ formatDate2(item.raw.schedule.canceledAt) }}
+              </div>
+            </div>
+          </VTooltip>
+        </IconBtn>
       </template>
 
       <!-- sent_percent -->
