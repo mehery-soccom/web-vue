@@ -185,8 +185,8 @@ export const useAppEngagements = (source, config = {}) => {
           const r = {
             type,
             title: el.eventName,
-            value: type === "eventData" ? `edata_${el._id}` : el._id,
-            eventId: el._id,
+            value: type === "eventData" ? el._id : el.eventName,
+            eventId: el.eventName,
             meta: {
               projection: null,
               dataProperties: el.dataProperties || [],

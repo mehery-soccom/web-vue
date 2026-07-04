@@ -17,7 +17,11 @@ import { usePushNotification } from "@app-pushapp/views/admin/push-notification/
 import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
 import { useAppEngagementsStore } from '../useAppEngagementsStore'
 import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } from '../data/subTypes'
+import { useLibraryStore } from '@/app-pushapp/views/config/library/useLibraryStore'
 
+const libraryStore = useLibraryStore()
+const dynamicOptions = reactive({})
+const fetchedSources = new Set()
 const AppEngagementsStore = useAppEngagementsStore()
 const fromMetaStore = useMetaStore();
 const swatch = ref([]);
@@ -70,6 +74,25 @@ watch(local, () => {
   }
 }, { deep: true })
 
+async function fetchDynamicOptions(sourceId) {
+  if (fetchedSources.has(sourceId)) return
+  fetchedSources.add(sourceId)
+
+  try {
+    const res = await libraryStore.read({ id: sourceId })
+    const options = res?.data?.data?.options || []
+    dynamicOptions[sourceId] = options.map(o => o.code).filter(Boolean)
+  } catch (error) {
+    console.log('fetchDynamicOptions error', sourceId, error)
+    dynamicOptions[sourceId] = []
+  }
+}
+
+function loadOptionsForFields() {
+  const sources = new Set((props.fields || []).filter(f => f.optionsSource).map(f => f.optionsSource))
+  sources.forEach(fetchDynamicOptions)
+}
+
 // Validation
 function validate() {
   const errors = []
@@ -87,6 +110,7 @@ onMounted(async () => {
   if (Array.isArray(saved)) swatch.value = saved.map(c => [c.value]);
   const res = await AppEngagementsStore.fetchPlaceholders()
   placeholders.value = res.data.results;
+  loadOptionsForFields();
   // console.log("ress", res.data.results, placeholders, placeholders.value)
 })
 
@@ -132,7 +156,7 @@ defineExpose({ validate });
         v-if="f.type === 'combobox'" :disabled="props.readonly"
         :model-value="get(local, f.path)"
         @update:modelValue="val => set(local, f.path, val)"
-        :items="f.optionsPath || []"
+        :items="f.optionsSource ? (dynamicOptions[f.optionsSource] || []) : (f.optionsPath || [])"
         :clearable="f.clearable"
         :label="f.label"
         :placeholder="f.placeholder"
