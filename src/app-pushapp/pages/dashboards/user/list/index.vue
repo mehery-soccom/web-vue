@@ -1,6 +1,6 @@
 <script setup>
-import { ref, inject } from 'vue';
-import { useRouter } from 'vue-router';
+import { ref, inject, onMounted, watch } from 'vue';
+import { useRouter, onBeforeRouteLeave } from 'vue-router';
 import { useUserStore } from '@app-pushapp/views/dashboards/user/useUserStore';
 import FilterBuilder from '@app-pushapp/views/admin/app-engagements/FilterBuilder.vue';
 
@@ -22,8 +22,41 @@ const filterPage = ref(1);
 const hasMoreProfiles = ref(false);
 
 const searchCode = ref('');
-
 const profilesList = ref([]);
+
+onMounted(() => {
+  const savedState = sessionStorage.getItem('usersListState');
+  if (savedState) {
+    const state = JSON.parse(savedState);
+    activeTab.value = state.activeTab || 'filter';
+    filterLocal.value = state.filterLocal;
+    filterPage.value = state.filterPage || 1;
+    searchCode.value = state.searchCode || '';
+    profilesList.value = state.profilesList || [];
+    hasMoreProfiles.value = state.hasMoreProfiles || false;
+  }
+});
+
+watch(
+  [activeTab, filterLocal, filterPage, searchCode, profilesList, hasMoreProfiles],
+  () => {
+    sessionStorage.setItem('usersListState', JSON.stringify({
+      activeTab: activeTab.value,
+      filterLocal: filterLocal.value,
+      filterPage: filterPage.value,
+      searchCode: searchCode.value,
+      profilesList: profilesList.value,
+      hasMoreProfiles: hasMoreProfiles.value
+    }));
+  },
+  { deep: true }
+);
+
+onBeforeRouteLeave((to, from) => {
+  if (to.name !== 'dashboards-user-add-id?') {
+    sessionStorage.removeItem('usersListState');
+  }
+});
 
 const applyFilter = async (isLoadMore = false) => {
   if (!isLoadMore) {

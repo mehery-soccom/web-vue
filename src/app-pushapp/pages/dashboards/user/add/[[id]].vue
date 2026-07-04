@@ -259,6 +259,11 @@ const getTimelineColor = (category) => {
               <div class="timeline-row" v-for="(item, index) in timelineEvents" :key="index">
                 <div class="timeline-content left-side">
                   <VCard v-if="item.category === 'EVENT'" variant="outlined" class="w-100 event-card">
+                    <VTooltip v-if="item.event_data" activator="parent" location="top">
+                      <div v-for="(val, key) in item.event_data" :key="key" class="text-caption">
+                        <strong>{{ key }}:</strong> {{ val }}
+                      </div>
+                    </VTooltip>
                     <VCardText class="pa-3">
                       <div class="d-flex justify-space-between align-center mb-1">
                         <span class="text-caption font-weight-bold text-primary">{{ item.category }}</span>
