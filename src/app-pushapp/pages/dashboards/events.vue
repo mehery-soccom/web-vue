@@ -77,26 +77,36 @@ watch(analyticsType, (newType) => {
   }
 })
 
-watch([selectedEvent, analyticsType], () => {
-  if (analyticsType.value === 'Snap') {
-    getStats()
-  }
-})
+// watch([selectedEvent, analyticsType], () => {
+//   if (analyticsType.value === 'Snap') {
+//     getStats()
+//   }
+// })
 
-const snapStatistics = computed(() => [
-  { 
-    title: 'Events', 
-    stats: String(eventStore.eventStats.total_events || 0), 
-    icon: 'tabler-click', 
-    color: 'primary' 
-  },
-  { 
-    title: 'Unique Users', 
-    stats: String(eventStore.eventStats.unique_users || 0), 
-    icon: 'tabler-users', 
-    color: 'success' 
-  },
-])
+const snapStatistics = computed(() => {
+  // Return zeros if no event is currently selected
+  if (!selectedEvent.value) {
+    return [
+      { title: 'Events', stats: '0', icon: 'tabler-click', color: 'primary' },
+      { title: 'Unique Users', stats: '0', icon: 'tabler-users', color: 'success' }
+    ]
+  }
+  
+  return [
+    { 
+      title: 'Events', 
+      stats: String(eventStore.eventStats.total_events || 0), 
+      icon: 'tabler-click', 
+      color: 'primary' 
+    },
+    { 
+      title: 'Unique Users', 
+      stats: String(eventStore.eventStats.unique_users || 0), 
+      icon: 'tabler-users', 
+      color: 'success' 
+    },
+  ]
+})
 
 const getStats = async () => {
   if (!selectedEvent.value || analyticsType.value !== 'Snap') return
