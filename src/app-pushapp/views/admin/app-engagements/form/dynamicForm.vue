@@ -107,11 +107,11 @@ function validate() {
 }
 onMounted(async () => {
   const saved = fromMetaStore?.$state?.meta?.prefs?.pa_app_colorlist_saved;
-  if (Array.isArray(saved)) swatch.value = saved.map(c => [c.value]);
+  if (Array.isArray(saved)) swatch.value = [ ["#00000100"], ...saved.map(c => [c.value]), ];
   const res = await AppEngagementsStore.fetchPlaceholders()
   placeholders.value = res.data.results;
   loadOptionsForFields();
-  // console.log("ress", res.data.results, placeholders, placeholders.value)
+  // console.log("ress", saved, swatch.value)
 })
 
 defineExpose({ validate });

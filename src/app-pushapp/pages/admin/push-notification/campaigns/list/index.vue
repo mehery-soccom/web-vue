@@ -50,15 +50,22 @@ const headers = [
     title: "Template",
     key: "templateCode",
   },
-  // {
-  //   title: "Status",
-  //   key: "status",
-  // },
+  {
+    title: "Status",
+    key: "status",
+    align: "center",
+  },
   {
     title: "Time",
     key: "created.stamp",
     align: "center",
   },
+  // {
+  //   title: "Created by",
+  //   key: "created.byUser",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Total",
     key: "messageCount",
@@ -263,6 +270,12 @@ const onUpdateOptions = (options) => {
   fetchCampaigns({ ...pagination });
 };
 
+const getStatus = item => {
+  if (item.schedule?.canceledAt) return { label: "CANCELLED", color: "error" };
+  if (item.schedule?.runAt && new Date(item.schedule.runAt).getTime() > Date.now()) return { label: "SCHEDULED", color: "warning" };
+  return { label: "COMPLETED", color: "success" };
+};
+
 const exportToExcel = async () => {
   try {
     isExporting.value = true;
@@ -401,9 +414,16 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template>
 
       <!-- status -->
-      <!-- <template #item.status="{ item }">
-        <div class="d-flex gap-2">{{ item.raw.status }}</div>
-      </template> -->
+      <template #item.status="{ item }">
+        <VChip
+          :color="getStatus(item.raw).color"
+          variant="tonal"
+          size="small"
+          class="text-capitalize"
+        >
+          {{ getStatus(item.raw).label }}
+        </VChip>
+      </template>
 
       <!-- sent at -->
       <!-- <template #item.createdStamp="{ item }">
