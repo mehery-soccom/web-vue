@@ -12,7 +12,7 @@ const { show } = inject("snackbar");
 //     .replace(/\s+/g, "_")
 //     .toLowerCase();
 // };
-const toCode = (v) => { return String(v || "").trim().replace(/[^a-zA-Z0-9_]/g, ""); };
+const toCode = (v) => { return String(v || "").trim(); };
 
 const DEFAULT_OPTION_SCHEMA = {
   properties: [

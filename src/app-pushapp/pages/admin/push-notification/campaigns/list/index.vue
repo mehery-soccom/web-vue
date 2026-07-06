@@ -60,12 +60,12 @@ const headers = [
     key: "created.stamp",
     align: "center",
   },
-  // {
-  //   title: "Created by",
-  //   key: "created.byUser",
-  //   sortable: false,
-  //   align: "center",
-  // },
+  {
+    title: "Created by",
+    key: "createdBy",
+    sortable: false,
+    align: "center",
+  },
   {
     title: "Total",
     key: "messageCount",
@@ -165,6 +165,7 @@ const onDateClosed = (selectedDates, dateStr) => {
 const now = new Date();
 const logDialog = ref(false);
 const selectedLogs = ref([]);
+const selectedErrorLogs = ref([])
 const formatDate2 = stamp => {
   if (!stamp) return "-"
   return new Date(stamp).toLocaleString()
@@ -255,8 +256,9 @@ const confirmCancelCampaign = async () => {
 //   selectedCampaignLogs.value = logs || [];
 //   campaignDialog.value = true;
 // };
-const openLogDialog = (logs) => {
+const openLogDialog = (logs, errorLogs) => {
   selectedLogs.value = logs || [];
+  selectedErrorLogs.value = errorLogs || [];
   logDialog.value = true;
 };
 
@@ -439,6 +441,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </div>
       </template> -->
 
+      <template #item.createdBy="{ item }">
+        <span v-if="item.raw.createdBy">{{ item.raw.createdBy }}</span>
+        <span v-else> - </span>
+      </template>
+
       <!-- platforms -->
       <template #item.filters.platform="{ item }">
         <div class="d-flex gap-2" v-if="item.raw.filters">
@@ -553,8 +560,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VTooltip activator="parent">Cancel Campaign</VTooltip>
         </IconBtn>
         <IconBtn
-          v-if="item.raw.logs?.length"
-          @click="openLogDialog(item.raw.logs)"
+          v-if="item.raw.logs?.length || !!item.raw.errorLogs"
+          @click="openLogDialog(item.raw.logs, item.raw.errorLogs)"
         >
           <VIcon>mdi-alert-circle-outline</VIcon>
           <VTooltip activator="parent">Logs</VTooltip>
@@ -596,6 +603,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
             </VListItem>
           </VList>
           <div v-else class="text-grey">No logs found.</div>
+          <VDivider class="my-4" />
+          <div v-if="Object.keys(selectedErrorLogs).length" class="mb-4">
+            <div class="text-subtitle-2 mb-2">
+              Error Summary
+            </div>
+            <div v-for="(count, key) in selectedErrorLogs" :key="key" class="text-error mb-1">
+              <VIcon color="error">mdi-alert</VIcon> {{ key.replace(/_/g, " ") }} ({{ count }})
+            </div>
+          </div>
         </VCardText>
         <VCardActions class="sticky-footer">
           <VSpacer />

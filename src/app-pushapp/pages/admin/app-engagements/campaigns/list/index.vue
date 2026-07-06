@@ -90,12 +90,12 @@ const headers = [
     sortable: false,
     align: "center",
   },
-  // {
-  //   title: "Created by",
-  //   key: "created.byUser",
-  //   sortable: false,
-  //   align: "center",
-  // },
+  {
+    title: "Created by",
+    key: "created.byUser",
+    sortable: false,
+    align: "center",
+  },
   {
     title: "Count",
     key: "stats.total",
@@ -534,6 +534,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
             ? "| " + item.raw.action.templateB?.subType
             : ""
         }}
+      </template>
+
+      <template #item.created.byUser="{ item }">
+        <span v-if="item.raw.created && item.raw.created.byUser">{{ item.raw.created.byUser }}</span>
+        <span v-else> - </span>
       </template>
 
       <!-- sent_percent -->

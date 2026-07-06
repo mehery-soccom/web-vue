@@ -251,6 +251,7 @@ const populateSchedule = scheduleData => {
                   <FilterBuilder
                     v-model="filter" readonly
                     :ignoreEventfilterType="true"
+                    :ignoreEventDatafilterType="true"
                     :ignoreCustomEventfilterType="true"
                     :ignoreCohortfilterType="true"
                     :channelId="notification.channel_id"

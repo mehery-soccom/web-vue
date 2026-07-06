@@ -259,7 +259,7 @@ function getOutputs(node) {
     }
     return listeners.map((l, index) => ({
       id: `listener_${index + 1}`,
-      label: l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'Default'
+      label: l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'opened'
     }))
 
   }
@@ -544,9 +544,11 @@ function onTemplateChange(nodeId, templateCode, code) {
   setNodeAttr('template.code', templateCode)
   const selectedTemplate = optionCache[nodeId]?.templateOptions?.find( o => o.value === templateCode)
   setNodeAttr('template.name', selectedTemplate?.title || '')
+  const node = nodes.value.find(n => n.id === nodeId)
 
-  if(code === 'ACTOR'){
+  if(code === 'ACTOR' && node?.data?.attrs?.channelType != 'SEND_MESSAGE'){
     let buttons = selectedTemplate?.options?.buttons || []
+    console.log("btns", buttons)
     if (!buttons.length) buttons = selectedTemplate?.style?.btn || []
 
     updateNode(nodeId, n => ({
@@ -557,8 +559,8 @@ function onTemplateChange(nodeId, templateCode, code) {
           ...n.data.attrs,
           listeners: buttons.map((b, index) => ({
             id: `listener_${index + 1}`,
-            type: 'text',
-            text: b.label || b.button_text,
+            type: 'code',
+            code: b.label || b.button_id,
           }))
         }
       }
@@ -574,7 +576,7 @@ function addListener() {
   updateNode(nodeId, (n) => {
     const attrs = JSON.parse(JSON.stringify(n.data.attrs || {}))
     attrs.listeners = attrs.listeners || []
-    attrs.listeners.push({ id: `listener_${attrs.listeners.length + 1}`, type: 'text', text: '', code: ''})
+    attrs.listeners.push({ id: `listener_${attrs.listeners.length + 1}`, type: 'code', text: '', code: ''})
     return { ...n, data: { ...n.data, attrs } }
   })
 }
@@ -685,7 +687,7 @@ function validateFlow() {
       if (listeners.length > 0) {
         listeners.forEach((l, index) => {
           const outId = `listener_${index + 1}`
-          const label = l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'Default'
+          const label = l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'opened'
           if (!isOutputConnected(n.id, outId)) {
             messages.push(`Connect output "${label || outId}" to a node`)
           }
@@ -797,7 +799,8 @@ function buildFlowPayload() {
       else {
         entry.listeners = listeners.map(l => ({
           ...l,
-          emit: l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'default'
+          actionId: 'action_1',
+          emit: l.type === 'text' ? l.text : l.type === 'code' ? l.code : 'opened'
         }))
         entry.outputs = entry.listeners.map(l => ({ id: l.emit}))
       }
@@ -835,7 +838,20 @@ function buildFlowPayload() {
 
   const edgesArr = edges.value.map((e) => ({
     id: e.id,
-    source: { node: e.source, output: e.data?.output ?? e.sourceHandle ?? null },
+    // source: { node: e.source, output: e.data?.output ?? e.sourceHandle ?? null },
+    source: {
+      node: e.source,
+      output: (() => {
+        const output = e.data?.output ?? e.sourceHandle ?? null
+
+        const actorNode = nodes.value.find(n => n.id === e.source && n.data.code === "ACTOR")
+        if (!actorNode) return output
+        const listener = actorNode.data.attrs?.listeners?.find(l => l.id === output)
+        if (!listener) return output
+
+        return listener.type === "text" ? listener.text : listener.type === "code" ? listener.code : "opened"
+      })(),
+    },
     target: { node: e.target },
   }))
 
@@ -1157,7 +1173,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
               <div class="listeners-head">
                 <span class="field-label" style="margin:0">Listeners (outputs)</span>
                 <VBtn
-                  v-if="!disabled"
+                  v-if="!disabled && inspectedNode.data.attrs.channelType != 'SEND_MESSAGE'"
                   size="small"
                   color="success"
                   prepend-icon="mdi-plus"
@@ -1174,17 +1190,17 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
                 <AppSelect
                   density="compact"
                   style="width:120px"
-                  :model-value="l.type || 'text'"
+                  :model-value="l.type || 'code'"
                   :items="[
-                    { title:'Text', value:'text' },
+                    // { title:'Text', value:'text' },
                     { title:'Code', value:'code' },
-                    { title:'Default', value:'default' }
+                    { title:'Opened', value:'opened' }
                   ]"
                   :disabled="disabled"
                   @update:model-value="value => setListenerType(i, value)"
                 />
                 <AppTextField
-                  density="compact"
+                  density="compact" v-if="l.type == 'code'"
                   :model-value="l.type === 'text' ? l.text : l.code"
                   :placeholder="l.type === 'text' ? 'Text' : 'Code'"
                   :disabled="disabled"
