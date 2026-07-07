@@ -548,8 +548,8 @@ function onTemplateChange(nodeId, templateCode, code) {
 
   if(code === 'ACTOR' && node?.data?.attrs?.channelType != 'SEND_MESSAGE'){
     let buttons = selectedTemplate?.options?.buttons || []
-    console.log("btns", buttons)
     if (!buttons.length) buttons = selectedTemplate?.style?.btn || []
+    console.log("btns", buttons)
 
     updateNode(nodeId, n => ({
       ...n,
@@ -559,8 +559,17 @@ function onTemplateChange(nodeId, templateCode, code) {
           ...n.data.attrs,
           listeners: buttons.map((b, index) => ({
             id: `listener_${index + 1}`,
-            type: 'code',
-            code: b.label || b.button_id,
+            ...(node?.data?.attrs?.channelType === "SEND_ENGAGEMENT"
+            ? {
+                type: "text",
+                text: b.label || b.button_id,
+              }
+            : {
+                type: "code",
+                code: b.label || b.button_id,
+            }),
+            // type: 'code',
+            // code: b.label || b.button_id,
           }))
         }
       }
@@ -1191,16 +1200,23 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
                   density="compact"
                   style="width:120px"
                   :model-value="l.type || 'code'"
-                  :items="[
-                    // { title:'Text', value:'text' },
-                    { title:'Code', value:'code' },
-                    { title:'Opened', value:'opened' }
-                  ]"
+                  :items="
+                    inspectedNode.data.attrs.channelType === 'SEND_ENGAGEMENT'
+                      ? [
+                          { title: 'Text', value: 'text' },
+                          { title: 'Opened', value: 'opened' }
+                        ]
+                      : [
+                          { title: 'Text', value: 'text' },
+                          { title: 'Code', value: 'code' },
+                          { title: 'Opened', value: 'opened' }
+                        ]
+                  "
                   :disabled="disabled"
                   @update:model-value="value => setListenerType(i, value)"
                 />
                 <AppTextField
-                  density="compact" v-if="l.type == 'code'"
+                  density="compact" v-if="l.type == 'code' || l.type == 'text'"
                   :model-value="l.type === 'text' ? l.text : l.code"
                   :placeholder="l.type === 'text' ? 'Text' : 'Code'"
                   :disabled="disabled"

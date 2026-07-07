@@ -54,6 +54,15 @@ const headers = [
     title: "Status",
     key: "status",
     align: "center",
+    filterType: "select",
+    filterOptions: [
+      { title: "Completed", value: "COMPLETED" },
+      { title: "Created", value: "CREATED" },
+      { title: "Ended", value: "ENDED" },
+      { title: "Failed", value: "FAILED" },
+      { title: "On-going", value: "ON_GOING" },
+      { title: "Scheduled", value: "SCHEDULED" },
+    ],
   },
   {
     title: "Time",
@@ -139,6 +148,7 @@ const pagination = reactive({
   filters: {
     campaignName: "",
     templateCode: "",
+    status: "",
   },
   dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
   dateRange2: new Date().setHours(23, 59, 59, 999),
@@ -418,13 +428,30 @@ const onUpdateOptionsDebounced = debounce((options) => {
       <!-- status -->
       <template #item.status="{ item }">
         <VChip
+          :color="
+            {
+              CREATED: 'primary',
+              SCHEDULED: 'primary',
+              FAILED: 'error',
+              COMPLETED: 'success',
+              ON_GOING: 'info',
+              ENDED: 'error',
+            }[item.raw.status]
+          "
+          variant="tonal"
+          size="small"
+          class="text-capitalize"
+        >
+          {{ item.raw.status.replace("_", " ") }}
+        </VChip>
+        <!-- <VChip
           :color="getStatus(item.raw).color"
           variant="tonal"
           size="small"
           class="text-capitalize"
         >
           {{ getStatus(item.raw).label }}
-        </VChip>
+        </VChip> -->
       </template>
 
       <!-- sent at -->
