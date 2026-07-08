@@ -107,7 +107,7 @@ function validateFilterStructure(
     if (isRoot && directEventChildren.length == 0) {
       // throw new Error("Root group must have an event filter");
       const cohortFilter = findCohortFilter(node);
-      if (!cohortFilter) throw new Error("Root group must have an event or custom event filter");
+      if (!cohortFilter) throw new Error("Root group must have an event or system event filter");
 
       const cohortId = cohortFilter.field;
       const cohort = localCache.activeCohorts?.find((c) => c.value === cohortId );
@@ -116,7 +116,7 @@ function validateFilterStructure(
       );
       // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
 
-      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one system or custom event filter");
+      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one event filter");
     }
 
     // Recurse into children

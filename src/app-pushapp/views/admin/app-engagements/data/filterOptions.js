@@ -1,7 +1,7 @@
 export const FILTER_TYPES = [
   { title: "Cohort", value: "cohort" },
-  { title: "Custom Event", value: "customEvent" },
-  { title: "Event Data", value: "eventData" },
+  { title: "Event", value: "customEvent" },
+  { title: "Event Property", value: "eventData" },
   { title: "Profile Attribute", value: "additionalInfo" },
   { title: "Slice", value: "slice" },
   { title: "System Attribute", value: "attribute" },
