@@ -9,6 +9,7 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   filter: { type: Object, required: true },
   abTesting: { type: Object, required: false },
+  readonly: { type: Boolean, default: false }
 });
 const emit = defineEmits([
   "update:modelValue",
@@ -106,7 +107,7 @@ function validateFilterStructure(
     if (isRoot && directEventChildren.length == 0) {
       // throw new Error("Root group must have an event filter");
       const cohortFilter = findCohortFilter(node);
-      if (!cohortFilter) throw new Error("Root group must have an event or custom event filter");
+      if (!cohortFilter) throw new Error("Root group must have an event or system event filter");
 
       const cohortId = cohortFilter.field;
       const cohort = localCache.activeCohorts?.find((c) => c.value === cohortId );
@@ -115,7 +116,7 @@ function validateFilterStructure(
       );
       // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
 
-      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one system or custom event filter");
+      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one event filter");
     }
 
     // Recurse into children
@@ -128,7 +129,7 @@ function validateFilterStructure(
   if (node.type === "filter") {
     // No special checks here — but could enforce supported filterTypes
     if (
-      !["event", "customEvent", "attribute", "additionalInfo", "slice", "cohort"].includes(
+      !["event", "customEvent", "attribute", "additionalInfo", "slice", "cohort", "eventData"].includes(
         node.filterType,
       )
     ) {
@@ -218,7 +219,7 @@ defineExpose({ isValid });
 
     <FilterBuilder
       v-model="filterLocal"
-      ref="filterRef"
+      ref="filterRef" :readonly="readonly"
       :ignoreSlicefilterType="true"
     />
 

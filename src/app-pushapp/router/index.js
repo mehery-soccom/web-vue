@@ -12,12 +12,16 @@ import TemplateList from '../pages/admin/app-engagements/templates/list/index.vu
 import TemplateAdd from '../pages/admin/app-engagements/templates/add/[[id]].vue';
 import CampaignList from '../pages/admin/app-engagements/campaigns/list/index.vue';
 import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue';
+import CampaignView from '../pages/admin/app-engagements/campaigns/view/[[id]].vue';
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index.vue';
 import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.vue';
+import CampaignView2 from '../pages/admin/push-notification/campaigns/view/[[id]].vue';
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
+import FlowList from '../pages/admin/journey/list/index.vue';
+import FlowAdd from '../pages/admin/journey/add/[[id]].vue'
 import CohortsList from '../pages/admin/cohorts/list/index.vue';
 import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
@@ -182,6 +186,32 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
+      path: "/admin/journey/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-journey-list",
+          component: FlowList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/journey/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-journey-add-id?",
+          component: FlowAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/admin/push-notification/templates/list",
       component: DefaultLayout,
       children: [
@@ -247,6 +277,19 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
+      path: "/admin/app-engagements/campaigns/view/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-app-engagements-campaigns-view-id?",
+          component: CampaignView,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/admin/app-engagements/campaigns/add",
       component: DefaultLayout,
       children: [
@@ -280,6 +323,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-push-notification-campaigns-list",
           component: CampaignList2,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/push-notification/campaigns/view/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-campaigns-view-id?",
+          component: CampaignView2,
           props: true,
           meta: { layout: "default" },
         },

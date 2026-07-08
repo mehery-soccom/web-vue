@@ -37,7 +37,7 @@
         elevation="0"
         :swatches="swatches"
         :show-swatches="showSwatch"
-        show-preview
+        show-preview :disabled="disabled"
       />
       <v-card-actions class="justify-end">
         <v-btn text @click="menu = false">Close</v-btn>
@@ -70,6 +70,10 @@ const props = defineProps({
     type: Boolean,
     default: false
   },
+  disabled: {
+    type: Boolean,
+    default: false,
+  }
 });
 
 const emit = defineEmits(["update:modelValue"]);

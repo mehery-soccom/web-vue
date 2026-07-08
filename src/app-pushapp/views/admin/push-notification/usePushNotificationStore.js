@@ -135,12 +135,12 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     // 👉 Fetch All Campaign
     fetchCampaigns(params) {
-      let { page, itemsPerPage, sortBy, filters } = params;
+      let { page, itemsPerPage, sortBy, filters, dateRange1, dateRange2, timezone } = params;
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
       return DataService.axios.get(`/api/v1/campaign`, {
-        params: { page, limit: itemsPerPage, sort, search: filters },
+        params: { page, limit: itemsPerPage, sort, search: filters, dateRange1, dateRange2, timezone },
       });
     },
 

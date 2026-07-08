@@ -2,11 +2,15 @@
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
 import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
+import AppDateTimePicker from "@/app-pushapp/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
 import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
 import debounce from "lodash/debounce";
+import * as XLSX from "xlsx";
 
+const isExporting = ref(false);
 const pushNotificationStore = usePushNotificationStore();
 const isLoading = ref(false);
 const notifications = ref([]);
@@ -49,10 +53,27 @@ const headers = [
   {
     title: "Status",
     key: "status",
+    align: "center",
+    filterType: "select",
+    filterOptions: [
+      { title: "Completed", value: "COMPLETED" },
+      { title: "Created", value: "CREATED" },
+      { title: "Ended", value: "ENDED" },
+      { title: "Failed", value: "FAILED" },
+      { title: "On-going", value: "ON_GOING" },
+      { title: "Scheduled", value: "SCHEDULED" },
+    ],
   },
   {
-    title: "Start",
-    key: "createdStamp",
+    title: "Time",
+    key: "created.stamp",
+    align: "center",
+  },
+  {
+    title: "Created by",
+    key: "createdBy",
+    sortable: false,
+    align: "center",
   },
   {
     title: "Total",
@@ -60,6 +81,11 @@ const headers = [
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "Recurring",
+  //   key: "schedule.isRecurring",
+  //   filterType: "switch",
+  // },
   {
     title: "Sent",
     key: "stats.sent",
@@ -103,6 +129,16 @@ const headers = [
     align: "center",
   },
 ];
+
+const { customPlugin } = useDatePickerFilters();
+
+const tonight = new Date().setHours(23, 59, 59, 999);
+const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-");
+const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
+const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
+
+const timezone = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata";
+
 const pagination = reactive({
   itemsLength: 0,
   page: 1,
@@ -112,14 +148,37 @@ const pagination = reactive({
   filters: {
     campaignName: "",
     templateCode: "",
+    status: "",
   },
+  dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
+  dateRange2: new Date().setHours(23, 59, 59, 999),
+  timezone: timezone
 });
+
+const onDateClosed = (selectedDates, dateStr) => {
+  if (selectedDates.length === 2) {
+    dateRange.value = dateStr;
+    
+    // Convert to epoch milliseconds
+    const start = new Date(selectedDates[0]);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(selectedDates[1]);
+    end.setHours(23, 59, 59, 999);
+
+    pagination.dateRange1 = start.getTime();
+    pagination.dateRange2 = end.getTime();
+    
+    fetchCampaigns({ ...pagination });
+  }
+};
+
 const now = new Date();
 const logDialog = ref(false);
 const selectedLogs = ref([]);
-function formatDate(timestamp) {
-  if (!timestamp) return "N/A";
-  return new Date(timestamp).toLocaleString();
+const selectedErrorLogs = ref([])
+const formatDate2 = stamp => {
+  if (!stamp) return "-"
+  return new Date(stamp).toLocaleString()
 }
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
@@ -159,9 +218,7 @@ const getReadableRecurrence = (schedule) => {
   return text || "N/A";
 };
 
-onMounted(async () => {
-  fetchCampaigns({ ...pagination });
-});
+onMounted(async () => {});
 
 const fetchCampaigns = async (params) => {
   try {
@@ -203,14 +260,15 @@ const confirmCancelCampaign = async () => {
   campaignToCancel.value = null;
 };
 
-const campaignDialog = ref(false);
-const selectedCampaignLogs = ref([]);
-const openCampaignDialog = (logs) => {
-  selectedCampaignLogs.value = logs || [];
-  campaignDialog.value = true;
-};
-const openLogDialog = (logs) => {
+// const campaignDialog = ref(false);
+// const selectedCampaignLogs = ref([]);
+// const openCampaignDialog = (logs) => {
+//   selectedCampaignLogs.value = logs || [];
+//   campaignDialog.value = true;
+// };
+const openLogDialog = (logs, errorLogs) => {
   selectedLogs.value = logs || [];
+  selectedErrorLogs.value = errorLogs || [];
   logDialog.value = true;
 };
 
@@ -222,6 +280,75 @@ const onUpdateOptions = (options) => {
   pagination.filters = options.filters;
 
   fetchCampaigns({ ...pagination });
+};
+
+const getStatus = item => {
+  if (item.schedule?.canceledAt) return { label: "CANCELLED", color: "error" };
+  if (item.schedule?.runAt && new Date(item.schedule.runAt).getTime() > Date.now()) return { label: "SCHEDULED", color: "warning" };
+  return { label: "COMPLETED", color: "success" };
+};
+
+const exportToExcel = async () => {
+  try {
+    isExporting.value = true;
+    
+    // Fetch all data while maintaining current filters
+    const response = await pushNotificationStore.fetchCampaigns({
+      ...pagination,
+      page: -1,
+    });
+
+    const rawResults = response.data.results || [];
+
+    const formattedData = rawResults.map((item) => {
+      const total = item.messageCount || 0;
+      const sent = item.stats?.sent || 0;
+      const opened = item.stats?.opened || 0;
+      const ctaCount = item.stats?.cta?.__count || 0;
+
+      const sentPercent = total > 0 ? Math.round((sent / total) * 100) : 0;
+      const openedPercent = sent > 0 ? Math.round((opened / sent) * 100) : 0;
+      const ctaPercent = sent > 0 ? Math.round((ctaCount / sent) * 100) : 0;
+
+      const baseRow = {
+        "Name": item.campaignName,
+        "Template": item.templateCode,
+        "Start": item.createdStamp ? smartFormatDate(item.createdStamp) : "N/A",
+        "Total": total,
+        "Sent": sent,
+        "Sent %": `${sentPercent}%`,
+        "Opened": opened,
+        "Opened %": `${openedPercent}%`,
+        "Total CTA": ctaCount,
+        "CTA %": `${ctaPercent}%`,
+      };
+
+      const dynamicCTAs = {};
+      if (item.stats?.cta) {
+        Object.entries(item.stats.cta).forEach(([key, val]) => {
+          if (key !== "__count") {
+            dynamicCTAs[`CTA - ${key}`] = val;
+          }
+        });
+      }
+
+      return {
+        ...baseRow,
+        ...dynamicCTAs
+      };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Campaigns");
+
+    const fileName = `Campaigns-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+    XLSX.writeFile(workbook, fileName);
+  } catch (error) {
+    console.error("Export failed", error);
+  } finally {
+    isExporting.value = false;
+  }
 };
 
 const onUpdateOptionsDebounced = debounce((options) => {
@@ -245,6 +372,30 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
+        <VBtn
+          @click="exportToExcel"
+          color="primary"
+          :loading="isExporting"
+          style="width: 40px; height: 40px; min-width: 40px"
+          class="pa-0"
+          variant="flat"
+        >
+          <VIcon>mdi-download</VIcon>
+          <VTooltip activator="parent">Export to Excel</VTooltip>
+        </VBtn>
+
+        <AppDateTimePicker
+          v-model="dateRange"
+          style="width: 260px"
+          prepend-inner-icon="tabler-calendar"
+          :config="{ 
+            mode: 'range', 
+            dateFormat: 'd-m-Y', 
+            maxDate: tonight, 
+            onClose: onDateClosed,
+            plugins: [customPlugin] 
+          }"
+        />
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
@@ -276,12 +427,50 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
       <!-- status -->
       <template #item.status="{ item }">
-        <div class="d-flex gap-2">{{ item.raw.status }}</div>
+        <VChip
+          :color="
+            {
+              CREATED: 'primary',
+              SCHEDULED: 'primary',
+              FAILED: 'error',
+              COMPLETED: 'success',
+              ON_GOING: 'info',
+              ENDED: 'error',
+            }[item.raw.status]
+          "
+          variant="tonal"
+          size="small"
+          class="text-capitalize"
+        >
+          {{ item.raw.status.replace("_", " ") }}
+        </VChip>
+        <!-- <VChip
+          :color="getStatus(item.raw).color"
+          variant="tonal"
+          size="small"
+          class="text-capitalize"
+        >
+          {{ getStatus(item.raw).label }}
+        </VChip> -->
       </template>
 
       <!-- sent at -->
-      <template #item.createdStamp="{ item }">
+      <!-- <template #item.createdStamp="{ item }">
         {{ smartFormatDate(item.raw.createdStamp) }}
+      </template> -->
+
+      <!-- backend filtering not supported -->
+      <!-- <template #item.schedule.isRecurring="{ item }">
+        <div class="d-flex justify-center">
+          <VIcon v-if="item.raw.schedule?.isRecurring" size="16" color="info">
+            mdi-repeat
+          </VIcon>
+        </div>
+      </template> -->
+
+      <template #item.createdBy="{ item }">
+        <span v-if="item.raw.createdBy">{{ item.raw.createdBy }}</span>
+        <span v-else> - </span>
       </template>
 
       <!-- platforms -->
@@ -297,6 +486,25 @@ const onUpdateOptionsDebounced = debounce((options) => {
             {{ PLATFORM_COLORS[p]?.text }}
           </VChip>
         </div>
+      </template>
+
+      <template #item.created.stamp="{ item }">
+        <IconBtn>
+          <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
+          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
+            <div class="py-1">
+              <div v-if="item.raw.createdStamp">
+                <strong>Created:</strong> {{ formatDate2(item.raw.createdStamp) }}
+              </div>
+              <div v-if="item.raw.schedule && item.raw.schedule.runAt">
+                <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.runAt) }}
+              </div>
+              <div v-if="item.raw.schedule && item.raw.schedule.canceledAt">
+                <strong>Cancelled:</strong> {{ formatDate2(item.raw.schedule.canceledAt) }}
+              </div>
+            </div>
+          </VTooltip>
+        </IconBtn>
       </template>
 
       <!-- sent_percent -->
@@ -361,9 +569,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
         </IconBtn> -->
-        <IconBtn @click="openCampaignDialog(item)">
+        <IconBtn
+          :to="{
+            name: 'admin-push-notification-campaigns-view-id?',
+            params: { id: item.raw._id },
+          }"
+        >
           <VIcon>mdi-eye</VIcon>
-          <VTooltip activator="parent">Logs</VTooltip>
+          <VTooltip activator="parent">View Campaign Details</VTooltip>
         </IconBtn>
         <IconBtn
           v-if="(item.raw.schedule?.isRecurring && new Date(item.raw.schedule?.until) > now && !item.raw.schedule?.canceledAt) 
@@ -374,8 +587,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VTooltip activator="parent">Cancel Campaign</VTooltip>
         </IconBtn>
         <IconBtn
-          v-if="item.raw.logs?.length"
-          @click="openLogDialog(item.raw.logs)"
+          v-if="item.raw.logs?.length || !!item.raw.errorLogs"
+          @click="openLogDialog(item.raw.logs, item.raw.errorLogs)"
         >
           <VIcon>mdi-alert-circle-outline</VIcon>
           <VTooltip activator="parent">Logs</VTooltip>
@@ -417,6 +630,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
             </VListItem>
           </VList>
           <div v-else class="text-grey">No logs found.</div>
+          <VDivider class="my-4" />
+          <div v-if="Object.keys(selectedErrorLogs).length" class="mb-4">
+            <div class="text-subtitle-2 mb-2">
+              Error Summary
+            </div>
+            <div v-for="(count, key) in selectedErrorLogs" :key="key" class="text-error mb-1">
+              <VIcon color="error">mdi-alert</VIcon> {{ key.replace(/_/g, " ") }} ({{ count }})
+            </div>
+          </div>
         </VCardText>
         <VCardActions class="sticky-footer">
           <VSpacer />
@@ -424,7 +646,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VCardActions>
       </VCard>
     </VDialog>
-    <VDialog v-model="campaignDialog" max-width="600">
+    <!-- <VDialog v-model="campaignDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
         <VCardText>
@@ -432,13 +654,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <div style="font-size: 15px;"><strong>Campaign Name:</strong> {{ selectedCampaignLogs.raw.campaignName }}</div>
             <div style="margin-top: 4px;font-size: 15px;"><strong>Template Code:</strong> {{ selectedCampaignLogs.raw.templateCode }}</div>
 
-            <!-- Filter -->
             <section v-if="selectedCampaignLogs.raw.filter" class="detail-block">
               <h5>Filter</h5>
               <FilterViewer :node="selectedCampaignLogs.raw.filter" />
             </section>
 
-            <!-- Schedule -->
             <section v-if="selectedCampaignLogs.raw?.schedule" class="detail-block">
               <h5>Schedule</h5>
               <div>
@@ -473,7 +693,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VBtn text @click="campaignDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
-    </VDialog>
+    </VDialog> -->
   </VCard>
 </template>
 

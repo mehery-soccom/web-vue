@@ -96,7 +96,8 @@ const onUpdate = async () => {
       if (p.platform_id) {
         console.log("onUpdate > existing platform file", p.platform_type);
 
-        formData.append(`${p.platform_type}_file_path`, p.file_path);
+        if (p.file) formData.append(`${p.platform_type}_file`, p.file);
+        else formData.append(`${p.platform_type}_file_path`, p.file_path);
         formData.append(`${p.platform_type}_active_status`, p.active);
       } else {
         console.log("onUpdate > new platform file", p.platform_type);

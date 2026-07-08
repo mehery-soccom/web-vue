@@ -7,10 +7,14 @@ const props = defineProps({
   level: { type: Number, default: 0 },
   ignoreEventfilterType: { type: Boolean, default: false },
   ignoreCustomEventfilterType: { type: Boolean, default: false },
+  ignoreEventDatafilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   channelId: { type: [String, Number], default: null },
+  vertical: { type: Boolean, default: false },
+  rootFilter: { type: Object, default: null },
+  connectedAppEvent: { type: String, default: null },
 });
 const emit = defineEmits(["update:modelValue", "delete-group"]);
 
@@ -23,6 +27,7 @@ const addFilter = () => {
     filterType: null,
     field: null,
     operator: null,
+    dataProperty: null,
     value: null,
     freqOperator: null,
     freqCount: null,
@@ -37,9 +42,10 @@ const addGroup = () => {
     children: [
       {
         type: "filter",
-        filterType: "event",
+        filterType: null,
         field: null,
         operator: null,
+        dataProperty: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -100,7 +106,7 @@ defineExpose({ isValid });
 <template>
   <div
     class="pa-3 rounded-lg border mb-3"
-    :class="{ 'readonly-container': readonly }"
+    :class="{ 'readonly-container': readonly, 'vertical-group': vertical }"
   >
     <!-- Group Header -->
     <div class="d-flex align-center justify-space-between mb-3">
@@ -133,16 +139,20 @@ defineExpose({ isValid });
     </div>
 
     <!-- Filters & Groups -->
-    <div v-for="(child, index) in modelValue.children" :key="index">
+    <div v-for="(child, index) in modelValue.children" :key="index + child.filterType + child.operator">
       <FilterItem
         :ref="(el) => (childRefs[index] = el)"
         :element="child"
         :index="index"
         :level="level"
+        :vertical="vertical"
+        :root-filter="rootFilter || modelValue"
+        :connected-app-event="connectedAppEvent"
         @remove="removeChild(index)"
         @update="emit('update:modelValue', modelValue)"
         :ignoreEventfilterType="ignoreEventfilterType"
         :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
+        :ignoreEventDatafilterType="ignoreEventDatafilterType"
         :ignoreSlicefilterType="ignoreSlicefilterType"
         :ignoreCohortfilterType="ignoreCohortfilterType"
         :readonly="readonly"

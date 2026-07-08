@@ -318,7 +318,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
       );
     },
     fetchFilters(params) {
-      let { page, itemsPerPage, sortBy, filters } = params;
+      let { page, itemsPerPage, sortBy, filters, dateRange1, dateRange2, timezone  } = params;
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
@@ -327,7 +327,7 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
           page,
           limit: itemsPerPage,
           sort: sort || "-created.stamp",
-          search: filters,
+          search: filters, dateRange1, dateRange2, timezone 
         },
       });
     },

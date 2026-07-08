@@ -4,6 +4,7 @@ import Fallback from "./journey/Fallback.vue";
 const props = defineProps({
   modelValue: { type: Object, required: true },
   journey: { type: Object, required: true },
+  readonly: { type: Boolean, default: false },
 });
 const emit = defineEmits(["update:modelValue", "update:journey"]);
 
@@ -11,8 +12,38 @@ const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 
 watch(
   () => props.modelValue,
-  (val) => Object.assign(form, val),
-  { deep: true }
+  (val) => {
+    Object.assign(form, val);
+    if (val?.rrule) {
+      const rule = val.rrule;
+      const hours = val.activeHours || {};
+      form.recurringType = !!val.enableActiveWindow;
+
+      if (rule.includes("FREQ=DAILY")) {
+        form.schedulePattern = "daily";
+        form.startTime = hours.start || null;
+        form.endTime = hours.end || null;
+      } else if (rule.includes("FREQ=WEEKLY")) {
+        form.schedulePattern = "weekly";
+        form.scheduleDays = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
+        form.weeklyStartTime = hours.start || null;
+        form.weeklyEndTime = hours.end || null;
+      } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYMONTHDAY")) {
+        form.schedulePattern = "monthlyDate";
+        form.scheduleDate = rule.match(/BYMONTHDAY=(\d+)/)?.[1];
+        form.monthlyDateStartTime = hours.start || null;
+        form.monthlyDateEndTime = hours.end || null;
+      } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYSETPOS")) {
+        form.schedulePattern = "monthlyWeekday";
+        const weekMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+        form.scheduleWeek = weekMap[rule.match(/BYSETPOS=(-?\d+)/)?.[1]];
+        form.scheduleWeekday = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
+        form.monthlyWeekdayStartTime = hours.start || null;
+        form.monthlyWeekdayEndTime = hours.end || null;
+      }
+    }
+  },
+  { deep: true, immediate: true }
 );
 
 watch(form, (val) => emit("update:modelValue", val), { deep: true });
@@ -251,7 +282,7 @@ defineExpose({ isValid });
     <p class="text-caption mb-4">
       Choose how long the campaign will remain active
     </p>
-    <VRadioGroup v-model="form.durationType" hide-details>
+    <VRadioGroup v-model="form.durationType" hide-details :disabled="props.readonly">
       <VRadio value="ALWAYS">
         <template #label>
           <span>Till the campaign is manually ended</span>
@@ -265,7 +296,7 @@ defineExpose({ isValid });
               <span>At specific date/time</span>
               <AppDateTimePicker
                 ref="startPickerRef"
-                :key="form.durationType + errors.startDate + '1'"
+                :key="form.durationType + props.readonly + '1'"
                 v-model="form.startDate"
                 placeholder="Select Date"
                 class="flex-grow-1 tiny-input"
@@ -273,12 +304,12 @@ defineExpose({ isValid });
                 :error="!!errors.startDate"
                 @update:modelValue="clearError('startDate')"
                 :disabled="form.durationType !== 'DATE_RANGE'"
-                :config="{ enableTime: true, minDate: now }"
+                :config="{ enableTime: true, minDate: props.readonly ? null : now }"
               />
               <span>ending on</span>
               <AppDateTimePicker
                 ref="endPickerRef"
-                :key="form.durationType + errors.endDate + '2'"
+                :key="form.durationType + props.readonly + '2'"
                 v-model="form.endDate"
                 placeholder="Select Date"
                 class="flex-grow-1 tiny-input"
@@ -286,7 +317,7 @@ defineExpose({ isValid });
                 :error="!!errors.endDate"
                 @update:modelValue="clearError('endDate')"
                 :disabled="form.durationType !== 'DATE_RANGE'"
-                :config="{ enableTime: true, minDate: now }"
+                :config="{ enableTime: true, minDate: props.readonly ? null : now }"
               />
             </div>
           </div>
@@ -299,12 +330,12 @@ defineExpose({ isValid });
         hide-details
         inset
         color="primary"
-        class="mr-2"
+        class="mr-2" :disabled="props.readonly"
       />
       <span>Engagement Window</span>
     </div>
 
-    <template v-if="!!form.recurringType">
+    <template v-if="!!form.recurringType || !!form.enableActiveWindow">
       <VForm ref="formRef">
       <div>
         <VDivider class="my-6" />
@@ -312,7 +343,7 @@ defineExpose({ isValid });
         <h3 class="mb-2">Engagement Window</h3>
         <p class="text-caption mb-4">Choose when the campaign runs</p>
         <div class="recurring-group">
-          <VRadioGroup v-model="form.schedulePattern">
+          <VRadioGroup v-model="form.schedulePattern" :disabled="props.readonly">
             <VRadio value="daily">
               <template #label>
                 Run Daily from 
@@ -322,7 +353,7 @@ defineExpose({ isValid });
                   placeholder="Start Time"
                   class="flex-grow-1 tiny-input ml-2 mr-2 input-uniform"
                   style="min-width:170px"
-                  :disabled="!form.recurringType"
+                  :disabled="!form.recurringType || props.readonly"
                   :rules="[val => timeValidator(val, 'daily', 'Start time'),
                     () => isEndTimeAfterStartTime(form.startTime, form.endTime)]"
                   :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -334,7 +365,7 @@ defineExpose({ isValid });
                   placeholder="End Time"
                   class="flex-grow-1 tiny-input ml-2 input-uniform"
                   style="min-width:170px"
-                  :disabled="!form.recurringType"
+                  :disabled="!form.recurringType || props.readonly"
                   :rules="[val => timeValidator(val, 'daily', 'End time'),
                     () => isEndTimeAfterStartTime(form.startTime, form.endTime)]"
                   :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -349,7 +380,7 @@ defineExpose({ isValid });
                   Run on scheduled days of week
                   <AppSelect
                     v-model="form.scheduleDays"
-                    :items="Dow"
+                    :items="Dow" :disabled="props.readonly"
                     density="compact" multiple placeholder="Week Days"
                     :rules="[weeklyDaysValidator]"
                     style="min-width: 170px; max-width: 500px; width: fit-content;" class="input-uniform dif-height"
@@ -361,7 +392,7 @@ defineExpose({ isValid });
                     placeholder="Start Time"
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
-                    :disabled="!form.recurringType"
+                    :disabled="!form.recurringType || props.readonly"
                     :rules="[val => timeValidator(val,'weekly','Start time'),
                       () => isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -373,7 +404,7 @@ defineExpose({ isValid });
                     placeholder="End Time"
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
-                    :disabled="!form.recurringType"
+                    :disabled="!form.recurringType || props.readonly"
                     :rules="[val => timeValidator(val,'weekly','End time'),
                       () => isEndTimeAfterStartTime(form.weeklyStartTime, form.weeklyEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -389,7 +420,7 @@ defineExpose({ isValid });
                   Run on date of month 
                   <VTextField
                     v-model="form.scheduleDate"
-                    type="number"
+                    type="number" :disabled="props.readonly"
                     density="compact"
                     placeholder="Date"
                     style="width: 157px"
@@ -403,7 +434,7 @@ defineExpose({ isValid });
                     placeholder="Start Time"
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
-                    :disabled="!form.recurringType"
+                    :disabled="!form.recurringType || props.readonly"
                     :rules="[val => timeValidator(val,'monthlyDate','Start time'),
                       () => isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -415,7 +446,7 @@ defineExpose({ isValid });
                     placeholder="End Time"
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
-                    :disabled="!form.recurringType"
+                    :disabled="!form.recurringType || props.readonly"
                     :rules="[val => timeValidator(val,'monthlyDate','End time'),
                       () => isEndTimeAfterStartTime(form.monthlyDateStartTime, form.monthlyDateEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -433,13 +464,13 @@ defineExpose({ isValid });
                     v-model="form.scheduleWeek"
                     :items="['FIRST','SECOND','THIRD','FOURTH','LAST']"
                     density="compact" placeholder="Week Number"
-                    :rules="[dayOfMonthValidator]"
+                    :rules="[dayOfMonthValidator]" :disabled="props.readonly"
                     style="width:170px" class="input-uniform dif-height"
                     @update:modelValue="form.schedulePattern = 'monthlyWeekday'"
                   />
                   <AppSelect
                     v-model="form.scheduleWeekday"
-                    :items="Dow"
+                    :items="Dow" :disabled="props.readonly"
                     density="compact" multiple placeholder="Week Days"
                     :rules="[monthlyWeekDaysValidator]"
                     style="min-width: 170px; max-width: 500px; width: fit-content;" class="input-uniform dif-height"
@@ -451,7 +482,7 @@ defineExpose({ isValid });
                     placeholder="Start Time"
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
-                    :disabled="!form.recurringType"
+                    :disabled="!form.recurringType || props.readonly"
                     :rules="[val => timeValidator(val,'monthlyWeekday','Start time'),
                       () => isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -463,7 +494,7 @@ defineExpose({ isValid });
                     placeholder="End Time"
                     class="flex-grow-1 tiny-input input-uniform"
                     style="min-width:170px"
-                    :disabled="!form.recurringType"
+                    :disabled="!form.recurringType || props.readonly"
                     :rules="[val => timeValidator(val,'monthlyWeekday','End time'),
                       () => isEndTimeAfterStartTime(form.monthlyWeekdayStartTime, form.monthlyWeekdayEndTime)]"
                     :config="{ enableTime: true, noCalendar: true, dateFormat: 'H:i', time_24hr: true }"
@@ -599,6 +630,29 @@ defineExpose({ isValid });
   }
   .v-label {
     width: auto !important;
+  }
+  .v-input--disabled,
+  .v-input--disabled .v-field,
+  .v-selection-control--disabled {
+    opacity: 0.90 !important; 
+  }
+  .v-input--disabled .v-field__input,
+  .v-input--disabled input::placeholder,
+  .v-input--disabled input {
+    color: rgba(0, 0, 0, 0.60) !important;
+    -webkit-text-fill-color: rgba(0, 0, 0, 0.50) !important;
+  }
+  .v-label,
+  .v-input--disabled .v-label,
+  .v-selection-control--disabled .v-label {
+    color: rgba(0, 0, 0, 0.50) !important;
+    opacity: 1 !important;
+    -webkit-text-fill-color: rgba(0, 0, 0, 0.50) !important;
+  }
+  .v-icon,
+  .v-selection-control__wrapper {
+    color: rgba(0, 0, 0, 0.50) !important;
+    opacity: 1 !important;
   }
 }
 </style>

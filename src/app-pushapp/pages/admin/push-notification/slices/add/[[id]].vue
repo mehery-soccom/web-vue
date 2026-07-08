@@ -147,6 +147,7 @@ onMounted(async () => {
         v-if="slice.filter"
         v-model="slice.filter"
         :ignoreEventfilterType="true"
+        :ignoreEventDatafilterType="true"
         :ignoreCustomEventfilterType="true"
         :ignoreSlicefilterType="true"
         :ignoreCohortfilterType="true"

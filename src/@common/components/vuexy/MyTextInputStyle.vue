@@ -22,6 +22,7 @@ const props = defineProps({
   iconPlacement: { type: String, default: null },
   suggestions: { type: Array, default: () => [] },
   swatches: Array,
+  disabled: { type: Boolean , default: false }
 })
 
 const emit = defineEmits([
@@ -52,7 +53,7 @@ watch(() => props.modelValue, (val) => {
           :label="label"
           :placeholder="placeholder"
           :rules="rules"
-          :suggestions="suggestions"
+          :suggestions="suggestions" :disabled="disabled"
         />
       </VCol>
       <VCol cols="1" class="d-flex align-center justify-end">
@@ -68,19 +69,19 @@ watch(() => props.modelValue, (val) => {
           :model-value="fontSize"
           @update:modelValue="val => emit('update:fontSize', val)"
           :items="fontSizesList"
-          placeholder="Font Size"
+          placeholder="Font Size" :disabled="disabled"
         />
       </VCol>
       <VCol :cols="!iconPlacement ? 4 : 3">
         <MyColorPicker
-          :model-value="fontColor || '#000001'"
+          :model-value="fontColor || '#000001'" :disabled="disabled"
           @update:modelValue="val => emit('update:fontColor', val)"
           placeholder="Font Color" :showSwatch="true" :swatches="props.swatches"
         />
       </VCol>
       <VCol :cols="!iconPlacement ? 4 : 3">
         <VBtnToggle
-          :model-value="textStyles"
+          :model-value="textStyles" :disabled="disabled"
           @update:modelValue="val => emit('update:textStyles', val)"
           multiple
           outlined
@@ -92,7 +93,7 @@ watch(() => props.modelValue, (val) => {
       </VCol>
       <VCol cols="2" v-if="icon !== null">
         <AppSelect
-          :model-value="icon"
+          :model-value="icon" :disabled="disabled"
           @update:modelValue="val => emit('update:icon', val)"
           :items="iconsList"
           placeholder="Icon Size"
@@ -100,7 +101,7 @@ watch(() => props.modelValue, (val) => {
       </VCol>
       <VCol cols="2" v-if="iconPlacement !== null">
         <AppSelect
-          :model-value="iconPlacement"
+          :model-value="iconPlacement" :disabled="disabled"
           @update:modelValue="val => emit('update:iconPlacement', val)"
           :items="['append','prepend']"
           placeholder="Icon Placement"

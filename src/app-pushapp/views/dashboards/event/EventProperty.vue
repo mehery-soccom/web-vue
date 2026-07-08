@@ -163,18 +163,15 @@ const exportToExcel = () => {
   XLSX.writeFile(workbook, fileName)
 }
 
-// Watchers
 watch(() => props.event, async () => {
-    selectedProperty.value = null // Reset selection on event change
-    await fetchProperties()
-    await fetchData()
+  selectedProperty.value = null // Reset selection on event change
+  await fetchProperties()
 })
 
 watch([() => props.dateRange, () => props.cohortId, selectedProperty], fetchData)
 
 onMounted(async () => {
   await fetchProperties()
-  await fetchData()
 })
 </script>
 

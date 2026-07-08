@@ -54,7 +54,9 @@ onBeforeUnmount(() => {
             <div class="banner-content" :style="{ flexDirection: props.template.style.horizontal_align === 'right' ? 'row-reverse' : 'row'}">
             <!-- Image -->
             <div class="banner-image" v-if="props.template.style.image_url">
-                <img :src="props.template.style.image_url" class="banner-media-item" />
+                <img :src="props.template.style.image_url" class="banner-media-item" 
+                    :onclick="props.template.style.notification_url 
+                    ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null" />
             </div>
 
             <!-- Text -->
@@ -201,7 +203,7 @@ onBeforeUnmount(() => {
   align-items: center;
   overflow: hidden;
   border-radius: 8px;
-  background-color: #000;
+  background-color: transparent;
 }
 
 .media-preview .media-item {

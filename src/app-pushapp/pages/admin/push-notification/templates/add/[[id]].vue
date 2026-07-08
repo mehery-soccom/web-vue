@@ -148,6 +148,7 @@ onMounted(async () => {
         if (template.type === "simple") {
           if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
           if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+          if (template.style.category == 'CAROUSEL_CATEGORY') template.style.category = null;
         }
         let _buttonGroupValue = {};
         _template.options.buttons.map((b) => {
@@ -176,6 +177,7 @@ onMounted(async () => {
           if (template.type === "simple") {
             if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
             if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
+            if (template.style.category == 'CAROUSEL_CATEGORY') template.style.category = null;
           }
           let _buttonGroupValue = {};
           _template.options.buttons.map((b) => {
@@ -229,6 +231,7 @@ const onCreate = async () => {
         const url = template.style.notification_url.code;
         template.style.notification_url = url;
       }
+      if(!template.style.category && Array.isArray(imageUrl)) template.style.category = 'CAROUSEL_CATEGORY';
       payload = {
         ...template,
         style: {
@@ -292,6 +295,7 @@ const onUpdate = async () => {
         const url = template.style.notification_url.code;
         template.style.notification_url = url;
     }
+    if(!template.style.category && Array.isArray(imageUrl)) template.style.category = 'CAROUSEL_CATEGORY';
 
     let payload = {
         ...template,

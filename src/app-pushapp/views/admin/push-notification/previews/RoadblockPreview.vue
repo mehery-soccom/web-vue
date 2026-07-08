@@ -205,8 +205,12 @@ onBeforeUnmount(() => {
 
           <!-- Media (image/video) -->
           <div class="media-preview" v-if="props.template.style.image_url || props.template.style.video_url">
-            <img v-if="props.template.style.image_url" :src="props.template.style.image_url" class="media-item" />
-            <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" :poster="props.template.style.thumbnail_url || ''" />
+            <img v-if="props.template.style.image_url" :src="props.template.style.image_url" class="media-item" 
+                :onclick="props.template.style.notification_url 
+                ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null" />
+            <video v-else :src="props.template.style.video_url" class="media-item" autoplay muted playsinline webkit-playsinline loop preload="auto" :poster="props.template.style.thumbnail_url || ''" 
+                :onclick="props.template.style.notification_url 
+                ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null" />
           </div>
 
           <!-- Carousel -->
@@ -218,6 +222,8 @@ onBeforeUnmount(() => {
                     v-if="activeMedia.type === 'image'"
                     :src="item.value"
                     class="media-item"
+                    :onclick="props.template.style.notification_url 
+                    ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null"
                     :style="{ display: index === currentSlide ? 'block' : 'none' }"
                   />
                   <video
@@ -229,6 +235,8 @@ onBeforeUnmount(() => {
                     playsinline
                     :style="{ display: index === currentSlide ? 'block' : 'none' }" 
                     :poster="props.template.style.thumbnail_url || ''"
+                    :onclick="props.template.style.notification_url 
+                    ? `handleClick('MEDIA_CLICK', '${props.template.style.notification_url}', '${props.template.style.notification_url}')` : null"
                   />
                 </template>
                 </div>
@@ -384,7 +392,7 @@ onBeforeUnmount(() => {
   align-items: center;
   overflow: hidden;
   border-radius: 8px;
-  background-color: #000;
+  background-color: transparent;
 }
 
 .media-preview .media-item {

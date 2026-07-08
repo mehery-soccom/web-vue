@@ -5,6 +5,11 @@ import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/use
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
 import FilterViewer from "@/app-pushapp/views/admin/app-engagements/FilterViewer.vue";
+import AppDateTimePicker from "@/app-pushapp/@core/components/app-form-elements/AppDateTimePicker.vue";
+import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
+import * as XLSX from "xlsx";
+
+const isExporting = ref(false);
 const { show } = inject("snackbar");
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
@@ -40,14 +45,14 @@ const headers = [
     title: "Template",
     key: "action.template.code",
   },
+  // {
+  //   title: "Type",
+  //   key: "action.template.type",
+  //   filterType: "select",
+  //   filterOptions: TYPES2,
+  // },
   {
     title: "Type",
-    key: "action.template.type",
-    filterType: "select",
-    filterOptions: TYPES2,
-  },
-  {
-    title: "SubType",
     key: "action.template.subType",
     filterType: "select",
     filterOptions: SUB_TYPES,
@@ -61,6 +66,11 @@ const headers = [
     //   { title: "Disabled", value: false },
     // ],
   },
+  // {
+  //   title: "Window ",
+  //   key: "schedule.enableActiveWindow",
+  //   filterType: "switch",
+  // },
   {
     title: "Status",
     key: "status",
@@ -73,6 +83,18 @@ const headers = [
       { title: "On-going", value: "ON_GOING" },
       { title: "Ended", value: "ENDED" },
     ],
+  },
+  {
+    title: "Time",
+    key: "created.stamp",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "Created by",
+    key: "created.byUser",
+    sortable: false,
+    align: "center",
   },
   {
     title: "Count",
@@ -122,6 +144,16 @@ const headers = [
     sortable: false,
   },
 ];
+
+const { customPlugin } = useDatePickerFilters();
+
+const tonight = new Date().setHours(23, 59, 59, 999);
+const formatDate = (dat) => dat.toLocaleDateString("en-GB").split("/").join("-");
+const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
+const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
+
+const timezone = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata";
+
 const pagination = reactive({
   itemsLength: 0,
   page: 1,
@@ -131,16 +163,31 @@ const pagination = reactive({
   filters: {
     title: null,
     "action.template.code": null,
-    "action.template.type": null,
+    // "action.template.type": null,
     "action.template.subType": null,
     "abTesting.enabled": false,
+    // "schedule.enableActiveWindow": null,
     status: null,
   },
+  dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
+  dateRange2: new Date().setHours(23, 59, 59, 999),
+  timezone: timezone
 });
 
-onMounted(async () => {
-  fetchCampaigns({ ...pagination });
-});
+const onDateClosed = (selectedDates, dateStr) => {
+  if (selectedDates.length === 2) {
+    dateRange.value = dateStr;
+    const start = new Date(selectedDates[0]);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(selectedDates[1]);
+    end.setHours(23, 59, 59, 999);
+    pagination.dateRange1 = start.getTime();
+    pagination.dateRange2 = end.getTime();
+    fetchCampaigns({ ...pagination });
+  }
+};
+
+onMounted(async () => {});
 
 const logDialog = ref(false);
 const selectedLogs = ref([]);
@@ -209,9 +256,12 @@ const endCampaign = async (item, dialogCloseRef) => {
     isLoading.value = false;
   }
 };
-function formatDate(timestamp) {
-  if (!timestamp) return "N/A";
-  return new Date(timestamp).toLocaleString();
+const endedStamp = history => {
+  return history?.find(h => h.status === "ENDED")?.time?.stamp
+}
+const formatDate2 = stamp => {
+  if (!stamp) return "-"
+  return new Date(stamp).toLocaleString()
 }
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
@@ -256,6 +306,58 @@ const onUpdateOptions = (options) => {
   fetchCampaigns({ ...pagination });
 };
 
+const exportToExcel = async () => {
+  try {
+    isExporting.value = true;
+    const response = await appEngagementsStore.fetchFilters({
+      ...pagination,
+      page: -1,
+    });
+
+    const rawResults = response.data.results || [];
+    const formattedData = rawResults.map((item) => {
+      const total = item.stats?.total || 0;
+      const sent = item.stats?.sent || 0;
+      const ctaCount = item.stats?.cta?.__count || 0;
+      const sentPercent = total > 0 ? Math.round((sent / total) * 100) : 0;
+      const ctaPercent = sent > 0 ? Math.round((ctaCount / sent) * 100) : 0;
+
+      const baseRow = {
+        "Name": item.title,
+        "Template": item.action?.template?.code,
+        "Type": item.action?.template?.type,
+        "SubType": item.action?.template?.subType,
+        "A/B Testing": item.abTesting?.enabled ? "Yes" : "No",
+        "Status": item.status,
+        "Count": total,
+        "Delivered": sent,
+        "Delivery %": `${sentPercent}%`,
+        "Total CTA": ctaCount,
+        "CTA %": `${ctaPercent}%`,
+      };
+
+      const dynamicCTAs = {};
+      if (item.stats?.cta) {
+        Object.entries(item.stats.cta).forEach(([key, val]) => {
+          if (key !== "__count") dynamicCTAs[`CTA - ${key}`] = val;
+        });
+      }
+
+      return { ...baseRow, ...dynamicCTAs };
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(formattedData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "App Engagements");
+    const fileName = `AppEngagements-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+    XLSX.writeFile(workbook, fileName);
+  } catch (error) {
+    console.error("Export failed", error);
+  } finally {
+    isExporting.value = false;
+  }
+};
+
 const onUpdateOptionsDebounced = debounce((options) => {
   onUpdateOptions(options);
 }, 300);
@@ -277,6 +379,29 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           <VIcon>tabler-refresh</VIcon>
         </VBtn>
+        <VBtn
+          @click="exportToExcel"
+          color="primary"
+          :loading="isExporting"
+          style="width: 40px; height: 40px; min-width: 40px"
+          class="pa-0"
+          variant="flat"
+        >
+          <VIcon>mdi-download</VIcon>
+          <VTooltip activator="parent">Export to Excel</VTooltip>
+        </VBtn>
+        <AppDateTimePicker
+          v-model="dateRange"
+          style="width: 260px"
+          prepend-inner-icon="tabler-calendar"
+          :config="{
+            mode: 'range',
+            dateFormat: 'd-m-Y',
+            maxDate: tonight,
+            onClose: onDateClosed,
+            plugins: [customPlugin]
+          }"
+        />
         <!-- 👉 Create -->
         <VBtn
           prepend-icon="tabler-plus"
@@ -331,11 +456,6 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VChip>
       </template>
 
-      <!-- created at -->
-      <template #item.created.stamp="{ item }">
-        {{ smartFormatDate(item.raw.created.stamp) }}
-      </template>
-
       <!-- A/B enabled -->
       <template #item.abTesting.enabled="{ item }">
         <VIcon
@@ -359,6 +479,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
         }}</VTooltip>
       </template>
 
+      <!-- backend filtering not supported -->
+      <!-- <template #item.schedule.enableActiveWindow="{ item }">
+        <div class="d-flex justify-center">
+          <VIcon v-if="item.raw.schedule?.enableActiveWindow" size="16" color="success">
+            mdi-clock-outline
+          </VIcon>
+        </div>
+      </template> -->
+
       <!-- Template codes -->
       <template #item.action.template.code="{ item }">
         {{ item.raw.action.template.code }}
@@ -370,13 +499,31 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </template>
 
       <!-- Template types -->
-      <template #item.action.template.type="{ item }">
+      <!-- <template #item.action.template.type="{ item }">
         {{ item.raw.action.template.type }}
         {{
           item.raw.action.templateB?.type
             ? "| " + item.raw.action.templateB?.type
             : ""
         }}
+      </template> -->
+      <template #item.created.stamp="{ item }">
+        <IconBtn>
+          <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
+          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
+            <div class="py-1">
+              <div v-if="item.raw.created && item.raw.created.stamp">
+                <strong>Created:</strong> {{ formatDate2(item.raw.created.stamp) }}
+              </div>
+              <div v-if="item.raw.schedule && item.raw.schedule.startDate">
+                <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.startDate) }}
+              </div>
+              <div v-if="endedStamp(item.raw.statusHistory)">
+                <strong>Ended:</strong> {{ formatDate2(endedStamp(item.raw.statusHistory)) }}
+              </div>
+            </div>
+          </VTooltip>
+        </IconBtn>
       </template>
 
       <!-- Template sub types -->
@@ -387,6 +534,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
             ? "| " + item.raw.action.templateB?.subType
             : ""
         }}
+      </template>
+
+      <template #item.created.byUser="{ item }">
+        <span v-if="item.raw.created && item.raw.created.byUser">{{ item.raw.created.byUser }}</span>
+        <span v-else> - </span>
       </template>
 
       <!-- sent_percent -->
@@ -460,20 +612,28 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
           <VTooltip activator="parent">End this campaign</VTooltip>
         </VBtn>
-        <IconBtn @click="openLogDialog(item)">
+        <IconBtn
+          :to="{
+            name: 'admin-app-engagements-campaigns-view-id?',
+            params: { id: item.raw._id },
+          }"
+        >
+          <VIcon>mdi-eye</VIcon>
+          <VTooltip activator="parent">View Campaign Details</VTooltip>
+        </IconBtn>
+        <!-- <IconBtn @click="openLogDialog(item)">
           <VIcon>mdi-eye</VIcon>
           <VTooltip activator="parent">Logs</VTooltip>
-        </IconBtn>
+        </IconBtn> -->
       </template>
     </MyDataTable>
-    <VDialog v-model="logDialog" max-width="600">
+    <!-- <VDialog v-model="logDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
         <VCardText>
           <div class="campaign-details">
             <div><strong>Campaign ID:</strong> {{ selectedLogs.raw._id }}</div>
 
-            <!-- Audience -->
             <section class="detail-block">
               <h5>Audience</h5>
               <div>
@@ -484,13 +644,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
               </div>
             </section>
 
-            <!-- Filter -->
             <section v-if="selectedLogs.raw.filter" class="detail-block">
               <h5>Filter</h5>
               <FilterViewer :node="selectedLogs.raw.filter" />
             </section>
 
-            <!-- Schedule -->
             <section v-if="selectedLogs.raw.schedule" class="detail-block">
               <h5>Schedule</h5>
               <div>
@@ -523,7 +681,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VBtn text @click="logDialog = false">Close</VBtn>
         </VCardActions>
       </VCard>
-    </VDialog>
+    </VDialog> -->
   </VCard>
 </template>
 
