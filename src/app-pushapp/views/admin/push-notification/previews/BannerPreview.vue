@@ -203,7 +203,7 @@ onBeforeUnmount(() => {
   align-items: center;
   overflow: hidden;
   border-radius: 8px;
-  background-color: #000;
+  background-color: transparent;
 }
 
 .media-preview .media-item {

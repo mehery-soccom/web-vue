@@ -485,7 +485,7 @@ function onNodeClick({ node }) {
   if (node.data.code === 'TRIGGER' || node.data.code === 'EXPECTATION') {
     loadEventOptionsFor(node.id)
   }
-  if (node.data.code === 'ACTOR') {
+  if (node.data.code === 'ACTOR' || node.data.code === 'EXPECTATION') {
     if (cache.channelOptions.length === 0) {
       loadChannelOptionsFor(node.id, node.data.attrs.channelType)
     }
