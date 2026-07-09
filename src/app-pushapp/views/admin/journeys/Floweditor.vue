@@ -278,7 +278,7 @@ const getListenerId = () => `listener_${_listenerId++}`
 
 
 // Confirm dialog (delete)
-
+const showClearDialog = ref(false);
 const dialogVisible = ref(false)
 const dialogMessage = ref('')
 let _dialogResolve = null
@@ -944,6 +944,7 @@ function clearAll() {
   const trigger = nodes.value.find((n) => n.data.code === 'TRIGGER')
   nodes.value = trigger ? [trigger] : []
   edges.value = []
+  showClearDialog.value = false;
 }
 
 defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
@@ -990,7 +991,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
               <VCardActions>
                 <VSpacer />
                 <VBtn variant="text" @click="showClearDialog = false"> Cancel </VBtn>
-                <VBtn color="error" @click="confirmClear"> Clear Canvas </VBtn>
+                <VBtn color="error" @click="clearAll"> Clear Canvas </VBtn>
               </VCardActions>
             </VCard>
           </VDialog>
