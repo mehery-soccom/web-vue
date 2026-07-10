@@ -12,6 +12,7 @@ const isLoading = ref(false);
 const isFetching = ref(false);
 const flowRecord = ref(null);
 const isViewMode = computed(() => !!route.params.id);
+const isEditing = computed(() => "edit" in route.query);
 
 const flow = reactive({
   name: "",
@@ -136,17 +137,20 @@ async function launchFlow() {
       desc: flow.desc,
       filter: flow.filter,
       ...editorPayload,
-    }
-    await FlowsStore.createFlow(payload)
+    };
 
-    show({ message: "Flow saved successfully", color: "success" });
-    router.push({ name: "admin-journey-list",});
-  }
-  catch (e) {
+    if (route.params.id) {
+      await FlowsStore.editFlow({ id: route.params.id, ...payload });
+      show({ message: "Flow updated successfully", color: "success" });
+    } else {
+      await FlowsStore.createFlow(payload);
+      show({ message: "Flow saved successfully", color: "success" });
+    }
+    router.push({ name: "admin-journey-list" });
+  } catch (e) {
     console.log(e);
     show({ message: "Failed to save flow", color: "error" });
-  }
-  finally {
+  } finally {
     isLoading.value = false;
   }
 }
@@ -234,7 +238,7 @@ onMounted(async () => {
             <AppTextField
               v-model="flow.desc"
               placeholder="Description"
-              :disabled="isViewMode"
+              :disabled="isViewMode && !isEditing"
             />
           </VCol>
         </VRow>
@@ -249,7 +253,7 @@ onMounted(async () => {
           <VIcon end icon="mdi-arrow-right"/>
         </VBtn>
 
-        <VBtn v-else color="success" :loading="isLoading" v-if="!isViewMode" @click="launchFlow">
+        <VBtn v-else color="success" :loading="isLoading" v-if="!isViewMode || isEditing" @click="launchFlow">
           Save Flow
           <VIcon end icon="mdi-check"/>
         </VBtn>
@@ -287,14 +291,14 @@ onMounted(async () => {
           :ignoreCustomEventfilterType="true"
           :ignoreCohortfilterType="true"
           :ignoreSlicefilterType="true"
-          :readonly="isViewMode"
+          :readonly="isViewMode && !isEditing"
           ref="filterRef"
         />
       </VWindowItem>
 
       <!-- Flow -->
       <VWindowItem>
-        <FlowEditor ref="flowEditorRef" :initial-flow="flowRecord" :disabled="isViewMode"/>
+        <FlowEditor ref="flowEditorRef" :initial-flow="flowRecord" :disabled="isViewMode && !isEditing"/>
       </VWindowItem>
     </VWindow>
   </div>

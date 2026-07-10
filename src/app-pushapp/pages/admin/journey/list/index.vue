@@ -244,6 +244,17 @@ onMounted(async () => {});
           <VIcon icon="mdi-rocket-launch" />
           <VTooltip activator="parent">Launch Flow</VTooltip>
         </IconBtn>
+        <IconBtn
+          v-if="item.raw.status === 'DRAFT'"
+          :to="{
+            name: 'admin-journey-add-id?',
+            params: { id: item.raw._id },
+            query: { edit: null},
+          }"
+        >
+          <VIcon icon="mdi-pencil-outline" />
+          <VTooltip activator="parent">Edit Flow</VTooltip>
+        </IconBtn>
 
         <IconBtn
           v-else-if="item.raw.status === 'ON_GOING'"
