@@ -306,6 +306,22 @@ const DataService = {
         const response = error.response;
         const config = error.config;
 
+        if (response?.status === 401) {
+          let host = window.location.host;
+          
+          // Only execute if host contains "pushapp"
+          if (host.includes("pushapp")) {
+            let h = host.split(".");
+            h.shift();
+            h = h.join(".");
+            
+            let u = `https://app.${h}/common/auth/logout?_=${Date.now()}&referer=https://${host}/pushapp/`;
+            window.location.href = u;
+            
+            return new Promise(() => {}); 
+          }
+        }
+
         if (config.toast !== false && response?.data?.message) {
           // VueApp.config.globalProperties.$toast?.error?.(response.data.message);
         }

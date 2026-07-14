@@ -93,16 +93,30 @@ const confirmDelete = (sequence) => {
 
 const executeDelete = async () => {
   if (!sequenceToDelete.value) return;
+
   try {
-    await store.deleteSequence(sequenceToDelete.value._id);
-    show({ message: 'Sequence deleted successfully.', color: 'success' });
-    if (selectedSequence.value === sequenceToDelete.value._id) {
-      selectedSequence.value = null;
-    }
-    
+    const deletedId = sequenceToDelete.value._id;
+
+    await store.deleteSequence(deletedId);
+
     await loadSequences();
+
+    if (selectedSequence.value === deletedId) {
+      selectedSequence.value =
+        store.sequences.length > 0 ? store.sequences[0]._id : null;
+    }
+
+    chartDataRaw.value = {};
+
+    show({
+      message: 'Sequence deleted successfully.',
+      color: 'success',
+    });
   } catch (error) {
-    show({ message: 'Failed to delete sequence.', color: 'error' });
+    show({
+      message: 'Failed to delete sequence.',
+      color: 'error',
+    });
   } finally {
     isDeleteDialogOpen.value = false;
     sequenceToDelete.value = null;
