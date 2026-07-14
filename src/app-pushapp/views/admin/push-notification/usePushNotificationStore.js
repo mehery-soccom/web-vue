@@ -149,6 +149,13 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       return DataService.axios.get(`/api/v1/campaign/${id}`);
     },
 
+    fetchCampaignStats(params) {
+      let { dateRange1, dateRange2, timezone } = params;
+      return DataService.axios.get(`/api/v1/campaign/status`, {
+        params: { dateRange1, dateRange2, timezone },
+      });
+    },
+
     cancelCampaign(id) {
       return DataService.axios.post(`/api/v1/notification/push/schedule/cancel`,{ campaignId: id });
     },

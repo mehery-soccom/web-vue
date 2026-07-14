@@ -10,6 +10,7 @@ const show = inject("snackbar", () => {});
 
 const activeTab = ref('filter');
 const isLoading = ref(false);
+const profilesTotal = ref(0);
 
 const filterLocal = ref({
   type: "group",
@@ -62,6 +63,7 @@ const applyFilter = async (isLoadMore = false) => {
   if (!isLoadMore) {
     filterPage.value = 1;
     profilesList.value = [];
+    profilesTotal.value = 0;
   }
 
   isLoading.value = true;
@@ -75,8 +77,10 @@ const applyFilter = async (isLoadMore = false) => {
       profilesList.value.push(...res.results);
       
       if (res.pagination) {
+        profilesTotal.value = res.pagination.total;
         hasMoreProfiles.value = filterPage.value < res.pagination.totalPages;
       } else {
+        profilesTotal.value = profilesList.value.length;
         hasMoreProfiles.value = false;
       }
     } else {
@@ -109,6 +113,7 @@ const executeSearch = async () => {
     const res = await userStore.fetchProfileByCode(searchCode.value.trim());
     if (res?.data) {
       profilesList.value = [res.data.code];
+      profilesTotal.value = 1;
     } else {
       show({ message: 'User not found.', color: 'warning' });
     }
@@ -204,7 +209,9 @@ const goToUserDetails = (code) => {
       </VCol>
 
       <VCol cols="12" v-if="profilesList.length > 0">
-        <h3 class="text-h5 mb-4 mt-2">Results ({{ profilesList.length }})</h3>
+        <h3 class="text-h5 mb-4 mt-2">
+          Results ({{ profilesList.length }}/{{ profilesTotal }})
+        </h3>
         
         <VRow>
           <VCol v-for="(code, index) in profilesList" :key="index" cols="12" sm="6" md="4" lg="3">

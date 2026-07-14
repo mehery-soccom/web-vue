@@ -1,6 +1,7 @@
 <script setup>
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
+import CardStatisticsTransactions from "@/app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
 import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
 import AppDateTimePicker from "@/app-pushapp/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
@@ -40,6 +41,44 @@ const formattedNotifications = computed(() =>
       item.status === "DERIVE" ? getCampaignStatus(item.schedule) : item.status,
   })),
 );
+
+const statsData = ref([
+  { title: "Total", stats: "0", icon: "tabler-send", color: "primary" },
+  { title: "Sent", stats: "0", icon: "tabler-check", color: "success" },
+  { title: "Sent %", stats: "0%", icon: "tabler-percentage", color: "success" },
+  { title: "Opened", stats: "0", icon: "tabler-mail-opened", color: "info" },
+  { title: "Opened %", stats: "0%", icon: "tabler-percentage", color: "info" },
+  { title: "CTA", stats: "0", icon: "tabler-click", color: "warning" },
+  { title: "CTA %", stats: "0%", icon: "tabler-percentage", color: "warning" },
+]);
+
+const fetchStats = async () => {
+  try {
+    const payload = {
+      dateRange1: pagination.dateRange1,
+      dateRange2: pagination.dateRange2,
+      timezone: pagination.timezone
+    };
+    
+    const response = await pushNotificationStore.fetchCampaignStats(payload);
+    const data = response.data.stats || { total: 0, sent: 0, opened: 0, failed: 0, cta: 0 };
+    
+    const sentPct = data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
+    const openPct = data.sent > 0 ? Math.round((data.opened / data.sent) * 100) : 0;
+    const ctaPct = data.sent > 0 ? Math.round((data.cta / data.sent) * 100) : 0;
+
+    statsData.value[0].stats = String(data.total);
+    statsData.value[1].stats = String(data.sent);
+    statsData.value[2].stats = `${sentPct}%`;
+    statsData.value[3].stats = String(data.opened);
+    statsData.value[4].stats = `${openPct}%`;
+    statsData.value[5].stats = String(data.cta);
+    statsData.value[6].stats = `${ctaPct}%`;
+  } catch (error) {
+    console.error("Failed to fetch campaign stats", error);
+  }
+};
+
 const headers = [
   { title: "", key: "data-table-expand" },
   {
@@ -169,6 +208,7 @@ const onDateClosed = (selectedDates, dateStr) => {
     pagination.dateRange2 = end.getTime();
     
     fetchCampaigns({ ...pagination });
+    fetchStats();
   }
 };
 
@@ -218,7 +258,9 @@ const getReadableRecurrence = (schedule) => {
   return text || "N/A";
 };
 
-onMounted(async () => {});
+onMounted(async () => {
+  fetchStats();
+});
 
 const fetchCampaigns = async (params) => {
   try {
@@ -357,56 +399,69 @@ const onUpdateOptionsDebounced = debounce((options) => {
 </script>
 
 <template>
-  <VCard id="invoice-list">
-    <VCardText class="d-flex align-center flex-wrap gap-4">
-      <div class="me-3 d-flex gap-3"></div>
+  <VRow id="invoice-list">
+    <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 16px; padding: 0 12px;">
+      
+      <VTooltip text="Refresh Data">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            icon
+            @click="() => { fetchCampaigns({ ...pagination }); fetchStats(); }"
+            :loading="isLoading"
+            variant="text"
+          >
+            <VIcon>tabler-refresh</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
 
-      <VSpacer />
+      <VTooltip text="Export to Excel">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="exportToExcel"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px"
+            class="pa-0"
+            variant="flat"
+            :loading="isExporting"
+          >
+            <VIcon>mdi-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
 
-      <div class="d-flex align-center flex-wrap gap-4">
-        <VBtn
-          icon
-          @click="() => fetchCampaigns({ ...pagination })"
-          :loading="isLoading"
-          variant="text"
-        >
-          <VIcon>tabler-refresh</VIcon>
-        </VBtn>
-        <VBtn
-          @click="exportToExcel"
-          color="primary"
-          :loading="isExporting"
-          style="width: 40px; height: 40px; min-width: 40px"
-          class="pa-0"
-          variant="flat"
-        >
-          <VIcon>mdi-download</VIcon>
-          <VTooltip activator="parent">Export to Excel</VTooltip>
-        </VBtn>
+      <AppDateTimePicker
+        style="width: 250px; margin-left: auto;"
+        v-model="dateRange"
+        prepend-inner-icon="tabler-calendar"
+        :config="{ 
+          mode: 'range', 
+          dateFormat: 'd-m-Y', 
+          maxDate: tonight, 
+          onClose: onDateClosed,
+          plugins: [customPlugin] 
+        }"
+      />
 
-        <AppDateTimePicker
-          v-model="dateRange"
-          style="width: 260px"
-          prepend-inner-icon="tabler-calendar"
-          :config="{ 
-            mode: 'range', 
-            dateFormat: 'd-m-Y', 
-            maxDate: tonight, 
-            onClose: onDateClosed,
-            plugins: [customPlugin] 
-          }"
-        />
-        <!-- 👉 Create -->
-        <VBtn
-          prepend-icon="tabler-plus"
-          :to="{ name: 'admin-push-notification-campaigns-add' }"
-        >
-          New Notification
-        </VBtn>
-      </div>
-    </VCardText>
+      <VBtn
+        prepend-icon="tabler-plus"
+        :to="{ name: 'admin-push-notification-campaigns-add' }"
+        style="height: 45px;"
+      >
+        New Notification
+      </VBtn>
+    </div>
 
-    <VDivider />
+    <VCol cols="12" md="12">
+      <CardStatisticsTransactions
+        :statistics="statsData"
+        title="Campaign Statistics"
+      />
+    </VCol>
+
+    <VCol cols="12">
 
     <MyDataTable
       :headers="headers"
@@ -595,6 +650,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </IconBtn>
       </template>
     </MyDataTable>
+  </VCol>
     <!-- Modal -->
     <VDialog v-model="cancelDialog" max-width="450">
       <VCard>
@@ -694,7 +750,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VCardActions>
       </VCard>
     </VDialog> -->
-  </VCard>
+  <!-- </VCard> -->
+   </VRow>
 </template>
 
 <style lang="scss">

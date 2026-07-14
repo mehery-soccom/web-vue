@@ -149,7 +149,7 @@ const onDateClosed = (selectedDates, dateStr) => {
       <DemoDataTableKitchenSink
         :headers="statusHeaders"
         :productList="analyticsStore.statusSummary"
-        title="FormWise Status Breakdown"
+        title="Form wise Status Breakdown"
         item-value="formCode"
         fixed-column
       >
@@ -191,7 +191,7 @@ const onDateClosed = (selectedDates, dateStr) => {
       <DemoDataTableKitchenSink
         :headers="segmentationHeaders"
         :productList="mappedSegmentationSummary"
-        title="FormWise Performance Breakdown"
+        title="Form wise Performance Breakdown"
         item-value="formCode"
         fixed-column
       >
