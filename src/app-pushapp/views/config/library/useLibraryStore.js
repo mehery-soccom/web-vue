@@ -4,6 +4,7 @@ import DataService from "@/@common/services/DataService";
 export const useLibraryStore = defineStore("LibraryStore", {
   state: () => ({
     pageList: [],
+    pageListLoading: false,
   }),
   getters: {},
   actions: {

@@ -148,8 +148,12 @@ async function launchFlow() {
     }
     router.push({ name: "admin-journey-list" });
   } catch (e) {
-    console.log(e);
-    show({ message: "Failed to save flow", color: "error" });
+    console.log(e)
+    if (e.response?.status === 409 && e.response?.data?.error?.code === "DUPLICATE_RESOURCE") {
+      show({ message: "Flow with the same name already exists", color: "error" });
+    } else {
+      show({ message: "Failed to save flow", color: "error" });
+    }
   } finally {
     isLoading.value = false;
   }
