@@ -85,7 +85,7 @@ async function loadSystemAndCustomEventsOnce() {
 
   const customEvents = await fetchOnce('customEvents', API.customEvents, {}, (data) => {
       const items = extractArray(data)
-      return items.map(i => ({ title: i.eventName, value: i.eventName,}))
+      return items.sort((a, b) => a.eventName.localeCompare(b.eventName)).map(i => ({ title: i.eventName, value: i.eventName,}))
     },
   )
 
