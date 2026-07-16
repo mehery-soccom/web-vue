@@ -45,11 +45,11 @@ const formattedNotifications = computed(() =>
 const statsData = ref([
   { title: "Total", stats: "0", icon: "tabler-send", color: "primary" },
   { title: "Sent", stats: "0", icon: "tabler-check", color: "success" },
-  { title: "Sent %", stats: "0%", icon: "tabler-percentage", color: "success" },
+  { title: "Sent %", stats: "0%", icon: "tabler-chart-pie", color: "success" },
   { title: "Opened", stats: "0", icon: "tabler-mail-opened", color: "info" },
-  { title: "Opened %", stats: "0%", icon: "tabler-percentage", color: "info" },
+  { title: "Opened %", stats: "0%", icon: "tabler-chart-pie", color: "info" },
   { title: "CTA", stats: "0", icon: "tabler-click", color: "warning" },
-  { title: "CTA %", stats: "0%", icon: "tabler-percentage", color: "warning" },
+  { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
 ]);
 
 const fetchStats = async () => {

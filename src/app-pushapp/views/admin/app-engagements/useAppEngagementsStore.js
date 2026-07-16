@@ -337,6 +337,12 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
         params
       );
     },
+    fetchEngagementCampaignStats(params) {
+      let { dateRange1, dateRange2, timezone } = params;
+      return DataService.axios.get(`api/v1/notification/in-app/filter/stats`, {
+        params: { dateRange1, dateRange2, timezone },
+      });
+    },
     updateFilter({ id, ...params }) {
       return DataService.axios.put(
         `/api/v1/notification/in-app/filter/${id}`,
