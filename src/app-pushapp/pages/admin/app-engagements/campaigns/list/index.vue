@@ -1,6 +1,7 @@
 <script setup>
 import debounce from "lodash/debounce";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
+import CardStatisticsTransactions from "@/app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
@@ -17,6 +18,39 @@ const appEngagementsStore = useAppEngagementsStore();
 const TYPES2 = TYPES.map((c) => c.value);
 const isLoading = ref(false);
 const items = ref([]);
+
+const statsData = ref([
+  { title: "Count", stats: "0", icon: "tabler-send", color: "primary" },
+  { title: "Delivered", stats: "0", icon: "tabler-check", color: "success" },
+  { title: "Delivery %", stats: "0%", icon: "tabler-chart-pie", color: "success" },
+  { title: "CTA", stats: "0", icon: "tabler-click", color: "warning" },
+  { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
+]);
+
+const fetchStats = async () => {
+  try {
+    const payload = {
+      dateRange1: pagination.dateRange1,
+      dateRange2: pagination.dateRange2,
+      timezone: pagination.timezone
+    };
+    
+    const response = await appEngagementsStore.fetchEngagementCampaignStats(payload);
+    const data = response.data.stats || { total: 0, sent: 0, ctaCount: 0 };
+    
+    const sentPct = data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
+    const ctaPct = data.sent > 0 ? Math.round((data.ctaCount / data.sent) * 100) : 0;
+
+    statsData.value[0].stats = String(data.total);
+    statsData.value[1].stats = String(data.sent);
+    statsData.value[2].stats = `${sentPct}%`;
+    statsData.value[3].stats = String(data.ctaCount);
+    statsData.value[4].stats = `${ctaPct}%`;
+  } catch (error) {
+    console.error("Failed to fetch app engagement stats", error);
+  }
+};
+
 const formattedItems = computed(() =>
   items.value.map((item) => ({
     ...item,
@@ -184,10 +218,13 @@ const onDateClosed = (selectedDates, dateStr) => {
     pagination.dateRange1 = start.getTime();
     pagination.dateRange2 = end.getTime();
     fetchCampaigns({ ...pagination });
+    fetchStats();
   }
 };
 
-onMounted(async () => {});
+onMounted(async () => {
+  fetchStats();
+});
 
 const logDialog = ref(false);
 const selectedLogs = ref([]);
@@ -364,64 +401,77 @@ const onUpdateOptionsDebounced = debounce((options) => {
 </script>
 
 <template>
-  <VCard id="invoice-list">
-    <VCardText class="d-flex align-center flex-wrap gap-4">
-      <div class="me-3 d-flex gap-3"></div>
+  <VRow id="invoice-list">
+    <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 16px; padding: 0 12px;">
+      
+      <VTooltip text="Refresh Data">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            icon
+            @click="() => { fetchCampaigns({ ...pagination }); fetchStats(); }"
+            :loading="isLoading"
+            variant="text"
+          >
+            <VIcon>tabler-refresh</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
 
-      <VSpacer />
+      <VTooltip text="Export to Excel">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="exportToExcel"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px"
+            class="pa-0"
+            variant="flat"
+            :loading="isExporting"
+          >
+            <VIcon>mdi-download</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
 
-      <div class="d-flex align-center flex-wrap gap-4">
-        <VBtn
-          icon
-          @click="() => fetchCampaigns({ ...pagination })"
-          :loading="isLoading"
-          variant="text"
-        >
-          <VIcon>tabler-refresh</VIcon>
-        </VBtn>
-        <VBtn
-          @click="exportToExcel"
-          color="primary"
-          :loading="isExporting"
-          style="width: 40px; height: 40px; min-width: 40px"
-          class="pa-0"
-          variant="flat"
-        >
-          <VIcon>mdi-download</VIcon>
-          <VTooltip activator="parent">Export to Excel</VTooltip>
-        </VBtn>
-        <AppDateTimePicker
-          v-model="dateRange"
-          style="width: 260px"
-          prepend-inner-icon="tabler-calendar"
-          :config="{
-            mode: 'range',
-            dateFormat: 'd-m-Y',
-            maxDate: tonight,
-            onClose: onDateClosed,
-            plugins: [customPlugin]
-          }"
-        />
-        <!-- 👉 Create -->
-        <VBtn
-          prepend-icon="tabler-plus"
-          :to="{ name: 'admin-app-engagements-campaigns-add' }"
-        >
-          New Campaign
-        </VBtn>
-      </div>
-    </VCardText>
+      <AppDateTimePicker
+        style="width: 250px; margin-left: auto;"
+        v-model="dateRange"
+        prepend-inner-icon="tabler-calendar"
+        :config="{ 
+          mode: 'range', 
+          dateFormat: 'd-m-Y', 
+          maxDate: tonight, 
+          onClose: onDateClosed,
+          plugins: [customPlugin] 
+        }"
+      />
 
-    <VDivider />
+      <VBtn
+        prepend-icon="tabler-plus"
+        :to="{ name: 'admin-app-engagements-campaigns-add' }"
+        style="height: 45px;"
+      >
+        New Campaign
+      </VBtn>
+    </div>
 
-    <MyDataTable
-      :headers="headers"
-      :items="formattedItems"
-      :loading="isLoading"
-      :server-side="true"
-      v-bind="pagination"
-      @update:options="onUpdateOptionsDebounced"
-    >
+    <VCol cols="12" md="12">
+      <CardStatisticsTransactions
+        :statistics="statsData"
+        title="Campaign Statistics"
+      />
+    </VCol>
+
+    <VCol cols="12">
+      <MyDataTable
+        :headers="headers"
+        :items="formattedItems"
+        :loading="isLoading"
+        :server-side="true"
+        v-bind="pagination"
+        @update:options="onUpdateOptionsDebounced"
+      >
       <!-- Expanded Row Data [ show-expand ] -->
       <template #expanded-row="slotProps">
         <tr class="v-data-table__tr">
@@ -627,6 +677,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </IconBtn> -->
       </template>
     </MyDataTable>
+  </VCol>
     <!-- <VDialog v-model="logDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
@@ -682,7 +733,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VCardActions>
       </VCard>
     </VDialog> -->
-  </VCard>
+  <!-- </VCard> -->
+   </VRow>
 </template>
 
 <style lang="scss">
