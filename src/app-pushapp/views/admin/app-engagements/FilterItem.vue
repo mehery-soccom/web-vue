@@ -105,25 +105,24 @@ const isValid = async (silent = false) => {
   return valid;
 };
 
-const resetFilterValues = () => {
-  props.element.field = null;
-  props.element.dataProperty = null;
-  props.element.operator = null;
-  props.element.value = null;
-  props.element.freqOperator = null;
-  props.element.freqCount = null;
-  props.element.freqPeriod = null;
-
-  clearErrorAndUpdate();
-};
-
 watch(() => props.element.filterType,
   (newVal, oldVal) => {
+    console.log("clear values 4", props.element)
     if (newVal === oldVal) return;
-    if(!props.readonly){
+
+    props.element.field = null;
+    props.element.dataProperty = null;
+    props.element.operator = null;
+    props.element.value = null;
+    props.element.freqOperator = null;
+    props.element.freqCount = null;
+    props.element.freqPeriod = null;
+    clearErrorAndUpdate();
+
+    if (!props.readonly) {
       if (skipCohortCheck.value) {
         skipCohortCheck.value = false;
-        return resetFilterValues();
+        return;
       }
       if (newVal === "cohort" && props.hasNormalFilter) {
         previousFilterType.value = oldVal;
@@ -132,7 +131,6 @@ watch(() => props.element.filterType,
         props.element.filterType = oldVal;
         return;
       }
-      resetFilterValues();
     }
   },
 );
@@ -153,8 +151,8 @@ watch(() => props.channelId,
 );
 watch(
   () => props.element.field,
-  () => {
-    if(!props.readonly) {
+  (newVal, oldVal) => {
+    if(!props.readonly && newVal !== oldVal && oldVal != null) {
       props.element.dataProperty = null;
       props.element.operator = null;
       props.element.value = null;
@@ -218,18 +216,18 @@ const cancelCohortSelection = () => {
 
 onMounted(async () => {
   await fetchFilterFieldValues()
-  if (!libraryStore.$state.pageList || libraryStore.$state.pageList.length === 0) {
-    try {
-      console.log("Fresh login detected. Auto-fetching pages list from server...");
-      const response = await libraryStore.read({ id: 'pages' });
-      
-      if (response.data?.data?.options) {
-        libraryStore.$state.pageList = response.data.data.options;
-        console.log("Global page list cache successfully hydrated:", libraryStore.$state.pageList);
-      }
-    } catch (error) {
-      console.error("Failed to auto-fetch pages on clean login boot:", error);
-    }
+
+  if (libraryStore.pageList.length || libraryStore.pageListLoading) return;
+  libraryStore.pageListLoading = true;
+
+  try {
+    const response = await libraryStore.read({ id: "pages" });
+    libraryStore.pageList = response.data.data.options || [];
+    console.log("Global page list cache successfully hydrated:", libraryStore.$state.pageList);
+  } catch (error) {
+    console.error("Failed to auto-fetch pages on clean login boot:", error);
+  } finally {
+    libraryStore.pageListLoading = false;
   }
 });
 

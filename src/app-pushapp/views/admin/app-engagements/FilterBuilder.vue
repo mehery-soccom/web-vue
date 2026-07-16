@@ -23,6 +23,7 @@ const childRefs = ref([]);
 // Add/remove
 const addFilter = () => {
   props.modelValue.children.push({
+    _id: crypto.randomUUID(),
     type: "filter",
     filterType: null,
     field: null,
@@ -37,10 +38,12 @@ const addFilter = () => {
 };
 const addGroup = () => {
   props.modelValue.children.push({
+    _id: crypto.randomUUID(),
     type: "group",
     conjunction: "and",
     children: [
       {
+        _id: crypto.randomUUID(),
         type: "filter",
         filterType: null,
         field: null,
@@ -64,6 +67,56 @@ const hasCohort = computed(() =>
 );
 const hasNormalFilter = computed(() =>
   props.modelValue.children.some((c) => c.type === "filter" && c.filterType && c.filterType !== "cohort" ),
+);
+// add this computed after hasNormalFilter
+const hasCustomEventAbove = computed(() => {
+  return props.modelValue.children.map((_, i) => {
+    if (i === 0) return false;
+    const prev = props.modelValue.children[i - 1];
+    return prev.type === 'filter' && prev.filterType === 'customEvent';
+  });
+});
+const connectedEventPairs = computed(() => {
+  const pairs = new Set();
+  for (let i = 1; i < props.modelValue.children.length; i++) {
+    const prev = props.modelValue.children[i - 1];
+    const curr = props.modelValue.children[i];
+    if ( prev.type === 'filter' && prev.filterType === 'customEvent' &&
+      curr.type === 'filter' && curr.filterType === 'eventData'
+    ) {
+      pairs.add(i);
+    }
+  }
+  return pairs;
+});
+watch(() => props.modelValue.children.map(c => ({ filterType: c.filterType, field: c.field })),
+  (newVals, oldVals) => {
+    if (!oldVals) return;
+    console.log("watch trig", newVals)
+    newVals.forEach((curr, i) => {
+      const prev = oldVals[i];
+      if (!prev) return;
+      const child = props.modelValue.children[i];
+      const next = props.modelValue.children[i + 1];
+      console.log("watch trig 2", newVals, child, next)
+
+      if ( child.type === 'filter' && prev.filterType === 'customEvent' &&
+        next?.type === 'filter' && next?.filterType === 'eventData' &&
+        (curr.filterType !== prev.filterType || curr.field !== prev.field)
+      ) {
+        console.log("watch trig 3", newVals)
+        next.filterType = null;
+        next.field = null;
+        next.operator = null;
+        next.value = null;
+        next.freqOperator = null;
+        next.freqCount = null;
+        next.freqPeriod = null;
+        emit('update:modelValue', props.modelValue);
+      }
+    });
+  },
+  { deep: true }
 );
 
 // util
@@ -139,7 +192,14 @@ defineExpose({ isValid });
     </div>
 
     <!-- Filters & Groups -->
-    <div v-for="(child, index) in modelValue.children" :key="index + child.filterType + child.operator">
+    <div v-for="(child, index) in modelValue.children" :key="child._id">
+      <div v-if="connectedEventPairs.has(index)" class="d-flex align-center gap-1 px-3 py-0" style="margin-bottom: -4px;margin-top: -10px;">
+        <div style="width:2px; height:16px; border-left: 2px dashed rgb(var(--v-theme-primary)); margin-left:12px;"></div>
+        <VChip size="x-small" color="primary" variant="tonal" label style="font-size:12px; height:20px;">
+          <VIcon start size="12">mdi-link-variant</VIcon>
+          Event property of ↑
+        </VChip>
+      </div>
       <FilterItem
         :ref="(el) => (childRefs[index] = el)"
         :element="child"
@@ -152,7 +212,7 @@ defineExpose({ isValid });
         @update="emit('update:modelValue', modelValue)"
         :ignoreEventfilterType="ignoreEventfilterType"
         :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
-        :ignoreEventDatafilterType="ignoreEventDatafilterType"
+        :ignoreEventDatafilterType="ignoreEventDatafilterType || (!ignoreCustomEventfilterType && !ignoreEventDatafilterType && !hasCustomEventAbove[index])"
         :ignoreSlicefilterType="ignoreSlicefilterType"
         :ignoreCohortfilterType="ignoreCohortfilterType"
         :readonly="readonly"

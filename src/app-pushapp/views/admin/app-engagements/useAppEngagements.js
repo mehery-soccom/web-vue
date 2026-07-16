@@ -65,13 +65,18 @@ export const useAppEngagements = (source, config = {}) => {
 
     if (type === "event" || type === "attribute") {
       const resultsMap = {};
-      const results = Object.values(_FILTER_FIELDS_MAP).filter((o) => {
-        const r = o.type === type;
-        if (r) resultsMap[o.value] = o;
-        return r;
+      Object.values(_FILTER_FIELDS_MAP).forEach((o) => {
+        if (o.type !== type) return;
+        resultsMap[o.value] = JSON.parse(JSON.stringify(o));
       });
-      localCache[type] = results;
-      Object.assign(FILTER_FIELDS_MAP, resultsMap);
+      Object.keys(resultsMap).forEach((key) => {
+        if (!FILTER_FIELDS_MAP[key]) {
+          FILTER_FIELDS_MAP[key] = resultsMap[key];
+        }
+      });
+
+      if (localCache[type]) return;
+      localCache[type] = Object.values(resultsMap);
 
       if (!isLoaded.value && !isLoading.value) {
         fetchFilterFieldValues();
@@ -213,8 +218,9 @@ export const useAppEngagements = (source, config = {}) => {
 
   async function fetchFilterFieldValues() {
     isLoading.value = true;
-    for (const [key, filter] of Object.entries(FILTER_FIELDS_MAP)) {
-      const meta = filter.inputFieldMeta;
+    for (const key of Object.entries(FILTER_FIELDS_MAP)) {
+      const entry = FILTER_FIELDS_MAP[key];
+      const meta = entry?.inputFieldMeta;
 
       // Skip if no inputFieldMeta
       if (!meta || !meta.options) continue;
@@ -241,8 +247,9 @@ export const useAppEngagements = (source, config = {}) => {
           );
         } catch (error) {
           console.error(`Failed to fetch options for ${key}:`, error);
-
-          FILTER_FIELDS_MAP[key].inputFieldMeta.options = [];
+          if (FILTER_FIELDS_MAP[key]) {
+            FILTER_FIELDS_MAP[key].inputFieldMeta.options = [];
+          }
       }
     }
     isLoaded.value = true;
