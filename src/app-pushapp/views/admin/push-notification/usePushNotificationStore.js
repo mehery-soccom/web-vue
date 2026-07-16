@@ -151,7 +151,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     fetchCampaignStats(params) {
       let { dateRange1, dateRange2, timezone } = params;
-      return DataService.axios.get(`/api/v1/campaign/status`, {
+      return DataService.axios.get(`/api/v1/campaign/stats`, {
         params: { dateRange1, dateRange2, timezone },
       });
     },
