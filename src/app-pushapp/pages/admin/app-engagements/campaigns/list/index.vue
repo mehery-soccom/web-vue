@@ -1,7 +1,7 @@
 <script setup>
 import debounce from "lodash/debounce";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
-import CardStatisticsTransactions from "@/app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
+import CardStatisticsTransactions from '@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
@@ -19,8 +19,11 @@ const TYPES2 = TYPES.map((c) => c.value);
 const isLoading = ref(false);
 const items = ref([]);
 
-const statsData = ref([
-  { title: "Count", stats: "0", icon: "tabler-send", color: "primary" },
+const statsTotal = ref([
+  { title: "Total Count", stats: "0", icon: "tabler-send", color: "primary" }
+]);
+
+const statsRest = ref([
   { title: "Delivered", stats: "0", icon: "tabler-check", color: "success" },
   { title: "Delivery %", stats: "0%", icon: "tabler-chart-pie", color: "success" },
   { title: "CTA", stats: "0", icon: "tabler-click", color: "warning" },
@@ -41,11 +44,12 @@ const fetchStats = async () => {
     const sentPct = data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
     const ctaPct = data.sent > 0 ? Math.round((data.ctaCount / data.sent) * 100) : 0;
 
-    statsData.value[0].stats = String(data.total);
-    statsData.value[1].stats = String(data.sent);
-    statsData.value[2].stats = `${sentPct}%`;
-    statsData.value[3].stats = String(data.ctaCount);
-    statsData.value[4].stats = `${ctaPct}%`;
+    statsTotal.value[0].stats = String(data.total);
+    
+    statsRest.value[0].stats = String(data.sent);
+    statsRest.value[1].stats = `${sentPct}%`;
+    statsRest.value[2].stats = String(data.ctaCount);
+    statsRest.value[3].stats = `${ctaPct}%`;
   } catch (error) {
     console.error("Failed to fetch app engagement stats", error);
   }
@@ -456,10 +460,16 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </VBtn>
     </div>
 
-    <VCol cols="12" md="12">
+    <VCol cols="12" md="3">
       <CardStatisticsTransactions
-        :statistics="statsData"
-        title="Campaign Statistics"
+        :statistics="statsTotal"
+        title="Count"
+      />
+    </VCol>
+    <VCol cols="12" md="9">
+      <CardStatisticsTransactions
+        :statistics="statsRest"
+        title="Stats"
       />
     </VCol>
 

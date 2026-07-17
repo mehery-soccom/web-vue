@@ -1,7 +1,7 @@
 <script setup>
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
-import CardStatisticsTransactions from "@/app-insights360/views/dashboards/analytics/CardStatisticsTransactions.vue";
+import CardStatisticsTransactions from '@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
 import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
 import AppDateTimePicker from "@/app-pushapp/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
@@ -42,8 +42,11 @@ const formattedNotifications = computed(() =>
   })),
 );
 
-const statsData = ref([
-  { title: "Total", stats: "0", icon: "tabler-send", color: "primary" },
+const statsTotal = ref([
+  { title: "Total count", stats: "0", icon: "tabler-send", color: "primary" }
+]);
+
+const statsRest = ref([
   { title: "Sent", stats: "0", icon: "tabler-check", color: "success" },
   { title: "Sent %", stats: "0%", icon: "tabler-chart-pie", color: "success" },
   { title: "Opened", stats: "0", icon: "tabler-mail-opened", color: "info" },
@@ -67,13 +70,14 @@ const fetchStats = async () => {
     const openPct = data.sent > 0 ? Math.round((data.opened / data.sent) * 100) : 0;
     const ctaPct = data.sent > 0 ? Math.round((data.cta / data.sent) * 100) : 0;
 
-    statsData.value[0].stats = String(data.total);
-    statsData.value[1].stats = String(data.sent);
-    statsData.value[2].stats = `${sentPct}%`;
-    statsData.value[3].stats = String(data.opened);
-    statsData.value[4].stats = `${openPct}%`;
-    statsData.value[5].stats = String(data.cta);
-    statsData.value[6].stats = `${ctaPct}%`;
+    statsTotal.value[0].stats = String(data.total);
+    
+    statsRest.value[0].stats = String(data.sent);
+    statsRest.value[1].stats = `${sentPct}%`;
+    statsRest.value[2].stats = String(data.opened);
+    statsRest.value[3].stats = `${openPct}%`;
+    statsRest.value[4].stats = String(data.cta);
+    statsRest.value[5].stats = `${ctaPct}%`;
   } catch (error) {
     console.error("Failed to fetch campaign stats", error);
   }
@@ -454,10 +458,16 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </VBtn>
     </div>
 
-    <VCol cols="12" md="12">
+    <VCol cols="12" md="2">
       <CardStatisticsTransactions
-        :statistics="statsData"
-        title="Campaign Statistics"
+        :statistics="statsTotal"
+        title="Count"
+      />
+    </VCol>
+    <VCol cols="12" md="10">
+      <CardStatisticsTransactions
+        :statistics="statsRest"
+        title="Stats"
       />
     </VCol>
 
