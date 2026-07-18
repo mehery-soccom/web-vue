@@ -573,13 +573,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
             <div class="py-1">
               <div v-if="item.raw.created && item.raw.created.stamp">
-                <strong>Created:</strong> {{ formatDate2(item.raw.created.stamp) }}
+                <strong>Created:</strong> {{ formatDate2(item.raw.created.stamp) }} 
+                <div v-if="item.raw.created.byUser"><strong>Created by: </strong> {{ item.raw.created.byUser }}</div>
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.startDate">
                 <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.startDate) }}
               </div>
               <div v-if="endedStamp(item.raw.statusHistory)">
                 <strong>Ended:</strong> {{ formatDate2(endedStamp(item.raw.statusHistory)) }}
+                <div v-if="item.raw.updated.byUser"><strong>Ended by: </strong> {{ item.raw.updated.byUser }}</div>
               </div>
             </div>
           </VTooltip>

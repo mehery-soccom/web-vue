@@ -26,6 +26,7 @@ import CohortsList from '../pages/admin/cohorts/list/index.vue';
 import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
 import LinksPageList from '../pages/config/library/list/index.vue';
+import ApiCredentialsList from '../pages/config/apicredentials/list/index.vue';
 
 console.log("routes", routes)
 const baseRoutes = [
@@ -362,6 +363,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "config-library-list",
           component: LinksPageList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/apicredentials/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-apicredentials-list",
+          component: ApiCredentialsList,
           props: true,
           meta: { layout: "default" },
         },

@@ -560,12 +560,14 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <div class="py-1">
               <div v-if="item.raw.createdStamp">
                 <strong>Created:</strong> {{ formatDate2(item.raw.createdStamp) }}
+                <div v-if="item.raw.createdBy"><strong>Created by: </strong>{{ item.raw.createdBy }}</div>
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.runAt">
                 <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.runAt) }}
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.canceledAt">
                 <strong>Cancelled:</strong> {{ formatDate2(item.raw.schedule.canceledAt) }}
+                <div v-if="item.raw.updatedBy"><strong>Cancelled by: </strong> {{ item.raw.updatedBy }}</div>
               </div>
             </div>
           </VTooltip>
