@@ -4,7 +4,11 @@ export const FILTER_TYPES = [
   { title: "Event Property", value: "eventData" },
   { title: "Profile Attribute", value: "additionalInfo" },
   { title: "Slice", value: "slice" },
-  { title: "System Attribute", value: "attribute" },
+  {
+    title: "System Attribute",
+    value: "attribute",
+    valueAlias: "computedSystemAttribute",
+  },
   { title: "System Event", value: "event" },
 ];
 
@@ -52,6 +56,38 @@ export const FILTER_FIELDS_MAP = {
       options: [
         { title: "iOS", value: "ios" },
         { title: "Android", value: "android" },
+      ],
+    },
+  },
+  guestUser: {
+    type: "attribute",
+    typeAlias: "computedSystemAttribute",
+    title: "Guest User",
+    value: "identity.guestUser",
+    inputFieldMeta: {
+      type: "select",
+      options: [
+        { title: "true", value: true },
+        { title: "false", value: false },
+      ],
+    },
+  },
+  app_version: {
+    type: "attribute",
+    title: "App Version",
+    value: "device_info.app_version",
+    inputFieldMeta: {
+      type: "text",
+    },
+  },
+  timezone: {
+    type: "attribute",
+    title: "Timezone",
+    value: "device_info.timezone",
+    inputFieldMeta: {
+      type: "select",
+      options: [
+        { title: "Asia/Calcutta", value: "Asia/Calcutta" }, // TODO fetch from DB
       ],
     },
   },

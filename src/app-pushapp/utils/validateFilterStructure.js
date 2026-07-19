@@ -16,8 +16,10 @@ export default function validateFilterStructure(
 
     if (!ignoreEventfilterType && !ignoreCustomEventfilterType) {
       // Check: If group has multiple event filters as direct children, it must be OR
-      const directEventChildren = children.filter(c =>
-          c.type === "filter" && ["event", "customEvent"].includes(c.filterType)
+      const directEventChildren = children.filter(
+        (c) =>
+          c.type === "filter" &&
+          ["event", "customEvent"].includes(c.filterType),
       );
       if (directEventChildren.length > 1 && conjunction !== "or") {
         throw new Error(
@@ -56,9 +58,16 @@ export default function validateFilterStructure(
     // No special checks here — but could enforce supported filterTypes
     if (
       node.filterType &&
-      !["event", "customEvent", "attribute", "additionalInfo", "slice", "cohort", "eventData"].includes(
-        node.filterType,
-      )
+      ![
+        "event",
+        "customEvent",
+        "attribute",
+        "computedSystemAttribute",
+        "additionalInfo",
+        "slice",
+        "cohort",
+        "eventData",
+      ].includes(node.filterType)
     ) {
       throw new Error(`Unsupported filterType: ${node.filterType}`);
     }

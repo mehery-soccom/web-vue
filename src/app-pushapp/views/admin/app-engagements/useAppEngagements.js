@@ -27,11 +27,17 @@ export const useAppEngagements = (source, config = {}) => {
   const FILTER_FIELDS = computed(() => {
     // console.log("FILTER_FIELDS", source?.filterType);
     if (!source?.filterType) return [];
-    if (source.filterType === "cohort") return config.onlyActiveCohorts
-      ? localCache.activeCohorts || [] : localCache.cohort || [];
+    if (source.filterType === "cohort")
+      return config.onlyActiveCohorts
+        ? localCache.activeCohorts || []
+        : localCache.cohort || [];
     return Object.values(FILTER_FIELDS_MAP).filter((o) => {
-      if (o.type !== source.filterType) return false;
-      if (source.filterType === "slice" && config.channelId.value) {
+      const ft =
+        source.filterType === "computedSystemAttribute"
+          ? "attribute"
+          : source.filterType;
+      if (o.type !== ft) return false;
+      if (ft === "slice" && config.channelId.value) {
         return String(o.channelId) === String(config.channelId.value);
       }
       return true;
@@ -59,14 +65,15 @@ export const useAppEngagements = (source, config = {}) => {
   });
 
   async function fetchFilterFields({ type }) {
-    console.log("fetchFilterFields", type);
+    console.log("fetchFilterFields raw type", type);
 
-    if (!type || localCache[type]) return;
+    const _type = type === "computedSystemAttribute" ? "attribute" : type;
+    if (!_type || localCache[_type]) return;
 
-    if (type === "event" || type === "attribute") {
+    if (_type === "event" || _type === "attribute") {
       const resultsMap = {};
       Object.values(_FILTER_FIELDS_MAP).forEach((o) => {
-        if (o.type !== type) return;
+        if (o.type !== _type) return;
         resultsMap[o.value] = JSON.parse(JSON.stringify(o));
       });
       Object.keys(resultsMap).forEach((key) => {
@@ -75,15 +82,15 @@ export const useAppEngagements = (source, config = {}) => {
         }
       });
 
-      if (localCache[type]) return;
-      localCache[type] = Object.values(resultsMap);
+      if (localCache[_type]) return;
+      localCache[_type] = Object.values(resultsMap);
 
       if (!isLoaded.value && !isLoading.value) {
         fetchFilterFieldValues();
       }
     }
 
-    if (type === "additionalInfo") {
+    if (_type === "additionalInfo") {
       isLoading.value = true;
       try {
         const response = await DataService.getX(
@@ -92,7 +99,7 @@ export const useAppEngagements = (source, config = {}) => {
         const resultsMap = {};
         const results = response.map((el) => {
           const r = {
-            type,
+            type: _type,
             title: el.label,
             value: el.code,
             inputFieldMeta: {
@@ -108,17 +115,17 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[type] = results;
+        localCache[_type] = results;
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
-        console.error(`Failed to fetch filter options for ${type}:`, error);
-        localCache[type] = [];
+        console.error(`Failed to fetch filter options for ${_type}:`, error);
+        localCache[_type] = [];
       } finally {
         isLoading.value = false;
       }
     }
 
-    if (type === "slice") {
+    if (_type === "slice") {
       isLoading.value = true;
       try {
         const response = await DataService.axios.get(
@@ -127,7 +134,7 @@ export const useAppEngagements = (source, config = {}) => {
         const resultsMap = {};
         const results = response.data.results.map((el) => {
           const r = {
-            type,
+            type: _type,
             title: el.name,
             value: el._id,
             meta: {
@@ -138,17 +145,17 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[type] = results;
+        localCache[_type] = results;
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
-        console.error(`Failed to fetch filter options for ${type}:`, error);
-        localCache[type] = [];
+        console.error(`Failed to fetch filter options for ${_type}:`, error);
+        localCache[_type] = [];
       } finally {
         isLoading.value = false;
       }
     }
 
-    if (type === "cohort") {
+    if (_type === "cohort") {
       isLoading.value = true;
       try {
         const response = await DataService.axios.get("/api/v1/cohort");
@@ -156,30 +163,30 @@ export const useAppEngagements = (source, config = {}) => {
         const activeCohorts = [];
         const results = response.data.results.map((el) => {
           const r = {
-            type,
+            type: _type,
             title: el.name,
             value: el._id,
             meta: {
               projection: null, // el.buildStats?.tokensSubscribed,
             },
-            filter : el.filter,
+            filter: el.filter,
           };
           if (el.active) activeCohorts.push(r);
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[type] = results;
+        localCache[_type] = results;
         localCache.activeCohorts = activeCohorts;
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
-        console.error(`Failed to fetch filter options for ${type}:`, error);
-        localCache[type] = [];
+        console.error(`Failed to fetch filter options for ${_type}:`, error);
+        localCache[_type] = [];
       } finally {
         isLoading.value = false;
       }
     }
 
-    if (type === "customEvent" || type === "eventData") {
+    if (_type === "customEvent" || _type === "eventData") {
       isLoading.value = true;
       try {
         const response = await DataService.axios.get(
@@ -188,28 +195,28 @@ export const useAppEngagements = (source, config = {}) => {
         const resultsMap = {};
         const results = response.data.data.map((el) => {
           const r = {
-            type,
+            type: _type,
             title: el.eventName,
-            value: type === "eventData" ? el._id : el.eventName,
+            value: _type === "eventData" ? el._id : el.eventName,
             eventId: el.eventName,
             meta: {
               projection: null,
               dataProperties: el.dataProperties || [],
             },
           };
-          
-          if (type === "eventData") {
+
+          if (_type === "eventData") {
             r.inputFieldMeta = { type: "text" };
           }
 
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[type] = results;
+        localCache[_type] = results;
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
-        console.error(`Failed to fetch filter options for ${type}:`, error);
-        localCache[type] = [];
+        console.error(`Failed to fetch filter options for ${_type}:`, error);
+        localCache[_type] = [];
       } finally {
         isLoading.value = false;
       }
@@ -229,27 +236,25 @@ export const useAppEngagements = (source, config = {}) => {
       if (typeof meta.options === "string") {
         meta._optionsUrl = meta.options;
       }
-        const url = meta._optionsUrl;
-        if (!url) continue;
+      const url = meta._optionsUrl;
+      if (!url) continue;
 
-        try {
-          const response = await DataService.get(url);
-          const { results } = response;
-          FILTER_FIELDS_MAP[key].inputFieldMeta.options = results.map(
-            (item) => ({
-              title: item.label,
-              value: item.code,
-              meta: {
-                type: item.type,
-                page: item.page,
-              },
-            }),
-          );
-        } catch (error) {
-          console.error(`Failed to fetch options for ${key}:`, error);
-          if (FILTER_FIELDS_MAP[key]) {
-            FILTER_FIELDS_MAP[key].inputFieldMeta.options = [];
-          }
+      try {
+        const response = await DataService.get(url);
+        const { results } = response;
+        FILTER_FIELDS_MAP[key].inputFieldMeta.options = results.map((item) => ({
+          title: item.label,
+          value: item.code,
+          meta: {
+            type: item.type,
+            page: item.page,
+          },
+        }));
+      } catch (error) {
+        console.error(`Failed to fetch options for ${key}:`, error);
+        if (FILTER_FIELDS_MAP[key]) {
+          FILTER_FIELDS_MAP[key].inputFieldMeta.options = [];
+        }
       }
     }
     isLoaded.value = true;

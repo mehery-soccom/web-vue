@@ -92,19 +92,19 @@ const connectedEventPairs = computed(() => {
 watch(() => props.modelValue.children.map(c => ({ filterType: c.filterType, field: c.field })),
   (newVals, oldVals) => {
     if (!oldVals) return;
-    console.log("watch trig", newVals)
+    // console.log("watch trig", newVals)
     newVals.forEach((curr, i) => {
       const prev = oldVals[i];
       if (!prev) return;
       const child = props.modelValue.children[i];
       const next = props.modelValue.children[i + 1];
-      console.log("watch trig 2", newVals, child, next)
+      // console.log("watch trig 2", newVals, child, next)
 
       if ( child.type === 'filter' && prev.filterType === 'customEvent' &&
         next?.type === 'filter' && next?.filterType === 'eventData' &&
         (curr.filterType !== prev.filterType || curr.field !== prev.field)
       ) {
-        console.log("watch trig 3", newVals)
+        // console.log("watch trig 3", newVals)
         next.filterType = null;
         next.field = null;
         next.operator = null;

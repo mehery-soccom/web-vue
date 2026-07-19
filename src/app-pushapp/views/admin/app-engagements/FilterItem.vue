@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, nextTick } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
@@ -42,19 +42,24 @@ const {
   FILTER_FIELDS_MAP,
   FILTER_OPERATORS,
   FILTER_PERIODS,
-  fetchFilterFieldValues
+  fetchFilterFieldValues,
 } = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId });
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
   hasError.value = false;
 
-  const inputType = FILTER_FIELDS_MAP[props.element.field]?.inputFieldMeta?.type;
-  if (inputType === 'number' && props.element.value !== null && props.element.value !== '') {
+  const inputType =
+    FILTER_FIELDS_MAP[props.element.field]?.inputFieldMeta?.type;
+  if (
+    inputType === "number" &&
+    props.element.value !== null &&
+    props.element.value !== ""
+  ) {
     props.element.value = Number(props.element.value);
   }
 
-  if (props.element.freqCount !== null && props.element.freqCount !== '') {
+  if (props.element.freqCount !== null && props.element.freqCount !== "") {
     props.element.freqCount = Number(props.element.freqCount);
   }
 
@@ -75,17 +80,21 @@ const isValid = async (silent = false) => {
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.required !== false &&
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type !== "frequency" &&
       (!el.operator ||
-        !el.value ||
+        el.value === null ||
+        el.value === undefined ||
+        el.value === "" ||
         (Array.isArray(el.value) && !el.value.length))
-    )
+    ) {
       valid = false;
+    }
     if (
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta &&
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.required !== false &&
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "frequency" &&
       (!el.freqOperator || !el.freqCount || !el.freqPeriod)
-    )
+    ) {
       valid = false;
+    }
     if (
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "date" &&
       Array.isArray(el.value)
@@ -105,9 +114,10 @@ const isValid = async (silent = false) => {
   return valid;
 };
 
-watch(() => props.element.filterType,
+watch(
+  () => props.element.filterType,
   (newVal, oldVal) => {
-    console.log("clear values 4", props.element)
+    // console.log("clear values 4", props.element);
     if (newVal === oldVal) return;
 
     props.element.field = null;
@@ -135,7 +145,8 @@ watch(() => props.element.filterType,
   },
 );
 
-watch(() => props.channelId,
+watch(
+  () => props.channelId,
   () => {
     if (props.element.filterType !== "slice") return;
     const exists = FILTER_FIELDS.value.some(
@@ -152,7 +163,7 @@ watch(() => props.channelId,
 watch(
   () => props.element.field,
   (newVal, oldVal) => {
-    if(!props.readonly && newVal !== oldVal && oldVal != null) {
+    if (!props.readonly && newVal !== oldVal && oldVal != null) {
       props.element.dataProperty = null;
       props.element.operator = null;
       props.element.value = null;
@@ -167,14 +178,14 @@ watch(
 
 const findCustomEvent = (node, result = []) => {
   if (!node) return result;
-  if (node.type === "filter" && node.filterType === "customEvent" && node.field) result.push(node.field);
-  if (node.children) node.children.forEach(child => findCustomEvent(child, result));
+  if (node.type === "filter" && node.filterType === "customEvent" && node.field)
+    result.push(node.field);
+  if (node.children)
+    node.children.forEach((child) => findCustomEvent(child, result));
 
   return result;
 };
-const customEventIds = computed(() =>
-  findCustomEvent(props.rootFilter)
-);
+const customEventIds = computed(() => findCustomEvent(props.rootFilter));
 const eventDataFields = computed(() => {
   if (props.element.filterType !== "eventData") return [];
 
@@ -182,15 +193,14 @@ const eventDataFields = computed(() => {
   const matchedDefs = Object.values(FILTER_FIELDS_MAP).filter((f) => {
     if (f.type !== "eventData") return false;
     if (ids.includes(f.eventId)) return true;
-    if (props.connectedAppEvent && f.title === props.connectedAppEvent) return true;
+    if (props.connectedAppEvent && f.title === props.connectedAppEvent)
+      return true;
     return false;
   });
 
   if (!matchedDefs.length) return [];
   return [
-    ...new Set(
-      matchedDefs.flatMap((e) => e.meta?.dataProperties || []),
-    ),
+    ...new Set(matchedDefs.flatMap((e) => e.meta?.dataProperties || [])),
   ].map((p) => ({ title: p, value: p }));
 });
 const selectedFieldMeta = computed(() => {
@@ -214,8 +224,36 @@ const cancelCohortSelection = () => {
   showCohortConfirm.value = false;
 };
 
+const selectedFilterType = computed(() => {
+  if (!props.element.filterType) return null;
+
+  const valueObj = FILTER_TYPES.find(
+    (t) =>
+      t.value === props.element.filterType ||
+      t.valueAlias === props.element.filterType,
+  );
+
+  return valueObj?.value || null;
+});
+function onFilterTypeChange(value) {
+  props.element.filterType = value;
+
+  clearErrorAndUpdate();
+}
+function onFilterFieldChange(value) {
+  const field = FILTER_FIELDS.value.find((f) => f.value === value);
+  if (field) {
+    props.element.filterType = field.typeAlias ?? field.type;
+  }
+  nextTick(() => {
+    props.element.field = value;
+  });
+
+  clearErrorAndUpdate();
+}
+
 onMounted(async () => {
-  await fetchFilterFieldValues()
+  await fetchFilterFieldValues();
 
   if (libraryStore.pageList.length || libraryStore.pageListLoading) return;
   libraryStore.pageListLoading = true;
@@ -223,7 +261,10 @@ onMounted(async () => {
   try {
     const response = await libraryStore.read({ id: "pages" });
     libraryStore.pageList = response.data.data.options || [];
-    console.log("Global page list cache successfully hydrated:", libraryStore.$state.pageList);
+    console.log(
+      "Global page list cache successfully hydrated:",
+      libraryStore.$state.pageList,
+    );
   } catch (error) {
     console.error("Failed to auto-fetch pages on clean login boot:", error);
   } finally {
@@ -242,10 +283,14 @@ defineExpose({ isValid });
       class="d-flex flex-wrap gap-2 pa-3 rounded-lg mb-2 position-relative"
       :class="[
         hasError ? 'border-red' : 'border-grey-lighten-1',
-        { readonly: readonly, 'disabled-filter': hasCohort && element.filterType !== 'cohort', 'flex-column': vertical },
+        {
+          readonly: readonly,
+          'disabled-filter': hasCohort && element.filterType !== 'cohort',
+          'flex-column': vertical,
+        },
       ]"
     >
-    <!-- :items="
+      <!-- :items="
           FILTER_TYPES.filter(
             (f) =>
               (ignoreEventfilterType ? f.value !== 'event' : true) &&
@@ -255,32 +300,43 @@ defineExpose({ isValid });
         " -->
       <!-- Type -->
       <AppSelect
-        v-model="element.filterType"
+        :model-value="selectedFilterType"
         :items="
           FILTER_TYPES.filter((f) => {
             if (ignoreEventfilterType && f.value === 'event') return false;
-            if (ignoreCustomEventfilterType && f.value === 'customEvent') return false;
-            if (ignoreEventDatafilterType && f.value === 'eventData') return false;
+            if (ignoreCustomEventfilterType && f.value === 'customEvent')
+              return false;
+            if (ignoreEventDatafilterType && f.value === 'eventData')
+              return false;
             if (ignoreSlicefilterType && f.value === 'slice') return false;
             if (ignoreCohortfilterType && f.value === 'cohort') return false;
             if (element.filterType === f.value) return true;
-            if (hasNormalFilter && !element.filterType && f.value === 'cohort') return false;
+            if (hasNormalFilter && !element.filterType && f.value === 'cohort')
+              return false;
             return true;
           })
         "
         placeholder="Select Type"
         density="compact"
         class="filter-entity filter-type"
-        @update:modelValue="clearErrorAndUpdate"
+        @update:modelValue="onFilterTypeChange"
       />
 
       <!-- Field -->
       <AppSelect
         v-model="element.field"
-        :items="element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS"
-        :placeholder="element.filterType === 'slice' ? 'Select slice' : element.filterType === 'cohort' ? 'Select cohort' : 'Select field'"
+        :items="
+          element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS
+        "
+        :placeholder="
+          element.filterType === 'slice'
+            ? 'Select slice'
+            : element.filterType === 'cohort'
+            ? 'Select cohort'
+            : 'Select field'
+        "
         class="filter-entity field"
-        @update:modelValue="clearErrorAndUpdate"
+        @update:modelValue="onFilterFieldChange"
       >
         <template #item="{ props, item }">
           <VListItem v-bind="props">
@@ -294,9 +350,9 @@ defineExpose({ isValid });
       </AppSelect>
 
       <!-- <AppSelect
-        v-if="element.filterType === 'eventData' && FILTER_FIELDS_MAP[element.field]"
+        v-if="element.filterType === 'eventData' && selectedFieldMeta"
         v-model="element.dataProperty"
-        :items="FILTER_FIELDS_MAP[element.field]?.meta?.dataProperties || []"
+        :items="selectedFieldMeta?.meta?.dataProperties || []"
         placeholder="Select Property"
         class="filter-entity data-property"
         @update:modelValue="clearErrorAndUpdate"
@@ -305,8 +361,8 @@ defineExpose({ isValid });
       <!-- Operator -->
       <AppSelect
         v-if="
-          (selectedFieldMeta?.inputFieldMeta &&
-          selectedFieldMeta?.inputFieldMeta?.type !== 'frequency')
+          selectedFieldMeta?.inputFieldMeta &&
+          selectedFieldMeta?.inputFieldMeta?.type !== 'frequency'
         "
         v-model="element.operator"
         :items="FILTER_OPERATORS"
@@ -319,9 +375,9 @@ defineExpose({ isValid });
       <template v-if="selectedFieldMeta?.inputFieldMeta">
         <AppSelect
           v-if="
-            (FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'select' ||
-             FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'dropdown') && 
-            typeof FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.options === 'string'
+            (selectedFieldMeta?.inputFieldMeta?.type === 'select' ||
+              selectedFieldMeta?.inputFieldMeta?.type === 'dropdown') &&
+            typeof selectedFieldMeta?.inputFieldMeta?.options === 'string'
           "
           v-model="element.value"
           :items="libraryStore.$state.pageList || []"
@@ -336,14 +392,14 @@ defineExpose({ isValid });
 
         <AppSelect
           v-else-if="
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'select' ||
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'dropdown'
+            selectedFieldMeta?.inputFieldMeta?.type === 'select' ||
+            selectedFieldMeta?.inputFieldMeta?.type === 'dropdown'
           "
           v-model="element.value"
-          :items="FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.options || []"
+          :items="selectedFieldMeta?.inputFieldMeta?.options || []"
           placeholder="Select Value"
           class="filter-entity value"
-          :multiple="true"
+          :multiple="!!selectedFieldMeta?.multiple"
           :clearable="true"
           @update:modelValue="clearErrorAndUpdate"
         >
@@ -364,10 +420,7 @@ defineExpose({ isValid });
           </template>
         </AppSelect>
         <div
-          v-else-if="
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type ===
-            'frequency'
-          "
+          v-else-if="selectedFieldMeta?.inputFieldMeta?.type === 'frequency'"
           class="d-flex align-center gap-2"
         >
           <AppSelect
@@ -393,16 +446,12 @@ defineExpose({ isValid });
           />
         </div>
         <MyBooleanPicker
-          v-else-if="
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'boolean'
-          "
+          v-else-if="selectedFieldMeta?.inputFieldMeta?.type === 'boolean'"
           v-model="element.value"
           @update:modelValue="clearErrorAndUpdate"
         />
         <MyDateTimePicker
-          v-else-if="
-            FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'date'
-          "
+          v-else-if="selectedFieldMeta?.inputFieldMeta?.type === 'date'"
           :mode="element.operator === 'BETWEEN' ? 'range' : 'single'"
           v-model="element.value"
           :relative-presets="datePresets"
@@ -414,7 +463,11 @@ defineExpose({ isValid });
         <AppTextField
           v-else
           v-model="element.value"
-          :type="FILTER_FIELDS_MAP[element.field]?.inputFieldMeta?.type === 'number' ? 'number' : 'text'"
+          :type="
+            selectedFieldMeta?.inputFieldMeta?.type === 'number'
+              ? 'number'
+              : 'text'
+          "
           placeholder="Enter Value"
           class="filter-entity value"
           @update:modelValue="clearErrorAndUpdate"
@@ -465,7 +518,9 @@ defineExpose({ isValid });
         <template #actions>
           <VSpacer />
           <VBtn text @click="cancelCohortSelection"> Cancel </VBtn>
-          <VBtn color="primary" variant="tonal" @click="confirmCohortSelection"> Continue </VBtn>
+          <VBtn color="primary" variant="tonal" @click="confirmCohortSelection">
+            Continue
+          </VBtn>
         </template>
       </VCard>
     </VDialog>
