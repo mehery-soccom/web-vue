@@ -9,7 +9,7 @@ const props = defineProps({
   modelValue: { type: Object, required: true },
   filter: { type: Object, required: true },
   abTesting: { type: Object, required: false },
-  readonly: { type: Boolean, default: false }
+  readonly: { type: Boolean, default: false },
 });
 const emit = defineEmits([
   "update:modelValue",
@@ -88,7 +88,8 @@ function validateFilterStructure(
 
     // Check: If group has multiple event filters as direct children, it must be OR
     const directEventChildren = children.filter(
-      (c) => c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
+      (c) =>
+        c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
     );
     if (directEventChildren.length > 1 && conjunction !== "or") {
       throw new Error(
@@ -107,16 +108,24 @@ function validateFilterStructure(
     if (isRoot && directEventChildren.length == 0) {
       // throw new Error("Root group must have an event filter");
       const cohortFilter = findCohortFilter(node);
-      if (!cohortFilter) throw new Error("Root group must have an event or system event filter");
+      if (!cohortFilter)
+        throw new Error("Root group must have an event or system event filter");
 
       const cohortId = cohortFilter.field;
-      const cohort = localCache.activeCohorts?.find((c) => c.value === cohortId );
+      const cohort = localCache.activeCohorts?.find(
+        (c) => c.value === cohortId,
+      );
       const hasSystemEvent = cohort?.filter?.children?.some(
-        (c) => c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
+        (c) =>
+          c.type === "filter" &&
+          ["event", "customEvent"].includes(c.filterType),
       );
       // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
 
-      if (!hasSystemEvent) throw new Error("Selected cohort must contain at least one event filter");
+      if (!hasSystemEvent)
+        throw new Error(
+          "Selected cohort must contain at least one event filter",
+        );
     }
 
     // Recurse into children
@@ -129,9 +138,16 @@ function validateFilterStructure(
   if (node.type === "filter") {
     // No special checks here — but could enforce supported filterTypes
     if (
-      !["event", "customEvent", "attribute", "additionalInfo", "slice", "cohort", "eventData"].includes(
-        node.filterType,
-      )
+      ![
+        "event",
+        "customEvent",
+        "attribute",
+        "computedSystemAttribute",
+        "additionalInfo",
+        "slice",
+        "cohort",
+        "eventData",
+      ].includes(node.filterType)
     ) {
       throw new Error(`Unsupported filterType: ${node.filterType}`);
     }
@@ -219,7 +235,8 @@ defineExpose({ isValid });
 
     <FilterBuilder
       v-model="filterLocal"
-      ref="filterRef" :readonly="readonly"
+      ref="filterRef"
+      :readonly="readonly"
       :ignoreSlicefilterType="true"
     />
 
