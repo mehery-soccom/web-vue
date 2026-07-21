@@ -222,7 +222,7 @@ function formatTimestamp(ts) {
         <IconBtn @click="viewAppDetails(item.raw._id, item.raw.keyName)">
           <VIcon icon="mdi-pencil-outline" />
         </IconBtn>
-        <IconBtn>
+        <!-- <IconBtn>
           <VIcon icon="tabler-trash" />
           <v-dialog activator="parent" max-width="340">
             <template v-slot:default="{ isActive }">
@@ -247,7 +247,7 @@ function formatTimestamp(ts) {
               </v-card>
             </template>
           </v-dialog>
-        </IconBtn>
+        </IconBtn> -->
       </template>
     </MyDataTable>
     <VNavigationDrawer v-model="showDetailsDrawer" location="end" temporary width="420">

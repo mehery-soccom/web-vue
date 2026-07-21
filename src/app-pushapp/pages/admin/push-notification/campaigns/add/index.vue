@@ -4,6 +4,8 @@ import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notifica
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
+import DataService from "@/@common/services/DataService";
+import * as XLSX from 'xlsx'
 const { show } = inject("snackbar");
 
 const route = useRoute();
@@ -47,6 +49,48 @@ const tabErrors = ref({
   "tab-schedule": false,
 });
 
+const audienceMode = ref("filter"); // 'filter' | 'excel'
+const filterLink = ref(null);
+const excelUploading = ref(false);
+const excelFileName = ref(null);
+const excelFileRef = ref(null);
+
+const downloadExcelTemplate = () => {
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet([['profile code']])
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
+  XLSX.writeFile(wb, 'profile_upload_template.xlsx')
+}
+
+const onExcelUpload = async (event) => {
+  document.activeElement?.blur();
+  const file = event.target.files[0];
+  if (!file) return;
+
+  excelFileName.value = file.name;
+  excelUploading.value = true;
+  filterLink.value = null;
+  try {
+    const formData = new FormData();
+    formData.append("docs", file);
+    const res = await pushNotificationStore.uploadDoc(formData);
+    filterLink.value = res.data.remoteDetails.Location;
+    if (!filterLink.value) throw new Error("No URL in response");
+  } catch (err) {
+    console.error("Excel upload failed", err);
+    show({ message: "Failed to upload file. Please try again.", color: "error" });
+    filterLink.value = null;
+    excelFileName.value = null;
+  } finally {
+    excelUploading.value = false;
+    event.target.value = null;
+  }
+};
+watch(audienceMode, () => {
+  filterLink.value = null;
+  excelFileName.value = null;
+  excelFileRef.value = null;
+});
 const validateTab = async (tabName, silent = false) => {
   let valid = true;
 
@@ -57,21 +101,25 @@ const validateTab = async (tabName, silent = false) => {
       break;
 
     case "tab-audience":
-      let filterValid = await filterRef.value?.isValid();
-      let filterStructureValid = true;
-
-      try {
-        validateFilterStructure(filter, null, true, true, true);
-      } catch (error) {
-        filterStructureValid = false;
-        if (!silent) show({ message: error.message, color: "error",});
+      if (audienceMode.value === "excel") {
+        if (!filterLink.value) {
+          valid = false;
+          if (!silent) show({ message: "Please upload a profile codes Excel file.", color: "error" });
+        }
+      } else {
+        let filterValid = await filterRef.value?.isValid();
+        let filterStructureValid = true;
+        try {
+          validateFilterStructure(filter, null, true, true, true);
+        } catch (error) {
+          filterStructureValid = false;
+          if (!silent) show({ message: error.message, color: "error" });
+        }
+        if (!filterValid || !filterStructureValid) valid = false;
       }
-
-      if (!filterValid || !filterStructureValid) valid = false;
       break;
 
     case "tab-schedule":
-      // if (schedule.recurringType && !schedule.schedulePattern) valid = false;
       const scheduleValidation = await scheduleFormRef.value?.validate();
       if (!scheduleValidation?.valid) valid = false;
       break;
@@ -191,14 +239,13 @@ const buildSchedulePayload = (schedule) => {
     timezone,
     ...(isRecurring && { rrule }),
     ...(schedule.endDate && {
-    until: new Date(schedule.endDate).toISOString(),
+      until: new Date(schedule.endDate).toISOString(),
     }),
   };
 };
 
 onMounted(async () => {
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
-  // if (channelsRes.results) ChannelList.value = channelsRes.results;
   if (channelsRes.results) {
     ChannelList.value = channelsRes.results;
     if (ChannelList.value.length === 1)
@@ -241,7 +288,9 @@ onMounted(async () => {
 const onSendSimple = async () => {
   const valid = await validateAllTabs();
   if (!valid) {
-    const firstInvalidTab = Object.keys(tabErrors.value).find(key => tabErrors.value[key]);
+    const firstInvalidTab = Object.keys(tabErrors.value).find(
+      (key) => tabErrors.value[key],
+    );
     if (firstInvalidTab) tab.value = firstInvalidTab;
     return;
   }
@@ -256,7 +305,9 @@ const onSendSimple = async () => {
     let pushPayload = {
       campaignName: notification.campaignName,
       to: {
-        filter: filter,
+        ...(audienceMode.value === "excel"
+          ? { filterLink: filterLink.value }
+          : { filter: filter }),
       },
       channelId: notification.channel_id,
       schedule: buildSchedulePayload(schedule),
@@ -270,28 +321,13 @@ const onSendSimple = async () => {
       },
       type: template.type,
     };
-    await pushNotificationStore.createScheduledCampaign(pushPayload);
-    // console.log("recur", !!pushPayload.schedule.isRecurring, !!pushPayload.schedule.runAt, pushPayload)
-    // if(!!pushPayload.schedule.isRecurring || !!pushPayload.schedule.runAt) {
-    //   pushPayload.campaignName = notification.campaignName;
-    //   await pushNotificationStore.createScheduledCampaign(pushPayload);
-    // } else { 
-    //   let campaignPayload = {
-    //     template: { code: template.code },
-    //     campaignName: notification.campaignName,
-    //     schedule: buildSchedulePayload(schedule),
-    //   };
-    //   let campaignRes = await pushNotificationStore.createCampaign(campaignPayload);
-    //   pushPayload.campaignId = campaignRes.data.campaignId;
-    //   await pushNotificationStore.push(pushPayload);
-    // }
-    
-    show({ message: "Notification sent successfully", color: "success" });
 
+    await pushNotificationStore.createScheduledCampaign(pushPayload);
+
+    show({ message: "Notification sent successfully", color: "success" });
     router.push({ name: "admin-push-notification-campaigns-list" });
   } catch (error) {
     console.error(error);
-
     show({ message: "Something went wrong. try again", color: "error" });
   } finally {
     isLoading.value = false;
@@ -301,7 +337,6 @@ const onSendSimple = async () => {
 
 <template>
   <v-row>
-    <!-- Form Column -->
     <v-col cols="12" md="12">
       <v-card title="Push Notification">
         <VTabs v-model="tab">
@@ -370,19 +405,110 @@ const onSendSimple = async () => {
                 </VWindowItem>
 
                 <VWindowItem value="tab-audience">
-                  <h3 class="mb-2">Real-Time Filter</h3>
-                  <p class="text-caption mb-4">
-                    Apply filters based on latest user attributes
-                  </p>
-                  <FilterBuilder
-                    v-model="filter"
-                    :ignoreEventfilterType="true"
-                    :ignoreEventDatafilterType="true"
-                    :ignoreCustomEventfilterType="true"
-                    :ignoreCohortfilterType="true"
-                    :channelId="notification.channel_id"
-                    ref="filterRef"
-                  />
+                  <h3 class="mb-2">Audience</h3>
+                  <p class="text-caption mb-4"> Target users via real-time filters or by uploading a list of profile codes</p>
+
+                  <VBtnToggle
+                    v-model="audienceMode"
+                    mandatory
+                    density="compact"
+                    color="primary"
+                    divided
+                    class="mb-6"
+                  >
+                    <VBtn value="filter">Real-Time Filter</VBtn>
+                    <VBtn value="excel">Upload Profile Codes</VBtn>
+                  </VBtnToggle>
+
+                  <div v-if="audienceMode === 'filter'">
+                    <FilterBuilder
+                      v-model="filter"
+                      :ignoreEventfilterType="true"
+                      :ignoreEventDatafilterType="true"
+                      :ignoreCustomEventfilterType="true"
+                      :ignoreCohortfilterType="true"
+                      :channelId="notification.channel_id"
+                      ref="filterRef"
+                    />
+                  </div>
+
+                  <div v-else>
+                    <VAlert
+                      type="info"
+                      variant="tonal"
+                      class="mb-5"
+                      density="compact"
+                    >
+                      Upload an Excel file containing profile codes to target
+                      specific users. Download the template below, fill in the
+                      <strong>profile code</strong> column, then upload it.
+                    </VAlert>
+                    <div class="d-flex align-center gap-3 mb-5">
+                      <VChip
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        label
+                      >
+                        Step 1
+                      </VChip>
+                      <span class="text-body-2">Download the Excel template</span>
+                      <VBtn
+                        size="small"
+                        variant="tonal"
+                        color="primary"
+                        prepend-icon="mdi-download"
+                        @click="downloadExcelTemplate"
+                      >
+                        Download Template
+                      </VBtn>
+                    </div>
+
+                    <div class="d-flex align-center gap-3 mb-3 flex-wrap">
+                      <VChip color="primary" variant="outlined" size="small" label>
+                        Step 2
+                      </VChip>
+                      <span class="text-body-2">Fill in profile codes and upload the file</span>
+                      <VFileInput
+                        ref="excelFileRef"
+                        accept=".xlsx,.xls,.csv"
+                        placeholder="Select Excel file"
+                        prepend-inner-icon="mdi-microsoft-excel"
+                        prepend-icon=""
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        style="max-width: 420px"
+                        :loading="excelUploading"
+                        :disabled="excelUploading"
+                        @change="onExcelUpload"
+                      />
+                      <div class="ml-2">
+                        <div v-if="excelUploading" class="d-flex align-center gap-2 text-caption text-medium-emphasis">
+                          <VProgressCircular size="14" width="2" indeterminate /> Uploading...
+                        </div>
+                        <VAlert
+                          v-else-if="filterLink"
+                          type="success"
+                          variant="tonal"
+                          density="compact"
+                          style="max-width: 420px"
+                        >
+                          File uploaded successfully.
+                          <div class="text-caption text-medium-emphasis ml-1">{{ excelFileName }}</div>
+                        </VAlert>
+                        <VAlert
+                          v-else-if="excelFileName && !filterLink"
+                          type="error"
+                          variant="tonal"
+                          density="compact"
+                          style="max-width: 380px"
+                        >
+                          Upload failed. Please try again.
+                        </VAlert>
+                      </div>
+                    </div>
+                  </div>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
@@ -426,9 +552,6 @@ const onSendSimple = async () => {
                       color="primary"
                       class="mr-2"
                     />
-                    <!-- <VTooltip activator="parent" location="bottom">
-                      Make the campaign recurring
-                    </VTooltip> -->
                     <span>Make it Recurring</span>
                   </div>
 
@@ -471,7 +594,6 @@ const onSendSimple = async () => {
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
                               Repeat on day(s) of week
-                              <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
                               <AppSelect
                                 v-model="schedule.scheduleDays"
                                 :items="Dow"
@@ -503,7 +625,6 @@ const onSendSimple = async () => {
                                 :rules="[val => timeValidator(val, 'weekly')]"
                                 @update:modelValue="schedule.schedulePattern = 'weekly'"
                               />
-                              <!-- </div> -->
                             </div>
                           </template>
                         </VRadio>
