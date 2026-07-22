@@ -434,10 +434,11 @@ const onSendSimple = async () => {
 
                   <div v-else>
                     <VAlert
-                      type="info"
+                      color="primary"
                       variant="tonal"
                       class="mb-5"
                       density="compact"
+                      icon="tabler-info-circle"
                     >
                       Upload an Excel file containing profile codes to target
                       specific users. Download the template below, fill in the

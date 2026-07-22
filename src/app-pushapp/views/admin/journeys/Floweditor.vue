@@ -1563,7 +1563,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
 
 /* ══ INSPECTOR ══ */
 .inspector {
-  width: 320px; flex-shrink: 0; background: var(--paper);
+  width: 350px; flex-shrink: 0; background: var(--paper);
   border-left: 1px solid var(--hairline); display: flex; flex-direction: column;
   overflow-y: auto; z-index: 10;
 }
