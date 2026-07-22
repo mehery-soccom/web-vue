@@ -343,7 +343,7 @@ watch(
 watch(
   () => template.desc,
   (val) => {
-    template.code = sanitizeAndUnderscore(val);
+    if(!template.id && !template._id) template.code = sanitizeAndUnderscore(val);
   }
 );
 
