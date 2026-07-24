@@ -230,9 +230,9 @@ const NODE_DEFS = {
 const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'END']
 
 const CHANNEL_TYPE_OPTIONS = [
-  { title: 'Send WhatsApp', value: 'SEND_MESSAGE' },
-  { title: 'Send Push notification', value: 'SEND_NOTIFICATION' },
-  { title: 'Send App engagement', value: 'SEND_ENGAGEMENT' },
+  { title: 'App engagement', value: 'SEND_ENGAGEMENT' },
+  { title: 'Push notification', value: 'SEND_NOTIFICATION' },
+  { title: 'WhatsApp', value: 'SEND_MESSAGE' },
 ]
 
 function templateListEndpoint(channelType) {
