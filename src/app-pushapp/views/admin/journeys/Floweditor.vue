@@ -243,6 +243,26 @@ function templateListEndpoint(channelType) {
 function channelParamName(channelType) {
   return channelType === 'SEND_MESSAGE' ? 'channelId' : 'appId'
 }
+const CHANNEL_ABBREV = {
+  SEND_MESSAGE:      'WA',
+  SEND_NOTIFICATION: 'PN',
+  SEND_ENGAGEMENT:   'EN',
+  EMAIL:             '@',
+  SMS:               'SMS',
+}
+function channelAbbrev(channelType) {
+  return CHANNEL_ABBREV[channelType] || formatLabel(channelType)
+}
+const CHANNEL_ICON = {
+  SEND_MESSAGE:      'tabler-brand-whatsapp',
+  SEND_NOTIFICATION: 'tabler-bell-ringing',
+  SEND_ENGAGEMENT:   'tabler-activity',
+  EMAIL:             'tabler-mail',
+  SMS:               'tabler-message',
+}
+function channelIcon(channelType) {
+  return CHANNEL_ICON[channelType] || null
+}
 
 function getOutputs(node) {
   const def = NODE_DEFS[node.data.code]
@@ -1055,17 +1075,24 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
                 {{ (data.attrs.filter?.children?.length || 0) }} condition(s)
               </template>
               <template v-else-if="data.code === 'ACTOR'">
-                {{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
+                {{ channelAbbrev(data.attrs.channelType) }} 
+                <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" /> 
+                · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
               <template v-else-if="data.code === 'EXPECTATION'">
                 <div>{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
-                <div v-if="data.attrs.channelType">{{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
+                <div v-if="data.attrs.channelType">{{ channelAbbrev(data.attrs.channelType) }}
+                <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />  
+                · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
               </template>
               <template v-else-if="data.code === 'WAIT'">
                 <div>Wait for ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
               </template>
               <template v-else-if="data.code === 'END'">
-                <span v-if="data.attrs.status">{{ formatLabel(data.attrs.status) }}</span>
+                <span v-if="data.attrs.status">
+                  {{ formatLabel(data.attrs.status) }}
+                  <VIcon :icon="data.attrs.status === 'SUCCESS' ? 'tabler-mood-smile' : 'tabler-mood-sad'" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />
+                </span>
                 <span v-else>Terminates Flow</span>
               </template>
             </div>
