@@ -20,7 +20,7 @@ const isLoading = ref(false);
 const items = ref([]);
 
 const statsTotal = ref([
-  { title: "Total Count", stats: "0", icon: "tabler-send", color: "primary" }
+  { title: "Total", stats: "0", icon: "tabler-send", color: "primary" }
 ]);
 
 const statsRest = ref([

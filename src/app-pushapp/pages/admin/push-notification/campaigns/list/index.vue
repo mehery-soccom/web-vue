@@ -43,7 +43,7 @@ const formattedNotifications = computed(() =>
 );
 
 const statsTotal = ref([
-  { title: "Total count", stats: "0", icon: "tabler-send", color: "primary" }
+  { title: "Total", stats: "0", icon: "tabler-send", color: "primary" }
 ]);
 
 const statsRest = ref([
