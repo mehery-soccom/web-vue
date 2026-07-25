@@ -163,6 +163,7 @@ const NODE_DEFS = {
         conjunction: 'and',
         children: [
           {
+            _id: crypto.randomUUID(),
             type: 'filter',
             filterType: null,
             field: null,
@@ -892,9 +893,25 @@ function buildFlowPayload() {
   }
 }
 
+function ensureFilterIds(node) {
+  if (!node) return node;
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => {
+      if (!child._id) child._id = crypto.randomUUID();
+      ensureFilterIds(child);
+    });
+  }
+  return node;
+}
+
 function loadFlow(payload) {
   const home = payload?.flowRenderer?.drawflow?.Home
   if (home && Array.isArray(home.nodes) && home.nodes.length > 0) {
+    home.nodes.forEach((n) => {
+      if (n.data?.code === 'CONDITION' && n.data?.attrs?.filter) {
+        ensureFilterIds(n.data.attrs.filter);
+      }
+    })
     nodes.value = home.nodes
     edges.value = home.edges || []
     nextTick(() => {

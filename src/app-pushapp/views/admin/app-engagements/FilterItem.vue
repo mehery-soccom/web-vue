@@ -118,8 +118,7 @@ watch(
   () => props.element.filterType,
   (newVal, oldVal) => {
     // console.log("clear values 4", props.element);
-    if (newVal === oldVal) return;
-
+    if (newVal === oldVal || oldVal === null) return;
     props.element.field = null;
     props.element.dataProperty = null;
     props.element.operator = null;
@@ -456,9 +455,10 @@ defineExpose({ isValid });
           v-model="element.value"
           :relative-presets="datePresets"
           placeholder="Select Date"
-          clearable
+          clearable :vertical="vertical"
           @update:modelValue="clearErrorAndUpdate"
           class="filter-entity date-pick"
+          :style="{ flexDirection: vertical ? 'column' : 'row' }"
         />
         <AppTextField
           v-else

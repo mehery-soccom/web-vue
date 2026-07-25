@@ -22,10 +22,12 @@ const flow = reactive({
     conjunction: "and",
     children: [
       {
+        _id: crypto.randomUUID(),
         type: "filter",
         filterType: null,
         field: null,
         operator: null,
+        dataProperty: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -158,19 +160,36 @@ async function launchFlow() {
     isLoading.value = false;
   }
 }
+function ensureFilterIds(node) {
+  if (!node) return node;
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => {
+      if (!child._id) child._id = crypto.randomUUID();
+      ensureFilterIds(child);
+    });
+  }
+  return node;
+}
+
 async function loadRecordIntoForm(record) {
   if (!record) return;
   flow.name = record.name || "";
   flow.desc = record.desc || "";
   flow.flow = record.flow || {};
   flow.flowRenderer = record.flowRenderer || { drawflow: { Home: {} } };
-  if (record.filter) Object.assign(flow.filter, structuredClone(record.filter));
+  if (record.filter) {
+    const cloned = ensureFilterIds(structuredClone(record.filter));
+    Object.assign(flow.filter, cloned);
+  }
 }
 
 async function loadCloneIntoForm(data) {
   flow.flow = data.flow || {};
   flow.flowRenderer = data.flowRenderer || { drawflow: { Home: {} } };
-  if (data.filter) Object.assign(flow.filter, structuredClone(data.filter));
+  if (data.filter) {
+    const cloned = ensureFilterIds(structuredClone(data.filter));
+    Object.assign(flow.filter, cloned);
+  }
 }
 
 onMounted(async () => {
