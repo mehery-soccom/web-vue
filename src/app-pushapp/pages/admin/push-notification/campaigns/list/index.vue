@@ -700,11 +700,20 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <div v-else class="text-grey">No logs found.</div>
           <VDivider class="my-4" />
           <div v-if="Object.keys(selectedErrorLogs).length" class="mb-4">
+            <div v-for="(count, key) in selectedErrorLogs" :key="key" class="m-1">
+              <div v-if="key === 'evaluation'"> 
+                Evaluation: 
+                <div v-for="(count2, key2) in count" :key="key2" class="m-1">
+                  {{ key2 }}: {{ count2 || '-' }}
+                </div>
+              </div>
+            </div>
+            <VDivider class="my-4" />
             <div class="text-subtitle-2 mb-2">
               Error Summary
             </div>
             <div v-for="(count, key) in selectedErrorLogs" :key="key" class="text-error mb-1">
-              <VIcon color="error">mdi-alert</VIcon> {{ key.replace(/_/g, " ") }} ({{ count }})
+              <div v-if="key != 'evaluation'"><VIcon color="error">mdi-alert</VIcon> {{ key.replace(/_/g, " ") }} ({{ count }})</div>
             </div>
           </div>
         </VCardText>
