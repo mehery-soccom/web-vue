@@ -196,6 +196,121 @@ watch(() => schedule.durationType,
     if (val === "immediate") schedule.startDate = null;
   },
 );
+
+// When recurring is toggled on, force "scheduled" mode
+watch(() => schedule.recurringType, (val) => {
+  if (val) schedule.durationType = 'scheduled';
+});
+
+// Day-of-week abbreviation → JS getDay() index (0=Sun)
+const DOW_INDEX = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+const WEEK_POS  = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1 };
+
+function parseHHmm(str) {
+  if (!str || typeof str !== 'string') return null;
+  const [h, m] = str.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  return { h, m };
+}
+
+function computeFirstOccurrence() {
+  const now = new Date();
+  const pattern = schedule.schedulePattern;
+
+  if (pattern === 'daily') {
+    const t = parseHHmm(schedule.dailyTime);
+    if (!t) return null;
+    const candidate = new Date(now);
+    candidate.setHours(t.h, t.m, 0, 0);
+    if (candidate <= now) candidate.setDate(candidate.getDate() + 1);
+    return candidate;
+  }
+
+  if (pattern === 'weekly') {
+    const days = schedule.scheduleDays || [];
+    const t = parseHHmm(schedule.weeklyTime);
+    if (!days.length || !t) return null;
+    let earliest = null;
+    for (const day of days) {
+      const targetDow = DOW_INDEX[day];
+      if (targetDow === undefined) continue;
+      const candidate = new Date(now);
+      let diff = targetDow - candidate.getDay();
+      if (diff < 0) diff += 7;
+      candidate.setDate(candidate.getDate() + diff);
+      candidate.setHours(t.h, t.m, 0, 0);
+      if (candidate <= now) candidate.setDate(candidate.getDate() + 7);
+      if (!earliest || candidate < earliest) earliest = candidate;
+    }
+    return earliest;
+  }
+
+  if (pattern === 'monthlyDate') {
+    const dayNum = parseInt(schedule.scheduleDate);
+    const t = parseHHmm(schedule.monthlyDateTime);
+    if (!dayNum || !t) return null;
+    const candidate = new Date(now.getFullYear(), now.getMonth(), dayNum, t.h, t.m, 0, 0);
+    if (candidate > now) return candidate;
+    return new Date(now.getFullYear(), now.getMonth() + 1, dayNum, t.h, t.m, 0, 0);
+  }
+
+  if (pattern === 'monthlyWeekday') {
+    const days = schedule.scheduleWeekday || [];
+    const pos  = WEEK_POS[schedule.scheduleWeek];
+    const t    = parseHHmm(schedule.monthlyWeekdayTime);
+    if (!days.length || pos === undefined || !t) return null;
+
+    function getNthWeekdayOccurrence(year, month, dowList, pos) {
+      const candidates = [];
+      for (const dayCode of dowList) {
+        const targetDow = DOW_INDEX[dayCode];
+        if (targetDow === undefined) continue;
+        let date;
+        if (pos === -1) {
+          // Last occurrence of weekday in month
+          const lastDay = new Date(year, month + 1, 0);
+          const diff = (lastDay.getDay() - targetDow + 7) % 7;
+          date = new Date(year, month, lastDay.getDate() - diff, t.h, t.m, 0, 0);
+        } else {
+          const firstDow = new Date(year, month, 1).getDay();
+          const firstOccDay = 1 + ((targetDow - firstDow + 7) % 7);
+          const nthDay = firstOccDay + (pos - 1) * 7;
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          if (nthDay > daysInMonth) continue;
+          date = new Date(year, month, nthDay, t.h, t.m, 0, 0);
+        }
+        candidates.push(date);
+      }
+      return candidates.sort((a, b) => a - b)[0] || null;
+    }
+
+    const thisMonth = getNthWeekdayOccurrence(now.getFullYear(), now.getMonth(), days, pos);
+    if (thisMonth && thisMonth > now) return thisMonth;
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return getNthWeekdayOccurrence(next.getFullYear(), next.getMonth(), days, pos);
+  }
+
+  return null;
+}
+
+// Whenever recurring settings change, recompute and set the first occurrence as startDate
+watch(
+  () => [
+    schedule.recurringType,
+    schedule.schedulePattern,
+    schedule.dailyTime,
+    schedule.weeklyTime, schedule.scheduleDays,
+    schedule.monthlyDateTime, schedule.scheduleDate,
+    schedule.monthlyWeekdayTime, schedule.scheduleWeekday, schedule.scheduleWeek,
+  ],
+  () => {
+    if (!schedule.recurringType) return;
+    const first = computeFirstOccurrence();
+    if (first) schedule.startDate = first.toISOString();
+  },
+  { deep: true },
+);
+
 const getTimeParts = (time) => {
   if (!time) return ["00", "00"];
   if (time instanceof Date) return [time.getHours(), time.getMinutes()];
@@ -518,34 +633,9 @@ const onSendSimple = async () => {
                   <p class="text-caption mb-4">
                     Choose when the campaign will start
                   </p>
-                  <VRadioGroup v-model="schedule.durationType" hide-details>
-                    <VRadio value="immediate">
-                      <template #label>
-                        <span>Start campaign now</span>
-                      </template>
-                    </VRadio>
 
-                    <VRadio value="scheduled">
-                      <template #label>
-                        <div class="d-flex flex-column gap-2">
-                          <div class="d-flex flex-wrap align-center gap-2">
-                            <span>Start campaign at scheduled date/time</span>
-                            <AppDateTimePicker
-                              v-model="schedule.startDate"
-                              :key="schedule.durationType + '1'"
-                              placeholder="Select Date"
-                              class="flex-grow-1 tiny-input"
-                              style="min-width: 170px"
-                              :disabled="schedule.durationType != 'scheduled'"
-                              :config="{ enableTime: true, minDate: now }"
-                              :rules="[startDateValidator]"
-                            />
-                          </div>
-                        </div>
-                      </template>
-                    </VRadio>
-                  </VRadioGroup>
-                  <div style="display: flex; margin-top: 6px">
+                  <!-- Make it Recurring toggle — shown first -->
+                  <div style="display: flex; align-items: center; margin-bottom: 8px">
                     <VSwitch
                       v-model="schedule.recurringType"
                       hide-details
@@ -556,6 +646,7 @@ const onSendSimple = async () => {
                     <span>Make it Recurring</span>
                   </div>
 
+                  <!-- Recurring details block — directly below the toggle -->
                   <div v-if="!!schedule.recurringType">
                     <VDivider class="my-6" />
 
@@ -737,6 +828,35 @@ const onSendSimple = async () => {
                         />
                     </div>
                   </div>
+
+                  <!-- Start time radio — shown below the recurring block -->
+                  <VDivider class="my-4" />
+                  <VRadioGroup v-model="schedule.durationType" hide-details>
+                    <VRadio value="immediate">
+                      <template #label>
+                        <span>Start campaign now</span>
+                      </template>
+                    </VRadio>
+
+                    <VRadio value="scheduled">
+                      <template #label>
+                        <div class="d-flex flex-wrap align-center gap-2">
+                          <span>Start campaign at scheduled date/time</span>
+                          <AppDateTimePicker
+                            v-model="schedule.startDate"
+                            :key="schedule.durationType + schedule.recurringType + '1'"
+                            placeholder="Select Date"
+                            class="flex-grow-1 tiny-input"
+                            style="min-width: 170px"
+                            :disabled="schedule.durationType !== 'scheduled'"
+                            :config="{ enableTime: true, minDate: now }"
+                            :rules="[startDateValidator]"
+                          />
+                        </div>
+                      </template>
+                    </VRadio>
+                  </VRadioGroup>
+
                   </VForm>
                 </VWindowItem>
               </VWindow>
