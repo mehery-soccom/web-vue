@@ -261,7 +261,8 @@ const fpRef = ref(null)
 const handleScroll = () => {
   const fp = fpRef.value?.fp
   if (!fp) return
-  if (!fp.isOpen) fp.open(undefined, fp._positionElement)
+  if (fp.isOpen) fp.open(undefined, fp._positionElement)
+  // if (!fp.isOpen) fp.open(undefined, fp._positionElement)
 }
 
 onMounted(() => {
@@ -281,7 +282,7 @@ onBeforeUnmount(() => {
       :error-messages="errorMessages"
       :hint="hint"
       :persistent-hint="persistentHint"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       density="compact"
       hide-details
     >
@@ -322,7 +323,8 @@ onBeforeUnmount(() => {
                 :model-value="internalValue"
                 :config="flatpickrConfig"
                 :placeholder="placeholder"
-                :disabled="disabled" ref="fpRef"
+                :disabled="disabled || readonly"
+                 ref="fpRef"
                 class="flatpickr-input w-100"
               />
             </div>

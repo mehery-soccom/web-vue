@@ -30,6 +30,15 @@ const statsRest = ref([
   { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
 ]);
 
+const formatStatNumber = (num) => {
+  if (num >= 1000000) {
+    return parseFloat((num / 1000000).toFixed(3)) + 'M';
+  } else if (num >= 10000) {
+    return parseFloat((num / 1000).toFixed(2)) + 'K';
+  }
+  return String(num);
+};
+
 const fetchStats = async () => {
   try {
     const payload = {
@@ -44,11 +53,11 @@ const fetchStats = async () => {
     const sentPct = data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
     const ctaPct = data.sent > 0 ? Math.round((data.ctaCount / data.sent) * 100) : 0;
 
-    statsTotal.value[0].stats = String(data.total);
+    statsTotal.value[0].stats = formatStatNumber(data.total);
     
-    statsRest.value[0].stats = String(data.sent);
+    statsRest.value[0].stats = formatStatNumber(data.sent);
     statsRest.value[1].stats = `${sentPct}%`;
-    statsRest.value[2].stats = String(data.ctaCount);
+    statsRest.value[2].stats = formatStatNumber(data.ctaCount);
     statsRest.value[3].stats = `${ctaPct}%`;
   } catch (error) {
     console.error("Failed to fetch app engagement stats", error);
