@@ -575,16 +575,16 @@ const onUpdateOptionsDebounced = debounce((options) => {
                 <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.runAt) }}
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.lastRunAt && !!item.raw.schedule.isRecurring">
-                <strong>Last run at:</strong> {{ formatDate2(item.raw.schedule.lastRunAt) }}
+                <strong>Last run:</strong> {{ formatDate2(item.raw.schedule.lastRunAt) }}
               </div>
               <div v-if="item.raw.schedule && !!item.raw.schedule.isRecurring">
                 <strong>Total runs:</strong> {{ item.raw.schedule.totalRuns || '0' }}
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.nextRunAt">
-                <strong>Next run at:</strong> {{ formatDate2(item.raw.schedule.nextRunAt) }}
+                <strong>Next run:</strong> {{ formatDate2(item.raw.schedule.nextRunAt) }}
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.until">
-                <strong>Will run until:</strong> {{ formatDate2(item.raw.schedule.until) }}
+                <strong>Ends on:</strong> {{ formatDate2(item.raw.schedule.until) }}
               </div>
               <div v-if="item.raw.schedule && item.raw.schedule.canceledAt">
                 <strong>Cancelled:</strong> {{ formatDate2(item.raw.schedule.canceledAt) }}
