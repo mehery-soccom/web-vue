@@ -509,6 +509,7 @@ defineExpose({ isValid });
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
       :channelId="channelId"
+      :readonly="readonly"
     />
     <VDialog v-model="showCohortConfirm" max-width="420">
       <VCard
