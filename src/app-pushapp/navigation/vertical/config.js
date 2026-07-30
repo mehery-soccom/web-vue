@@ -11,7 +11,7 @@ export default [
     to: "config-library-list",
   },
   {
-    title: "Api Credentials",
+    title: "Api Creds",
     icon: { icon: "tabler-key" },
     to: "config-apicredentials-list",
   },
