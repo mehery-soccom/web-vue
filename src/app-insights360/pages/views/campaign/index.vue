@@ -410,6 +410,7 @@ onMounted(async () => {
                 class="ellipsis text-center"
                 style="width: 100%"
               >
+                <span v-if="!!item.raw.resendType"> ({{ item.raw.resendType }})</span>
                 {{ item.raw.name }}
               </RouterLink>
             </template>
