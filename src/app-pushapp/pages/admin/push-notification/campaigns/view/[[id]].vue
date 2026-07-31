@@ -9,6 +9,9 @@ const router = useRouter();
 const channelsStore = useChannelsStore();
 const pushNotificationStore = usePushNotificationStore();
 
+const audienceMode = ref("filter");
+const filterLink = ref(null);
+const excelFileRef = ref(null);
 const tab = ref("tab-details");
 const isLoading = ref(false);
 const notification = reactive({
@@ -108,6 +111,11 @@ onMounted(async () => {
 
     if (campaign.filter) {
       Object.assign(filter, campaign.filter);
+      audienceMode.value = 'filter';
+    } else {
+      filterLink.value = campaign.filterLink;
+      audienceMode.value = 'excel';
+      // excelFileRef.value = campaign.filterLink;
     }
 
     if (campaign.schedule) {
@@ -121,6 +129,12 @@ onMounted(async () => {
     });
   }
 });
+const excelFileDisplay = computed(() => {
+  if (!filterLink.value || typeof File === 'undefined') return []
+  const match = filterLink.value.match(/images\/\d+-(.+)$/)
+  const name = match ? match[1] : filterLink.value.split('/').pop()
+  return [new File([], name)]
+})
 
 const populateSchedule = scheduleData => {
   schedule.durationType = scheduleData.type === "scheduled" ? "scheduled" : "immediate";
@@ -245,18 +259,83 @@ const populateSchedule = scheduleData => {
 
                 <VWindowItem value="tab-audience">
                   <h3 class="mb-2">Real-Time Filter</h3>
-                  <p class="text-caption mb-4">
-                    Apply filters based on latest user attributes
-                  </p>
-                  <FilterBuilder
-                    v-model="filter" readonly
-                    :ignoreEventfilterType="true"
-                    :ignoreEventDatafilterType="true"
-                    :ignoreCustomEventfilterType="true"
-                    :ignoreCohortfilterType="true"
-                    :channelId="notification.channel_id"
-                    ref="filterRef"
-                  />
+                  <p class="text-caption mb-4"> Target users via real-time filters or by uploading a list of profile codes</p>
+
+                  <VBtnToggle
+                    v-model="audienceMode"
+                    mandatory
+                    density="compact"
+                    color="primary"
+                    divided
+                    class="mb-6"
+                  >
+                    <VBtn value="filter">Real-Time Filter</VBtn>
+                    <VBtn value="excel">Upload Profile Codes</VBtn>
+                  </VBtnToggle>
+
+                  <div v-if="audienceMode === 'filter'">
+                    <FilterBuilder
+                      v-model="filter" readonly
+                      :ignoreEventfilterType="true"
+                      :ignoreEventDatafilterType="true"
+                      :ignoreCustomEventfilterType="true"
+                      :ignoreCohortfilterType="true"
+                      :channelId="notification.channel_id"
+                      ref="filterRef"
+                    />
+                  </div>
+
+                  <div v-else>
+                    <VAlert
+                      color="primary"
+                      variant="tonal"
+                      class="mb-5"
+                      density="compact"
+                      icon="tabler-info-circle"
+                    >
+                      Upload an Excel file containing profile codes to target
+                      specific users. Download the template below, fill in the
+                      <strong>profile code</strong> column, then upload it.
+                    </VAlert>
+                    <div class="d-flex align-center gap-3 mb-5">
+                      <VChip
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        label
+                      >
+                        Step 1
+                      </VChip>
+                      <span class="text-body-2">Download the Excel template</span>
+                      <VBtn
+                        size="small" disabled
+                        variant="tonal"
+                        color="primary"
+                        prepend-icon="mdi-download"
+                      >
+                        Download Template
+                      </VBtn>
+                    </div>
+
+                    <div class="d-flex align-center gap-3 mb-3 flex-wrap">
+                      <VChip color="primary" variant="outlined" size="small" label>
+                        Step 2
+                      </VChip>
+                      <span class="text-body-2">Fill in profile codes and upload the file</span>
+                      <VFileInput
+                        ref="excelFileRef"
+                        accept=".xlsx,.xls,.csv"
+                        placeholder="Select Excel file"
+                        prepend-inner-icon="mdi-microsoft-excel"
+                        prepend-icon=""
+                        variant="outlined"
+                        density="compact"
+                        hide-details disabled
+                        style="max-width: 420px"
+                        :model-value="excelFileDisplay"
+                      />
+                    </div>
+                  </div>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">

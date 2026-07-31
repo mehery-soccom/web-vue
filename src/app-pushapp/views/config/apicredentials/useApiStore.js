@@ -1,22 +1,21 @@
 import { defineStore } from "pinia";
 import DataService from "@/@common/services/DataService";
 
-export const useLibraryStore = defineStore("LibraryStore", {
+export const useApiStore = defineStore("ApiStore", {
   state: () => ({
     pageList: [],
-    pageListLoading: false,
   }),
   getters: {},
   actions: {
     create(params) {
-      return DataService.axios.post("/api/v1/catalog", params);
+      return DataService.axios.post("/api/v1/client-app", params);
     },
     readAll(params) {
       let { page, itemsPerPage, sortBy, filters } = params || {};
       let sort = sortBy
         ?.map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
-      return DataService.axios.get("/api/v1/catalog", {
+      return DataService.axios.get("/api/v1/client-app", {
         params: {
           page,
           limit: itemsPerPage,
@@ -26,19 +25,16 @@ export const useLibraryStore = defineStore("LibraryStore", {
       });
     },
     read({ id, ...params }) {
-      return DataService.axios.get(`/api/v1/catalog/${id}`, { params });
+      return DataService.axios.get(`/api/v1/client-app/${id}`, { params });
     },
     update({ id, ...params }) {
-      return DataService.axios.patch(`/api/v1/catalog/${id}`, params);
+      return DataService.axios.patch(`/api/v1/client-app/${id}`, params);
     },
     delete({ id, ...params }) {
-      return DataService.axios.delete(`/api/v1/catalog/${id}`, params);
+      return DataService.axios.delete(`/api/v1/client-app/${id}`, params);
     },
-    publish({ id, ...params }) {
-      return DataService.axios.post(`/api/v1/catalog/${id}/publish`, params);
-    },
-    readOptions({ id, ...params }) {
-      return DataService.axios.get(`/api/v1/catalog/${id}/options`, { params });
+    getApiCreds({ id, ...params }) {
+      return DataService.axios.get(`/api/v1/client-app/${id}/credentials`, { params });
     },
   },
 });

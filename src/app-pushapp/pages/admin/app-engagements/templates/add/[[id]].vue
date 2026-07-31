@@ -394,7 +394,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
     </v-col>
   </v-row>
   <div v-else style="display: flex">
-    <v-row style="display: flex; flex: 1">
+    <v-row style="display: flex; flex: 1;min-height: 700px;">
       <v-col
         v-if="!isPreStep"
         cols="12"

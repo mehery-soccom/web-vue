@@ -85,7 +85,7 @@ async function loadSystemAndCustomEventsOnce() {
 
   const customEvents = await fetchOnce('customEvents', API.customEvents, {}, (data) => {
       const items = extractArray(data)
-      return items.map(i => ({ title: i.eventName, value: i.eventName,}))
+      return items.sort((a, b) => a.eventName.localeCompare(b.eventName)).map(i => ({ title: i.eventName, value: i.eventName,}))
     },
   )
 
@@ -163,6 +163,7 @@ const NODE_DEFS = {
         conjunction: 'and',
         children: [
           {
+            _id: crypto.randomUUID(),
             type: 'filter',
             filterType: null,
             field: null,
@@ -228,11 +229,11 @@ const NODE_DEFS = {
 }
 
 const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'END']
-
+const showGrid = ref(true);
 const CHANNEL_TYPE_OPTIONS = [
-  { title: 'Send WhatsApp', value: 'SEND_MESSAGE' },
-  { title: 'Send Push notification', value: 'SEND_NOTIFICATION' },
-  { title: 'Send App engagement', value: 'SEND_ENGAGEMENT' },
+  { title: 'App engagement', value: 'SEND_ENGAGEMENT' },
+  { title: 'Push notification', value: 'SEND_NOTIFICATION' },
+  { title: 'WhatsApp', value: 'SEND_MESSAGE' },
 ]
 
 function templateListEndpoint(channelType) {
@@ -242,6 +243,26 @@ function templateListEndpoint(channelType) {
 }
 function channelParamName(channelType) {
   return channelType === 'SEND_MESSAGE' ? 'channelId' : 'appId'
+}
+const CHANNEL_ABBREV = {
+  SEND_MESSAGE:      'WA',
+  SEND_NOTIFICATION: 'PN',
+  SEND_ENGAGEMENT:   'EN',
+  EMAIL:             '@',
+  SMS:               'SMS',
+}
+function channelAbbrev(channelType) {
+  return CHANNEL_ABBREV[channelType] || formatLabel(channelType)
+}
+const CHANNEL_ICON = {
+  SEND_MESSAGE:      'tabler-brand-whatsapp',
+  SEND_NOTIFICATION: 'tabler-bell-ringing',
+  SEND_ENGAGEMENT:   'tabler-activity',
+  EMAIL:             'tabler-mail',
+  SMS:               'tabler-message',
+}
+function channelIcon(channelType) {
+  return CHANNEL_ICON[channelType] || null
 }
 
 function getOutputs(node) {
@@ -281,14 +302,67 @@ const getListenerId = () => `listener_${_listenerId++}`
 const showClearDialog = ref(false);
 const dialogVisible = ref(false)
 const dialogMessage = ref('')
+const dialogDeleteButtonRef = ref(null)
+const dialogCancelButtonRef = ref(null)
 let _dialogResolve = null
 function openConfirm(msg) {
   dialogMessage.value = msg
   dialogVisible.value = true
+  nextTick(() => dialogDeleteButtonRef.value?.focus())
   return new Promise((r) => { _dialogResolve = r })
 }
-function dialogConfirm() { dialogVisible.value = false; _dialogResolve?.(true) }
-function dialogCancel() { dialogVisible.value = false; _dialogResolve?.(false) }
+function resolveDialog(result) {
+  dialogVisible.value = false
+  const resolve = _dialogResolve
+  _dialogResolve = null
+  resolve?.(result)
+}
+function dialogConfirm() { resolveDialog(true) }
+function dialogCancel() { resolveDialog(false) }
+function focusDialogAction(target) {
+  if (target === 'cancel') dialogCancelButtonRef.value?.focus()
+  else dialogDeleteButtonRef.value?.focus()
+}
+function onDialogKeydown(event) {
+  if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+    event.preventDefault()
+    const active = document.activeElement
+    focusDialogAction(active === dialogDeleteButtonRef.value ? 'cancel' : 'delete')
+    return
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    if (document.activeElement === dialogCancelButtonRef.value) dialogCancel()
+    else dialogConfirm()
+    return
+  }
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    dialogCancel()
+  }
+}
+function getNodeTypeLabel(node) {
+  return NODE_DEFS[node?.data?.code]?.label || node?.data?.code || 'Node'
+}
+function getNodeDeleteMessage(node) {
+  return `Delete '${getNodeTypeLabel(node)}' node?`
+}
+function cleanupDeletedNode(nodeId) {
+  if (inspectedNodeId.value === nodeId) inspectedNodeId.value = null
+  delete optionCache[nodeId]
+}
+async function requestNodeDeletion(nodeId) {
+  if (props.disabled) return
+  const node = nodes.value.find((n) => n.id === nodeId)
+  if (!node || node.data?.code === 'TRIGGER') return
+
+  const ok = await openConfirm(getNodeDeleteMessage(node))
+  if (!ok) return
+
+  cleanupDeletedNode(nodeId)
+  nodes.value = nodes.value.filter((n) => n.id !== nodeId)
+  edges.value = edges.value.filter((e) => e.source !== nodeId && e.target !== nodeId)
+}
 
 
 // Save / load panel state
@@ -440,11 +514,10 @@ onNodesChange(async (changes) => {
       if (props.disabled) continue
       const node = nodes.value.find((n) => n.id === c.id)
       if (node?.data?.code === 'TRIGGER') continue
-      const ok = await openConfirm(`Delete node "${c.id}"?`)
+      const ok = await openConfirm(getNodeDeleteMessage(node))
       if (ok) {
         next.push(c)
-        if (inspectedNodeId.value === c.id) inspectedNodeId.value = null
-        delete optionCache[c.id]
+        cleanupDeletedNode(c.id)
       }
     } else if (c.type === 'position' || c.type === 'dimensions' || c.type === 'select') {
       // harmless layout/selection changes, always allowed (even in view mode)
@@ -751,9 +824,14 @@ function onDrop(event) {
   const code = event.dataTransfer?.getData('application/flownode') || draggedType.value
   if (!code || !NODE_DEFS[code] || code === 'TRIGGER') return
 
-  const position = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
-  const nodeId = getNodeId()
+  const raw = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
+  const GRID = 20
+  const position = {
+    x: Math.round(raw.x / GRID) * GRID,
+    y: Math.round(raw.y / GRID) * GRID,
+  }
 
+  const nodeId = getNodeId()
   const newNode = {
     id: nodeId,
     type: 'flow-node',
@@ -764,8 +842,8 @@ function onDrop(event) {
   const { off } = onNodesInitialized(() => {
     updateNode(nodeId, (n) => ({
       position: {
-        x: n.position.x - (n.dimensions?.width ?? 0) / 2,
-        y: n.position.y - (n.dimensions?.height ?? 0) / 2,
+        x: Math.round((n.position.x - (n.dimensions?.width ?? 0) / 2) / GRID) * GRID,
+        y: Math.round((n.position.y - (n.dimensions?.height ?? 0) / 2) / GRID) * GRID,
       },
     }))
     off()
@@ -872,9 +950,25 @@ function buildFlowPayload() {
   }
 }
 
+function ensureFilterIds(node) {
+  if (!node) return node;
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => {
+      if (!child._id) child._id = crypto.randomUUID();
+      ensureFilterIds(child);
+    });
+  }
+  return node;
+}
+
 function loadFlow(payload) {
   const home = payload?.flowRenderer?.drawflow?.Home
   if (home && Array.isArray(home.nodes) && home.nodes.length > 0) {
+    home.nodes.forEach((n) => {
+      if (n.data?.code === 'CONDITION' && n.data?.attrs?.filter) {
+        ensureFilterIds(n.data.attrs.filter);
+      }
+    })
     nodes.value = home.nodes
     edges.value = home.edges || []
     nextTick(() => {
@@ -977,9 +1071,12 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
       <div class="sidebar-section">
         <p class="section-label">Actions</p>
         <button class="action-btn" @click="fitView()">⊞ Fit view</button>
+        <button v-if="!disabled" class="action-btn danger" @click="showClearDialog = true"> ✕ Clear canvas </button>
+        <button class="action-btn" @click="showGrid = !showGrid">
+          {{ showGrid ? '▦ Hide grid' : '▦ Show grid' }}
+        </button>
         <!-- <button class="action-btn" @click="setViewport({ x: 0, y: 0, zoom: 1 })">Move to Start</button> -->
         <!-- <button v-if="!disabled" class="action-btn danger" @click="clearAll">✕ Clear canvas</button> -->
-          <button v-if="!disabled" class="action-btn danger" @click="showClearDialog = true"> ✕ Clear canvas </button>
 
           <VDialog v-model="showClearDialog" max-width="420">
             <VCard>
@@ -1024,6 +1121,8 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
         :apply-default="false"
         :min-zoom="0.15"
         :max-zoom="3"
+        :snap-to-grid="showGrid"
+        :snap-grid="[20, 20]"
         fit-view-on-init
         :delete-key-code="disabled ? null : 'Backspace'"
         :nodes-draggable="!disabled"
@@ -1032,7 +1131,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
         @node-click="onNodeClick"
         @pane-click="onPaneClick"
       >
-        <Background :variant="BackgroundVariant.Dots" :gap="20" pattern-color="#d6d3cb" />
+        <Background :variant="showGrid ? BackgroundVariant.Lines : BackgroundVariant.Dots" :gap="20" :size="1" :pattern-color="showGrid ? '#ebe8e0' : '#d6d3cb'" />
         <Controls position="top-left" :show-interactive="false" />
         <MiniMap :node-color="(n) => NODE_DEFS[n.data?.code]?.color || '#94a3b8'" />
 
@@ -1045,6 +1144,15 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             :class="{ selected, invalid: invalidNodeIds.has(id) }"
             :style="{ '--node-color': NODE_DEFS[data.code]?.color }"
           >
+            <button
+              v-if="!disabled && data.code !== 'TRIGGER'"
+              type="button"
+              class="node-delete-btn"
+              :aria-label="`Delete ${NODE_DEFS[data.code]?.label || 'node'}`"
+              @click.stop="requestNodeDeletion(id)"
+            >
+              ✕
+            </button>
             <div class="flow-node-head">
               <span class="flow-node-icon">{{ NODE_DEFS[data.code]?.icon }}</span>
               <span class="flow-node-code">{{ NODE_DEFS[data.code]?.label }}</span>
@@ -1055,17 +1163,24 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
                 {{ (data.attrs.filter?.children?.length || 0) }} condition(s)
               </template>
               <template v-else-if="data.code === 'ACTOR'">
-                {{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
+                {{ channelAbbrev(data.attrs.channelType) }} 
+                <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" /> 
+                · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
               <template v-else-if="data.code === 'EXPECTATION'">
                 <div>{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
-                <div v-if="data.attrs.channelType">{{ formatLabel(data.attrs.channelType) }} · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
+                <div v-if="data.attrs.channelType">{{ channelAbbrev(data.attrs.channelType) }}
+                <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />  
+                · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
               </template>
               <template v-else-if="data.code === 'WAIT'">
                 <div>Wait for ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
               </template>
               <template v-else-if="data.code === 'END'">
-                <span v-if="data.attrs.status">{{ formatLabel(data.attrs.status) }}</span>
+                <span v-if="data.attrs.status">
+                  {{ formatLabel(data.attrs.status) }}
+                  <VIcon :icon="data.attrs.status === 'SUCCESS' ? 'tabler-mood-smile' : 'tabler-mood-sad'" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />
+                </span>
                 <span v-else>Terminates Flow</span>
               </template>
             </div>
@@ -1362,11 +1477,11 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
     <!-- ════════════════ CONFIRM DIALOG ════════════════ -->
     <Teleport to="body">
       <div v-if="dialogVisible" class="dialog-mask" @mousedown.self="dialogCancel">
-        <div class="dialog-box">
+        <div class="dialog-box" role="dialog" aria-modal="true" @keydown="onDialogKeydown">
           <p class="dialog-message">{{ dialogMessage }}</p>
           <div class="dialog-actions">
-            <button class="btn-primary" @click="dialogConfirm">Delete</button>
-            <button class="btn-cancel" @click="dialogCancel">Cancel</button>
+            <button ref="dialogDeleteButtonRef" class="btn-primary" @click="dialogConfirm">Delete</button>
+            <button ref="dialogCancelButtonRef" class="btn-cancel" @click="dialogCancel">Cancel</button>
           </div>
         </div>
       </div>
@@ -1485,10 +1600,45 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
 
 /* ══ FLOW NODE ══ */
 .flow-node {
+  position: relative;
   min-width: 190px; border-radius: 9px; background: var(--paper);
   border: 1.5px solid var(--node-color);
   box-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 6px 16px rgba(0,0,0,0.05);
   transition: box-shadow 0.15s;
+}
+.node-delete-btn {
+  position: absolute;
+  top: -10px;
+  right: 15px;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--node-color) 25%, var(--hairline));
+  border-radius: 999px;
+  background: var(--paper);
+  color: color-mix(in srgb, var(--node-color) 70%, black);
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-2px);
+  transition: opacity 0.15s, transform 0.15s, background 0.15s, color 0.15s;
+  z-index: 2;
+}
+.flow-node:hover .node-delete-btn,
+.node-delete-btn:focus-visible {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+.node-delete-btn:hover,
+.node-delete-btn:focus-visible {
+  background: #fdeceb;
+  color: #b91c1c;
+  outline: none;
 }
 .flow-node.selected {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--node-color) 30%, transparent), 0 6px 16px rgba(0,0,0,0.08);
@@ -1563,7 +1713,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
 
 /* ══ INSPECTOR ══ */
 .inspector {
-  width: 320px; flex-shrink: 0; background: var(--paper);
+  width: 350px; flex-shrink: 0; background: var(--paper);
   border-left: 1px solid var(--hairline); display: flex; flex-direction: column;
   overflow-y: auto; z-index: 10;
 }
@@ -1625,6 +1775,12 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
 }
 .btn-primary:hover { background: #1d4ed8; }
 .btn-primary:disabled { background: #c7c2b4; cursor: not-allowed; }
+.btn-primary:focus-visible,
+.btn-cancel:focus-visible,
+.node-delete-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .btn-cancel {
   padding: 7px 18px; border-radius: 7px; border: 1.5px solid var(--hairline);
   background: #faf9f6; color: var(--ink-soft); font-size: 12px; font-weight: 600; cursor: pointer;

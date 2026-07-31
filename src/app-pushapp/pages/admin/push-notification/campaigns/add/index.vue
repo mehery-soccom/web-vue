@@ -4,6 +4,8 @@ import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notifica
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
+import DataService from "@/@common/services/DataService";
+import * as XLSX from 'xlsx'
 const { show } = inject("snackbar");
 
 const route = useRoute();
@@ -47,6 +49,48 @@ const tabErrors = ref({
   "tab-schedule": false,
 });
 
+const audienceMode = ref("filter"); // 'filter' | 'excel'
+const filterLink = ref(null);
+const excelUploading = ref(false);
+const excelFileName = ref(null);
+const excelFileRef = ref(null);
+
+const downloadExcelTemplate = () => {
+  const wb = XLSX.utils.book_new()
+  const ws = XLSX.utils.aoa_to_sheet([['profile code']])
+  XLSX.utils.book_append_sheet(wb, ws, 'Sheet1')
+  XLSX.writeFile(wb, 'profile_upload_template.xlsx')
+}
+
+const onExcelUpload = async (event) => {
+  document.activeElement?.blur();
+  const file = event.target.files[0];
+  if (!file) return;
+
+  excelFileName.value = file.name;
+  excelUploading.value = true;
+  filterLink.value = null;
+  try {
+    const formData = new FormData();
+    formData.append("docs", file);
+    const res = await pushNotificationStore.uploadDoc(formData);
+    filterLink.value = res.data.remoteDetails.Location;
+    if (!filterLink.value) throw new Error("No URL in response");
+  } catch (err) {
+    console.error("Excel upload failed", err);
+    show({ message: "Failed to upload file. Please try again.", color: "error" });
+    filterLink.value = null;
+    excelFileName.value = null;
+  } finally {
+    excelUploading.value = false;
+    event.target.value = null;
+  }
+};
+watch(audienceMode, () => {
+  filterLink.value = null;
+  excelFileName.value = null;
+  excelFileRef.value = null;
+});
 const validateTab = async (tabName, silent = false) => {
   let valid = true;
 
@@ -57,21 +101,25 @@ const validateTab = async (tabName, silent = false) => {
       break;
 
     case "tab-audience":
-      let filterValid = await filterRef.value?.isValid();
-      let filterStructureValid = true;
-
-      try {
-        validateFilterStructure(filter, null, true, true, true);
-      } catch (error) {
-        filterStructureValid = false;
-        if (!silent) show({ message: error.message, color: "error",});
+      if (audienceMode.value === "excel") {
+        if (!filterLink.value) {
+          valid = false;
+          if (!silent) show({ message: "Please upload a profile codes Excel file.", color: "error" });
+        }
+      } else {
+        let filterValid = await filterRef.value?.isValid();
+        let filterStructureValid = true;
+        try {
+          validateFilterStructure(filter, null, true, true, true);
+        } catch (error) {
+          filterStructureValid = false;
+          if (!silent) show({ message: error.message, color: "error" });
+        }
+        if (!filterValid || !filterStructureValid) valid = false;
       }
-
-      if (!filterValid || !filterStructureValid) valid = false;
       break;
 
     case "tab-schedule":
-      // if (schedule.recurringType && !schedule.schedulePattern) valid = false;
       const scheduleValidation = await scheduleFormRef.value?.validate();
       if (!scheduleValidation?.valid) valid = false;
       break;
@@ -148,6 +196,121 @@ watch(() => schedule.durationType,
     if (val === "immediate") schedule.startDate = null;
   },
 );
+
+// When recurring is toggled on, force "scheduled" mode
+watch(() => schedule.recurringType, (val) => {
+  if (val) schedule.durationType = 'scheduled';
+});
+
+// Day-of-week abbreviation → JS getDay() index (0=Sun)
+const DOW_INDEX = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
+const WEEK_POS  = { FIRST: 1, SECOND: 2, THIRD: 3, FOURTH: 4, LAST: -1 };
+
+function parseHHmm(str) {
+  if (!str || typeof str !== 'string') return null;
+  const [h, m] = str.split(':').map(Number);
+  if (isNaN(h) || isNaN(m)) return null;
+  return { h, m };
+}
+
+function computeFirstOccurrence() {
+  const now = new Date();
+  const pattern = schedule.schedulePattern;
+
+  if (pattern === 'daily') {
+    const t = parseHHmm(schedule.dailyTime);
+    if (!t) return null;
+    const candidate = new Date(now);
+    candidate.setHours(t.h, t.m, 0, 0);
+    if (candidate <= now) candidate.setDate(candidate.getDate() + 1);
+    return candidate;
+  }
+
+  if (pattern === 'weekly') {
+    const days = schedule.scheduleDays || [];
+    const t = parseHHmm(schedule.weeklyTime);
+    if (!days.length || !t) return null;
+    let earliest = null;
+    for (const day of days) {
+      const targetDow = DOW_INDEX[day];
+      if (targetDow === undefined) continue;
+      const candidate = new Date(now);
+      let diff = targetDow - candidate.getDay();
+      if (diff < 0) diff += 7;
+      candidate.setDate(candidate.getDate() + diff);
+      candidate.setHours(t.h, t.m, 0, 0);
+      if (candidate <= now) candidate.setDate(candidate.getDate() + 7);
+      if (!earliest || candidate < earliest) earliest = candidate;
+    }
+    return earliest;
+  }
+
+  if (pattern === 'monthlyDate') {
+    const dayNum = parseInt(schedule.scheduleDate);
+    const t = parseHHmm(schedule.monthlyDateTime);
+    if (!dayNum || !t) return null;
+    const candidate = new Date(now.getFullYear(), now.getMonth(), dayNum, t.h, t.m, 0, 0);
+    if (candidate > now) return candidate;
+    return new Date(now.getFullYear(), now.getMonth() + 1, dayNum, t.h, t.m, 0, 0);
+  }
+
+  if (pattern === 'monthlyWeekday') {
+    const days = schedule.scheduleWeekday || [];
+    const pos  = WEEK_POS[schedule.scheduleWeek];
+    const t    = parseHHmm(schedule.monthlyWeekdayTime);
+    if (!days.length || pos === undefined || !t) return null;
+
+    function getNthWeekdayOccurrence(year, month, dowList, pos) {
+      const candidates = [];
+      for (const dayCode of dowList) {
+        const targetDow = DOW_INDEX[dayCode];
+        if (targetDow === undefined) continue;
+        let date;
+        if (pos === -1) {
+          // Last occurrence of weekday in month
+          const lastDay = new Date(year, month + 1, 0);
+          const diff = (lastDay.getDay() - targetDow + 7) % 7;
+          date = new Date(year, month, lastDay.getDate() - diff, t.h, t.m, 0, 0);
+        } else {
+          const firstDow = new Date(year, month, 1).getDay();
+          const firstOccDay = 1 + ((targetDow - firstDow + 7) % 7);
+          const nthDay = firstOccDay + (pos - 1) * 7;
+          const daysInMonth = new Date(year, month + 1, 0).getDate();
+          if (nthDay > daysInMonth) continue;
+          date = new Date(year, month, nthDay, t.h, t.m, 0, 0);
+        }
+        candidates.push(date);
+      }
+      return candidates.sort((a, b) => a - b)[0] || null;
+    }
+
+    const thisMonth = getNthWeekdayOccurrence(now.getFullYear(), now.getMonth(), days, pos);
+    if (thisMonth && thisMonth > now) return thisMonth;
+    const next = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    return getNthWeekdayOccurrence(next.getFullYear(), next.getMonth(), days, pos);
+  }
+
+  return null;
+}
+
+// Whenever recurring settings change, recompute and set the first occurrence as startDate
+watch(
+  () => [
+    schedule.recurringType,
+    schedule.schedulePattern,
+    schedule.dailyTime,
+    schedule.weeklyTime, schedule.scheduleDays,
+    schedule.monthlyDateTime, schedule.scheduleDate,
+    schedule.monthlyWeekdayTime, schedule.scheduleWeekday, schedule.scheduleWeek,
+  ],
+  () => {
+    if (!schedule.recurringType) return;
+    const first = computeFirstOccurrence();
+    if (first) schedule.startDate = first.toISOString();
+  },
+  { deep: true },
+);
+
 const getTimeParts = (time) => {
   if (!time) return ["00", "00"];
   if (time instanceof Date) return [time.getHours(), time.getMinutes()];
@@ -191,14 +354,13 @@ const buildSchedulePayload = (schedule) => {
     timezone,
     ...(isRecurring && { rrule }),
     ...(schedule.endDate && {
-    until: new Date(schedule.endDate).toISOString(),
+      until: new Date(schedule.endDate).toISOString(),
     }),
   };
 };
 
 onMounted(async () => {
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
-  // if (channelsRes.results) ChannelList.value = channelsRes.results;
   if (channelsRes.results) {
     ChannelList.value = channelsRes.results;
     if (ChannelList.value.length === 1)
@@ -241,7 +403,9 @@ onMounted(async () => {
 const onSendSimple = async () => {
   const valid = await validateAllTabs();
   if (!valid) {
-    const firstInvalidTab = Object.keys(tabErrors.value).find(key => tabErrors.value[key]);
+    const firstInvalidTab = Object.keys(tabErrors.value).find(
+      (key) => tabErrors.value[key],
+    );
     if (firstInvalidTab) tab.value = firstInvalidTab;
     return;
   }
@@ -256,7 +420,9 @@ const onSendSimple = async () => {
     let pushPayload = {
       campaignName: notification.campaignName,
       to: {
-        filter: filter,
+        ...(audienceMode.value === "excel"
+          ? { filterLink: filterLink.value }
+          : { filter: filter }),
       },
       channelId: notification.channel_id,
       schedule: buildSchedulePayload(schedule),
@@ -270,28 +436,13 @@ const onSendSimple = async () => {
       },
       type: template.type,
     };
-    await pushNotificationStore.createScheduledCampaign(pushPayload);
-    // console.log("recur", !!pushPayload.schedule.isRecurring, !!pushPayload.schedule.runAt, pushPayload)
-    // if(!!pushPayload.schedule.isRecurring || !!pushPayload.schedule.runAt) {
-    //   pushPayload.campaignName = notification.campaignName;
-    //   await pushNotificationStore.createScheduledCampaign(pushPayload);
-    // } else { 
-    //   let campaignPayload = {
-    //     template: { code: template.code },
-    //     campaignName: notification.campaignName,
-    //     schedule: buildSchedulePayload(schedule),
-    //   };
-    //   let campaignRes = await pushNotificationStore.createCampaign(campaignPayload);
-    //   pushPayload.campaignId = campaignRes.data.campaignId;
-    //   await pushNotificationStore.push(pushPayload);
-    // }
-    
-    show({ message: "Notification sent successfully", color: "success" });
 
+    await pushNotificationStore.createScheduledCampaign(pushPayload);
+
+    show({ message: "Notification sent successfully", color: "success" });
     router.push({ name: "admin-push-notification-campaigns-list" });
   } catch (error) {
     console.error(error);
-
     show({ message: "Something went wrong. try again", color: "error" });
   } finally {
     isLoading.value = false;
@@ -301,7 +452,6 @@ const onSendSimple = async () => {
 
 <template>
   <v-row>
-    <!-- Form Column -->
     <v-col cols="12" md="12">
       <v-card title="Push Notification">
         <VTabs v-model="tab">
@@ -370,19 +520,111 @@ const onSendSimple = async () => {
                 </VWindowItem>
 
                 <VWindowItem value="tab-audience">
-                  <h3 class="mb-2">Real-Time Filter</h3>
-                  <p class="text-caption mb-4">
-                    Apply filters based on latest user attributes
-                  </p>
-                  <FilterBuilder
-                    v-model="filter"
-                    :ignoreEventfilterType="true"
-                    :ignoreEventDatafilterType="true"
-                    :ignoreCustomEventfilterType="true"
-                    :ignoreCohortfilterType="true"
-                    :channelId="notification.channel_id"
-                    ref="filterRef"
-                  />
+                  <h3 class="mb-2">Audience</h3>
+                  <p class="text-caption mb-4"> Target users via real-time filters or by uploading a list of profile codes</p>
+
+                  <VBtnToggle
+                    v-model="audienceMode"
+                    mandatory
+                    density="compact"
+                    color="primary"
+                    divided
+                    class="mb-6"
+                  >
+                    <VBtn value="filter">Real-Time Filter</VBtn>
+                    <VBtn value="excel">Upload Profile Codes</VBtn>
+                  </VBtnToggle>
+
+                  <div v-if="audienceMode === 'filter'">
+                    <FilterBuilder
+                      v-model="filter"
+                      :ignoreEventfilterType="true"
+                      :ignoreEventDatafilterType="true"
+                      :ignoreCustomEventfilterType="true"
+                      :ignoreCohortfilterType="true"
+                      :channelId="notification.channel_id"
+                      ref="filterRef"
+                    />
+                  </div>
+
+                  <div v-else>
+                    <VAlert
+                      color="primary"
+                      variant="tonal"
+                      class="mb-5"
+                      density="compact"
+                      icon="tabler-info-circle"
+                    >
+                      Upload an Excel file containing profile codes to target
+                      specific users. Download the template below, fill in the
+                      <strong>profile code</strong> column, then upload it.
+                    </VAlert>
+                    <div class="d-flex align-center gap-3 mb-5">
+                      <VChip
+                        color="primary"
+                        variant="outlined"
+                        size="small"
+                        label
+                      >
+                        Step 1
+                      </VChip>
+                      <span class="text-body-2">Download the Excel template</span>
+                      <VBtn
+                        size="small"
+                        variant="tonal"
+                        color="primary"
+                        prepend-icon="mdi-download"
+                        @click="downloadExcelTemplate"
+                      >
+                        Download Template
+                      </VBtn>
+                    </div>
+
+                    <div class="d-flex align-center gap-3 mb-3 flex-wrap">
+                      <VChip color="primary" variant="outlined" size="small" label>
+                        Step 2
+                      </VChip>
+                      <span class="text-body-2">Fill in profile codes and upload the file</span>
+                      <VFileInput
+                        ref="excelFileRef"
+                        accept=".xlsx,.xls,.csv"
+                        placeholder="Select Excel file"
+                        prepend-inner-icon="mdi-microsoft-excel"
+                        prepend-icon=""
+                        variant="outlined"
+                        density="compact"
+                        hide-details
+                        style="max-width: 420px"
+                        :loading="excelUploading"
+                        :disabled="excelUploading"
+                        @change="onExcelUpload"
+                      />
+                      <div class="ml-2">
+                        <div v-if="excelUploading" class="d-flex align-center gap-2 text-caption text-medium-emphasis">
+                          <VProgressCircular size="14" width="2" indeterminate /> Uploading...
+                        </div>
+                        <VAlert
+                          v-else-if="filterLink"
+                          type="success"
+                          variant="tonal"
+                          density="compact"
+                          style="max-width: 420px"
+                        >
+                          File uploaded successfully.
+                          <div class="text-caption text-medium-emphasis ml-1">{{ excelFileName }}</div>
+                        </VAlert>
+                        <VAlert
+                          v-else-if="excelFileName && !filterLink"
+                          type="error"
+                          variant="tonal"
+                          density="compact"
+                          style="max-width: 380px"
+                        >
+                          Upload failed. Please try again.
+                        </VAlert>
+                      </div>
+                    </div>
+                  </div>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
@@ -391,34 +633,9 @@ const onSendSimple = async () => {
                   <p class="text-caption mb-4">
                     Choose when the campaign will start
                   </p>
-                  <VRadioGroup v-model="schedule.durationType" hide-details>
-                    <VRadio value="immediate">
-                      <template #label>
-                        <span>Start campaign now</span>
-                      </template>
-                    </VRadio>
 
-                    <VRadio value="scheduled">
-                      <template #label>
-                        <div class="d-flex flex-column gap-2">
-                          <div class="d-flex flex-wrap align-center gap-2">
-                            <span>Start campaign at scheduled date/time</span>
-                            <AppDateTimePicker
-                              v-model="schedule.startDate"
-                              :key="schedule.durationType + '1'"
-                              placeholder="Select Date"
-                              class="flex-grow-1 tiny-input"
-                              style="min-width: 170px"
-                              :disabled="schedule.durationType != 'scheduled'"
-                              :config="{ enableTime: true, minDate: now }"
-                              :rules="[startDateValidator]"
-                            />
-                          </div>
-                        </div>
-                      </template>
-                    </VRadio>
-                  </VRadioGroup>
-                  <div style="display: flex; margin-top: 6px">
+                  <!-- Make it Recurring toggle — shown first -->
+                  <div style="display: flex; align-items: center; margin-bottom: 8px">
                     <VSwitch
                       v-model="schedule.recurringType"
                       hide-details
@@ -426,12 +643,10 @@ const onSendSimple = async () => {
                       color="primary"
                       class="mr-2"
                     />
-                    <!-- <VTooltip activator="parent" location="bottom">
-                      Make the campaign recurring
-                    </VTooltip> -->
                     <span>Make it Recurring</span>
                   </div>
 
+                  <!-- Recurring details block — directly below the toggle -->
                   <div v-if="!!schedule.recurringType">
                     <VDivider class="my-6" />
 
@@ -471,7 +686,6 @@ const onSendSimple = async () => {
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
                               Repeat on day(s) of week
-                              <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
                               <AppSelect
                                 v-model="schedule.scheduleDays"
                                 :items="Dow"
@@ -503,7 +717,6 @@ const onSendSimple = async () => {
                                 :rules="[val => timeValidator(val, 'weekly')]"
                                 @update:modelValue="schedule.schedulePattern = 'weekly'"
                               />
-                              <!-- </div> -->
                             </div>
                           </template>
                         </VRadio>
@@ -615,6 +828,35 @@ const onSendSimple = async () => {
                         />
                     </div>
                   </div>
+
+                  <!-- Start time radio — shown below the recurring block -->
+                  <VDivider class="my-4" />
+                  <VRadioGroup v-model="schedule.durationType" hide-details>
+                    <VRadio value="immediate">
+                      <template #label>
+                        <span>Start campaign now</span>
+                      </template>
+                    </VRadio>
+
+                    <VRadio value="scheduled">
+                      <template #label>
+                        <div class="d-flex flex-wrap align-center gap-2">
+                          <span>Start campaign at scheduled date/time</span>
+                          <AppDateTimePicker
+                            v-model="schedule.startDate"
+                            :key="schedule.durationType + schedule.recurringType + '1'"
+                            placeholder="Select Date"
+                            class="flex-grow-1 tiny-input"
+                            style="min-width: 170px"
+                            :disabled="schedule.durationType !== 'scheduled'"
+                            :config="{ enableTime: true, minDate: now }"
+                            :rules="[startDateValidator]"
+                          />
+                        </div>
+                      </template>
+                    </VRadio>
+                  </VRadioGroup>
+
                   </VForm>
                 </VWindowItem>
               </VWindow>

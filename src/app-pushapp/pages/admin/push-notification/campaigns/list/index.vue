@@ -1,7 +1,7 @@
 <script setup>
 import { PLATFORM_COLORS } from "@app-pushapp/utils/constants";
 // import NotificationQuickAnalytics from "@app-pushapp/views/admin/push-notification/NotificationQuickAnalytics.vue";
-import CardStatisticsTransactions from '@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
+import CardStatisticsTransactions from "@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue";
 import NotificationCampaignExpansion from "@/app-pushapp/views/admin/push-notification/NotificationCampaignExpansion.vue";
 import AppDateTimePicker from "@/app-pushapp/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
@@ -43,7 +43,7 @@ const formattedNotifications = computed(() =>
 );
 
 const statsTotal = ref([
-  { title: "Total count", stats: "0", icon: "tabler-send", color: "primary" }
+  { title: "Total", stats: "0", icon: "tabler-send", color: "primary" },
 ]);
 
 const statsRest = ref([
@@ -55,28 +55,45 @@ const statsRest = ref([
   { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
 ]);
 
+const formatStatNumber = (num) => {
+  if (num >= 1000000) {
+    return parseFloat((num / 1000000).toFixed(3)) + "M";
+  } else if (num >= 10000) {
+    return parseFloat((num / 1000).toFixed(2)) + "K";
+  }
+  return String(num);
+};
+
 const fetchStats = async () => {
   try {
     const payload = {
       dateRange1: pagination.dateRange1,
       dateRange2: pagination.dateRange2,
-      timezone: pagination.timezone
+      timezone: pagination.timezone,
     };
-    
+
     const response = await pushNotificationStore.fetchCampaignStats(payload);
-    const data = response.data.stats || { total: 0, sent: 0, opened: 0, failed: 0, cta: 0 };
-    
-    const sentPct = data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
-    const openPct = data.sent > 0 ? Math.round((data.opened / data.sent) * 100) : 0;
+    const data = response.data.stats || {
+      total: 0,
+      sent: 0,
+      opened: 0,
+      failed: 0,
+      cta: 0,
+    };
+
+    const sentPct =
+      data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
+    const openPct =
+      data.sent > 0 ? Math.round((data.opened / data.sent) * 100) : 0;
     const ctaPct = data.sent > 0 ? Math.round((data.cta / data.sent) * 100) : 0;
 
-    statsTotal.value[0].stats = String(data.total);
-    
-    statsRest.value[0].stats = String(data.sent);
+    statsTotal.value[0].stats = formatStatNumber(data.total);
+
+    statsRest.value[0].stats = formatStatNumber(data.sent);
     statsRest.value[1].stats = `${sentPct}%`;
-    statsRest.value[2].stats = String(data.opened);
+    statsRest.value[2].stats = formatStatNumber(data.opened);
     statsRest.value[3].stats = `${openPct}%`;
-    statsRest.value[4].stats = String(data.cta);
+    statsRest.value[4].stats = formatStatNumber(data.cta);
     statsRest.value[5].stats = `${ctaPct}%`;
   } catch (error) {
     console.error("Failed to fetch campaign stats", error);
@@ -176,11 +193,16 @@ const headers = [
 const { customPlugin } = useDatePickerFilters();
 
 const tonight = new Date().setHours(23, 59, 59, 999);
-const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-");
+const formatDate = (date) =>
+  date.toLocaleDateString("en-GB").split("/").join("-");
 const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
-const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
+const dateRange = ref(
+  `${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`,
+);
 
-const timezone = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata";
+const timezone =
+  window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] ||
+  "Asia/Kolkata";
 
 const pagination = reactive({
   itemsLength: 0,
@@ -195,13 +217,13 @@ const pagination = reactive({
   },
   dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
   dateRange2: new Date().setHours(23, 59, 59, 999),
-  timezone: timezone
+  timezone: timezone,
 });
 
 const onDateClosed = (selectedDates, dateStr) => {
   if (selectedDates.length === 2) {
     dateRange.value = dateStr;
-    
+
     // Convert to epoch milliseconds
     const start = new Date(selectedDates[0]);
     start.setHours(0, 0, 0, 0);
@@ -210,7 +232,7 @@ const onDateClosed = (selectedDates, dateStr) => {
 
     pagination.dateRange1 = start.getTime();
     pagination.dateRange2 = end.getTime();
-    
+
     fetchCampaigns({ ...pagination });
     fetchStats();
   }
@@ -219,11 +241,11 @@ const onDateClosed = (selectedDates, dateStr) => {
 const now = new Date();
 const logDialog = ref(false);
 const selectedLogs = ref([]);
-const selectedErrorLogs = ref([])
-const formatDate2 = stamp => {
-  if (!stamp) return "-"
-  return new Date(stamp).toLocaleString()
-}
+const selectedErrorLogs = ref([]);
+const formatDate2 = (stamp) => {
+  if (!stamp) return "-";
+  return new Date(stamp).toLocaleString();
+};
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
   const str = String(field);
@@ -236,24 +258,38 @@ const getReadableRecurrence = (schedule) => {
   const { rrule } = schedule;
   const hour = rrule.match(/BYHOUR=([^;]+)/)?.[1];
   const minute = rrule.match(/BYMINUTE=([^;]+)/)?.[1];
-  const runTime = hour !== undefined && minute !== undefined
-      ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` : null;
+  const runTime =
+    hour !== undefined && minute !== undefined
+      ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+      : null;
   let text = "";
 
   if (rrule?.includes("FREQ=DAILY")) text = "Runs Daily";
   else if (rrule?.includes("FREQ=WEEKLY")) {
-    const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
+    const days =
+      rrule
+        .match(/BYDAY=([^;]+)/)?.[1]
+        ?.split(",")
+        ?.join(", ") || "";
     text = `Runs Weekly on ${days}`;
-  }
-  else if (rrule?.includes("FREQ=MONTHLY")) {
+  } else if (rrule?.includes("FREQ=MONTHLY")) {
     if (rrule.includes("BYMONTHDAY")) {
       const day = rrule.match(/BYMONTHDAY=([^;]+)/)?.[1];
       text = `Runs Monthly on Day ${day}`;
-    }
-    else if (rrule.includes("BYSETPOS")) {
+    } else if (rrule.includes("BYSETPOS")) {
       const pos = rrule.match(/BYSETPOS=([^;]+)/)?.[1];
-      const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
-      const map = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", "-1": "Last",};
+      const days =
+        rrule
+          .match(/BYDAY=([^;]+)/)?.[1]
+          ?.split(",")
+          ?.join(", ") || "";
+      const map = {
+        1: "First",
+        2: "Second",
+        3: "Third",
+        4: "Fourth",
+        "-1": "Last",
+      };
       text = `Runs Monthly on ${map[pos]} ${days}`;
     }
   }
@@ -284,19 +320,19 @@ const fetchCampaigns = async (params) => {
 };
 
 const cancelCampaigns = async (id) => {
-  try{
+  try {
     isLoading.value = true;
     const response = await pushNotificationStore.cancelCampaign(id);
-    if(response.data) await fetchCampaigns({ ...pagination });
+    if (response.data) await fetchCampaigns({ ...pagination });
   } catch (error) {
     console.error(error);
   } finally {
     isLoading.value = false;
   }
-}
+};
 const cancelDialog = ref(false);
 const campaignToCancel = ref(null);
-const openCancelDialog = id => {
+const openCancelDialog = (id) => {
   campaignToCancel.value = id;
   cancelDialog.value = true;
 };
@@ -328,16 +364,20 @@ const onUpdateOptions = (options) => {
   fetchCampaigns({ ...pagination });
 };
 
-const getStatus = item => {
+const getStatus = (item) => {
   if (item.schedule?.canceledAt) return { label: "CANCELLED", color: "error" };
-  if (item.schedule?.runAt && new Date(item.schedule.runAt).getTime() > Date.now()) return { label: "SCHEDULED", color: "warning" };
+  if (
+    item.schedule?.runAt &&
+    new Date(item.schedule.runAt).getTime() > Date.now()
+  )
+    return { label: "SCHEDULED", color: "warning" };
   return { label: "COMPLETED", color: "success" };
 };
 
 const exportToExcel = async () => {
   try {
     isExporting.value = true;
-    
+
     // Fetch all data while maintaining current filters
     const response = await pushNotificationStore.fetchCampaigns({
       ...pagination,
@@ -357,13 +397,13 @@ const exportToExcel = async () => {
       const ctaPercent = sent > 0 ? Math.round((ctaCount / sent) * 100) : 0;
 
       const baseRow = {
-        "Name": item.campaignName,
-        "Template": item.templateCode,
-        "Start": item.createdStamp ? smartFormatDate(item.createdStamp) : "N/A",
-        "Total": total,
-        "Sent": sent,
+        Name: item.campaignName,
+        Template: item.templateCode,
+        Start: item.createdStamp ? smartFormatDate(item.createdStamp) : "N/A",
+        Total: total,
+        Sent: sent,
         "Sent %": `${sentPercent}%`,
-        "Opened": opened,
+        Opened: opened,
         "Opened %": `${openedPercent}%`,
         "Total CTA": ctaCount,
         "CTA %": `${ctaPercent}%`,
@@ -380,7 +420,7 @@ const exportToExcel = async () => {
 
       return {
         ...baseRow,
-        ...dynamicCTAs
+        ...dynamicCTAs,
       };
     });
 
@@ -388,7 +428,10 @@ const exportToExcel = async () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "Campaigns");
 
-    const fileName = `Campaigns-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+    const fileName = `Campaigns-data-${dateRange.value}.xlsx`.replaceAll(
+      " ",
+      "-",
+    );
     XLSX.writeFile(workbook, fileName);
   } catch (error) {
     console.error("Export failed", error);
@@ -404,14 +447,28 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
 <template>
   <VRow id="invoice-list">
-    <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 16px; padding: 0 12px;">
-      
+    <div
+      style="
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 0 12px;
+      "
+    >
       <VTooltip text="Refresh Data">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
             icon
-            @click="() => { fetchCampaigns({ ...pagination }); fetchStats(); }"
+            @click="
+              () => {
+                fetchCampaigns({ ...pagination });
+                fetchStats();
+              }
+            "
             :loading="isLoading"
             variant="text"
           >
@@ -437,79 +494,74 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </VTooltip>
 
       <AppDateTimePicker
-        style="width: 250px; margin-left: auto;"
+        style="width: 250px; margin-left: auto"
         v-model="dateRange"
         prepend-inner-icon="tabler-calendar"
-        :config="{ 
-          mode: 'range', 
-          dateFormat: 'd-m-Y', 
-          maxDate: tonight, 
+        :config="{
+          mode: 'range',
+          dateFormat: 'd-m-Y',
+          maxDate: tonight,
           onClose: onDateClosed,
-          plugins: [customPlugin] 
+          plugins: [customPlugin],
         }"
       />
 
       <VBtn
         prepend-icon="tabler-plus"
         :to="{ name: 'admin-push-notification-campaigns-add' }"
-        style="height: 45px;"
+        style="height: 45px"
       >
         New Notification
       </VBtn>
     </div>
 
     <VCol cols="12" md="2">
-      <CardStatisticsTransactions
-        :statistics="statsTotal"
-        title="Count"
-      />
+      <CardStatisticsTransactions :statistics="statsTotal" title="Count" />
     </VCol>
     <VCol cols="12" md="10">
-      <CardStatisticsTransactions
-        :statistics="statsRest"
-        title="Stats"
-      />
+      <CardStatisticsTransactions :statistics="statsRest" title="Stats" />
     </VCol>
 
     <VCol cols="12">
+      <MyDataTable
+        :headers="headers"
+        :items="formattedNotifications"
+        :loading="isLoading"
+        :server-side="true"
+        v-bind="pagination"
+        @update:options="onUpdateOptionsDebounced"
+      >
+        <!-- Expanded Row Data [ show-expand ] -->
+        <template #expanded-row="slotProps">
+          <tr class="v-data-table__tr">
+            <td :colspan="headers.length">
+              <NotificationCampaignExpansion
+                :stats="slotProps.item.raw.stats"
+              />
+            </td>
+          </tr>
+        </template>
 
-    <MyDataTable
-      :headers="headers"
-      :items="formattedNotifications"
-      :loading="isLoading"
-      :server-side="true"
-      v-bind="pagination"
-      @update:options="onUpdateOptionsDebounced"
-    >
-      <!-- Expanded Row Data [ show-expand ] -->
-      <template #expanded-row="slotProps">
-        <tr class="v-data-table__tr">
-          <td :colspan="headers.length">
-            <NotificationCampaignExpansion :stats="slotProps.item.raw.stats" />
-          </td>
-        </tr>
-      </template>
-
-      <!-- status -->
-      <template #item.status="{ item }">
-        <VChip
-          :color="
-            {
-              CREATED: 'primary',
-              SCHEDULED: 'primary',
-              FAILED: 'error',
-              COMPLETED: 'success',
-              ON_GOING: 'info',
-              ENDED: 'error',
-            }[item.raw.status]
-          "
-          variant="tonal"
-          size="small"
-          class="text-capitalize"
-        >
-          {{ item.raw.status.replace("_", " ") }}
-        </VChip>
-        <!-- <VChip
+        <!-- status -->
+        <template #item.status="{ item }">
+          <VChip
+            :color="
+              {
+                CREATED: 'primary',
+                SCHEDULED: 'primary',
+                FAILED: 'error',
+                COMPLETED: 'success',
+                ON_GOING: 'info',
+                ENDED: 'error',
+              }[item.raw.status]
+            "
+            variant="tonal"
+            size="small"
+            class="text-capitalize"
+          >
+            {{ item.raw.status.replace("_", " ") }}
+          </VChip>
+          <!-- <VChip
           :color="getStatus(item.raw).color"
           variant="tonal"
           size="small"
@@ -517,15 +569,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
         >
           {{ getStatus(item.raw).label }}
         </VChip> -->
-      </template>
+        </template>
 
-      <!-- sent at -->
-      <!-- <template #item.createdStamp="{ item }">
+        <!-- sent at -->
+        <!-- <template #item.createdStamp="{ item }">
         {{ smartFormatDate(item.raw.createdStamp) }}
       </template> -->
 
-      <!-- backend filtering not supported -->
-      <!-- <template #item.schedule.isRecurring="{ item }">
+        <!-- backend filtering not supported -->
+        <!-- <template #item.schedule.isRecurring="{ item }">
         <div class="d-flex justify-center">
           <VIcon v-if="item.raw.schedule?.isRecurring" size="16" color="info">
             mdi-repeat
@@ -533,99 +585,136 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </div>
       </template> -->
 
-      <template #item.createdBy="{ item }">
-        <span v-if="item.raw.createdBy">{{ item.raw.createdBy }}</span>
-        <span v-else> - </span>
-      </template>
+        <template #item.createdBy="{ item }">
+          <span v-if="item.raw.createdBy">{{ item.raw.createdBy }}</span>
+          <span v-else> - </span>
+        </template>
 
-      <!-- platforms -->
-      <template #item.filters.platform="{ item }">
-        <div class="d-flex gap-2" v-if="item.raw.filters">
-          <VChip
-            v-for="p in item.raw.filters.platform"
-            :key="p"
-            label
-            :color="PLATFORM_COLORS[p]?.color"
-            class="font-weight-medium"
-          >
-            {{ PLATFORM_COLORS[p]?.text }}
-          </VChip>
-        </div>
-      </template>
+        <!-- platforms -->
+        <template #item.filters.platform="{ item }">
+          <div class="d-flex gap-2" v-if="item.raw.filters">
+            <VChip
+              v-for="p in item.raw.filters.platform"
+              :key="p"
+              label
+              :color="PLATFORM_COLORS[p]?.color"
+              class="font-weight-medium"
+            >
+              {{ PLATFORM_COLORS[p]?.text }}
+            </VChip>
+          </div>
+        </template>
 
-      <template #item.created.stamp="{ item }">
-        <IconBtn>
-          <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
-          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
-            <div class="py-1">
-              <div v-if="item.raw.createdStamp">
-                <strong>Created:</strong> {{ formatDate2(item.raw.createdStamp) }}
+        <template #item.created.stamp="{ item }">
+          <IconBtn>
+            <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
+            <VTooltip
+              activator="parent"
+              open-delay="1000"
+              scroll-strategy="close"
+            >
+              <div class="py-1">
+                <div v-if="item.raw.createdStamp">
+                  <strong>Created:</strong>
+                  {{ formatDate2(item.raw.createdStamp) }}
+                  <div v-if="item.raw.createdBy">
+                    <strong>Created by: </strong>{{ item.raw.createdBy }}
+                  </div>
+                </div>
+                <div v-if="item.raw.schedule && item.raw.schedule.runAt">
+                  <strong>Scheduled:</strong>
+                  {{ formatDate2(item.raw.schedule.runAt) }}
+                </div>
+                <div
+                  v-if="
+                    item.raw.schedule &&
+                    item.raw.schedule.lastRunAt &&
+                    !!item.raw.schedule.isRecurring
+                  "
+                >
+                  <strong>Last run:</strong>
+                  {{ formatDate2(item.raw.schedule.lastRunAt) }}
+                </div>
+                <div
+                  v-if="item.raw.schedule && !!item.raw.schedule.isRecurring"
+                >
+                  <strong>Total runs:</strong>
+                  {{ item.raw.schedule.totalRuns || "0" }}
+                </div>
+                <div v-if="item.raw.schedule && item.raw.schedule.nextRunAt">
+                  <strong>Next run:</strong>
+                  {{ formatDate2(item.raw.schedule.nextRunAt) }}
+                </div>
+                <div v-if="item.raw.schedule && item.raw.schedule.until">
+                  <strong>Ends on:</strong>
+                  {{ formatDate2(item.raw.schedule.until) }}
+                </div>
+                <div v-if="item.raw.schedule && item.raw.schedule.canceledAt">
+                  <strong>Cancelled:</strong>
+                  {{ formatDate2(item.raw.schedule.canceledAt) }}
+                  <div v-if="item.raw.updatedBy">
+                    <strong>Cancelled by: </strong> {{ item.raw.updatedBy }}
+                  </div>
+                </div>
               </div>
-              <div v-if="item.raw.schedule && item.raw.schedule.runAt">
-                <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.runAt) }}
-              </div>
-              <div v-if="item.raw.schedule && item.raw.schedule.canceledAt">
-                <strong>Cancelled:</strong> {{ formatDate2(item.raw.schedule.canceledAt) }}
-              </div>
-            </div>
-          </VTooltip>
-        </IconBtn>
-      </template>
+            </VTooltip>
+          </IconBtn>
+        </template>
 
-      <!-- sent_percent -->
-      <template #item.stats.sent_percent="{ item }">
-        <div class="d-flex align-center">
-          <VProgressLinear
-            :model-value="item.raw.stats.sent_percent"
-            height="6"
-            color="primary"
-            class="flex-grow-1 mr-2"
-            rounded
-            style="min-width: 60px"
-          />
-          <VChip size="x-small" variant="flat" color="primary">
-            {{ item.raw.stats.sent_percent }}%
-          </VChip>
-        </div>
-      </template>
+        <!-- sent_percent -->
+        <template #item.stats.sent_percent="{ item }">
+          <div class="d-flex align-center">
+            <VProgressLinear
+              :model-value="item.raw.stats.sent_percent"
+              height="6"
+              color="primary"
+              class="flex-grow-1 mr-2"
+              rounded
+              style="min-width: 60px"
+            />
+            <VChip size="x-small" variant="flat" color="primary">
+              {{ item.raw.stats.sent_percent }}%
+            </VChip>
+          </div>
+        </template>
 
-      <!-- opened_percent -->
-      <template #item.stats.opened_percent="{ item }">
-        <div class="d-flex align-center">
-          <VProgressLinear
-            :model-value="item.raw.stats.opened_percent"
-            height="6"
-            color="primary"
-            class="flex-grow-1 mr-2"
-            rounded
-            style="min-width: 60px"
-          />
-          <VChip size="x-small" variant="flat" color="primary">
-            {{ item.raw.stats.opened_percent }}%
-          </VChip>
-        </div>
-      </template>
+        <!-- opened_percent -->
+        <template #item.stats.opened_percent="{ item }">
+          <div class="d-flex align-center">
+            <VProgressLinear
+              :model-value="item.raw.stats.opened_percent"
+              height="6"
+              color="primary"
+              class="flex-grow-1 mr-2"
+              rounded
+              style="min-width: 60px"
+            />
+            <VChip size="x-small" variant="flat" color="primary">
+              {{ item.raw.stats.opened_percent }}%
+            </VChip>
+          </div>
+        </template>
 
-      <!-- cta_percent -->
-      <template #item.stats.cta_percent="{ item }">
-        <div class="d-flex align-center">
-          <VProgressLinear
-            :model-value="item.raw.stats.cta_percent"
-            height="6"
-            color="primary"
-            class="flex-grow-1 mr-2"
-            rounded
-            style="min-width: 60px"
-          />
-          <VChip size="x-small" variant="flat" color="primary">
-            {{ item.raw.stats.cta_percent }}%
-          </VChip>
-        </div>
-      </template>
+        <!-- cta_percent -->
+        <template #item.stats.cta_percent="{ item }">
+          <div class="d-flex align-center">
+            <VProgressLinear
+              :model-value="item.raw.stats.cta_percent"
+              height="6"
+              color="primary"
+              class="flex-grow-1 mr-2"
+              rounded
+              style="min-width: 60px"
+            />
+            <VChip size="x-small" variant="flat" color="primary">
+              {{ item.raw.stats.cta_percent }}%
+            </VChip>
+          </div>
+        </template>
 
-      <!-- Actions -->
-      <template #item.actions="{ item }">
-        <!-- <IconBtn
+        <!-- Actions -->
+        <template #item.actions="{ item }">
+          <!-- <IconBtn
           :to="{
             name: 'admin-push-notification-campaigns-add',
             query: { copy: item.raw.id },
@@ -634,33 +723,39 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <VIcon icon="mdi-content-copy" />
           <VTooltip activator="parent">Duplicate</VTooltip>
         </IconBtn> -->
-        <IconBtn
-          :to="{
-            name: 'admin-push-notification-campaigns-view-id?',
-            params: { id: item.raw._id },
-          }"
-        >
-          <VIcon>mdi-eye</VIcon>
-          <VTooltip activator="parent">View Campaign Details</VTooltip>
-        </IconBtn>
-        <IconBtn
-          v-if="(item.raw.schedule?.isRecurring && new Date(item.raw.schedule?.until) > now && !item.raw.schedule?.canceledAt) 
-          || (item.raw.schedule?.type == 'scheduled' && new Date(item.raw.schedule?.runAt) > now && !item.raw.schedule?.canceledAt)"
-          @click="openCancelDialog(item.raw._id || item.raw.id)"
-        >
-          <VIcon>mdi-calendar-remove</VIcon>
-          <VTooltip activator="parent">Cancel Campaign</VTooltip>
-        </IconBtn>
-        <IconBtn
-          v-if="item.raw.logs?.length || !!item.raw.errorLogs"
-          @click="openLogDialog(item.raw.logs, item.raw.errorLogs)"
-        >
-          <VIcon>mdi-alert-circle-outline</VIcon>
-          <VTooltip activator="parent">Logs</VTooltip>
-        </IconBtn>
-      </template>
-    </MyDataTable>
-  </VCol>
+          <IconBtn
+            :to="{
+              name: 'admin-push-notification-campaigns-view-id?',
+              params: { id: item.raw._id },
+            }"
+          >
+            <VIcon>mdi-eye</VIcon>
+            <VTooltip activator="parent">View Campaign Details</VTooltip>
+          </IconBtn>
+          <IconBtn
+            v-if="
+              (item.raw.schedule?.isRecurring &&
+                new Date(item.raw.schedule?.until) > now &&
+                !item.raw.schedule?.canceledAt) ||
+              (item.raw.schedule?.type == 'scheduled' &&
+                new Date(item.raw.schedule?.runAt) > now &&
+                !item.raw.schedule?.canceledAt)
+            "
+            @click="openCancelDialog(item.raw._id || item.raw.id)"
+          >
+            <VIcon>mdi-calendar-remove</VIcon>
+            <VTooltip activator="parent">Cancel Campaign</VTooltip>
+          </IconBtn>
+          <IconBtn
+            v-if="item.raw.logs?.length || !!item.raw.errorLogs"
+            @click="openLogDialog(item.raw.logs, item.raw.errorLogs)"
+          >
+            <VIcon>mdi-alert-circle-outline</VIcon>
+            <VTooltip activator="parent">Logs</VTooltip>
+          </IconBtn>
+        </template>
+      </MyDataTable>
+    </VCol>
     <!-- Modal -->
     <VDialog v-model="cancelDialog" max-width="450">
       <VCard>
@@ -698,11 +793,29 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <div v-else class="text-grey">No logs found.</div>
           <VDivider class="my-4" />
           <div v-if="Object.keys(selectedErrorLogs).length" class="mb-4">
-            <div class="text-subtitle-2 mb-2">
-              Error Summary
+            <div
+              v-for="(count, key) in selectedErrorLogs"
+              :key="key"
+              class="m-1"
+            >
+              <div v-if="key === 'evaluation'">
+                Evaluation:
+                <div v-for="(count2, key2) in count" :key="key2" class="m-1">
+                  {{ key2 }}: {{ count2 || "-" }}
+                </div>
+              </div>
             </div>
-            <div v-for="(count, key) in selectedErrorLogs" :key="key" class="text-error mb-1">
-              <VIcon color="error">mdi-alert</VIcon> {{ key.replace(/_/g, " ") }} ({{ count }})
+            <VDivider class="my-4" />
+            <div class="text-subtitle-2 mb-2">Error Summary</div>
+            <div
+              v-for="(count, key) in selectedErrorLogs"
+              :key="key"
+              class="text-error mb-1"
+            >
+              <div v-if="key != 'evaluation'">
+                <VIcon color="error">mdi-alert</VIcon>
+                {{ key.replace(/_/g, " ") }} ({{ count }})
+              </div>
             </div>
           </div>
         </VCardText>
@@ -760,8 +873,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VCardActions>
       </VCard>
     </VDialog> -->
-  <!-- </VCard> -->
-   </VRow>
+    <!-- </VCard> -->
+  </VRow>
 </template>
 
 <style lang="scss">

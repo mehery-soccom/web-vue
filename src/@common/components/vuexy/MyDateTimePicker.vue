@@ -42,7 +42,8 @@ const props = defineProps({
   relativePresets: {
     type: Array,
     default: () => []
-  }
+  },
+  vertical: { type: Boolean, default: false },
 });
 
 // const emit = defineEmits(["update:modelValue"]);
@@ -103,7 +104,7 @@ function normalizeIncomingValue(val) {
 /* ---------------- Internal state ---------------- */
 const internalValue = ref(null);
 const selectedRelative = ref(null)
-const offset = ref(null)
+const offset = ref(0)
 const offsetUnit = ref("days")
 const presetButtons = {};
 const isProgrammaticUpdate = ref(false); // standard imperative-widget guard - “If I caused this change, ignore it. If the user caused this change, emit it.”
@@ -166,7 +167,7 @@ function handleChange(selectedDates) {
 /* ---------------- Relative preset select ---------------- */
 function selectRelativePreset(preset) {
   selectedRelative.value = preset.key
-  offset.value = null;
+  offset.value = 0;
   offsetUnit.value = "days"
 
   emitRelativePayload()
@@ -233,7 +234,7 @@ function clearValue() {
   if (props.readonly || props.disabled) return;
   internalValue.value = null;
   selectedRelative.value = null
-  offset.value = null;
+  offset.value = 0;
   offsetUnit.value = "days"
   emit("update:modelValue", []);
 }
@@ -260,7 +261,8 @@ const fpRef = ref(null)
 const handleScroll = () => {
   const fp = fpRef.value?.fp
   if (!fp) return
-  if (!fp.isOpen) fp.open(undefined, fp._positionElement)
+  if (fp.isOpen) fp.open(undefined, fp._positionElement)
+  // if (!fp.isOpen) fp.open(undefined, fp._positionElement)
 }
 
 onMounted(() => {
@@ -274,12 +276,13 @@ onBeforeUnmount(() => {
 
 <template>
   <div>
+    <div :class="vertical ? 'd-flex flex-column gap-2' : 'd-flex align-center gap-2'">
     <VInput
       :error="error"
       :error-messages="errorMessages"
       :hint="hint"
       :persistent-hint="persistentHint"
-      :disabled="disabled"
+      :disabled="disabled || readonly"
       density="compact"
       hide-details
     >
@@ -320,7 +323,8 @@ onBeforeUnmount(() => {
                 :model-value="internalValue"
                 :config="flatpickrConfig"
                 :placeholder="placeholder"
-                :disabled="disabled" ref="fpRef"
+                :disabled="disabled || readonly"
+                 ref="fpRef"
                 class="flatpickr-input w-100"
               />
             </div>
@@ -328,7 +332,8 @@ onBeforeUnmount(() => {
         </VField>
       </template>
     </VInput>
-    <div v-if="selectedRelative && props.mode !== 'range'" class="d-flex gap-2">
+    </div>
+    <div v-if="selectedRelative && props.mode !== 'range'" class="d-flex gap-2" :class="{ 'mt-2': vertical }">
       <AppTextField
         v-model="offset"
         type="number"

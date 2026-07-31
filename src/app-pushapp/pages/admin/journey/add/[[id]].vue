@@ -2,7 +2,7 @@
 import FlowEditor from "@/app-pushapp/views/admin/journeys/Floweditor.vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
-import { useFlowsStore } from '@/app-pushapp/views/admin/journeys/useFlowsStore'
+import { useFlowsStore } from "@/app-pushapp/views/admin/journeys/useFlowsStore";
 
 const FlowsStore = useFlowsStore();
 const route = useRoute();
@@ -22,10 +22,12 @@ const flow = reactive({
     conjunction: "and",
     children: [
       {
+        _id: crypto.randomUUID(),
         type: "filter",
         filterType: null,
         field: null,
         operator: null,
+        dataProperty: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -36,9 +38,9 @@ const flow = reactive({
   flow: {},
   flowRenderer: {
     drawflow: {
-      Home:{}
-    }
-  }
+      Home: {},
+    },
+  },
 });
 
 const tabs = [
@@ -68,7 +70,7 @@ const errors = ref({});
 const filterRef = ref();
 const flowEditorRef = ref();
 
-const clearError = field => {
+const clearError = (field) => {
   errors.value[field] = null;
 };
 
@@ -83,7 +85,7 @@ const isValidTab = async (tab, silent = false) => {
         validateFilterStructure(flow.filter, null, true, true, true, false);
       } catch (error) {
         filterStructureValid = false;
-        if (!silent) show({ message: error.message, color: "error",});
+        if (!silent) show({ message: error.message, color: "error" });
       }
 
       if (!filterValid || !filterStructureValid) valid = false;
@@ -102,7 +104,7 @@ const isValid = async (silent = false) => {
     tabs.map((_, i) => isValidTab(i, silent)),
   );
 
-  const tabsValid = tabResults.every(r => !!r.value);
+  const tabsValid = tabResults.every((r) => !!r.value);
   const e = {};
   if (!flow.name) e.name = true;
   if (!silent) errors.value = e;
@@ -125,13 +127,18 @@ async function launchFlow() {
     if (!flowValidation?.valid) {
       tabErrors.value[1] = true;
       activeTab.value = 1;
-      const summary = flowValidation.errors.map(e => `${e.label}: ${e.messages.join(', ')}`).join(' • ');
-      show({ message: `Fix the highlighted nodes — ${summary}`, color: 'error'});
+      const summary = flowValidation.errors
+        .map((e) => `${e.label}: ${e.messages.join(", ")}`)
+        .join(" • ");
+      show({
+        message: `Fix the highlighted nodes — ${summary}`,
+        color: "error",
+      });
       return;
     }
     tabErrors.value[1] = false;
 
-    const editorPayload = flowEditorRef.value.buildFlowPayload()
+    const editorPayload = flowEditorRef.value.buildFlowPayload();
     const payload = {
       name: flow.name,
       desc: flow.desc,
@@ -149,24 +156,51 @@ async function launchFlow() {
     router.push({ name: "admin-journey-list" });
   } catch (e) {
     console.log(e);
-    show({ message: "Failed to save flow", color: "error" });
+    if (
+      e.response?.status === 409 &&
+      e.response?.data?.error?.code === "DUPLICATE_RESOURCE"
+    ) {
+      show({
+        message: "Flow with the same name already exists",
+        color: "error",
+      });
+    } else {
+      show({ message: "Failed to save flow", color: "error" });
+    }
   } finally {
     isLoading.value = false;
   }
 }
+function ensureFilterIds(node) {
+  if (!node) return node;
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => {
+      if (!child._id) child._id = crypto.randomUUID();
+      ensureFilterIds(child);
+    });
+  }
+  return node;
+}
+
 async function loadRecordIntoForm(record) {
   if (!record) return;
   flow.name = record.name || "";
   flow.desc = record.desc || "";
   flow.flow = record.flow || {};
   flow.flowRenderer = record.flowRenderer || { drawflow: { Home: {} } };
-  if (record.filter) Object.assign(flow.filter, structuredClone(record.filter));
+  if (record.filter) {
+    const cloned = ensureFilterIds(structuredClone(record.filter));
+    Object.assign(flow.filter, cloned);
+  }
 }
 
 async function loadCloneIntoForm(data) {
   flow.flow = data.flow || {};
   flow.flowRenderer = data.flowRenderer || { drawflow: { Home: {} } };
-  if (data.filter) Object.assign(flow.filter, structuredClone(data.filter));
+  if (data.filter) {
+    const cloned = ensureFilterIds(structuredClone(data.filter));
+    Object.assign(flow.filter, cloned);
+  }
 }
 
 onMounted(async () => {
@@ -188,22 +222,24 @@ onMounted(async () => {
   if (cloneData) {
     flowRecord.value = cloneData;
     await loadCloneIntoForm(cloneData);
-    show({ message: "Cloned flow loaded — set a new name to save", color: "info" });
-  // if (!route.params.id) return;
-  // try {
-  //   isFetching.value = true;
-  //   const response = await FlowsStore.fetchFlow({ id: route.params.id });
-  //   flowRecord.value = response.data.data;
-  //   // console.log("data", JSON.parse(JSON.stringify(flowRecord.value)));
-  //   await loadRecordIntoForm(flowRecord.value);
-  // } catch (e) {
-  //   console.log(e);
-  //   show({ message: "Failed to load flow", color: "error" });
-  // } finally {
-  //   isFetching.value = false;
+    show({
+      message: "Cloned flow loaded — set a new name to save",
+      color: "info",
+    });
+    // if (!route.params.id) return;
+    // try {
+    //   isFetching.value = true;
+    //   const response = await FlowsStore.fetchFlow({ id: route.params.id });
+    //   flowRecord.value = response.data.data;
+    //   // console.log("data", JSON.parse(JSON.stringify(flowRecord.value)));
+    //   await loadRecordIntoForm(flowRecord.value);
+    // } catch (e) {
+    //   console.log(e);
+    //   show({ message: "Failed to load flow", color: "error" });
+    // } finally {
+    //   isFetching.value = false;
   }
 });
-
 </script>
 
 <template>
@@ -215,11 +251,7 @@ onMounted(async () => {
     >
       <!-- Left -->
       <div class="d-flex align-center flex-shrink-0">
-        <VIcon
-          size="28"
-          class="mr-3"
-          color="primary"
-        >
+        <VIcon size="28" class="mr-3" color="primary">
           mdi-vector-polyline
         </VIcon>
 
@@ -246,16 +278,28 @@ onMounted(async () => {
 
       <!-- Right -->
       <div class="d-flex align-center gap-2 ml-auto">
-        <VBtn variant="tonal" color="secondary" :to="{ name: 'admin-journey-list' }"> Exit </VBtn>
+        <VBtn
+          variant="tonal"
+          color="secondary"
+          :to="{ name: 'admin-journey-list' }"
+        >
+          Exit
+        </VBtn>
 
         <VBtn v-if="nextTab" color="primary" @click="proceedToNextTab">
           {{ nextTab }}
-          <VIcon end icon="mdi-arrow-right"/>
+          <VIcon end icon="mdi-arrow-right" />
         </VBtn>
 
-        <VBtn v-else color="success" :loading="isLoading" v-if="!isViewMode || isEditing" @click="launchFlow">
+        <VBtn
+          v-else
+          color="success"
+          :loading="isLoading"
+          v-if="!isViewMode || isEditing"
+          @click="launchFlow"
+        >
           Save Flow
-          <VIcon end icon="mdi-check"/>
+          <VIcon end icon="mdi-check" />
         </VBtn>
       </div>
     </VToolbar>
@@ -298,7 +342,11 @@ onMounted(async () => {
 
       <!-- Flow -->
       <VWindowItem>
-        <FlowEditor ref="flowEditorRef" :initial-flow="flowRecord" :disabled="isViewMode && !isEditing"/>
+        <FlowEditor
+          ref="flowEditorRef"
+          :initial-flow="flowRecord"
+          :disabled="isViewMode && !isEditing"
+        />
       </VWindowItem>
     </VWindow>
   </div>

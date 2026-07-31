@@ -1,7 +1,7 @@
 <script setup>
 import debounce from "lodash/debounce";
 import { smartFormatDate } from "@app-pushapp/@core/utils/formatters";
-import CardStatisticsTransactions from '@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
+import CardStatisticsTransactions from "@/app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import AbTestingMetrics from "@/app-pushapp/views/admin/app-engagements/AbTestingMetrics.vue";
@@ -20,35 +20,53 @@ const isLoading = ref(false);
 const items = ref([]);
 
 const statsTotal = ref([
-  { title: "Total Count", stats: "0", icon: "tabler-send", color: "primary" }
+  { title: "Total", stats: "0", icon: "tabler-send", color: "primary" },
 ]);
 
 const statsRest = ref([
   { title: "Delivered", stats: "0", icon: "tabler-check", color: "success" },
-  { title: "Delivery %", stats: "0%", icon: "tabler-chart-pie", color: "success" },
+  {
+    title: "Delivery %",
+    stats: "0%",
+    icon: "tabler-chart-pie",
+    color: "success",
+  },
   { title: "CTA", stats: "0", icon: "tabler-click", color: "warning" },
   { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
 ]);
+
+const formatStatNumber = (num) => {
+  if (num >= 1000000) {
+    return parseFloat((num / 1000000).toFixed(3)) + "M";
+  } else if (num >= 10000) {
+    return parseFloat((num / 1000).toFixed(2)) + "K";
+  }
+  return String(num);
+};
 
 const fetchStats = async () => {
   try {
     const payload = {
       dateRange1: pagination.dateRange1,
       dateRange2: pagination.dateRange2,
-      timezone: pagination.timezone
+      timezone: pagination.timezone,
     };
-    
-    const response = await appEngagementsStore.fetchEngagementCampaignStats(payload);
-    const data = response.data.stats || { total: 0, sent: 0, ctaCount: 0 };
-    
-    const sentPct = data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
-    const ctaPct = data.sent > 0 ? Math.round((data.ctaCount / data.sent) * 100) : 0;
 
-    statsTotal.value[0].stats = String(data.total);
-    
-    statsRest.value[0].stats = String(data.sent);
+    const response = await appEngagementsStore.fetchEngagementCampaignStats(
+      payload,
+    );
+    const data = response.data.stats || { total: 0, sent: 0, ctaCount: 0 };
+
+    const sentPct =
+      data.total > 0 ? Math.round((data.sent / data.total) * 100) : 0;
+    const ctaPct =
+      data.sent > 0 ? Math.round((data.ctaCount / data.sent) * 100) : 0;
+
+    statsTotal.value[0].stats = formatStatNumber(data.total);
+
+    statsRest.value[0].stats = formatStatNumber(data.sent);
     statsRest.value[1].stats = `${sentPct}%`;
-    statsRest.value[2].stats = String(data.ctaCount);
+    statsRest.value[2].stats = formatStatNumber(data.ctaCount);
     statsRest.value[3].stats = `${ctaPct}%`;
   } catch (error) {
     console.error("Failed to fetch app engagement stats", error);
@@ -69,8 +87,11 @@ const formattedItems = computed(() =>
           ? Math.round(((item.stats.cta?.__count || 0) / item.stats.sent) * 100)
           : 0,
     },
-    status:
-      getCampaignStatus(item.schedule, item.abTesting?.enabled, item.status),
+    status: getCampaignStatus(
+      item.schedule,
+      item.abTesting?.enabled,
+      item.status,
+    ),
   })),
 );
 const headers = [
@@ -186,11 +207,16 @@ const headers = [
 const { customPlugin } = useDatePickerFilters();
 
 const tonight = new Date().setHours(23, 59, 59, 999);
-const formatDate = (dat) => dat.toLocaleDateString("en-GB").split("/").join("-");
+const formatDate = (dat) =>
+  dat.toLocaleDateString("en-GB").split("/").join("-");
 const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
-const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
+const dateRange = ref(
+  `${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`,
+);
 
-const timezone = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata";
+const timezone =
+  window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] ||
+  "Asia/Kolkata";
 
 const pagination = reactive({
   itemsLength: 0,
@@ -209,7 +235,7 @@ const pagination = reactive({
   },
   dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
   dateRange2: new Date().setHours(23, 59, 59, 999),
-  timezone: timezone
+  timezone: timezone,
 });
 
 const onDateClosed = (selectedDates, dateStr) => {
@@ -239,9 +265,15 @@ const openLogDialog = (logs) => {
 
 const getCampaignStatus = (
   { durationType, startDate, endDate },
-  isAbTesting, status
+  isAbTesting,
+  status,
 ) => {
-  if(status === 'ENDED' || status === 'AWAITING_RESULT' || status === 'ABORTED') return status;
+  if (
+    status === "ENDED" ||
+    status === "AWAITING_RESULT" ||
+    status === "ABORTED"
+  )
+    return status;
   if (durationType === "ALWAYS" || durationType === "manual") {
     if (isAbTesting) return "TESTING";
     return "ON_GOING";
@@ -297,13 +329,13 @@ const endCampaign = async (item, dialogCloseRef) => {
     isLoading.value = false;
   }
 };
-const endedStamp = history => {
-  return history?.find(h => h.status === "ENDED")?.time?.stamp
-}
-const formatDate2 = stamp => {
-  if (!stamp) return "-"
-  return new Date(stamp).toLocaleString()
-}
+const endedStamp = (history) => {
+  return history?.find((h) => h.status === "ENDED")?.time?.stamp;
+};
+const formatDate2 = (stamp) => {
+  if (!stamp) return "-";
+  return new Date(stamp).toLocaleString();
+};
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
   const str = String(field);
@@ -317,23 +349,36 @@ const getReadableRecurrence = (schedule) => {
   let text = "";
   if (rrule?.includes("FREQ=DAILY")) text = "Runs Daily";
   else if (rrule?.includes("FREQ=WEEKLY")) {
-    const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
+    const days =
+      rrule
+        .match(/BYDAY=([^;]+)/)?.[1]
+        ?.split(",")
+        ?.join(", ") || "";
     text = `Runs Weekly on ${days}`;
-  }
-  else if (rrule?.includes("FREQ=MONTHLY")) {
+  } else if (rrule?.includes("FREQ=MONTHLY")) {
     if (rrule.includes("BYMONTHDAY")) {
       const day = rrule.match(/BYMONTHDAY=([^;]+)/)?.[1];
       text = `Runs Monthly on Day ${day}`;
-    }
-    else if (rrule.includes("BYSETPOS")) {
+    } else if (rrule.includes("BYSETPOS")) {
       const pos = rrule.match(/BYSETPOS=([^;]+)/)?.[1];
-      const days = rrule.match(/BYDAY=([^;]+)/)?.[1]?.split(",")?.join(", ") || "";
-      const map = { 1: "First", 2: "Second", 3: "Third", 4: "Fourth", "-1": "Last",};
+      const days =
+        rrule
+          .match(/BYDAY=([^;]+)/)?.[1]
+          ?.split(",")
+          ?.join(", ") || "";
+      const map = {
+        1: "First",
+        2: "Second",
+        3: "Third",
+        4: "Fourth",
+        "-1": "Last",
+      };
       text = `Runs Monthly on ${map[pos]} ${days}`;
     }
   }
 
-  if (activeHours?.start && activeHours?.end) text += ` between ${activeHours.start} - ${activeHours.end}`;
+  if (activeHours?.start && activeHours?.end)
+    text += ` between ${activeHours.start} - ${activeHours.end}`;
   return text || "N/A";
 };
 
@@ -364,14 +409,14 @@ const exportToExcel = async () => {
       const ctaPercent = sent > 0 ? Math.round((ctaCount / sent) * 100) : 0;
 
       const baseRow = {
-        "Name": item.title,
-        "Template": item.action?.template?.code,
-        "Type": item.action?.template?.type,
-        "SubType": item.action?.template?.subType,
+        Name: item.title,
+        Template: item.action?.template?.code,
+        Type: item.action?.template?.type,
+        SubType: item.action?.template?.subType,
         "A/B Testing": item.abTesting?.enabled ? "Yes" : "No",
-        "Status": item.status,
-        "Count": total,
-        "Delivered": sent,
+        Status: item.status,
+        Count: total,
+        Delivered: sent,
         "Delivery %": `${sentPercent}%`,
         "Total CTA": ctaCount,
         "CTA %": `${ctaPercent}%`,
@@ -390,7 +435,10 @@ const exportToExcel = async () => {
     const worksheet = XLSX.utils.json_to_sheet(formattedData);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "App Engagements");
-    const fileName = `AppEngagements-data-${dateRange.value}.xlsx`.replaceAll(" ", "-");
+    const fileName = `AppEngagements-data-${dateRange.value}.xlsx`.replaceAll(
+      " ",
+      "-",
+    );
     XLSX.writeFile(workbook, fileName);
   } catch (error) {
     console.error("Export failed", error);
@@ -406,14 +454,28 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
 <template>
   <VRow id="invoice-list">
-    <div style="width: 100%; display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 16px; padding: 0 12px;">
-      
+    <div
+      style="
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 0 12px;
+      "
+    >
       <VTooltip text="Refresh Data">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
             icon
-            @click="() => { fetchCampaigns({ ...pagination }); fetchStats(); }"
+            @click="
+              () => {
+                fetchCampaigns({ ...pagination });
+                fetchStats();
+              }
+            "
             :loading="isLoading"
             variant="text"
           >
@@ -439,38 +501,32 @@ const onUpdateOptionsDebounced = debounce((options) => {
       </VTooltip>
 
       <AppDateTimePicker
-        style="width: 250px; margin-left: auto;"
+        style="width: 250px; margin-left: auto"
         v-model="dateRange"
         prepend-inner-icon="tabler-calendar"
-        :config="{ 
-          mode: 'range', 
-          dateFormat: 'd-m-Y', 
-          maxDate: tonight, 
+        :config="{
+          mode: 'range',
+          dateFormat: 'd-m-Y',
+          maxDate: tonight,
           onClose: onDateClosed,
-          plugins: [customPlugin] 
+          plugins: [customPlugin],
         }"
       />
 
       <VBtn
         prepend-icon="tabler-plus"
         :to="{ name: 'admin-app-engagements-campaigns-add' }"
-        style="height: 45px;"
+        style="height: 45px"
       >
         New Campaign
       </VBtn>
     </div>
 
     <VCol cols="12" md="3">
-      <CardStatisticsTransactions
-        :statistics="statsTotal"
-        title="Count"
-      />
+      <CardStatisticsTransactions :statistics="statsTotal" title="Count" />
     </VCol>
     <VCol cols="12" md="9">
-      <CardStatisticsTransactions
-        :statistics="statsRest"
-        title="Stats"
-      />
+      <CardStatisticsTransactions :statistics="statsRest" title="Stats" />
     </VCol>
 
     <VCol cols="12">
@@ -482,65 +538,65 @@ const onUpdateOptionsDebounced = debounce((options) => {
         v-bind="pagination"
         @update:options="onUpdateOptionsDebounced"
       >
-      <!-- Expanded Row Data [ show-expand ] -->
-      <template #expanded-row="slotProps">
-        <tr class="v-data-table__tr">
-          <!-- <td :colspan="headers.length"> -->
-          <td :colspan="6">
-            <AbTestingMetrics
-              :abTesting="slotProps.item.raw.abTesting"
-              :stats="slotProps.item.raw.stats"
-            />
-          </td>
-        </tr>
-      </template>
+        <!-- Expanded Row Data [ show-expand ] -->
+        <template #expanded-row="slotProps">
+          <tr class="v-data-table__tr">
+            <!-- <td :colspan="headers.length"> -->
+            <td :colspan="6">
+              <AbTestingMetrics
+                :abTesting="slotProps.item.raw.abTesting"
+                :stats="slotProps.item.raw.stats"
+              />
+            </td>
+          </tr>
+        </template>
 
-      <!-- status -->
-      <template #item.status="{ item }">
-        <VChip
-          :color="
-            {
-              CREATED: 'primary',
-              TESTING: 'info',
-              AWAITING_RESULT: 'info',
-              ABORTED: 'error',
-              ON_GOING: 'success',
-              ENDED: 'error',
-            }[item.raw.status]
-          "
-          variant="tonal"
-          size="small"
-          class="text-capitalize"
-        >
-          {{ item.raw.status.replace("_", " ") }}
-        </VChip>
-      </template>
+        <!-- status -->
+        <template #item.status="{ item }">
+          <VChip
+            :color="
+              {
+                CREATED: 'primary',
+                TESTING: 'info',
+                AWAITING_RESULT: 'info',
+                ABORTED: 'error',
+                ON_GOING: 'success',
+                ENDED: 'error',
+              }[item.raw.status]
+            "
+            variant="tonal"
+            size="small"
+            class="text-capitalize"
+          >
+            {{ item.raw.status.replace("_", " ") }}
+          </VChip>
+        </template>
 
-      <!-- A/B enabled -->
-      <template #item.abTesting.enabled="{ item }">
-        <VIcon
-          v-if="item.raw.abTesting?.enabled"
-          size="16"
-          :color="
-            {
-              CREATED: 'info',
-              TESTING: 'info',
-              AWAITING_RESULT: 'info',
-              CONCLUDED: 'success',
-              ABORTED: 'error',
-            }[item.raw.abTesting?.state]
-          "
-          start
-        >
-          mdi-flask
-        </VIcon>
-        <VTooltip v-if="item.raw.abTesting?.enabled" activator="parent">{{
-          item.raw.abTesting?.state || "Expand row for more details"
-        }}</VTooltip>
-      </template>
+        <!-- A/B enabled -->
+        <template #item.abTesting.enabled="{ item }">
+          <VIcon
+            v-if="item.raw.abTesting?.enabled"
+            size="16"
+            :color="
+              {
+                CREATED: 'info',
+                TESTING: 'info',
+                AWAITING_RESULT: 'info',
+                CONCLUDED: 'success',
+                ABORTED: 'error',
+              }[item.raw.abTesting?.state]
+            "
+            start
+          >
+            mdi-flask
+          </VIcon>
+          <VTooltip v-if="item.raw.abTesting?.enabled" activator="parent">{{
+            item.raw.abTesting?.state || "Expand row for more details"
+          }}</VTooltip>
+        </template>
 
-      <!-- backend filtering not supported -->
-      <!-- <template #item.schedule.enableActiveWindow="{ item }">
+        <!-- backend filtering not supported -->
+        <!-- <template #item.schedule.enableActiveWindow="{ item }">
         <div class="d-flex justify-center">
           <VIcon v-if="item.raw.schedule?.enableActiveWindow" size="16" color="success">
             mdi-clock-outline
@@ -548,18 +604,18 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </div>
       </template> -->
 
-      <!-- Template codes -->
-      <template #item.action.template.code="{ item }">
-        {{ item.raw.action.template.code }}
-        {{
-          item.raw.action.templateB?.code
-            ? "| " + item.raw.action.templateB?.code
-            : ""
-        }}
-      </template>
+        <!-- Template codes -->
+        <template #item.action.template.code="{ item }">
+          {{ item.raw.action.template.code }}
+          {{
+            item.raw.action.templateB?.code
+              ? "| " + item.raw.action.templateB?.code
+              : ""
+          }}
+        </template>
 
-      <!-- Template types -->
-      <!-- <template #item.action.template.type="{ item }">
+        <!-- Template types -->
+        <!-- <template #item.action.template.type="{ item }">
         {{ item.raw.action.template.type }}
         {{
           item.raw.action.templateB?.type
@@ -567,127 +623,142 @@ const onUpdateOptionsDebounced = debounce((options) => {
             : ""
         }}
       </template> -->
-      <template #item.created.stamp="{ item }">
-        <IconBtn>
-          <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
-          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
-            <div class="py-1">
-              <div v-if="item.raw.created && item.raw.created.stamp">
-                <strong>Created:</strong> {{ formatDate2(item.raw.created.stamp) }}
+        <template #item.created.stamp="{ item }">
+          <IconBtn>
+            <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
+            <VTooltip
+              activator="parent"
+              open-delay="1000"
+              scroll-strategy="close"
+            >
+              <div class="py-1">
+                <div v-if="item.raw.created && item.raw.created.stamp">
+                  <strong>Created:</strong>
+                  {{ formatDate2(item.raw.created.stamp) }}
+                  <div v-if="item.raw.created.byUser">
+                    <strong>Created by: </strong> {{ item.raw.created.byUser }}
+                  </div>
+                </div>
+                <div v-if="item.raw.schedule && item.raw.schedule.startDate">
+                  <strong>Scheduled:</strong>
+                  {{ formatDate2(item.raw.schedule.startDate) }}
+                </div>
+                <div v-if="endedStamp(item.raw.statusHistory)">
+                  <strong>Ended:</strong>
+                  {{ formatDate2(endedStamp(item.raw.statusHistory)) }}
+                  <div v-if="item.raw.updated.byUser">
+                    <strong>Ended by: </strong> {{ item.raw.updated.byUser }}
+                  </div>
+                </div>
               </div>
-              <div v-if="item.raw.schedule && item.raw.schedule.startDate">
-                <strong>Scheduled:</strong> {{ formatDate2(item.raw.schedule.startDate) }}
-              </div>
-              <div v-if="endedStamp(item.raw.statusHistory)">
-                <strong>Ended:</strong> {{ formatDate2(endedStamp(item.raw.statusHistory)) }}
-              </div>
-            </div>
-          </VTooltip>
-        </IconBtn>
-      </template>
+            </VTooltip>
+          </IconBtn>
+        </template>
 
-      <!-- Template sub types -->
-      <template #item.action.template.subType="{ item }">
-        {{ item.raw.action.template.subType }}
-        {{
-          item.raw.action.templateB?.subType
-            ? "| " + item.raw.action.templateB?.subType
-            : ""
-        }}
-      </template>
+        <!-- Template sub types -->
+        <template #item.action.template.subType="{ item }">
+          {{ item.raw.action.template.subType }}
+          {{
+            item.raw.action.templateB?.subType
+              ? "| " + item.raw.action.templateB?.subType
+              : ""
+          }}
+        </template>
 
-      <template #item.created.byUser="{ item }">
-        <span v-if="item.raw.created && item.raw.created.byUser">{{ item.raw.created.byUser }}</span>
-        <span v-else> - </span>
-      </template>
+        <template #item.created.byUser="{ item }">
+          <span v-if="item.raw.created && item.raw.created.byUser">{{
+            item.raw.created.byUser
+          }}</span>
+          <span v-else> - </span>
+        </template>
 
-      <!-- sent_percent -->
-      <template #item.stats.sent_percent="{ item }">
-        <div class="d-flex align-center">
-          <VProgressLinear
-            :model-value="item.raw.stats.sent_percent"
-            height="6"
-            color="primary"
-            class="flex-grow-1 mr-2"
-            rounded
-            style="min-width: 60px"
-          />
-          <VChip size="x-small" variant="flat" color="primary">
-            {{ item.raw.stats.sent_percent }}%
-          </VChip>
-        </div>
-      </template>
+        <!-- sent_percent -->
+        <template #item.stats.sent_percent="{ item }">
+          <div class="d-flex align-center">
+            <VProgressLinear
+              :model-value="item.raw.stats.sent_percent"
+              height="6"
+              color="primary"
+              class="flex-grow-1 mr-2"
+              rounded
+              style="min-width: 60px"
+            />
+            <VChip size="x-small" variant="flat" color="primary">
+              {{ item.raw.stats.sent_percent }}%
+            </VChip>
+          </div>
+        </template>
 
-      <!-- cta_percent -->
-      <template #item.stats.cta_percent="{ item }">
-        <div class="d-flex align-center">
-          <VProgressLinear
-            :model-value="item.raw.stats.cta_percent"
-            height="6"
-            color="primary"
-            class="flex-grow-1 mr-2"
-            rounded
-            style="min-width: 60px"
-          />
-          <VChip size="x-small" variant="flat" color="primary">
-            {{ item.raw.stats.cta_percent }}%
-          </VChip>
-        </div>
-      </template>
+        <!-- cta_percent -->
+        <template #item.stats.cta_percent="{ item }">
+          <div class="d-flex align-center">
+            <VProgressLinear
+              :model-value="item.raw.stats.cta_percent"
+              height="6"
+              color="primary"
+              class="flex-grow-1 mr-2"
+              rounded
+              style="min-width: 60px"
+            />
+            <VChip size="x-small" variant="flat" color="primary">
+              {{ item.raw.stats.cta_percent }}%
+            </VChip>
+          </div>
+        </template>
 
-      <!-- Actions -->
-      <template #item.actions="{ item }">
-        <VBtn
-          v-if="item.raw.status !== 'ENDED' && item.raw.status !== 'ABORTED'"
-          variant="outlined"
-          color="error"
-          size="small"
-        >
-          <VIcon icon="mdi-stop" start />
-          End
+        <!-- Actions -->
+        <template #item.actions="{ item }">
+          <VBtn
+            v-if="item.raw.status !== 'ENDED' && item.raw.status !== 'ABORTED'"
+            variant="outlined"
+            color="error"
+            size="small"
+          >
+            <VIcon icon="mdi-stop" start />
+            End
 
-          <v-dialog activator="parent" max-width="340">
-            <template v-slot:default="{ isActive }">
-              <v-card
-                class=""
-                prepend-icon="mdi-alert"
-                text="Are you certain, you want to end this campaign ?"
-                title="Confirm"
-              >
-                <template v-slot:actions>
-                  <v-btn
-                    class="ml-auto"
-                    text="Yes"
-                    @click="endCampaign(item.raw, isActive)"
-                  ></v-btn>
-                  <v-btn
-                    class="ml-auto"
-                    text="No"
-                    @click="isActive.value = false"
-                  ></v-btn>
-                </template>
-              </v-card>
-            </template>
-          </v-dialog>
+            <v-dialog activator="parent" max-width="340">
+              <template v-slot:default="{ isActive }">
+                <v-card
+                  class=""
+                  prepend-icon="mdi-alert"
+                  text="Are you certain, you want to end this campaign ?"
+                  title="Confirm"
+                >
+                  <template v-slot:actions>
+                    <v-btn
+                      class="ml-auto"
+                      text="Yes"
+                      @click="endCampaign(item.raw, isActive)"
+                    ></v-btn>
+                    <v-btn
+                      class="ml-auto"
+                      text="No"
+                      @click="isActive.value = false"
+                    ></v-btn>
+                  </template>
+                </v-card>
+              </template>
+            </v-dialog>
 
-          <VTooltip activator="parent">End this campaign</VTooltip>
-        </VBtn>
-        <IconBtn
-          :to="{
-            name: 'admin-app-engagements-campaigns-view-id?',
-            params: { id: item.raw._id },
-          }"
-        >
-          <VIcon>mdi-eye</VIcon>
-          <VTooltip activator="parent">View Campaign Details</VTooltip>
-        </IconBtn>
-        <!-- <IconBtn @click="openLogDialog(item)">
+            <VTooltip activator="parent">End this campaign</VTooltip>
+          </VBtn>
+          <IconBtn
+            :to="{
+              name: 'admin-app-engagements-campaigns-view-id?',
+              params: { id: item.raw._id },
+            }"
+          >
+            <VIcon>mdi-eye</VIcon>
+            <VTooltip activator="parent">View Campaign Details</VTooltip>
+          </IconBtn>
+          <!-- <IconBtn @click="openLogDialog(item)">
           <VIcon>mdi-eye</VIcon>
           <VTooltip activator="parent">Logs</VTooltip>
         </IconBtn> -->
-      </template>
-    </MyDataTable>
-  </VCol>
+        </template>
+      </MyDataTable>
+    </VCol>
     <!-- <VDialog v-model="logDialog" max-width="600">
       <VCard>
         <VCardTitle class="text-h6">Campaign Details</VCardTitle>
@@ -743,8 +814,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </VCardActions>
       </VCard>
     </VDialog> -->
-  <!-- </VCard> -->
-   </VRow>
+    <!-- </VCard> -->
+  </VRow>
 </template>
 
 <style lang="scss">

@@ -10,4 +10,9 @@ export default [
     icon: { icon: "tabler-books" },
     to: "config-library-list",
   },
+  {
+    title: "Api Creds",
+    icon: { icon: "tabler-key" },
+    to: "config-apicredentials-list",
+  },
 ];
