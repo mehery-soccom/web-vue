@@ -37,7 +37,8 @@ const headers = [
   { title: "Campaign", key: "name" },
   { title: "Channel", key: "contactType" },
   { title: "Template", key: "templateName" },
-  { title: "Time", key: "scheduledStamp" },
+  { title: "Created", key: "createdStamp" },
+  { title: "Scheduled", key: "scheduledStamp" },
   { title: "Status", key: "status" },
   { title: "Total", key: "total", sortable: true },
   { title: "Sent", key: "sent", sortable: true },
@@ -248,7 +249,8 @@ const exportToExcel = () => {
     Campaign: item.name,
     ChannelType: item.contactType,
     Template: item.templateName,
-    Time: formatStamp(item.scheduledStamp || item.createdStamp),
+    Created: formatStamp(item.createdStamp),
+    Scheduled: formatStamp(item.scheduledStamp),
     Status: item.status,
     Total: item.total,
     Sent: item.sent,
@@ -426,13 +428,14 @@ onMounted(async () => {
             <span>{{ item.raw.templateName }}</span>
           </VTooltip>
         </template>
+        <template #item.createdStamp="{ item }">
+          <span style="width: 100%; display: inline-block; text-align: center">{{ formatStamp(item.raw.createdStamp) || '-' }}</span>
+        </template>
         <template #item.scheduledStamp="{ item }">
-          {{ formatStamp(item.raw.scheduledStamp) || formatStamp(item.raw.createdStamp) }}
+          <span style="width: 100%; display: inline-block; text-align: center">{{ formatStamp(item.raw.scheduledStamp) || '-' }}</span>
         </template>
         <template #item.total="{ item }">
-          <span
-            style="width: 100%; display: inline-block; text-align: center"
-            >{{ item.raw.total }}</span
+          <span style="width: 100%; display: inline-block; text-align: center">{{ item.raw.total }}</span
           >
         </template>
         <template #item.sent="{ item }">
