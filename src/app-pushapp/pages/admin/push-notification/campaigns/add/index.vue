@@ -373,7 +373,7 @@ onMounted(async () => {
   if (templatesRes.data.results)
     TemplateListSimple.value = templatesRes.data.results.filter(
       (t) => t.type === "simple",
-    );
+    ).sort((a, b) => a.desc.localeCompare(b.desc));
 
   const copy = route.query.copy;
   if (copy) {
@@ -823,7 +823,7 @@ const onSendSimple = async () => {
                           placeholder="Select Date"
                           class="flex-grow-1 tiny-input"
                           style="min-width: 170px"
-                          :config="{ enableTime: true, minDate: now }"
+                          :config="{ enableTime: true, minDate: now, time_24hr: true, }"
                           :rules="[endDateValidator]"
                         />
                     </div>
@@ -849,7 +849,7 @@ const onSendSimple = async () => {
                             class="flex-grow-1 tiny-input"
                             style="min-width: 170px"
                             :disabled="schedule.durationType !== 'scheduled'"
-                            :config="{ enableTime: true, minDate: now }"
+                            :config="{ enableTime: true, minDate: now, time_24hr: true, }"
                             :rules="[startDateValidator]"
                           />
                         </div>

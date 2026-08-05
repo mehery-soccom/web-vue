@@ -304,7 +304,7 @@ defineExpose({ isValid });
                 :error="!!errors.startDate"
                 @update:modelValue="clearError('startDate')"
                 :disabled="form.durationType !== 'DATE_RANGE'"
-                :config="{ enableTime: true, minDate: props.readonly ? null : now }"
+                :config="{ enableTime: true, minDate: props.readonly ? null : now, time_24hr: true, }"
               />
               <span>ending on</span>
               <AppDateTimePicker
@@ -317,7 +317,7 @@ defineExpose({ isValid });
                 :error="!!errors.endDate"
                 @update:modelValue="clearError('endDate')"
                 :disabled="form.durationType !== 'DATE_RANGE'"
-                :config="{ enableTime: true, minDate: props.readonly ? null : now }"
+                :config="{ enableTime: true, minDate: props.readonly ? null : now, time_24hr: true, }"
               />
             </div>
           </div>

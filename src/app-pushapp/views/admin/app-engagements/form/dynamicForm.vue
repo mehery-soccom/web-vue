@@ -109,7 +109,7 @@ onMounted(async () => {
   const saved = fromMetaStore?.$state?.meta?.prefs?.pa_app_colorlist_saved;
   if (Array.isArray(saved)) swatch.value = [ ["#00000100"], ...saved.map(c => [c.value]), ];
   const res = await AppEngagementsStore.fetchPlaceholders()
-  placeholders.value = res.data.results;
+  placeholders.value = res.data.results.sort((a, b) => a.label.localeCompare(b.label));
   loadOptionsForFields();
   // console.log("ress", saved, swatch.value)
 })
