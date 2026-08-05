@@ -5,6 +5,8 @@ export const useLibraryStore = defineStore("LibraryStore", {
   state: () => ({
     pageList: [],
     pageListLoading: false,
+    placeholderList: [],
+    placeholderListLoading: false,
   }),
   getters: {},
   actions: {

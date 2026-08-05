@@ -34,13 +34,23 @@ const headers = computed(() => [
     ],
   },
   {
-    title: "Created",
+    title: "Created at",
     key: "createdAt",
     align: "center",
   },
   {
-    title: "Updated",
+    title: "Created By",
+    key: "createdBy",
+    align: "center",
+  },
+  {
+    title: "Updated at",
     key: "updatedAt",
+    align: "center",
+  },
+  {
+    title: "Updated By",
+    key: "updatedBy",
     align: "center",
   },
   {
@@ -216,13 +226,23 @@ onMounted(async () => {});
       </template>
 
       <!-- created at -->
-      <template #item.createdAt="{ item }">
-        <span v-if="item.raw.createTime && item.raw.createTime.stamp">{{ smartFormatDate(item.raw.createTime.stamp) }}</span>
+        <template #item.createdAt="{ item }">
+          <span v-if="item.raw.createTime && item.raw.createTime.stamp">{{ smartFormatDate(item.raw.createTime.stamp) }}</span>
+          <span v-else>-</span>
+        </template>
+
+      <template #item.createdBy="{ item }">
+        <span v-if="item.raw.createTime && item.raw.createTime.byUser">{{ item.raw.createTime.byUser }}</span>
         <span v-else>-</span>
       </template>
 
       <template #item.updatedAt="{ item }">
         <span v-if="item.raw.updateTime && item.raw.updateTime.stamp">{{ smartFormatDate(item.raw.updateTime.stamp) }}</span>
+        <span v-else>-</span>
+      </template>
+
+      <template #item.updatedBy="{ item }">
+        <span v-if="item.raw.updateTime && item.raw.updateTime.byUser">{{ item.raw.updateTime.byUser }}</span>
         <span v-else>-</span>
       </template>
 

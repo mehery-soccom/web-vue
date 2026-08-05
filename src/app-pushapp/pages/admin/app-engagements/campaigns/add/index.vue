@@ -140,7 +140,7 @@ const fetchTemplateList = async () => {
     templateList.value = response.data.results.map((r) => ({
       ...r,
       id: r._id,
-    }));
+    })).sort((a, b) => a.desc.localeCompare(b.desc));
   } catch (e) {
     console.log("templates error", e);
   }

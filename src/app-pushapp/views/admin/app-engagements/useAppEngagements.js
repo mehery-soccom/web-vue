@@ -17,6 +17,12 @@ const localCache = reactive({});
 const isLoaded = ref(false);
 const isLoading = ref(false);
 
+function sortByTitle(items = []) {
+  return [...items].sort((a, b) =>
+    String(a?.title || "").localeCompare(String(b?.title || ""))
+  );
+}
+
 export const useAppEngagements = (source, config = {}) => {
   // const route = useRoute();
   // const router = useRouter();
@@ -28,10 +34,12 @@ export const useAppEngagements = (source, config = {}) => {
     // console.log("FILTER_FIELDS", source?.filterType);
     if (!source?.filterType) return [];
     if (source.filterType === "cohort")
-      return config.onlyActiveCohorts
-        ? localCache.activeCohorts || []
-        : localCache.cohort || [];
-    return Object.values(FILTER_FIELDS_MAP).filter((o) => {
+      return sortByTitle(
+        config.onlyActiveCohorts
+          ? localCache.activeCohorts || []
+          : localCache.cohort || [],
+      );
+    return sortByTitle(Object.values(FILTER_FIELDS_MAP).filter((o) => {
       const ft =
         source.filterType === "computedSystemAttribute"
           ? "attribute"
@@ -41,7 +49,7 @@ export const useAppEngagements = (source, config = {}) => {
         return String(o.channelId) === String(config.channelId.value);
       }
       return true;
-    });
+    }));
   });
   const FILTER_OPERATORS = computed(() => {
     // console.log("FILTER_OPERATORS", source.field);
@@ -65,7 +73,7 @@ export const useAppEngagements = (source, config = {}) => {
   });
 
   async function fetchFilterFields({ type }) {
-    console.log("fetchFilterFields raw type", type);
+    console.log("fetchFilterFields raw type", type, FILTER_FIELDS_MAP, localCache);
 
     const _type = type === "computedSystemAttribute" ? "attribute" : type;
     if (!_type || localCache[_type]) return;
@@ -83,7 +91,7 @@ export const useAppEngagements = (source, config = {}) => {
       });
 
       if (localCache[_type]) return;
-      localCache[_type] = Object.values(resultsMap);
+      localCache[_type] = sortByTitle(Object.values(resultsMap));
 
       if (!isLoaded.value && !isLoading.value) {
         fetchFilterFieldValues();
@@ -115,7 +123,7 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[_type] = results;
+        localCache[_type] = sortByTitle(results);
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${_type}:`, error);
@@ -145,7 +153,7 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[_type] = results;
+        localCache[_type] = sortByTitle(results);
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${_type}:`, error);
@@ -175,8 +183,8 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[_type] = results;
-        localCache.activeCohorts = activeCohorts;
+        localCache[_type] = sortByTitle(results);
+        localCache.activeCohorts = sortByTitle(activeCohorts);
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${_type}:`, error);
@@ -209,10 +217,12 @@ export const useAppEngagements = (source, config = {}) => {
             r.inputFieldMeta = { type: "text" };
           }
 
-          resultsMap[r.value] = r;
+          // resultsMap[r.value] = r;
+          const mapKey = `customEvent_${r.value}`;
+          resultsMap[mapKey] = r;
           return r;
         });
-        localCache[_type] = results;
+        localCache[_type] = sortByTitle(results);
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${_type}:`, error);

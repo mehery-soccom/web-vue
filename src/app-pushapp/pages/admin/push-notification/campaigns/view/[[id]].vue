@@ -91,7 +91,8 @@ onMounted(async () => {
     });
 
     TemplateListSimple.value =
-      templatesRes.data.results.filter(t => t.type === "simple");
+      templatesRes.data.results.filter(t => t.type === "simple")
+      .sort((a, b) => a.desc.localeCompare(b.desc));
 
     const response = await pushNotificationStore.fetchCampaign({
       id: campaignId,

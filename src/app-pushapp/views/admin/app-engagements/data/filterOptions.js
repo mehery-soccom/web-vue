@@ -46,17 +46,12 @@ export const FILTER_FIELDS_MAP = {
   // fetch from api
 
   /* Attributes */
-  platform: {
+  app_version: {
     type: "attribute",
-    title: "Platform",
-    value: "platform",
+    title: "App Version",
+    value: "device_info.app_version",
     inputFieldMeta: {
-      type: "select",
-      multiple: true,
-      options: [
-        { title: "iOS", value: "ios" },
-        { title: "Android", value: "android" },
-      ],
+      type: "text",
     },
   },
   guestUser: {
@@ -72,12 +67,17 @@ export const FILTER_FIELDS_MAP = {
       ],
     },
   },
-  app_version: {
+  platform: {
     type: "attribute",
-    title: "App Version",
-    value: "device_info.app_version",
+    title: "Platform",
+    value: "platform",
     inputFieldMeta: {
-      type: "text",
+      type: "select",
+      multiple: true,
+      options: [
+        { title: "iOS", value: "ios" },
+        { title: "Android", value: "android" },
+      ],
     },
   },
   timezone: {
