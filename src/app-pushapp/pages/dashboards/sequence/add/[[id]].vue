@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, computed, inject, watch } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useSequenceStore } from '@app-pushapp/views/dashboards/sequence/useSequenceStore';
 import draggable from 'vuedraggable';
 
+const route = useRoute();
 const router = useRouter();
 const store = useSequenceStore();
 const { show } = inject("snackbar", () => {});
@@ -13,6 +14,8 @@ const requiredValidator = value => !!value || 'This field is required';
 const isLoading = ref(false);
 const isFetching = ref(false);
 const refForm = ref();
+const sequenceId = computed(() => route.params.id);
+const isViewMode = computed(() => !!sequenceId.value);
 
 const formData = ref({
   name: '',
@@ -42,31 +45,76 @@ const availableEvents = computed(() => {
 });
 
 watch(() => formData.value.name, (newName) => {
+  if (isViewMode.value) return;
   if (newName) {
     formData.value.code = newName.trim().toLowerCase().replace(/\s+/g, '_');
   }
 });
 
+const loadSequence = async () => {
+  if (!sequenceId.value) return;
+
+  const response = await store.fetchSequence(sequenceId.value);
+  const sequence =
+    response?.result?.[0] ||
+    response?.data?.result?.[0] ||
+    response?.data?.data?.[0] ||
+    response?.data?.[0] ||
+    null;
+
+  if (!sequence) throw new Error('Sequence not found');
+
+  const conversionWindow = String(sequence.conversionWindow || '');
+  const match = conversionWindow.match(/^(\d+)(h|d)$/i);
+
+  formData.value = {
+    name: sequence.name || '',
+    code: sequence.code || '',
+    conversionWindowValue: match ? Number(match[1]) : 24,
+    conversionWindowUnit: match?.[2]?.toLowerCase() === 'd' ? 'd' : 'hr',
+  };
+
+  const steps = Array.isArray(sequence.steps) ? sequence.steps : [];
+  sequenceSteps.value = steps.length
+    ? steps.map((step, index) => ({
+        id: Date.now() + index,
+        event_name: typeof step === 'string' ? step : step?.event_name || null,
+      }))
+    : [
+        { id: Date.now() + 1, event_name: null },
+        { id: Date.now() + 2, event_name: null },
+      ];
+};
+
 onMounted(async () => {
   isFetching.value = true;
   try {
     await store.fetchUniqueEvents();
+    if (sequenceId.value) await loadSequence();
   } catch (error) {
-    show({ message: 'Failed to load events.', color: 'error' });
+    show({
+      message: sequenceId.value
+        ? 'Failed to load sequence.'
+        : 'Failed to load events.',
+      color: 'error',
+    });
   } finally {
     isFetching.value = false;
   }
 });
 
 const addStep = () => {
+  if (isViewMode.value) return;
   sequenceSteps.value.push({ id: Date.now(), event_name: null });
 };
 
 const removeStep = (index) => {
+  if (isViewMode.value) return;
   sequenceSteps.value.splice(index, 1);
 };
 
 const handleSubmit = async () => {
+  if (isViewMode.value) return;
   const { valid } = await refForm.value.validate();
   if (!valid) {
     show({ message: 'Please fill in all required fields.', color: 'error' });
@@ -110,7 +158,9 @@ const handleSubmit = async () => {
     <VCol cols="12" md="8">
       <VCard :loading="isFetching" class="mb-4 pb-4">
         <VCardItem>
-          <VCardTitle class="text-h5">Create Sequence Analytics</VCardTitle>
+          <VCardTitle class="text-h5">
+            {{ isViewMode ? 'View Sequence Analytics' : 'Create Sequence Analytics' }}
+          </VCardTitle>
         </VCardItem>
       </VCard>
 
@@ -125,6 +175,7 @@ const handleSubmit = async () => {
                   label="Sequence Name *" 
                   :rules="[requiredValidator]" 
                   variant="outlined"
+                  :disabled="isViewMode"
                 />
               </VCol>
               <VCol cols="12" md="4">
@@ -133,6 +184,7 @@ const handleSubmit = async () => {
                   label="Sequence Code *" 
                   :rules="[requiredValidator]" 
                   variant="outlined"
+                  :disabled="isViewMode"
                 />
               </VCol>
               <VCol cols="12" md="4">
@@ -144,12 +196,14 @@ const handleSubmit = async () => {
                     placeholder="24"
                     :rules="[requiredValidator]" 
                     style="max-width: 120px;"
+                    :disabled="isViewMode"
                   />
                   <VSelect
                     v-model="formData.conversionWindowUnit"
                     :items="['hr', 'd']"
                     variant="outlined"
                     style="max-width: 110px;"
+                    :disabled="isViewMode"
                   />
                 </div>
               </VCol>
@@ -166,6 +220,7 @@ const handleSubmit = async () => {
           item-key="id"
           handle=".drag-handle"
           animation="200"
+          :disabled="isViewMode"
         >
           <template #item="{ element, index }">
             <VCard class="mb-3 border" variant="flat">
@@ -190,6 +245,7 @@ const handleSubmit = async () => {
                       variant="outlined"
                       density="comfortable"
                       hide-details="auto"
+                      :disabled="isViewMode"
                     />
                   </VCol>
 
@@ -199,7 +255,7 @@ const handleSubmit = async () => {
                       variant="text" 
                       color="error" 
                       @click="removeStep(index)" 
-                      :disabled="sequenceSteps.length <= 1"
+                      :disabled="isViewMode || sequenceSteps.length <= 1"
                     />
                   </VCol>
                 </VRow>
@@ -215,7 +271,7 @@ const handleSubmit = async () => {
               @click="addStep" 
               prepend-icon="tabler-plus" 
               variant="tonal"
-              :disabled="sequenceSteps.length >= 5"
+              :disabled="isViewMode || sequenceSteps.length >= 5"
             >
               Add Event
             </VBtn>
@@ -225,9 +281,10 @@ const handleSubmit = async () => {
               variant="tonal" 
               :to="{ name: 'dashboards-sequence-list' }"
             >
-              Cancel
+              {{ isViewMode ? 'Back' : 'Cancel' }}
             </VBtn>
             <VBtn 
+              v-if="!isViewMode"
               type="submit" 
               color="primary" 
               :loading="isLoading"

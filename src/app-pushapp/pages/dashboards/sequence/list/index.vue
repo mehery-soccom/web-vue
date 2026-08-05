@@ -64,6 +64,38 @@ const formatMs = (ms) => {
   return str.trim();
 };
 
+const sequenceBarLabelsPlugin = {
+  id: 'sequence-bar-labels',
+  afterDatasetsDraw(chart) {
+    const { ctx } = chart;
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+
+    chart.data.datasets.forEach((dataset, datasetIndex) => {
+      const meta = chart.getDatasetMeta(datasetIndex);
+      if (!meta || meta.hidden) return;
+
+      meta.data.forEach((bar, index) => {
+        const custom = dataset.customData?.[index];
+        if (!custom) return;
+
+        const { x, y } = bar.tooltipPosition();
+        ctx.fillStyle = '#6b7280';
+        ctx.font = '600 10px sans-serif';
+        ctx.fillText(`Count: ${custom.attempts}`, x, y - 16);
+        ctx.font = '500 9px sans-serif';
+        ctx.fillText(`Avg: ${formatMs(custom.avgTime)}`, x, y - 4);
+      });
+    });
+
+    ctx.restore();
+  },
+};
+
+const chartPlugins = [sequenceBarLabelsPlugin];
+
 onMounted(async () => {
   loadSequences();
   
@@ -89,6 +121,13 @@ const loadSequences = async () => {
 const confirmDelete = (sequence) => {
   sequenceToDelete.value = sequence;
   isDeleteDialogOpen.value = true;
+};
+
+const viewSequence = (sequence) => {
+  router.push({
+    name: 'dashboards-sequence-add-id?',
+    params: { id: sequence._id },
+  });
 };
 
 const executeDelete = async () => {
@@ -202,6 +241,7 @@ watch([selectedSequence, selectedCohortA, selectedCohortB, isCompareMode], () =>
 const chartJsData = computed(() => {
   if (!chartDataRaw.value || Object.keys(chartDataRaw.value).length === 0) return null;
   const colors = ['#7367f0', '#00cfe8']; 
+  const barThickness = 50;
 
   if (chartDataRaw.value._type === 'compare') {
     if (!chartDataRaw.value.cohorts) return null;
@@ -218,7 +258,8 @@ const chartJsData = computed(() => {
       const cohortData = chartDataRaw.value.cohorts[id].sequence;
       return {
         label: getCohortName(id),
-        maxBarThickness: 30,
+        maxBarThickness: barThickness,
+        barThickness,
         backgroundColor: colors[index % colors.length],
         borderColor: "transparent",
         borderRadius: { topRight: 4, topLeft: 4 },
@@ -243,7 +284,8 @@ const chartJsData = computed(() => {
       labels,
       datasets: [{
         label: datasetLabel,
-        maxBarThickness: 30,
+        maxBarThickness: barThickness,
+        barThickness,
         backgroundColor: colors[0],
         borderColor: "transparent",
         borderRadius: { topRight: 4, topLeft: 4 },
@@ -258,6 +300,13 @@ const chartJsOptions = computed(() => {
   const config = getLatestBarChartConfig(vuetifyTheme.current.value);
   return {
     ...config,
+    layout: {
+      ...(config.layout || {}),
+      padding: {
+        ...((config.layout && config.layout.padding) || {}),
+        top: 34,
+      },
+    },
     scales: {
       ...config.scales,
       x: {
@@ -280,8 +329,6 @@ const chartJsOptions = computed(() => {
             const custom = context.dataset.customData[context.dataIndex];
             return [
               `${context.dataset.label}: ${context.raw}%`,
-              `Count: ${custom.attempts}`,
-              `Avg Time: ${formatMs(custom.avgTime)}`
             ];
           }
         }
@@ -396,6 +443,12 @@ const exportToExcel = () => {
                   />
                 </template>
                 <VList density="compact">
+                  <VListItem @click="viewSequence(sequence)">
+                    <template #prepend>
+                      <VIcon color="primary" icon="tabler-eye" class="mr-2" size="small" />
+                    </template>
+                    <VListItemTitle class="text-primary">View Sequence</VListItemTitle>
+                  </VListItem>
                   <VListItem @click="confirmDelete(sequence)">
                     <template #prepend>
                       <VIcon color="error" icon="tabler-trash" class="mr-2" size="small" />
@@ -533,6 +586,7 @@ const exportToExcel = () => {
               :height="400" 
               :chart-data="chartJsData" 
               :chart-options="chartJsOptions" 
+              :plugins="chartPlugins"
             />
           </VCardText>
           

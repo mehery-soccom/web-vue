@@ -30,6 +30,17 @@ export const useSequenceStore = defineStore("SequenceStore", {
       }
     },
 
+    // Fetch a single sequence
+    async fetchSequence(sequenceId) {
+      try {
+        const res = await DataService.axios.get(`/api/v1/sequence?sequenceId=${sequenceId}`);
+        return res.data;
+      } catch (error) {
+        console.error("Error fetching sequence:", error);
+        throw error;
+      }
+    },
+
     // Delete a sequence
     async deleteSequence(sequenceId) {
       try {
