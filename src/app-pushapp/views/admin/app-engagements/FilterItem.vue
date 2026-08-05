@@ -90,6 +90,7 @@ const isValid = async (silent = false) => {
     if (
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta &&
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.required !== false &&
+      el.filterType !== "customEvent" &&
       FILTER_FIELDS_MAP[el.field]?.inputFieldMeta?.type === "frequency" &&
       (!el.freqOperator || !el.freqCount || !el.freqPeriod)
     ) {
@@ -161,7 +162,7 @@ watch(
 );
 watch(
   () => props.element.field,
-  (newVal, oldVal) => {
+  async (newVal, oldVal) => {
     if (!props.readonly && newVal !== oldVal && oldVal != null) {
       props.element.dataProperty = null;
       props.element.operator = null;
@@ -171,6 +172,31 @@ watch(
       props.element.freqPeriod = null;
 
       clearErrorAndUpdate();
+    }
+    if (newVal === 'page_open') {
+      if (!libraryStore.pageList.length && !libraryStore.pageListLoading) {
+        libraryStore.pageListLoading = true;
+        try {
+          const response = await libraryStore.read({ id: "pages" });
+          libraryStore.pageList = response.data.data.options || [];
+        } catch (error) {
+          console.error("Failed to fetch pages:", error);
+        } finally {
+          libraryStore.pageListLoading = false;
+        }
+      }
+    } else if (newVal === 'widget_open') {
+      if (!libraryStore.placeholderList.length && !libraryStore.placeholderListLoading) {
+        libraryStore.placeholderListLoading = true;
+        try {
+          const response = await libraryStore.read({ id: "placeholders" });
+          libraryStore.placeholderList = response.data.data.options || [];
+        } catch (error) {
+          console.error("Failed to fetch placeholders:", error);
+        } finally {
+          libraryStore.placeholderListLoading = false;
+        }
+      }
     }
   },
 );
@@ -253,22 +279,6 @@ function onFilterFieldChange(value) {
 
 onMounted(async () => {
   await fetchFilterFieldValues();
-
-  if (libraryStore.pageList.length || libraryStore.pageListLoading) return;
-  libraryStore.pageListLoading = true;
-
-  try {
-    const response = await libraryStore.read({ id: "pages" });
-    libraryStore.pageList = response.data.data.options || [];
-    console.log(
-      "Global page list cache successfully hydrated:",
-      libraryStore.$state.pageList,
-    );
-  } catch (error) {
-    console.error("Failed to auto-fetch pages on clean login boot:", error);
-  } finally {
-    libraryStore.pageListLoading = false;
-  }
 });
 
 defineExpose({ isValid });
@@ -322,7 +332,7 @@ defineExpose({ isValid });
       />
 
       <!-- Field -->
-      <AppSelect
+      <AppAutocomplete
         v-model="element.field"
         :items="
           element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS
@@ -346,7 +356,7 @@ defineExpose({ isValid });
             </VListItemSubtitle>
           </VListItem>
         </template>
-      </AppSelect>
+      </AppAutocomplete>
 
       <!-- <AppSelect
         v-if="element.filterType === 'eventData' && selectedFieldMeta"
@@ -358,7 +368,7 @@ defineExpose({ isValid });
       /> -->
 
       <!-- Operator -->
-      <AppSelect
+      <AppAutocomplete
         v-if="
           selectedFieldMeta?.inputFieldMeta &&
           selectedFieldMeta?.inputFieldMeta?.type !== 'frequency'
@@ -372,14 +382,16 @@ defineExpose({ isValid });
 
       <!-- Value -->
       <template v-if="selectedFieldMeta?.inputFieldMeta">
-        <AppSelect
+        <AppAutocomplete
           v-if="
             (selectedFieldMeta?.inputFieldMeta?.type === 'select' ||
               selectedFieldMeta?.inputFieldMeta?.type === 'dropdown') &&
             typeof selectedFieldMeta?.inputFieldMeta?.options === 'string'
           "
           v-model="element.value"
-          :items="libraryStore.$state.pageList || []"
+          :items="selectedFieldMeta?.inputFieldMeta?.options?.includes('pages')
+            ? [...(libraryStore.$state.pageList || [])].sort((a, b) => a.label.localeCompare(b.label))
+            : [...(libraryStore.$state.placeholderList || [])].sort((a, b) => a.label.localeCompare(b.label))"
           item-title="label"
           item-value="code"
           placeholder="Select Value"
@@ -389,7 +401,7 @@ defineExpose({ isValid });
           @update:modelValue="clearErrorAndUpdate"
         />
 
-        <AppSelect
+        <AppAutocomplete
           v-else-if="
             selectedFieldMeta?.inputFieldMeta?.type === 'select' ||
             selectedFieldMeta?.inputFieldMeta?.type === 'dropdown'
@@ -398,7 +410,7 @@ defineExpose({ isValid });
           :items="selectedFieldMeta?.inputFieldMeta?.options || []"
           placeholder="Select Value"
           class="filter-entity value"
-          :multiple="!!selectedFieldMeta?.multiple"
+          :multiple="!!selectedFieldMeta?.inputFieldMeta?.multiple"
           :clearable="true"
           @update:modelValue="clearErrorAndUpdate"
         >
@@ -417,12 +429,12 @@ defineExpose({ isValid });
               </VListItemSubtitle>
             </VListItem>
           </template>
-        </AppSelect>
+        </AppAutocomplete>
         <div
-          v-else-if="selectedFieldMeta?.inputFieldMeta?.type === 'frequency'"
+          v-else-if="selectedFieldMeta?.inputFieldMeta?.type === 'frequency' && element.filterType !== 'customEvent'"
           class="d-flex align-center gap-2"
         >
-          <AppSelect
+          <AppAutocomplete
             v-model="element.freqOperator"
             :items="FILTER_OPERATORS"
             class="filter-entity freq-operator"
@@ -461,7 +473,7 @@ defineExpose({ isValid });
           :style="{ flexDirection: vertical ? 'column' : 'row' }"
         />
         <AppTextField
-          v-else
+          v-else-if="element.filterType !== 'customEvent'"
           v-model="element.value"
           :type="
             selectedFieldMeta?.inputFieldMeta?.type === 'number'
