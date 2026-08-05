@@ -124,6 +124,22 @@ const fetchReportsData = async (pagination) => {
 
 <template>
   <VRow>
+    <div style="width: 100%; display: flex; justify-content: flex-end">
+      <VTooltip text="Refresh reports data">
+        <template #activator="{ props }">
+          <VBtn
+            v-bind="props"
+            @click="fetchReportsData(pagination)"
+            color="primary"
+            style="width: 45px; height: 45px; min-width: 40px; margin: 0 12px;font-size: 20px;"
+            class="pa-0"
+            variant="flat"
+          >
+            <VIcon>mdi-sync</VIcon>
+          </VBtn>
+        </template>
+      </VTooltip>
+    </div>
     <VCol cols="12">
       <MyDataTable :headers="headers" :items="reportsTable" :loading="isLoading" 
         :server-side="true" v-bind="pagination" @update:options="onUpdateOptionsDebounced">

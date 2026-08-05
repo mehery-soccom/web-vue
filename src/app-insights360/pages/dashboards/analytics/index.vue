@@ -702,6 +702,10 @@ const exportToExcel = () => {
     data.push({ Group: 'Campaign', Title: stat.title, Stats: stat.stats });
   });
 
+  statsBill.value.forEach(stat => {
+    data.push({ Group: 'Billing', Title: stat.title, Stats: stat.stats });
+  });
+
   convoStats.value.forEach(stat => {
       const group = stat.title === 'Daily Active Users' ? 'Users' : 'Conversations';
       data.push({ Group: group, Title: stat.title, Stats: stat.stats });
