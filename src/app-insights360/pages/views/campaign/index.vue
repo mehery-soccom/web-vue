@@ -9,6 +9,7 @@ import AppDateTimePicker from "@/app-insights360/@core/components/app-form-eleme
 import { smartFormatDate } from "@/app-insights360/@core/utils/formatters";
 import debounce from "lodash/debounce";
 import { toast } from "vue3-toastify";
+// import "vue3-toastify/dist/index.css";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
@@ -178,6 +179,54 @@ const fetchCampaignBlock = async (start, end, chan, bool, stats) => {
     console.error("analytics error b", error);
   }
 };
+const collectToastDebug = (label = "manual") => {
+  const container = document.querySelector(".Toastify__toast-container");
+  const toastRoot = document.querySelector(".Toastify");
+  const computed = container ? getComputedStyle(container) : null;
+  const matchingRules = [];
+
+  for (const sheet of [...document.styleSheets]) {
+    try {
+      for (const rule of [...(sheet.cssRules || [])]) {
+        if (rule.selectorText?.includes("Toastify__toast-container")) {
+          matchingRules.push({
+            source: sheet.href || "inline-style-tag",
+            selector: rule.selectorText,
+            cssText: rule.cssText,
+          });
+        }
+      }
+    } catch (error) {
+      // Ignore cross-origin stylesheets that cannot be inspected.
+    }
+  }
+
+  const debugInfo = {
+    label,
+    hasToastRoot: !!toastRoot,
+    hasContainer: !!container,
+    className: container?.className || null,
+    computed: computed
+      ? {
+          position: computed.position,
+          top: computed.top,
+          right: computed.right,
+          bottom: computed.bottom,
+          left: computed.left,
+          zIndex: computed.zIndex,
+        }
+      : null,
+    matchingRules,
+  };
+
+  console.log("[campaign toast debug]", debugInfo);
+
+  return debugInfo;
+};
+
+window.debugCampaignToast = (label = "manual") =>
+  setTimeout(() => collectToastDebug(label), 0);
+
 window.stillDownloadReport = async (val) => {
   toast.clearAll()
   await downloadReport(val)
@@ -219,6 +268,8 @@ const downloadReport = async (val=false) => {
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
       )
+      console.log("toast", toast)
+      window.debugCampaignToast("campaign-report-exists")
     } else if(response.data?.data?.status === 'IN_PROGRESS') {
       const createdAt = response.data?.data?.doc?.createdAt;
       let formattedDateTime = '-';
@@ -235,8 +286,10 @@ const downloadReport = async (val=false) => {
         </div>`,
         { autoClose: false, dangerouslyHTMLString: true }
       )
+      window.debugCampaignToast("campaign-report-in-progress")
     } else {
       toast.success('Download Started, Please check after some time.')
+      window.debugCampaignToast("campaign-report-started")
     }
   } catch (error) {
     console.error("analytics error", error);
