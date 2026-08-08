@@ -209,7 +209,7 @@ const { customPlugin } = useDatePickerFilters();
 const tonight = new Date().setHours(23, 59, 59, 999);
 const formatDate = (dat) =>
   dat.toLocaleDateString("en-GB").split("/").join("-");
-const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
+const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 1));
 const dateRange = ref(
   `${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`,
 );

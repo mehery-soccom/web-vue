@@ -9,6 +9,8 @@ import { ref, onMounted, toRaw, nextTick } from "vue";
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
 
+const isPageLoading = ref(true);
+const loadingRequests = ref(0);
 const chartData = ref({ labels: [], datasets: [] });
 const chartOptions = ref({});
 const chartJsCustomColors = {
@@ -135,7 +137,18 @@ const statsMau = ref([
   },
 ]);
 
+const startPageLoading = () => {
+  loadingRequests.value += 1;
+  isPageLoading.value = true;
+};
+
+const stopPageLoading = () => {
+  loadingRequests.value = Math.max(loadingRequests.value - 1, 0);
+  isPageLoading.value = loadingRequests.value > 0;
+};
+
 const fetchDauMauData = async (type, period) => {
+  startPageLoading();
   try{
     const resp = await projectStore.fetchDauMauDatas({ type, period })
     const item = resp?.data?.data?.[0] || {};
@@ -157,6 +170,8 @@ const fetchDauMauData = async (type, period) => {
     console.log("resp", resp.data[0])
   }catch(e){
     console.error(e)
+  } finally {
+    stopPageLoading();
   }
 };
 
@@ -202,6 +217,7 @@ const buildPayload = (fromDate, toDate) => {
 };
 
 const fetchChartData = async (fromDate, toDate) => {
+  startPageLoading();
   try {
     const payload = buildPayload(fromDate, toDate);
     const response = await projectStore.fetchChartDatas(payload);
@@ -294,6 +310,8 @@ const fetchChartData = async (fromDate, toDate) => {
     chartKey.value++;  
   } catch (error) {
     console.error("fetchChartData error:", error);
+  } finally {
+    stopPageLoading();
   }
 };
 const onChartDateChange = ([start, end]) => {
@@ -317,7 +335,14 @@ onMounted(async () => {
 </script>
 
 <template>
-  <div>
+  <div class="analytics-page">
+    <div
+      v-if="isPageLoading"
+      class="analytics-loader-overlay"
+    >
+      <VProgressCircular indeterminate color="primary" size="48" />
+    </div>
+
     <!-- <VRow class="match-height">
       <div style="width: 100%; display: flex; justify-content: flex-end;">
         <AppDateTimePicker
@@ -438,5 +463,19 @@ onMounted(async () => {
 }
 .flatpickr-custom-btn:hover {
   background-color: #ddd;
+}
+.analytics-page {
+  position: relative;
+}
+.analytics-loader-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(1px);
+  z-index: 20;
+  pointer-events: none;
 }
 </style>
