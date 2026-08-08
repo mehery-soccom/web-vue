@@ -3,6 +3,7 @@ import "@app-pushapp/@fake-db/db";
 
 import "@app-pushapp/@core/scss/template/index.scss";
 import "@app-pushapp/styles/styles.scss";
+import "@/app-pushapp/assets/vue3-toastify.css";
 
 import { loadFonts } from "@app-pushapp/plugins/webfontloader";
 loadFonts();
