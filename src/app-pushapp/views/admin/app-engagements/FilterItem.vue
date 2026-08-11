@@ -12,8 +12,12 @@ const props = defineProps({
   ignoreEventfilterType: { type: Boolean, default: false },
   ignoreCustomEventfilterType: { type: Boolean, default: false },
   ignoreEventDatafilterType: { type: Boolean, default: false },
+  rawIgnoreEventDatafilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
+  ignoreProfileAttribute: { type: Boolean, default: false },
+  ignoreSystemAttribute: { type: Boolean, default: false },
+  disableRemove: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   hasCohort: { type: Boolean, default: false },
   hasNormalFilter: { type: Boolean, default: false },
@@ -42,6 +46,7 @@ const {
   FILTER_FIELDS_MAP,
   FILTER_OPERATORS,
   FILTER_PERIODS,
+  fetchFilterFields,
   fetchFilterFieldValues,
 } = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId });
 
@@ -117,11 +122,13 @@ const isValid = async (silent = false) => {
 
 watch(
   () => props.element.filterType,
-  (newVal, oldVal) => {
+  async (newVal, oldVal) => {
+    if (newVal === "customEvent" || newVal === "eventData") {
+      await fetchFilterFields({ type: newVal });
+    }
     // console.log("clear values 4", props.element);
     if (newVal === oldVal || oldVal === null) return;
     props.element.field = null;
-    props.element.dataProperty = null;
     props.element.operator = null;
     props.element.value = null;
     props.element.freqOperator = null;
@@ -164,7 +171,6 @@ watch(
   () => props.element.field,
   async (newVal, oldVal) => {
     if (!props.readonly && newVal !== oldVal && oldVal != null) {
-      props.element.dataProperty = null;
       props.element.operator = null;
       props.element.value = null;
       props.element.freqOperator = null;
@@ -319,6 +325,8 @@ defineExpose({ isValid });
               return false;
             if (ignoreSlicefilterType && f.value === 'slice') return false;
             if (ignoreCohortfilterType && f.value === 'cohort') return false;
+            if (ignoreProfileAttribute && f.value === 'additionalInfo') return false;
+            if (ignoreSystemAttribute && f.value === 'attribute') return false;
             if (element.filterType === f.value) return true;
             if (hasNormalFilter && !element.filterType && f.value === 'cohort')
               return false;
@@ -487,7 +495,7 @@ defineExpose({ isValid });
       </template>
 
       <!-- Delete -->
-      <VTooltip location="top" v-if="index > 0">
+      <VTooltip location="top" v-if="index > 0 && !disableRemove">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
@@ -516,10 +524,13 @@ defineExpose({ isValid });
       @update:model-value="emit('update', $event)"
       @delete-group="emit('remove')"
       :ignoreEventfilterType="ignoreEventfilterType"
-      :ignoreEventDatafilterType="ignoreEventDatafilterType"
+      :ignoreEventDatafilterType="rawIgnoreEventDatafilterType"
       :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
       :ignoreSlicefilterType="ignoreSlicefilterType"
       :ignoreCohortfilterType="ignoreCohortfilterType"
+      :ignoreProfileAttribute="ignoreProfileAttribute"
+      :ignoreSystemAttribute="ignoreSystemAttribute"
+      :disableRemove="disableRemove"
       :channelId="channelId"
       :readonly="readonly"
     />

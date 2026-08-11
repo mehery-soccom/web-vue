@@ -10,6 +10,10 @@ const props = defineProps({
   ignoreEventDatafilterType: { type: Boolean, default: false },
   ignoreSlicefilterType: { type: Boolean, default: false },
   ignoreCohortfilterType: { type: Boolean, default: false },
+  ignoreProfileAttribute: { type: Boolean, default: false },
+  ignoreSystemAttribute: { type: Boolean, default: false },
+  hideActions: { type: Boolean, default: false },
+  disableRemove: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   channelId: { type: [String, Number], default: null },
   vertical: { type: Boolean, default: false },
@@ -28,7 +32,6 @@ const addFilter = () => {
     filterType: null,
     field: null,
     operator: null,
-    dataProperty: null,
     value: null,
     freqOperator: null,
     freqCount: null,
@@ -48,7 +51,6 @@ const addGroup = () => {
         filterType: null,
         field: null,
         operator: null,
-        dataProperty: null,
         value: null,
         freqOperator: null,
         freqCount: null,
@@ -68,14 +70,54 @@ const hasCohort = computed(() =>
 const hasNormalFilter = computed(() =>
   props.modelValue.children.some((c) => c.type === "filter" && c.filterType && c.filterType !== "cohort" ),
 );
-// add this computed after hasNormalFilter
+const hasCustomEventInNode = (node, path = "root") => {
+  if (!node) {
+    return false;
+  }
+  if (node.type === "filter") {
+    const result = node.filterType === "customEvent";
+    return result;
+  }
+  if (node.type === "group") {
+    const childResults = (node.children || []).map((child, index) =>
+      hasCustomEventInNode(child, `${path}.children[${index}]`),
+    );
+    const result = childResults.some(Boolean);
+    return result;
+  }
+  return false;
+};
+
 const hasCustomEventAbove = computed(() => {
   return props.modelValue.children.map((_, i) => {
     if (i === 0) return false;
     const prev = props.modelValue.children[i - 1];
-    return prev.type === 'filter' && prev.filterType === 'customEvent';
+    return hasCustomEventInNode(prev, `children[${i - 1}]`);
   });
 });
+const shouldIgnoreEventData = (index) => {
+  const prev = index > 0 ? props.modelValue.children[index - 1] : null;
+  const hasPreviousCustomEvent =
+    index > 0 && hasCustomEventInNode(prev, `children[${index - 1}]`);
+  const result =
+    props.ignoreEventDatafilterType ||
+    (!props.ignoreCustomEventfilterType &&
+      !props.ignoreEventDatafilterType &&
+      !hasPreviousCustomEvent);
+
+  console.log("[shouldIgnoreEventData]", {
+    level: props.level,
+    index,
+    prev,
+    hasPreviousCustomEvent,
+    ignoreCustomEventfilterType: props.ignoreCustomEventfilterType,
+    ignoreEventDatafilterType: props.ignoreEventDatafilterType,
+    result,
+  });
+
+  return result;
+};
+
 const connectedEventPairs = computed(() => {
   const pairs = new Set();
   for (let i = 1; i < props.modelValue.children.length; i++) {
@@ -212,9 +254,13 @@ defineExpose({ isValid });
         @update="emit('update:modelValue', modelValue)"
         :ignoreEventfilterType="ignoreEventfilterType"
         :ignoreCustomEventfilterType="ignoreCustomEventfilterType"
-        :ignoreEventDatafilterType="ignoreEventDatafilterType || (!ignoreCustomEventfilterType && !ignoreEventDatafilterType && !hasCustomEventAbove[index])"
+        :ignoreEventDatafilterType="shouldIgnoreEventData(index)"
+        :rawIgnoreEventDatafilterType="ignoreEventDatafilterType"
         :ignoreSlicefilterType="ignoreSlicefilterType"
         :ignoreCohortfilterType="ignoreCohortfilterType"
+        :ignoreProfileAttribute="ignoreProfileAttribute"
+        :ignoreSystemAttribute="ignoreSystemAttribute"
+        :disableRemove="disableRemove"
         :readonly="readonly"
         :hasCohort="hasCohort"
         :hasNormalFilter="hasNormalFilter"
@@ -223,7 +269,7 @@ defineExpose({ isValid });
     </div>
 
     <!-- Actions -->
-    <div class="d-flex gap-2 mt-3">
+    <div v-if="!hideActions" class="d-flex gap-2 mt-3">
       <VBtn size="small" variant="tonal" color="primary" @click="addFilter" :disabled="hasCohort">
         <VIcon start>mdi-plus</VIcon> Add Filter
       </VBtn>

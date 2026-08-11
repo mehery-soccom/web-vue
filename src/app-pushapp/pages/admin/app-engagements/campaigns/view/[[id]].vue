@@ -4,6 +4,8 @@ import Audience from "@app-pushapp/views/admin/app-engagements/Audience.vue";
 import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import { onMounted } from "vue";
+import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
@@ -34,13 +36,31 @@ const campaign = reactive({
     segmentCondition: null,
     segment: null,
   },
+  triggerFilter: {
+    type: "group",
+    conjunction: "and",
+    children: [
+      {
+        _id: crypto.randomUUID(),
+        type: "filter",
+        filterType: null,
+        field: null,
+        operator: null,
+        value: null,
+        freqOperator: null,
+        freqCount: null,
+        freqPeriod: null,
+      },
+    ],
+  },
   filter: {
     type: "group",
     conjunction: "and",
     children: [
       {
+        _id: crypto.randomUUID(),
         type: "filter",
-        filterType: "event",
+        filterType: null,
         field: null,
         operator: null,
         value: null,
@@ -94,6 +114,10 @@ watch(
 );
 const tabs = [
   {
+    title: "Trigger Event",
+    icon: "tabler-bolt",
+  },
+  {
     title: "Template",
     icon: "tabler-user-check",
   },
@@ -117,6 +141,7 @@ const tabErrors = ref({
   1: false,
   2: false,
 });
+const triggerEventRef = ref();
 const templateRef = ref();
 const templateBRef = ref();
 const audienceRef = ref();
@@ -140,6 +165,7 @@ const loadCampaign = async () => {
     Object.assign(campaign, {
       title: data.title,
       audience: data.audience || campaign.audience,
+      triggerFilter: data.triggerFilter || campaign.triggerFilter,
       filter: data.filter || campaign.filter,
       abTesting: data.abTesting || campaign.abTesting,
       journey: data.journey || campaign.journey,
@@ -264,6 +290,17 @@ onMounted(async () => {
     </div>
 
     <VWindow v-model="activeTab" class="mt-4">
+      <VWindowItem>
+        <FilterBuilder
+          v-model="campaign.triggerFilter"
+          :ignoreCohortfilterType="true"
+          :ignoreSlicefilterType="true"
+          :ignoreProfileAttribute="true"
+          :ignoreSystemAttribute="true"
+          :readonly="true"
+          ref="triggerEventRef"
+        />
+      </VWindowItem>
       <!-- tab-template -->
       <VWindowItem>
         <div

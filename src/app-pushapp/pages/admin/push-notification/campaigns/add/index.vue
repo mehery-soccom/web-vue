@@ -21,7 +21,7 @@ const notification = reactive({
   channel_id: null,
   platforms: null,
 });
-const filter = reactive({
+const createInitialFilter = () => ({
   type: "group",
   conjunction: "and",
   children: [
@@ -37,6 +37,8 @@ const filter = reactive({
     },
   ],
 });
+
+const filter = reactive(createInitialFilter());
 const ChannelList = ref([]);
 const TemplateListSimple = ref([]);
 const formRef = ref();
@@ -49,7 +51,7 @@ const tabErrors = ref({
   "tab-schedule": false,
 });
 
-const audienceMode = ref("filter"); // 'filter' | 'excel'
+const audienceMode = ref("slice"); // 'slice' | 'filter' | 'excel'
 const filterLink = ref(null);
 const excelUploading = ref(false);
 const excelFileName = ref(null);
@@ -86,10 +88,22 @@ const onExcelUpload = async (event) => {
     event.target.value = null;
   }
 };
-watch(audienceMode, () => {
+const resetFilter = () => {
+  const initialFilter = createInitialFilter();
+  filter.type = initialFilter.type;
+  filter.conjunction = initialFilter.conjunction;
+  filter.children.splice(0, filter.children.length, ...initialFilter.children);
+};
+
+watch(audienceMode, (newMode, oldMode) => {
   filterLink.value = null;
   excelFileName.value = null;
   excelFileRef.value = null;
+
+  const switchedBetweenSliceAndFilter =
+    (oldMode === "slice" && newMode === "filter") ||
+    (oldMode === "filter" && newMode === "slice");
+  if (switchedBetweenSliceAndFilter) resetFilter();
 });
 const validateTab = async (tabName, silent = false) => {
   let valid = true;
@@ -531,17 +545,33 @@ const onSendSimple = async () => {
                     divided
                     class="mb-6"
                   >
+                    <VBtn value="slice">Select Slice</VBtn>
                     <VBtn value="filter">Real-Time Filter</VBtn>
                     <VBtn value="excel">Upload Profile Codes</VBtn>
                   </VBtnToggle>
 
-                  <div v-if="audienceMode === 'filter'">
+                  <div v-if="audienceMode === 'slice'">
                     <FilterBuilder
                       v-model="filter"
                       :ignoreEventfilterType="true"
                       :ignoreEventDatafilterType="true"
                       :ignoreCustomEventfilterType="true"
                       :ignoreCohortfilterType="true"
+                      :ignoreProfileAttribute="true"
+                      :ignoreSystemAttribute="true"
+                      :channelId="notification.channel_id"
+                      ref="filterRef"
+                    />
+                  </div>
+
+                  <div v-else-if="audienceMode === 'filter'">
+                    <FilterBuilder
+                      v-model="filter"
+                      :ignoreEventfilterType="true"
+                      :ignoreEventDatafilterType="true"
+                      :ignoreCustomEventfilterType="true"
+                      :ignoreCohortfilterType="true"
+                      :ignoreSlicefilterType="true"
                       :channelId="notification.channel_id"
                       ref="filterRef"
                     />

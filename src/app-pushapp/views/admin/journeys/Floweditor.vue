@@ -168,7 +168,6 @@ const NODE_DEFS = {
             filterType: null,
             field: null,
             operator: null,
-            dataProperty: null,
             value: null,
             freqOperator: null,
             freqCount: null,

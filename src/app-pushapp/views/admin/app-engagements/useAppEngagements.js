@@ -73,7 +73,7 @@ export const useAppEngagements = (source, config = {}) => {
   });
 
   async function fetchFilterFields({ type }) {
-    console.log("fetchFilterFields raw type", type, FILTER_FIELDS_MAP, localCache);
+    // console.log("fetchFilterFields raw type", type, FILTER_FIELDS_MAP, localCache);
 
     const _type = type === "computedSystemAttribute" ? "attribute" : type;
     if (!_type || localCache[_type]) return;

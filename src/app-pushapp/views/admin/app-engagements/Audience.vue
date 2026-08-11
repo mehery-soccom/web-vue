@@ -22,6 +22,47 @@ const { localCache } = useAppEngagements();
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 const filterLocal = reactive(JSON.parse(JSON.stringify(props.filter)));
 const abTestingLocal = reactive(JSON.parse(JSON.stringify(props.abTesting)));
+const audienceMode = ref("cohort");
+const isSyncingAudienceMode = ref(false);
+
+const createInitialFilter = (mode = "filter") => ({
+  type: "group",
+  conjunction: "and",
+  children: [
+    {
+      _id: crypto.randomUUID(),
+      type: "filter",
+      filterType: mode === "cohort" ? "cohort" : null,
+      field: null,
+      operator: null,
+      value: null,
+      freqOperator: null,
+      freqCount: null,
+      freqPeriod: null,
+    },
+  ],
+});
+
+const collectFilterTypes = (node, types = []) => {
+  if (!node) return types;
+  if (node.type === "filter") types.push(node.filterType);
+  if (Array.isArray(node.children)) {
+    node.children.forEach((child) => collectFilterTypes(child, types));
+  }
+  return types;
+};
+
+const getAudienceModeFromFilter = (filterNode) => {
+  const selectedTypes = collectFilterTypes(filterNode).filter(Boolean);
+  if (selectedTypes.length && selectedTypes.every((type) => type === "cohort")) {
+    return "cohort";
+  }
+  return "filter";
+};
+
+const resetFilter = (mode) => {
+  Object.assign(filterLocal, createInitialFilter(mode));
+};
 
 // Watch & sync
 watch(
@@ -31,7 +72,12 @@ watch(
 );
 watch(
   () => props.filter,
-  (val) => Object.assign(filterLocal, val),
+  (val) => {
+    Object.assign(filterLocal, val);
+    isSyncingAudienceMode.value = true;
+    audienceMode.value = getAudienceModeFromFilter(val);
+    isSyncingAudienceMode.value = false;
+  },
   { deep: true },
 );
 watch(
@@ -44,6 +90,15 @@ watch(
 watch(form, (val) => emit("update:modelValue", val), { deep: true });
 watch(filterLocal, (val) => emit("update:filter", val), { deep: true });
 watch(abTestingLocal, (val) => emit("update:abTesting", val), { deep: true });
+watch(audienceMode, (newMode, oldMode) => {
+  if (isSyncingAudienceMode.value || newMode === oldMode) return;
+
+  const switchedBetweenAudienceModes =
+    (oldMode === "cohort" && newMode === "filter") ||
+    (oldMode === "filter" && newMode === "cohort");
+
+  if (switchedBetweenAudienceModes) resetFilter(newMode);
+});
 
 const filterRef = ref(null);
 const abTestingRef = ref(null);
@@ -87,46 +142,46 @@ function validateFilterStructure(
     }
 
     // Check: If group has multiple event filters as direct children, it must be OR
-    const directEventChildren = children.filter(
-      (c) =>
-        c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
-    );
-    if (directEventChildren.length > 1 && conjunction !== "or") {
-      throw new Error(
-        "Groups containing multiple event filters must use 'or' conjunction",
-      );
-    }
+    // const directEventChildren = children.filter(
+    //   (c) =>
+    //     c.type === "filter" && ["event", "customEvent"].includes(c.filterType),
+    // );
+    // if (directEventChildren.length > 1 && conjunction !== "or") {
+    //   throw new Error(
+    //     "Groups containing multiple event filters must use 'or' conjunction",
+    //   );
+    // }
 
-    // If root AND: cannot directly contain more than one event filter
-    if (isRoot && conjunction === "and" && directEventChildren.length > 1) {
-      throw new Error(
-        "Root AND group cannot contain multiple event filters directly",
-      );
-    }
+    // // If root AND: cannot directly contain more than one event filter
+    // if (isRoot && conjunction === "and" && directEventChildren.length > 1) {
+    //   throw new Error(
+    //     "Root AND group cannot contain multiple event filters directly",
+    //   );
+    // }
 
-    // Root must contain one event filter atleast
-    if (isRoot && directEventChildren.length == 0) {
-      // throw new Error("Root group must have an event filter");
-      const cohortFilter = findCohortFilter(node);
-      if (!cohortFilter)
-        throw new Error("Root group must have an event or system event filter");
+    // // Root must contain one event filter atleast
+    // if (isRoot && directEventChildren.length == 0) {
+    //   // throw new Error("Root group must have an event filter");
+    //   const cohortFilter = findCohortFilter(node);
+    //   if (!cohortFilter)
+    //     throw new Error("Root group must have an event or system event filter");
 
-      const cohortId = cohortFilter.field;
-      const cohort = localCache.activeCohorts?.find(
-        (c) => c.value === cohortId,
-      );
-      const hasSystemEvent = cohort?.filter?.children?.some(
-        (c) =>
-          c.type === "filter" &&
-          ["event", "customEvent"].includes(c.filterType),
-      );
-      // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
+    //   const cohortId = cohortFilter.field;
+    //   const cohort = localCache.activeCohorts?.find(
+    //     (c) => c.value === cohortId,
+    //   );
+    //   const hasSystemEvent = cohort?.filter?.children?.some(
+    //     (c) =>
+    //       c.type === "filter" &&
+    //       ["event", "customEvent"].includes(c.filterType),
+    //   );
+    //   // console.log("cohorts", cohortFilter, cohortFilter.field, cohort, localCache)
 
-      if (!hasSystemEvent)
-        throw new Error(
-          "Selected cohort must contain at least one event filter",
-        );
-    }
+    //   if (!hasSystemEvent)
+    //     throw new Error(
+    //       "Selected cohort must contain at least one event filter",
+    //     );
+    // }
 
     // Recurse into children
     children.forEach((child) =>
@@ -228,16 +283,47 @@ defineExpose({ isValid });
 
     <VDivider class="my-6" /> -->
 
-    <h3 class="mb-2">Real-Time Filter</h3>
+    <h3 class="mb-2">Audience</h3>
     <p class="text-caption mb-4">
-      Apply filters based on app events and latest user attributes
+      Select a cohort or configure other audience filters. Both options are saved in the same <strong>filter</strong> payload.
     </p>
 
+    <VBtnToggle
+      v-model="audienceMode"
+      mandatory
+      density="compact"
+      color="primary"
+      divided
+      class="mb-6"
+      :disabled="readonly"
+    >
+      <VBtn value="cohort">Select Cohort</VBtn>
+      <VBtn value="filter">Real-Time Filter</VBtn>
+    </VBtnToggle>
+
     <FilterBuilder
+      v-if="audienceMode === 'cohort'"
+      v-model="filterLocal"
+      ref="filterRef"
+      :readonly="readonly"
+      :ignoreEventfilterType="true"
+      :ignoreCustomEventfilterType="true"
+      :ignoreEventDatafilterType="true"
+      :ignoreSlicefilterType="true"
+      :ignoreProfileAttribute="true"
+      :ignoreSystemAttribute="true"
+    />
+
+    <FilterBuilder
+      v-else
       v-model="filterLocal"
       ref="filterRef"
       :readonly="readonly"
       :ignoreSlicefilterType="true"
+      :ignoreCohortfilterType="true"
+      :ignoreEventfilterType="true"
+      :ignoreCustomEventfilterType="true"
+      :ignoreEventDatafilterType="true"
     />
 
     <template v-if="abTestingLocal?.enabled">

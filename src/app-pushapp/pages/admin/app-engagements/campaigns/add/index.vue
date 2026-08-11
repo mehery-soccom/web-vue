@@ -4,6 +4,7 @@ import Audience from "@app-pushapp/views/admin/app-engagements/Audience.vue";
 import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import { onMounted } from "vue";
+import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
@@ -34,13 +35,31 @@ const campaign = reactive({
     segmentCondition: null,
     segment: null,
   },
+  triggerFilter: {
+    type: "group",
+    conjunction: "and",
+    children: [
+      {
+        _id: crypto.randomUUID(),
+        type: "filter",
+        filterType: "event",
+        field: null,
+        operator: null,
+        value: null,
+        freqOperator: null,
+        freqCount: null,
+        freqPeriod: null,
+      },
+    ],
+  },
   filter: {
     type: "group",
     conjunction: "and",
     children: [
       {
+        _id: crypto.randomUUID(),
         type: "filter",
-        filterType: "event",
+        filterType: null,
         field: null,
         operator: null,
         value: null,
@@ -94,6 +113,10 @@ watch(
 );
 const tabs = [
   {
+    title: "Trigger Event",
+    icon: "tabler-bolt",
+  },
+  {
     title: "Template",
     icon: "tabler-user-check",
   },
@@ -112,6 +135,7 @@ const tabs = [
   },
   */
 ];
+const triggerEventRef = ref();
 const activeTemplateVariant = ref("A");
 const activeTab = ref(0);
 const nextTab = computed(() => {
@@ -209,6 +233,12 @@ const isValidTab = async (tab, silent = false) => {
 
   switch (tab) {
     case 0:
+      let triggerEventValid = await triggerEventRef.value?.isValid(silent);
+      if (!triggerEventValid) {
+        valid = false;
+      }
+      break;
+    case 1:
       let templateValid = await templateRef.value?.isValid(silent);
       let templateBValid = campaign.abTesting.enabled
         ? await templateBRef.value?.isValid(silent)
@@ -217,13 +247,13 @@ const isValidTab = async (tab, silent = false) => {
         valid = false;
       }
       break;
-    case 1:
+    case 2:
       let audienceValid = await audienceRef.value?.isValid(silent);
       if (!audienceValid) {
         valid = false;
       }
       break;
-    case 2:
+    case 3:
       let scheduleValid = await scheduleRef.value?.isValid(silent);
       if (!scheduleValid) {
         valid = false;
@@ -275,6 +305,7 @@ const create = async () => {
       const cohortFilter = findCohortFilter(campaign.filter);
       const payload = {
         ...campaign,
+        triggerFilter: campaign.triggerFilter,
         filter: cohortFilter ? { type: "group", conjunction: "and", children: [cohortFilter] } : campaign.filter,
         schedule: buildSchedulePayload(campaign.schedule)
         // schedule: {
@@ -403,6 +434,16 @@ onMounted(async () => {
     </div>
 
     <VWindow v-model="activeTab" class="mt-4">
+      <VWindowItem>
+        <FilterBuilder
+          v-model="campaign.triggerFilter"
+          :ignoreCohortfilterType="true"
+          :ignoreSlicefilterType="true"
+          :ignoreProfileAttribute="true"
+          :ignoreSystemAttribute="true"
+          ref="triggerEventRef"
+        />
+      </VWindowItem>
       <!-- tab-template -->
       <VWindowItem>
         <div

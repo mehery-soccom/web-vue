@@ -13,28 +13,31 @@ const isFetching = ref(false);
 const flowRecord = ref(null);
 const isViewMode = computed(() => !!route.params.id);
 const isEditing = computed(() => "edit" in route.query);
+const audienceMode = ref("filter");
+const isSyncingAudienceMode = ref(false);
+
+const createInitialJourneyFilter = () => ({
+  type: "group",
+  conjunction: "and",
+  children: [
+    {
+      _id: crypto.randomUUID(),
+      type: "filter",
+      filterType: null,
+      field: null,
+      operator: null,
+      value: null,
+      freqOperator: null,
+      freqCount: null,
+      freqPeriod: null,
+    },
+  ],
+});
 
 const flow = reactive({
   name: "",
   desc: "",
-  filter: {
-    type: "group",
-    conjunction: "and",
-    children: [
-      {
-        _id: crypto.randomUUID(),
-        type: "filter",
-        filterType: null,
-        field: null,
-        operator: null,
-        dataProperty: null,
-        value: null,
-        freqOperator: null,
-        freqCount: null,
-        freqPeriod: null,
-      },
-    ],
-  },
+  filter: createInitialJourneyFilter(),
   flow: {},
   flowRenderer: {
     drawflow: {
@@ -70,9 +73,42 @@ const errors = ref({});
 const filterRef = ref();
 const flowEditorRef = ref();
 
+const resetJourneyFilter = () => {
+  const initialFilter = createInitialJourneyFilter();
+  flow.filter.type = initialFilter.type;
+  flow.filter.conjunction = initialFilter.conjunction;
+  flow.filter.children.splice(0, flow.filter.children.length, ...initialFilter.children);
+};
+
+const collectFilterTypes = (node, types = []) => {
+  if (!node) return types;
+  if (node.type === "filter") types.push(node.filterType);
+  if (Array.isArray(node.children))
+    node.children.forEach((child) => collectFilterTypes(child, types));
+  return types;
+};
+
+const getAudienceModeFromFilter = (filterNode) => {
+  const selectedTypes = collectFilterTypes(filterNode).filter(Boolean);
+  if (selectedTypes.length && selectedTypes.every((type) => type === "cohort")) {
+    return "cohort";
+  }
+  return "filter";
+};
+
 const clearError = (field) => {
   errors.value[field] = null;
 };
+
+watch(audienceMode, (newMode, oldMode) => {
+  if (isSyncingAudienceMode.value || newMode === oldMode) return;
+
+  const switchedBetweenAudienceModes =
+    (oldMode === "cohort" && newMode === "filter") ||
+    (oldMode === "filter" && newMode === "cohort");
+
+  if (switchedBetweenAudienceModes) resetJourneyFilter();
+});
 
 const isValidTab = async (tab, silent = false) => {
   let valid = true;
@@ -191,6 +227,9 @@ async function loadRecordIntoForm(record) {
   if (record.filter) {
     const cloned = ensureFilterIds(structuredClone(record.filter));
     Object.assign(flow.filter, cloned);
+    isSyncingAudienceMode.value = true;
+    audienceMode.value = getAudienceModeFromFilter(cloned);
+    isSyncingAudienceMode.value = false;
   }
 }
 
@@ -200,6 +239,9 @@ async function loadCloneIntoForm(data) {
   if (data.filter) {
     const cloned = ensureFilterIds(structuredClone(data.filter));
     Object.assign(flow.filter, cloned);
+    isSyncingAudienceMode.value = true;
+    audienceMode.value = getAudienceModeFromFilter(cloned);
+    isSyncingAudienceMode.value = false;
   }
 }
 
@@ -324,11 +366,38 @@ onMounted(async () => {
     <VWindow v-model="activeTab" class="mt-4">
       <!-- Audience -->
       <VWindowItem>
-        <h3 class="mb-2">Real-Time Filter</h3>
+        <h3 class="mb-2">Audience</h3>
         <p class="text-caption mb-4">
-          Apply filters based on latest user attributes
+          Choose a cohort or define a real-time filter for the journey audience.
         </p>
+        <VBtnToggle
+          v-model="audienceMode"
+          mandatory
+          density="compact"
+          color="primary"
+          divided
+          class="mb-6"
+          :disabled="isViewMode && !isEditing"
+        >
+          <VBtn value="cohort">Select Cohort</VBtn>
+          <VBtn value="filter">Real-Time Filter</VBtn>
+        </VBtnToggle>
+
         <FilterBuilder
+          v-if="audienceMode === 'cohort'"
+          v-model="flow.filter"
+          :ignoreEventfilterType="true"
+          :ignoreEventDatafilterType="true"
+          :ignoreCustomEventfilterType="true"
+          :ignoreSlicefilterType="true"
+          :ignoreProfileAttribute="true"
+          :ignoreSystemAttribute="true"
+          :readonly="isViewMode && !isEditing"
+          ref="filterRef"
+        />
+
+        <FilterBuilder
+          v-else
           v-model="flow.filter"
           :ignoreEventfilterType="true"
           :ignoreEventDatafilterType="true"
