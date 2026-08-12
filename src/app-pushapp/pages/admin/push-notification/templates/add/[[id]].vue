@@ -174,6 +174,9 @@ onMounted(async () => {
             //   data: {},
             // },
           });
+          template.desc = "";
+          template.code = "";
+          delete template._id;
           if (template.type === "simple") {
             if (typeof template.style.image_url === "string") template.style.image_url = [template.style.image_url];
             if (!Array.isArray(template.style.image_url)) template.style.image_url = [""];
