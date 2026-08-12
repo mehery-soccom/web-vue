@@ -46,7 +46,7 @@ const optionIcons = {
 const formattedEventList = computed(() => {
   return eventStore.uniqueEvents
     .map(event => ({
-      title: event.replace(/_/g, ' ').toLowerCase().replace(/^\w/, c => c.toUpperCase()),
+      title: event,
       value: event
     }))
     .sort((a, b) => a.title.localeCompare(b.title))
@@ -156,20 +156,22 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
         <h3 class="text-h5">Event Analytics</h3>
         
         <div class="d-flex gap-4 align-center flex-wrap">
-          <VSelect
+          <VAutocomplete
             v-model="selectedEvent"
             :items="sessionFilteredEvents"
             label="Event"
-            placeholder="Choose an event"
+            variant="outlined"
+            placeholder="Select event"
             density="compact"
             style="min-width: 250px;"
           />
 
-          <VSelect
+          <VAutocomplete
             v-model="selectedCohort"
             :items="formattedCohortList"
             label="Cohort"
-            placeholder="All"
+            variant="outlined"
+            placeholder="Select cohort"
             density="compact"
             clearable
             style="min-width: 200px;"

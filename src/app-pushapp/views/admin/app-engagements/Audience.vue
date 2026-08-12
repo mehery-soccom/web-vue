@@ -22,7 +22,6 @@ const { localCache } = useAppEngagements();
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 const filterLocal = reactive(JSON.parse(JSON.stringify(props.filter)));
 const abTestingLocal = reactive(JSON.parse(JSON.stringify(props.abTesting)));
-const audienceMode = ref("cohort");
 const isSyncingAudienceMode = ref(false);
 
 const createInitialFilter = (mode = "filter") => ({
@@ -59,6 +58,8 @@ const getAudienceModeFromFilter = (filterNode) => {
   }
   return "filter";
 };
+
+const audienceMode = ref(getAudienceModeFromFilter(props.filter));
 
 const resetFilter = (mode) => {
   Object.assign(filterLocal, createInitialFilter(mode));

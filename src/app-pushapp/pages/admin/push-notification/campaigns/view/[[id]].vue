@@ -77,6 +77,13 @@ const getTimeParts = (time) => {
   return ["00", "00"];
 };
 
+const hasSliceFilter = (node) => {
+  if (!node) return false;
+  if (node.type === 'filter' && node.filterType === 'slice') return true;
+  if (Array.isArray(node.children)) return node.children.some(hasSliceFilter);
+  return false;
+};
+
 const campaignId = route.params.id;
 
 onMounted(async () => {
@@ -112,7 +119,7 @@ onMounted(async () => {
 
     if (campaign.filter) {
       Object.assign(filter, campaign.filter);
-      audienceMode.value = 'filter';
+      audienceMode.value = hasSliceFilter(campaign.filter) ? 'slice' : 'filter';
     } else {
       filterLink.value = campaign.filterLink;
       audienceMode.value = 'excel';
@@ -269,12 +276,28 @@ const populateSchedule = scheduleData => {
                     color="primary"
                     divided
                     class="mb-6"
+                    disabled
                   >
+                    <VBtn value="slice">Select Slice</VBtn>
                     <VBtn value="filter">Real-Time Filter</VBtn>
                     <VBtn value="excel">Upload Profile Codes</VBtn>
                   </VBtnToggle>
 
-                  <div v-if="audienceMode === 'filter'">
+                  <div v-if="audienceMode === 'slice'">
+                    <FilterBuilder
+                      v-model="filter" readonly
+                      :ignoreEventfilterType="true"
+                      :ignoreEventDatafilterType="true"
+                      :ignoreCustomEventfilterType="true"
+                      :ignoreCohortfilterType="true"
+                      :ignoreProfileAttribute="true"
+                      :ignoreSystemAttribute="true"
+                      :channelId="notification.channel_id"
+                      ref="filterRef"
+                    />
+                  </div>
+
+                  <div v-else-if="audienceMode === 'filter'">
                     <FilterBuilder
                       v-model="filter" readonly
                       :ignoreEventfilterType="true"

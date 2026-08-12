@@ -183,7 +183,7 @@ onMounted(async () => {
       <template #append>
         <div class="d-flex align-center gap-2">
           <div style="width: 250px;">
-            <VSelect
+            <VAutocomplete
               v-model="selectedProperty"
               :items="propertyOptions"
               label="Select Property"

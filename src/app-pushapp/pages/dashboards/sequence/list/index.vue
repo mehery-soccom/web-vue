@@ -485,7 +485,7 @@ const exportToExcel = () => {
               </VCardTitle>
               
               <div class="d-flex gap-4 align-center flex-wrap">
-                <VSelect
+                <VAutocomplete
                   v-model="selectedCohortA"
                   :items="formattedCohortList"
                   label="Cohort"
@@ -513,7 +513,7 @@ const exportToExcel = () => {
                 <template v-else>
                   <span class="text-subtitle-1 font-weight-bold mt-1 text-disabled">VS</span>
 
-                  <VSelect
+                  <VAutocomplete
                     v-model="selectedCohortB"
                     :items="formattedCohortList"
                     label="Cohort B"

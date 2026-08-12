@@ -229,6 +229,7 @@ async function loadRecordIntoForm(record) {
     Object.assign(flow.filter, cloned);
     isSyncingAudienceMode.value = true;
     audienceMode.value = getAudienceModeFromFilter(cloned);
+    await nextTick();
     isSyncingAudienceMode.value = false;
   }
 }
@@ -241,6 +242,7 @@ async function loadCloneIntoForm(data) {
     Object.assign(flow.filter, cloned);
     isSyncingAudienceMode.value = true;
     audienceMode.value = getAudienceModeFromFilter(cloned);
+    await nextTick();
     isSyncingAudienceMode.value = false;
   }
 }
