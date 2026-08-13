@@ -33,6 +33,7 @@ const filter = reactive({
       freqOperator: null,
       freqCount: null,
       freqPeriod: null,
+      scannedEvents: null,
     },
   ],
 });

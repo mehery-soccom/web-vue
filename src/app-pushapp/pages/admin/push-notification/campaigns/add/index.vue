@@ -34,6 +34,7 @@ const createInitialFilter = () => ({
       freqOperator: null,
       freqCount: null,
       freqPeriod: null,
+      scannedEvents: null,
     },
   ],
 });

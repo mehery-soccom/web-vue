@@ -18,6 +18,7 @@ const props = defineProps({
   ignoreProfileAttribute: { type: Boolean, default: false },
   ignoreSystemAttribute: { type: Boolean, default: false },
   disableRemove: { type: Boolean, default: false },
+  showScannedEvents: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   hasCohort: { type: Boolean, default: false },
   hasNormalFilter: { type: Boolean, default: false },
@@ -134,6 +135,7 @@ watch(
     props.element.freqOperator = null;
     props.element.freqCount = null;
     props.element.freqPeriod = null;
+    props.element.scannedEvents = null;
     clearErrorAndUpdate();
 
     if (!props.readonly) {
@@ -494,6 +496,20 @@ defineExpose({ isValid });
         />
       </template>
 
+      <!-- Scanned Events -->
+      <AppSelect
+        v-if="showScannedEvents && element.filterType == 'eventData'"
+        v-model="element.scannedEvents"
+        :items="[
+          { title: 'Once', value: 'once' },
+          { title: 'All', value: 'all' },
+        ]"
+        placeholder="Events"
+        density="compact"
+        class="filter-entity scanned-events"
+        @update:modelValue="clearErrorAndUpdate"
+      />
+
       <!-- Delete -->
       <VTooltip location="top" v-if="index > 0 && !disableRemove">
         <template #activator="{ props }">
@@ -531,6 +547,7 @@ defineExpose({ isValid });
       :ignoreProfileAttribute="ignoreProfileAttribute"
       :ignoreSystemAttribute="ignoreSystemAttribute"
       :disableRemove="disableRemove"
+      :showScannedEvents="showScannedEvents"
       :channelId="channelId"
       :readonly="readonly"
     />
@@ -579,6 +596,9 @@ defineExpose({ isValid });
 }
 .freq-period {
   width: 160px;
+}
+.scanned-events {
+  max-width: 120px;
 }
 
 /* disable only interactive elements */

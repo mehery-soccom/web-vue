@@ -99,6 +99,7 @@ onMounted(async () => {
           freqOperator: null,
           freqCount: null,
           freqPeriod: null,
+          scannedEvents: null,
         },
       ],
     };

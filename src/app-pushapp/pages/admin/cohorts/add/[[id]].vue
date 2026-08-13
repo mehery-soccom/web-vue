@@ -91,6 +91,7 @@ onMounted(async () => {
           freqOperator: null,
           freqCount: null,
           freqPeriod: null,
+          scannedEvents: null,
         },
       ],
     };
@@ -134,6 +135,7 @@ onMounted(async () => {
         v-model="cohort.filter"
         :ignoreSlicefilterType="true"
         :ignoreCohortfilterType="true"
+        :showScannedEvents="true"
         ref="filterRef"
         :readonly="!!route.params.id"
       />

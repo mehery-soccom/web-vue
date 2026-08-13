@@ -14,6 +14,7 @@ const props = defineProps({
   ignoreSystemAttribute: { type: Boolean, default: false },
   hideActions: { type: Boolean, default: false },
   disableRemove: { type: Boolean, default: false },
+  showScannedEvents: { type: Boolean, default: false },
   readonly: { type: Boolean, default: false },
   channelId: { type: [String, Number], default: null },
   vertical: { type: Boolean, default: false },
@@ -36,6 +37,7 @@ const addFilter = () => {
     freqOperator: null,
     freqCount: null,
     freqPeriod: null,
+    scannedEvents: null,
   });
   emit("update:modelValue", props.modelValue);
 };
@@ -55,6 +57,7 @@ const addGroup = () => {
         freqOperator: null,
         freqCount: null,
         freqPeriod: null,
+        scannedEvents: null,
       },
     ],
   });
@@ -265,6 +268,7 @@ defineExpose({ isValid });
         :hasCohort="hasCohort"
         :hasNormalFilter="hasNormalFilter"
         :channelId="channelId"
+        :showScannedEvents="showScannedEvents"
       />
     </div>
 

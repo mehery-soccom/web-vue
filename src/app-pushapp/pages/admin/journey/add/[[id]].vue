@@ -30,6 +30,7 @@ const createInitialJourneyFilter = () => ({
       freqOperator: null,
       freqCount: null,
       freqPeriod: null,
+      scannedEvents: null,
     },
   ],
 });

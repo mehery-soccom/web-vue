@@ -172,6 +172,7 @@ const NODE_DEFS = {
             freqOperator: null,
             freqCount: null,
             freqPeriod: null,
+            scannedEvents: null,
           },
         ],
       },
