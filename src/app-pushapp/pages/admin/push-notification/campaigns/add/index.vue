@@ -493,11 +493,12 @@ const onSendSimple = async () => {
                         v-model="notification.campaignName"
                         placeholder="Campaign Name"
                         :rules="[requiredValidator]"
+                        persistent-hint
+                        hint=" "
                       />
                     </VCol>
-
-                    <VCol cols="12" md="8"></VCol>
-
+                  </VRow>
+                  <VRow style="margin-top: 0px;">
                     <VCol cols="12" md="4">
                       <AppSelect
                         v-model="notification.channel_id"
