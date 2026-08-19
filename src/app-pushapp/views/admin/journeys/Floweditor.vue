@@ -20,6 +20,7 @@ import FilterBuilder from '../app-engagements/FilterBuilder.vue'
 const props = defineProps({
   initialFlow: { type: Object, default: null },
   disabled: { type: Boolean, default: false },
+  analyticsNodesMap: { type: Object, default: () => ({}) },
 })
 
 
@@ -1139,6 +1140,28 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
         <template #node-flow-node="{ id, data, selected }">
           <Handle v-if="NODE_DEFS[data.code]?.hasInput" type="target" :position="Position.Left" class="flow-handle-in" />
 
+          <!-- Analytics counts shown above node when in analytics mode -->
+          <div v-if="analyticsNodesMap[id]" class="node-analytics-badge">
+            <VTooltip location="top">
+              <template #activator="{ props }">
+                <span v-bind="props" class="analytics-badge-reached">
+                  <VIcon size="11" style="margin-bottom:1px">tabler-arrow-down-circle</VIcon>
+                  {{ analyticsNodesMap[id].reachedCount }}
+                </span>
+              </template>
+              <span>Reached</span>
+            </VTooltip>
+            <VTooltip location="top">
+              <template #activator="{ props }">
+                <span v-bind="props" class="analytics-badge-current">
+                  <VIcon size="11" style="margin-bottom:1px">tabler-users</VIcon>
+                  {{ analyticsNodesMap[id].currentlyAtCount }}
+                </span>
+              </template>
+              <span>Currently at</span>
+            </VTooltip>
+          </div>
+
           <div
             class="flow-node"
             :class="{ selected, invalid: invalidNodeIds.has(id) }"
@@ -1664,6 +1687,39 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
   0%, 100% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25), 0 6px 16px rgba(0,0,0,0.08); }
   50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15), 0 6px 16px rgba(0,0,0,0.08); }
 }
+/* ── Analytics node badge ── */
+.node-analytics-badge {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: auto;
+  z-index: 2;
+}
+.analytics-badge-reached,
+.analytics-badge-current {
+  cursor: default;
+}
+.analytics-badge-reached {
+  display: flex; align-items: center; gap: 3px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+.analytics-badge-current {
+  display: flex; align-items: center; gap: 3px;
+  background: rgba(var(--v-theme-warning), 0.15);
+  color: rgb(var(--v-theme-warning));
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
 .output-port { position: relative; }
 .output-ports {
   position: absolute;

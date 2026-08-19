@@ -13,6 +13,93 @@ const isFetching = ref(false);
 const flowRecord = ref(null);
 const isViewMode = computed(() => !!route.params.id);
 const isEditing = computed(() => "edit" in route.query);
+const isAnalyticsMode = computed(() => route.query.analytics === "true");
+
+// ── Analytics ──────────────────────────────────────────────────────────────
+const analyticsData = ref(null);
+const analyticsLoading = ref(false);
+
+const formatAnalyticsDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+const defaultAnalyticsFrom = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 14);
+  return d;
+};
+const analyticsDateRange = ref(
+  `${formatAnalyticsDate(defaultAnalyticsFrom())} to ${formatAnalyticsDate(new Date())}`,
+);
+
+const parseYmd = (value) => {
+  if (value instanceof Date) return new Date(value);
+  const [y, m, d] = String(value).split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
+const startOfDayTs = (value) => {
+  const d = parseYmd(value);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
+const endOfDayTs = (value) => {
+  const d = parseYmd(value);
+  d.setHours(23, 59, 59, 999);
+  return d.getTime();
+};
+
+const parseAnalyticsRange = (selectedDates) => {
+  if (Array.isArray(selectedDates) && selectedDates.length === 2) {
+    return {
+      from: startOfDayTs(selectedDates[0]),
+      to: endOfDayTs(selectedDates[1]),
+    };
+  }
+  const [from, to] = String(analyticsDateRange.value || "")
+    .split(" to ").map((part) => part.trim()).filter(Boolean);
+  if (!from || !to) return {};
+  return { from: startOfDayTs(from), to: endOfDayTs(to) };
+};
+
+const ANALYTICS_STATS = [
+  { key: "totalTrips",       label: "Total Trips",  icon: "tabler-route",       color: "primary"  },
+  { key: "completedTrips",   label: "Completed",    icon: "tabler-checks",      color: "success"  },
+  { key: "completedSuccess", label: "Success",      icon: "tabler-mood-smile",  color: "success"  },
+  { key: "completedFailure", label: "Failed",       icon: "tabler-mood-sad",    color: "error"    },
+  { key: "runningTrips",     label: "Running",      icon: "tabler-player-play", color: "warning"  },
+  { key: "waitingTrips",     label: "Waiting",      icon: "tabler-clock",       color: "info"     },
+];
+
+const analyticsNodesMap = computed(() => {
+  const map = {};
+  for (const n of analyticsData.value?.nodes || []) {
+    map[n.nodeId] = n;
+  }
+  return map;
+});
+
+async function loadAnalytics(id, selectedDates) {
+  try {
+    analyticsLoading.value = true;
+    const { from, to } = parseAnalyticsRange(selectedDates);
+    const res = await FlowsStore.fetchFlowAnalytics({ id, from, to });
+    analyticsData.value = res.data.data;
+  } catch (e) {
+    console.error("[Analytics] failed to load", e);
+    show({ message: "Failed to load analytics", color: "error" });
+  } finally {
+    analyticsLoading.value = false;
+  }
+}
+
+function onAnalyticsDateClosed(selectedDates) {
+  if (selectedDates.length !== 2) return;
+  if (route.params.id) loadAnalytics(route.params.id, selectedDates);
+}
 const audienceMode = ref("filter");
 const isSyncingAudienceMode = ref(false);
 
@@ -261,6 +348,10 @@ onMounted(async () => {
     } finally {
       isFetching.value = false;
     }
+    if (isAnalyticsMode.value) {
+      activeTab.value = 1;
+      loadAnalytics(route.params.id);
+    }
     return;
   }
   const cloneData = FlowsStore.consumeCloneData();
@@ -414,10 +505,50 @@ onMounted(async () => {
 
       <!-- Flow -->
       <VWindowItem>
+        <div v-if="isAnalyticsMode" class="analytics-summary mb-4">
+          <VProgressLinear v-if="analyticsLoading" indeterminate color="primary" class="mb-2" />
+          <VRow v-else align="start" class="ma-0">
+            <!-- Stat cards — span 9 cols -->
+            <VCol cols="12" md="9" class="pa-0 d-flex flex-wrap gap-3">
+              <VCard
+                v-for="stat in ANALYTICS_STATS"
+                :key="stat.key"
+                variant="tonal"
+                :color="stat.color"
+                class="analytics-stat-card px-4 py-3"
+              >
+                <div class="d-flex align-center gap-2">
+                  <VIcon :icon="stat.icon" size="20" />
+                  <div>
+                    <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
+                    <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] ?? '—' }}</div>
+                  </div>
+                </div>
+              </VCard>
+            </VCol>
+
+            <VCol cols="12" md="3" class="pa-0 ps-md-4" style="margin-top: 7px; min-width: 270px; max-width: 350px;">
+              <AppDateTimePicker
+                v-model="analyticsDateRange"
+                placeholder="Select date range"
+                prepend-inner-icon="tabler-calendar"
+                :config="{
+                  mode: 'range',
+                  enableTime: false,
+                  dateFormat: 'Y-m-d',
+                  maxDate: 'today',
+                  onClose: onAnalyticsDateClosed,
+                }"
+              />
+            </VCol>
+          </VRow>
+        </div>
+
         <FlowEditor
           ref="flowEditorRef"
           :initial-flow="flowRecord"
           :disabled="isViewMode && !isEditing"
+          :analytics-nodes-map="analyticsNodesMap"
         />
       </VWindowItem>
     </VWindow>
@@ -427,5 +558,9 @@ onMounted(async () => {
 <style scoped>
 .error-tab {
   color: rgb(var(--v-theme-error));
+}
+.analytics-stat-card {
+  min-width: 130px;
+  flex: 0 0 auto;
 }
 </style>
