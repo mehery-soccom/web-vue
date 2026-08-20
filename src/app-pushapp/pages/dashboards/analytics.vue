@@ -4,13 +4,13 @@ import ChartJsLineChart from '@/app-pushapp/views/dashboards/analytics/ChartJsLi
 import { useProjectStore } from "@app-pushapp/views/dashboards/analytics/useProjectStore";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
-import { ref, onMounted, toRaw, nextTick } from "vue";
+import { ref, onMounted, toRaw, nextTick, computed } from "vue";
 
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
 
-const isPageLoading = ref(true);
-const loadingRequests = ref(0);
+const isMauLoading = ref(false);
+const isChartLoading = ref(false);
 const chartData = ref({ labels: [], datasets: [] });
 const chartOptions = ref({});
 const chartJsCustomColors = {
@@ -77,24 +77,24 @@ const statsDauCount = ref([
   }
 ]);
 const statsDau = ref([
-  {
-    title: "Notifications Opened",
-    stats: "0",
-    icon: "tabler-bell",
-    color: "primary",
-  },
+  // {
+  //   title: "Notifications Opened",
+  //   stats: "0",
+  //   icon: "tabler-bell",
+  //   color: "primary",
+  // },
   {
     title: "App Event",
     stats: "0",
     icon: "tabler-bolt",
     color: "info",
   },
-  {
-    title: "App Engagement",
-    stats: "0",
-    icon: "tabler-heart-handshake",
-    color: "error",
-  },
+  // {
+  //   title: "App Engagement",
+  //   stats: "0",
+  //   icon: "tabler-heart-handshake",
+  //   color: "error",
+  // },
   {
     title: "Profile Update",
     stats: "0",
@@ -111,24 +111,24 @@ const statsMauCount = ref([
   }
 ]);
 const statsMau = ref([
-  {
-    title: "Notifications Opened",
-    stats: "0",
-    icon: "tabler-bell",
-    color: "primary",
-  },
+  // {
+  //   title: "Notifications Opened",
+  //   stats: "0",
+  //   icon: "tabler-bell",
+  //   color: "primary",
+  // },
   {
     title: "App Event",
     stats: "0",
     icon: "tabler-bolt",
     color: "info",
   },
-  {
-    title: "App Engagement",
-    stats: "0",
-    icon: "tabler-heart-handshake",
-    color: "error",
-  },
+  // {
+  //   title: "App Engagement",
+  //   stats: "0",
+  //   icon: "tabler-heart-handshake",
+  //   color: "error",
+  // },
   {
     title: "Profile Update",
     stats: "0",
@@ -137,18 +137,11 @@ const statsMau = ref([
   },
 ]);
 
-const startPageLoading = () => {
-  loadingRequests.value += 1;
-  isPageLoading.value = true;
-};
-
-const stopPageLoading = () => {
-  loadingRequests.value = Math.max(loadingRequests.value - 1, 0);
-  isPageLoading.value = loadingRequests.value > 0;
-};
+const statsDauAll = computed(() => [...statsDauCount.value, ...statsDau.value]);
+const statsMauAll = computed(() => [...statsMauCount.value, ...statsMau.value]);
 
 const fetchDauMauData = async (type, period) => {
-  startPageLoading();
+  if (type === 'MAU') isMauLoading.value = true;
   try{
     const resp = await projectStore.fetchDauMauDatas({ type, period })
     const item = resp?.data?.data?.[0] || {};
@@ -156,22 +149,22 @@ const fetchDauMauData = async (type, period) => {
       statsMauCount.value[0].stats = String(item.count || 0);
       const currentMonth = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}`;
       statsMauCount.value[0].title = period === currentMonth ? "MAU Count (This Month)" : "MAU Count";
-      statsMau.value[0].stats = String(item.primaryEvents?.notifications || 0);
-      statsMau.value[1].stats = String(item.primaryEvents?.event_activity || 0);
-      statsMau.value[2].stats = String(item.primaryEvents?.in_app_engagement || 0);
-      statsMau.value[3].stats = String(item.primaryEvents?.profile_update || 0);
+      // statsMau.value[0].stats = String(item.primaryEvents?.notifications || 0);
+      statsMau.value[0].stats = String(item.primaryEvents?.event_activity || 0);
+      // statsMau.value[2].stats = String(item.primaryEvents?.in_app_engagement || 0);
+      statsMau.value[1].stats = String(item.primaryEvents?.profile_update || 0);
     } else {
       statsDauCount.value[0].stats = String(item.count || 0);
-      statsDau.value[0].stats = String(item.primaryEvents?.notifications || 0);
-      statsDau.value[1].stats = String(item.primaryEvents?.event_activity || 0);
-      statsDau.value[2].stats = String(item.primaryEvents?.in_app_engagement || 0);
-      statsDau.value[3].stats = String(item.primaryEvents?.profile_update || 0);
+      // statsDau.value[0].stats = String(item.primaryEvents?.notifications || 0);
+      statsDau.value[0].stats = String(item.primaryEvents?.event_activity || 0);
+      // statsDau.value[2].stats = String(item.primaryEvents?.in_app_engagement || 0);
+      statsDau.value[1].stats = String(item.primaryEvents?.profile_update || 0);
     }
     console.log("resp", resp.data[0])
   }catch(e){
     console.error(e)
   } finally {
-    stopPageLoading();
+    if (type === 'MAU') isMauLoading.value = false;
   }
 };
 
@@ -217,7 +210,7 @@ const buildPayload = (fromDate, toDate) => {
 };
 
 const fetchChartData = async (fromDate, toDate) => {
-  startPageLoading();
+  isChartLoading.value = true;
   try {
     const payload = buildPayload(fromDate, toDate);
     const response = await projectStore.fetchChartDatas(payload);
@@ -311,7 +304,7 @@ const fetchChartData = async (fromDate, toDate) => {
   } catch (error) {
     console.error("fetchChartData error:", error);
   } finally {
-    stopPageLoading();
+    isChartLoading.value = false;
   }
 };
 const onChartDateChange = ([start, end]) => {
@@ -324,25 +317,18 @@ const onChartDateChange = ([start, end]) => {
 };
 onMounted(async () => {
   globalDateRange.value = [oneWeekAgo, today];
-  await fetchChartData(oneWeekAgo, today);
+  fetchChartData(oneWeekAgo, today);
   const month = String(today.getMonth() + 1).padStart(2, "0");
   const day = String(today.getDate()).padStart(2, "0");
   const DauDate = `${today.getFullYear()}${month}${day}`;
-  await fetchDauMauData("DAU", DauDate);
+  fetchDauMauData("DAU", DauDate);
   const MauDate = `${today.getFullYear()}${month}`;
-  await fetchDauMauData("MAU", MauDate);
+  fetchDauMauData("MAU", MauDate);
 });
 </script>
 
 <template>
   <div class="analytics-page">
-    <div
-      v-if="isPageLoading"
-      class="analytics-loader-overlay"
-    >
-      <VProgressCircular indeterminate color="primary" size="48" />
-    </div>
-
     <!-- <VRow class="match-height">
       <div style="width: 100%; display: flex; justify-content: flex-end;">
         <AppDateTimePicker
@@ -362,71 +348,71 @@ onMounted(async () => {
         />
       </div>
     </VRow> -->
-    <VRow>
-      <VCol cols="12" md="3">
-        <CardStatisticsTransactions
-          :statistics="statsDauCount"
-          :title="'Daily Active Users'"
-        />
-      </VCol>
-      <VCol cols="12" md="9">
-        <CardStatisticsTransactions
-          :statistics="statsDau"
-          :title="'DAU Statistics'"
-        />
-      </VCol>
-    </VRow>
-    <div>
-      <div style="width: 100%;margin-top: 10px; display: flex; justify-content: flex-end;">
-        <AppSelect
-            v-model="selectedMonth"
-            :items="selectedMonthOptions"
-            item-title="label"
-            item-value="value"
-            class="mb-2" :style="{ width: '180px', marginLeft: 'auto'}"
-            @update:modelValue="fetchDauMauData('MAU', selectedMonth)"
-          />
-      </div>
-      <VRow>
-        <VCol cols="12" md="3">
-          <CardStatisticsTransactions
-            :statistics="statsMauCount"
-            :title="'Monthly Active Users'"
-          />
-        </VCol>
-        <VCol cols="12" md="9">
-          <CardStatisticsTransactions
-            :statistics="statsMau"
-            :title="'MAU Statistics'"
-          />
-        </VCol>
-      </VRow>
-    </div>
+    <VCard class="mb-4">
+      <VCardText>
+        <div class="d-flex align-center justify-space-between flex-wrap gap-2 mb-4">
+          <div class="d-flex align-center gap-2">
+            <VIcon icon="tabler-chart-line" size="22" />
+            <span class="text-h6">Daily Active Users</span>
+          </div>
+        </div>
+        <CardStatisticsTransactions :statistics="statsDauAll" />
+        <VDivider class="my-6" />
+        <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
+          <div class="d-flex align-center gap-2">
+            <VIcon icon="tabler-calendar" size="22" />
+            <span class="text-h6">Monthly Active Users</span>
+          </div>
+          <div>
+            <AppSelect
+              v-model="selectedMonth"
+              :items="selectedMonthOptions"
+              item-title="label"
+              item-value="value"
+              density="compact"
+              style="width: 180px; max-width: 100%;"
+              @update:modelValue="fetchDauMauData('MAU', selectedMonth)"
+            />
+          </div>
+        </div>
+        <div class="section-loader-wrap">
+          <CardStatisticsTransactions :statistics="statsMauAll" />
+          <div v-if="isMauLoading" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="40" />
+          </div>
+        </div>
+      </VCardText>
+    </VCard>
     <VRow justify="center">
       <!-- <VCol cols="12" md="1.5"></VCol> -->
       <VCol cols="12" md="12" style="height: calc(100vh - 150px);">
-        <MyChartComponent
-          type="line" :key="chartKey"
-          :data="chartData"
-          :chartOption="chartOptions"
-          :colors="chartJsCustomColors"
-          :title="'Device Statistics'"
-          :modelValue="globalDateRange"
-          :enableDatePicker="true"
-          :dateConfig="{
-            mode: 'range',
-            dateFormat: 'd-m',
-            maxDate: tonight,
-            plugins: [customPlugin]
-          }"
-          :enableDownload="true"
-          :downloadConfig="{
-            fileName: `Device_Analytics_${dateRange}`,
-            types: ['image', 'excel'],
-            sheetName: 'Device Analytics'
-          }"
-          @dateChange="onChartDateChange"
-        />
+        <div class="section-loader-wrap" style="height: 100%;">
+          <MyChartComponent
+            type="line" :key="chartKey"
+            :data="chartData"
+            :chartOption="chartOptions"
+            :colors="chartJsCustomColors"
+            :title="'Device Statistics'"
+            :modelValue="globalDateRange"
+            :enableDatePicker="true"
+            :dateConfig="{
+              mode: 'range',
+              dateFormat: 'd-m',
+              maxDate: tonight,
+              plugins: [customPlugin]
+            }"
+            :enableDownload="true"
+            :downloadConfig="{
+              fileName: `Device_Analytics_${dateRange}`,
+              types: ['image', 'excel'],
+              sheetName: 'Device Analytics'
+            }"
+            @dateChange="onChartDateChange"
+          />
+          <div v-if="isChartLoading" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="48" />
+          </div>
+        </div>
       </VCol>
     </VRow>
 
@@ -467,15 +453,18 @@ onMounted(async () => {
 .analytics-page {
   position: relative;
 }
-.analytics-loader-overlay {
+.section-loader-wrap {
+  position: relative;
+}
+.section-loader-overlay {
   position: absolute;
   inset: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.45);
   backdrop-filter: blur(1px);
-  z-index: 20;
-  pointer-events: none;
+  border-radius: inherit;
+  z-index: 2;
 }
 </style>

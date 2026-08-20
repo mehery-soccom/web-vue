@@ -67,11 +67,11 @@ const parseAnalyticsRange = (selectedDates) => {
 
 const ANALYTICS_STATS = [
   { key: "totalTrips",       label: "Total Trips",  icon: "tabler-route",       color: "primary"  },
+  { key: "runningTrips",     label: "Active",       icon: "tabler-player-play", color: "warning"  },
   { key: "completedTrips",   label: "Completed",    icon: "tabler-checks",      color: "success"  },
   { key: "completedSuccess", label: "Success",      icon: "tabler-mood-smile",  color: "success"  },
   { key: "completedFailure", label: "Failed",       icon: "tabler-mood-sad",    color: "error"    },
-  { key: "runningTrips",     label: "Running",      icon: "tabler-player-play", color: "warning"  },
-  { key: "waitingTrips",     label: "Waiting",      icon: "tabler-clock",       color: "info"     },
+  { key: "uniqueProfiles",   label: "Users",        icon: "tabler-users",       color: "info"     },
 ];
 
 const analyticsNodesMap = computed(() => {
@@ -339,9 +339,14 @@ onMounted(async () => {
   if (route.params.id) {
     try {
       isFetching.value = true;
+      if (isAnalyticsMode.value) {
+        activeTab.value = 1;
+        analyticsLoading.value = true;
+      }
       const response = await FlowsStore.fetchFlow({ id: route.params.id });
       flowRecord.value = response.data.data;
       await loadRecordIntoForm(flowRecord.value);
+      await nextTick();
     } catch (e) {
       console.log(e);
       show({ message: "Failed to load flow", color: "error" });
@@ -349,7 +354,6 @@ onMounted(async () => {
       isFetching.value = false;
     }
     if (isAnalyticsMode.value) {
-      activeTab.value = 1;
       loadAnalytics(route.params.id);
     }
     return;
@@ -505,9 +509,8 @@ onMounted(async () => {
 
       <!-- Flow -->
       <VWindowItem>
-        <div v-if="isAnalyticsMode" class="analytics-summary mb-4">
-          <VProgressLinear v-if="analyticsLoading" indeterminate color="primary" class="mb-2" />
-          <VRow v-else align="start" class="ma-0">
+        <div v-if="isAnalyticsMode" class="analytics-summary mb-4 section-loader-wrap">
+          <VRow align="start" class="ma-0">
             <!-- Stat cards — span 9 cols -->
             <VCol cols="12" md="9" class="pa-0 d-flex flex-wrap gap-3">
               <VCard
@@ -542,14 +545,22 @@ onMounted(async () => {
               />
             </VCol>
           </VRow>
+          <div v-if="analyticsLoading" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="40" />
+          </div>
         </div>
 
-        <FlowEditor
-          ref="flowEditorRef"
-          :initial-flow="flowRecord"
-          :disabled="isViewMode && !isEditing"
-          :analytics-nodes-map="analyticsNodesMap"
-        />
+        <div class="section-loader-wrap">
+          <FlowEditor
+            ref="flowEditorRef"
+            :initial-flow="flowRecord"
+            :disabled="isViewMode && !isEditing"
+            :analytics-nodes-map="analyticsNodesMap"
+          />
+          <div v-if="isFetching" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="48" />
+          </div>
+        </div>
       </VWindowItem>
     </VWindow>
   </div>
@@ -562,5 +573,19 @@ onMounted(async () => {
 .analytics-stat-card {
   min-width: 130px;
   flex: 0 0 auto;
+}
+.section-loader-wrap {
+  position: relative;
+}
+.section-loader-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(1px);
+  border-radius: 8px;
+  z-index: 2;
 }
 </style>
