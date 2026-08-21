@@ -77,24 +77,12 @@ const statsDauCount = ref([
   }
 ]);
 const statsDau = ref([
-  // {
-  //   title: "Notifications Opened",
-  //   stats: "0",
-  //   icon: "tabler-bell",
-  //   color: "primary",
-  // },
   {
     title: "App Event",
     stats: "0",
     icon: "tabler-bolt",
     color: "info",
   },
-  // {
-  //   title: "App Engagement",
-  //   stats: "0",
-  //   icon: "tabler-heart-handshake",
-  //   color: "error",
-  // },
   {
     title: "Profile Update",
     stats: "0",
@@ -111,24 +99,12 @@ const statsMauCount = ref([
   }
 ]);
 const statsMau = ref([
-  // {
-  //   title: "Notifications Opened",
-  //   stats: "0",
-  //   icon: "tabler-bell",
-  //   color: "primary",
-  // },
   {
     title: "App Event",
     stats: "0",
     icon: "tabler-bolt",
     color: "info",
   },
-  // {
-  //   title: "App Engagement",
-  //   stats: "0",
-  //   icon: "tabler-heart-handshake",
-  //   color: "error",
-  // },
   {
     title: "Profile Update",
     stats: "0",
@@ -358,10 +334,10 @@ onMounted(async () => {
         </div>
         <CardStatisticsTransactions :statistics="statsDauAll" />
         <VDivider class="my-6" />
-        <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4">
+        <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4" style="margin-top: -8px;">
           <div class="d-flex align-center gap-2">
             <VIcon icon="tabler-calendar" size="22" />
-            <span class="text-h6">Monthly Active Users</span>
+            <span class="text-h6 mt-1">Monthly Active Users</span>
           </div>
           <div>
             <AppSelect

@@ -66,12 +66,12 @@ const parseAnalyticsRange = (selectedDates) => {
 };
 
 const ANALYTICS_STATS = [
+  { key: "uniqueProfiles",   label: "Users",        icon: "tabler-users",       color: "info"     },
   { key: "totalTrips",       label: "Total Trips",  icon: "tabler-route",       color: "primary"  },
   { key: "runningTrips",     label: "Active",       icon: "tabler-player-play", color: "warning"  },
   { key: "completedTrips",   label: "Completed",    icon: "tabler-checks",      color: "success"  },
   { key: "completedSuccess", label: "Success",      icon: "tabler-mood-smile",  color: "success"  },
   { key: "completedFailure", label: "Failed",       icon: "tabler-mood-sad",    color: "error"    },
-  { key: "uniqueProfiles",   label: "Users",        icon: "tabler-users",       color: "info"     },
 ];
 
 const analyticsNodesMap = computed(() => {

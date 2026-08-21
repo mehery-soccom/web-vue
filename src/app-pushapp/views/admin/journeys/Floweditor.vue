@@ -1145,13 +1145,13 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
             <VTooltip location="top">
               <template #activator="{ props }">
                 <span v-bind="props" class="analytics-badge-reached">
-                  <VIcon size="11" style="margin-bottom:1px">tabler-arrow-down-circle</VIcon>
+                  <VIcon size="11" style="margin-bottom:1px">tabler-user-check</VIcon>
                   {{ analyticsNodesMap[id].reachedCount }}
                 </span>
               </template>
               <span>Reached</span>
             </VTooltip>
-            <VTooltip location="top">
+            <VTooltip location="top" v-if="data.code !== 'TRIGGER'">
               <template #activator="{ props }">
                 <span v-bind="props" class="analytics-badge-current">
                   <VIcon size="11" style="margin-bottom:1px">tabler-users</VIcon>
