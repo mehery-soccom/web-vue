@@ -3,6 +3,8 @@ import FlowEditor from "@/app-pushapp/views/admin/journeys/Floweditor.vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import { useFlowsStore } from "@/app-pushapp/views/admin/journeys/useFlowsStore";
+import { toPng } from "html-to-image";
+import * as XLSX from "xlsx";
 
 const FlowsStore = useFlowsStore();
 const route = useRoute();
@@ -100,6 +102,94 @@ function onAnalyticsDateClosed(selectedDates) {
   if (selectedDates.length !== 2) return;
   if (route.params.id) loadAnalytics(route.params.id, selectedDates);
 }
+
+const analyticsSummaryExportRef = ref(null);
+const isCapturingSummary = ref(false);
+
+const getJourneyDisplayName = () => (flow.name || flowRecord.value?.name || "journey").trim();
+const sanitizeFilePart = (value) => String(value).replace(/[^\w-]+/g, "_").replace(/_+/g, "_");
+
+const getAnalyticsDateFilePart = () => {
+  const parts = String(analyticsDateRange.value || "")
+    .split(" to ").map((part) => part.trim()).filter(Boolean);
+
+  if (parts.length >= 2 && parts[0] !== parts[1]) {
+    return `${parts[0]}-${parts[1]}`;
+  }
+  return parts[0] || formatAnalyticsDate(new Date());
+};
+
+const getAnalyticsFileBaseName = () =>
+  `JA_${sanitizeFilePart(getJourneyDisplayName())}_${getAnalyticsDateFilePart()}`;
+
+const triggerFileDownload = (href, fileName) => {
+  const link = document.createElement("a");
+  link.download = fileName;
+  link.href = href;
+  link.click();
+};
+
+const downloadAnalyticsImages = async () => {
+  const baseName = getAnalyticsFileBaseName();
+
+  if (analyticsSummaryExportRef.value) {
+    isCapturingSummary.value = true;
+    await nextTick();
+
+    try {
+      const summaryCanvas = await html2canvas(analyticsSummaryExportRef.value, {
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+
+      triggerFileDownload( summaryCanvas.toDataURL("image/png"), `${baseName}.png` );
+    } finally {
+      isCapturingSummary.value = false;
+    }
+  }
+
+  const flowCanvasEl = flowEditorRef.value?.getFlowCanvasElement?.();
+  if (flowCanvasEl) {
+    await nextTick();
+
+    const flowCanvas = await html2canvas(flowCanvasEl, {
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      scale: 2,
+    });
+
+    triggerFileDownload(
+      flowCanvas.toDataURL("image/png"),
+      `${baseName}_flow.png`,
+    );
+  }
+};
+
+const exportAnalyticsToExcel = () => {
+  if (!analyticsData.value?.summary) return;
+
+  const summary = analyticsData.value.summary;
+  const dateParts = String(analyticsDateRange.value || "")
+    .split(" to ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const row = {
+    Journey: getJourneyDisplayName(),
+    "Date From": dateParts[0] || "",
+    "Date To": dateParts[1] || dateParts[0] || "",
+  };
+
+  ANALYTICS_STATS.forEach((stat) => {
+    row[stat.label] = summary[stat.key] ?? "—";
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet([row]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Journey Summary");
+  XLSX.writeFile(workbook, `${getAnalyticsFileBaseName()}.xlsx`);
+};
 const audienceMode = ref("filter");
 const isSyncingAudienceMode = ref(false);
 
@@ -510,41 +600,82 @@ onMounted(async () => {
       <!-- Flow -->
       <VWindowItem>
         <div v-if="isAnalyticsMode" class="analytics-summary mb-4 section-loader-wrap">
-          <VRow align="start" class="ma-0">
-            <!-- Stat cards — span 9 cols -->
-            <VCol cols="12" md="9" class="pa-0 d-flex flex-wrap gap-3">
-              <VCard
-                v-for="stat in ANALYTICS_STATS"
-                :key="stat.key"
-                variant="tonal"
-                :color="stat.color"
-                class="analytics-stat-card px-4 py-3"
-              >
+          <div ref="analyticsSummaryExportRef">
+            <VRow align="start" class="ma-0">
+              <!-- Stat cards — span 9 cols -->
+              <VCol cols="12" md="9" class="pa-0 d-flex flex-wrap gap-3">
+                <VCard
+                  v-for="stat in ANALYTICS_STATS"
+                  :key="stat.key"
+                  variant="tonal"
+                  :color="stat.color"
+                  class="analytics-stat-card px-4 py-3"
+                >
+                  <div class="d-flex align-center gap-2">
+                    <VIcon :icon="stat.icon" size="20" />
+                    <div>
+                      <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
+                      <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] ?? '—' }}</div>
+                    </div>
+                  </div>
+                </VCard>
+              </VCol>
+
+              <VCol cols="12" md="3" class="pa-0 ps-md-4" style="min-width: 270px; max-width: 350px;">
                 <div class="d-flex align-center gap-2">
-                  <VIcon :icon="stat.icon" size="20" />
-                  <div>
-                    <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
-                    <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] ?? '—' }}</div>
+                  <VMenu transition="scale-transition" open-on-hover>
+                    <template #activator="{ props: menuProps }">
+                      <VBtn
+                        v-show="!isCapturingSummary"
+                        icon="tabler-download"
+                        variant="text"
+                        color="secondary"
+                        size="small"
+                        v-bind="menuProps"
+                      />
+                    </template>
+
+                    <VList density="compact">
+                      <VListItem @click="exportAnalyticsToExcel">
+                        <template #prepend>
+                          <VIcon icon="tabler-file-spreadsheet" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Summary as Excel</VListItemTitle>
+                      </VListItem>
+                      <VListItem @click="downloadSummaryImage">
+                        <template #prepend>
+                          <VIcon icon="tabler-photo" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Summary as Image</VListItemTitle>
+                      </VListItem>
+                      <VListItem @click="downloadFlowImage">
+                        <template #prepend>
+                          <VIcon icon="tabler-vector" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Flow as Image</VListItemTitle>
+                      </VListItem>
+                    </VList>
+                  </VMenu>
+
+                  <div style="min-width: 270px; max-width: 350px;">
+                    <AppDateTimePicker
+                      v-model="analyticsDateRange"
+                      class="flex-grow-1"
+                      placeholder="Select date range"
+                      prepend-inner-icon="tabler-calendar"
+                      :config="{
+                        mode: 'range',
+                        enableTime: false,
+                        dateFormat: 'Y-m-d',
+                        maxDate: 'today',
+                        onClose: onAnalyticsDateClosed,
+                      }"
+                    />
                   </div>
                 </div>
-              </VCard>
-            </VCol>
-
-            <VCol cols="12" md="3" class="pa-0 ps-md-4" style="margin-top: 7px; min-width: 270px; max-width: 350px;">
-              <AppDateTimePicker
-                v-model="analyticsDateRange"
-                placeholder="Select date range"
-                prepend-inner-icon="tabler-calendar"
-                :config="{
-                  mode: 'range',
-                  enableTime: false,
-                  dateFormat: 'Y-m-d',
-                  maxDate: 'today',
-                  onClose: onAnalyticsDateClosed,
-                }"
-              />
-            </VCol>
-          </VRow>
+              </VCol>
+            </VRow>
+          </div>
           <div v-if="analyticsLoading" class="section-loader-overlay">
             <VProgressCircular indeterminate color="primary" size="40" />
           </div>
