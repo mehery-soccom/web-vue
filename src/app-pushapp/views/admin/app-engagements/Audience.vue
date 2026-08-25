@@ -2,6 +2,7 @@
 import { reactive, ref } from "vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import AbTestingDetails from "./AbTestingDetails.vue";
+import AudienceCountCheck from "./AudienceCountCheck.vue";
 import { useAppEngagements } from "./useAppEngagements";
 const { show } = inject("snackbar");
 
@@ -232,6 +233,18 @@ const isValid = async () => {
   return sectionsValid && filterStructureValid;
 };
 
+const validateAudienceFilter = async () => {
+  const filtervalid = await filterRef.value?.isValid();
+  let filterStructureValid = true;
+  try {
+    validateFilterStructure(filterLocal);
+  } catch (error) {
+    filterStructureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+  return !!(filtervalid && filterStructureValid);
+};
+
 defineExpose({ isValid });
 </script>
 
@@ -327,6 +340,13 @@ defineExpose({ isValid });
       :ignoreCustomEventfilterType="true"
       :ignoreEventDatafilterType="true"
     />
+
+    <div class="d-flex justify-end mt-6">
+      <AudienceCountCheck
+        :filter="filterLocal"
+        :validate="validateAudienceFilter"
+      />
+    </div>
 
     <template v-if="abTestingLocal?.enabled">
       <VDivider class="my-6" />

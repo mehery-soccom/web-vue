@@ -233,7 +233,6 @@ const onDateClosed = (selectedDates, dateStr) => {
     pagination.dateRange1 = start.getTime();
     pagination.dateRange2 = end.getTime();
 
-    fetchCampaigns({ ...pagination });
     fetchStats();
   }
 };
@@ -306,7 +305,8 @@ const fetchCampaigns = async (params) => {
   try {
     isLoading.value = true;
 
-    const response = await pushNotificationStore.fetchCampaigns(params);
+    const { dateRange1, dateRange2, ...campaignParams } = params;
+    const response = await pushNotificationStore.fetchCampaigns(campaignParams);
     notifications.value = response.data.results.map((r) => ({
       ...r,
       id: r._id,
@@ -378,9 +378,9 @@ const exportToExcel = async () => {
   try {
     isExporting.value = true;
 
-    // Fetch all data while maintaining current filters
+    const { dateRange1, dateRange2, ...campaignParams } = pagination;
     const response = await pushNotificationStore.fetchCampaigns({
-      ...pagination,
+      ...campaignParams,
       page: -1,
     });
 

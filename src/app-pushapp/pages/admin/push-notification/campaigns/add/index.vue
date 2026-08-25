@@ -3,6 +3,7 @@ import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsS
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import DataService from "@/@common/services/DataService";
 import * as XLSX from 'xlsx'
@@ -106,6 +107,19 @@ watch(audienceMode, (newMode, oldMode) => {
     (oldMode === "filter" && newMode === "slice");
   if (switchedBetweenSliceAndFilter) resetFilter();
 });
+
+const validateAudienceFilter = async () => {
+  const filterValid = await filterRef.value?.isValid();
+  let filterStructureValid = true;
+  try {
+    validateFilterStructure(filter, null, true, true, true);
+  } catch (error) {
+    filterStructureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+  return !!(filterValid && filterStructureValid);
+};
+
 const validateTab = async (tabName, silent = false) => {
   let valid = true;
 
@@ -656,6 +670,16 @@ const onSendSimple = async () => {
                         </VAlert>
                       </div>
                     </div>
+                  </div>
+
+                  <div
+                    v-if="audienceMode === 'slice' || audienceMode === 'filter'"
+                    class="d-flex justify-end mt-6"
+                  >
+                    <AudienceCountCheck
+                      :filter="filter"
+                      :validate="validateAudienceFilter"
+                    />
                   </div>
                 </VWindowItem>
 
