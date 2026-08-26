@@ -554,47 +554,49 @@ onMounted(async () => {
     <VWindow v-model="activeTab" class="mt-4">
       <!-- Audience -->
       <VWindowItem>
-        <h3 class="mb-2">Audience</h3>
-        <p class="text-caption mb-4">
-          Choose a cohort or define a real-time filter for the journey audience.
-        </p>
-        <VBtnToggle
-          v-model="audienceMode"
-          mandatory
-          density="compact"
-          color="primary"
-          divided
-          class="mb-6"
-          :disabled="isViewMode && !isEditing"
-        >
-          <VBtn value="cohort">Select Cohort</VBtn>
-          <VBtn value="filter">Real-Time Filter</VBtn>
-        </VBtnToggle>
+        <VCard class="pa-6">
+          <h3 class="mb-2">Audience</h3>
+          <p class="text-caption mb-4">
+            Choose a cohort or define a real-time filter for the journey audience.
+          </p>
+          <VBtnToggle
+            v-model="audienceMode"
+            mandatory
+            density="compact"
+            color="primary"
+            divided
+            class="mb-6"
+            :disabled="isViewMode && !isEditing"
+          >
+            <VBtn value="cohort">Select Cohort</VBtn>
+            <VBtn value="filter">Real-Time Filter</VBtn>
+          </VBtnToggle>
 
-        <FilterBuilder
-          v-if="audienceMode === 'cohort'"
-          v-model="flow.filter"
-          :ignoreEventfilterType="true"
-          :ignoreEventDatafilterType="true"
-          :ignoreCustomEventfilterType="true"
-          :ignoreSlicefilterType="true"
-          :ignoreProfileAttribute="true"
-          :ignoreSystemAttribute="true"
-          :readonly="isViewMode && !isEditing"
-          ref="filterRef"
-        />
+          <FilterBuilder
+            v-if="audienceMode === 'cohort'"
+            v-model="flow.filter"
+            :ignoreEventfilterType="true"
+            :ignoreEventDatafilterType="true"
+            :ignoreCustomEventfilterType="true"
+            :ignoreSlicefilterType="true"
+            :ignoreProfileAttribute="true"
+            :ignoreSystemAttribute="true"
+            :readonly="isViewMode && !isEditing"
+            ref="filterRef"
+          />
 
-        <FilterBuilder
-          v-else
-          v-model="flow.filter"
-          :ignoreEventfilterType="true"
-          :ignoreEventDatafilterType="true"
-          :ignoreCustomEventfilterType="true"
-          :ignoreCohortfilterType="true"
-          :ignoreSlicefilterType="true"
-          :readonly="isViewMode && !isEditing"
-          ref="filterRef"
-        />
+          <FilterBuilder
+            v-else
+            v-model="flow.filter"
+            :ignoreEventfilterType="true"
+            :ignoreEventDatafilterType="true"
+            :ignoreCustomEventfilterType="true"
+            :ignoreCohortfilterType="true"
+            :ignoreSlicefilterType="true"
+            :readonly="isViewMode && !isEditing"
+            ref="filterRef"
+          />
+        </VCard>
       </VWindowItem>
 
       <!-- Flow -->

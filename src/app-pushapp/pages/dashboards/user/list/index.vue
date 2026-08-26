@@ -11,6 +11,7 @@ const show = inject("snackbar", () => {});
 const activeTab = ref('filter');
 const isLoading = ref(false);
 const profilesTotal = ref(0);
+const guestCount = ref(null);
 
 const filterLocal = ref({
   type: "group",
@@ -35,11 +36,12 @@ onMounted(() => {
     searchCode.value = state.searchCode || '';
     profilesList.value = state.profilesList || [];
     hasMoreProfiles.value = state.hasMoreProfiles || false;
+    guestCount.value = state.guestCount ?? null;
   }
 });
 
 watch(
-  [activeTab, filterLocal, filterPage, searchCode, profilesList, hasMoreProfiles],
+  [activeTab, filterLocal, filterPage, searchCode, profilesList, hasMoreProfiles, guestCount],
   () => {
     sessionStorage.setItem('usersListState', JSON.stringify({
       activeTab: activeTab.value,
@@ -47,7 +49,8 @@ watch(
       filterPage: filterPage.value,
       searchCode: searchCode.value,
       profilesList: profilesList.value,
-      hasMoreProfiles: hasMoreProfiles.value
+      hasMoreProfiles: hasMoreProfiles.value,
+      guestCount: guestCount.value,
     }));
   },
   { deep: true }
@@ -64,6 +67,7 @@ const applyFilter = async (isLoadMore = false) => {
     filterPage.value = 1;
     profilesList.value = [];
     profilesTotal.value = 0;
+    guestCount.value = null;
   }
 
   isLoading.value = true;
@@ -72,6 +76,10 @@ const applyFilter = async (isLoadMore = false) => {
     const params = { page: filterPage.value, limit: 20 }; 
     
     const res = await userStore.fetchProfilesByFilter(payload, params);
+
+    if (!isLoadMore && res?.meta?.guestCount != null) {
+      guestCount.value = Number(res.meta.guestCount) || 0;
+    }
     
     if (res?.results && res.results.length > 0) {
       profilesList.value.push(...res.results);
@@ -127,6 +135,7 @@ const executeSearch = async () => {
 const handleTabChange = () => {
   profilesList.value = [];
   hasMoreProfiles.value = false;
+  guestCount.value = null;
 };
 
 const goToUserDetails = (code) => {
@@ -162,9 +171,20 @@ const goToUserDetails = (code) => {
                 <FilterBuilder 
                   v-model="filterLocal" 
                   :ignoreSlicefilterType="true" 
+                  :ignoreEventfilterType="true"
+                  :ignoreEventDatafilterType="true"
+                  :ignoreCustomEventfilterType="true"
                 />
                 
-                <div class="d-flex justify-end mt-4">
+                <div class="d-flex align-center justify-end gap-3 mt-4">
+                  <VChip
+                    v-if="guestCount !== null"
+                    color="warning"
+                    variant="tonal"
+                    prepend-icon="tabler-user-question"
+                  >
+                    {{ guestCount.toLocaleString() }} Guest user{{ guestCount === 1 ? '' : 's' }}
+                  </VChip>
                   <VBtn 
                     color="primary" 
                     prepend-icon="tabler-filter-check"

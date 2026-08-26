@@ -437,14 +437,20 @@ onMounted(async () => {
 
     <VWindow v-model="activeTab" class="mt-4">
       <VWindowItem>
-        <FilterBuilder
-          v-model="campaign.triggerFilter"
-          :ignoreCohortfilterType="true"
-          :ignoreSlicefilterType="true"
-          :ignoreProfileAttribute="true"
-          :ignoreSystemAttribute="true"
-          ref="triggerEventRef"
-        />
+        <VCard class="pa-6">
+          <h3 class="mb-2">Trigger Event</h3>
+          <p class="text-caption mb-4">
+            Define the event conditions that will trigger this campaign.
+          </p>
+          <FilterBuilder
+            v-model="campaign.triggerFilter"
+            :ignoreCohortfilterType="true"
+            :ignoreSlicefilterType="true"
+            :ignoreProfileAttribute="true"
+            :ignoreSystemAttribute="true"
+            ref="triggerEventRef"
+          />
+        </VCard>
       </VWindowItem>
       <!-- tab-template -->
       <VWindowItem>
