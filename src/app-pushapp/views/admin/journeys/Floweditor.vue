@@ -215,7 +215,7 @@ const NODE_DEFS = {
     hasInput: true,
     fixedOutputs: [{ id: 'completed', label: 'Completed' }],
     defaultAttrs: () => ({
-      duration: { value: 2, unit: 'hours' },
+      window: { value: 2, unit: 'hour' },
     }),
   },
   END: {
@@ -230,7 +230,7 @@ const NODE_DEFS = {
   },
 }
 
-const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'END']
+const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'WAIT', 'END']
 const showGrid = ref(true);
 const CHANNEL_TYPE_OPTIONS = [
   { title: 'App engagement', value: 'SEND_ENGAGEMENT' },
