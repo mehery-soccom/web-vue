@@ -1,6 +1,7 @@
 import DataService from "@/@common/services/DataService";
 import { defineStore } from "pinia";
 
+const PERSISTENT_CHAT_URL = "/nexuz/agentic/api/v1/persistentChat";
 export const usePushNotificationStore = defineStore("PushNotificationStore", {
   state: () => ({
     buttonGroupList: [
@@ -241,6 +242,31 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
         `/api/v1/notification/push/slice/${id}`,
         params,
       );
+    },
+
+    /** POST a chat message. First call: sessionId null. Later: include sessionId. */
+    postCampaignAssistantMessage({ sessionId = null, text }) {
+      return DataService.axios.post(PERSISTENT_CHAT_URL,
+        { sessionId, text }, 
+        { skipApiContext: true, toast: false, 
+          params: { tnt: window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo" } });
+    },
+
+    /** GET / poll session messages by sessionId */
+    fetchCampaignAssistantSession(sessionId) {
+      return DataService.axios.get(PERSISTENT_CHAT_URL, 
+        { params: { sessionId, tnt: window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo" }, 
+          skipApiContext: true, toast: false });
+    },
+
+    /** POST / initialize AI form state for a chat session (call once before polling GET) */
+    initCampaignAiFormState(sessionId) {
+      return DataService.axios.post("/api/v1/ai-form-state",{ sessionId, feature: "campaign" });
+    },
+
+    /** GET / poll AI form state (template, audience, schedule) by sessionId */
+    fetchCampaignAiFormState(sessionId) {
+      return DataService.axios.get(`/api/v1/ai-form-state/${sessionId}`);
     },
   },
 });
