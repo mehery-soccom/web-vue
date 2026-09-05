@@ -40,6 +40,11 @@ export const useFlowsStore = defineStore("FlowsStore", {
     deleteFlow({ id, ...params }) {
       return DataService.axios.delete(`/api/v1/journi/${id}`, params);
     },
+    fetchFlowAnalytics({ id, from, to }) {
+      return DataService.axios.get(`/api/v1/journi/${id}/analytics`, {
+        params: { from, to },
+      });
+    },
     setCloneData(data) {
       this.cloneData = data;
     },

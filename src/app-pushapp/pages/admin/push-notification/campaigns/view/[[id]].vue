@@ -2,6 +2,8 @@
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
+import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 const { show } = inject("snackbar");
 
 const route = useRoute();
@@ -37,6 +39,20 @@ const filter = reactive({
     },
   ],
 });
+const filterRef = ref(null);
+
+const validateAudienceFilter = async () => {
+  const filterValid = await filterRef.value?.isValid();
+  let filterStructureValid = true;
+  try {
+    validateFilterStructure(filter, null, true, true, true);
+  } catch (error) {
+    filterStructureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+  return !!(filterValid && filterStructureValid);
+};
+
 const ChannelList = ref([]);
 const TemplateListSimple = ref([]);
 
@@ -360,6 +376,16 @@ const populateSchedule = scheduleData => {
                         :model-value="excelFileDisplay"
                       />
                     </div>
+                  </div>
+
+                  <div
+                    v-if="audienceMode === 'slice' || audienceMode === 'filter'"
+                    class="d-flex justify-end mt-6"
+                  >
+                    <AudienceCountCheck
+                      :filter="filter"
+                      :validate="validateAudienceFilter"
+                    />
                   </div>
                 </VWindowItem>
 

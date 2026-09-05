@@ -83,9 +83,9 @@ const sequenceBarLabelsPlugin = {
 
         const { x, y } = bar.tooltipPosition();
         ctx.fillStyle = '#6b7280';
-        ctx.font = '600 10px sans-serif';
-        ctx.fillText(`Count: ${custom.attempts}`, x, y - 16);
-        ctx.font = '500 9px sans-serif';
+        ctx.font = '600 13px sans-serif';
+        ctx.fillText(`Count: ${Number(custom.attempts).toLocaleString('en-US')}`, x, y - 19);
+        ctx.font = '600 12px sans-serif';
         ctx.fillText(`Avg: ${formatMs(custom.avgTime)}`, x, y - 4);
       });
     });

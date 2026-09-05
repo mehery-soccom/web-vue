@@ -247,7 +247,6 @@ const onDateClosed = (selectedDates, dateStr) => {
     end.setHours(23, 59, 59, 999);
     pagination.dateRange1 = start.getTime();
     pagination.dateRange2 = end.getTime();
-    fetchCampaigns({ ...pagination });
     fetchStats();
   }
 };
@@ -299,7 +298,8 @@ const fetchCampaigns = async (params) => {
   try {
     isLoading.value = true;
 
-    const response = await appEngagementsStore.fetchFilters(params);
+    const { dateRange1, dateRange2, ...campaignParams } = params;
+    const response = await appEngagementsStore.fetchFilters(campaignParams);
     items.value = response.data.results.map((r) => ({
       ...r,
       id: r._id,
@@ -395,8 +395,9 @@ const onUpdateOptions = (options) => {
 const exportToExcel = async () => {
   try {
     isExporting.value = true;
+    const { dateRange1, dateRange2, ...campaignParams } = pagination;
     const response = await appEngagementsStore.fetchFilters({
-      ...pagination,
+      ...campaignParams,
       page: -1,
     });
 

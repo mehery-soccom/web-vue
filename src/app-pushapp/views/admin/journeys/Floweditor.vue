@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, watch, nextTick, reactive } from 'vue'
+import { toPng } from 'html-to-image'
 import {
   VueFlow,
   useVueFlow,
@@ -20,6 +21,7 @@ import FilterBuilder from '../app-engagements/FilterBuilder.vue'
 const props = defineProps({
   initialFlow: { type: Object, default: null },
   disabled: { type: Boolean, default: false },
+  analyticsNodesMap: { type: Object, default: () => ({}) },
 })
 
 
@@ -206,16 +208,16 @@ const NODE_DEFS = {
       window: { value: 2, unit: 'hour' },
     }),
   },
-  // WAIT: {
-  //   label: 'WAIT',
-  //   icon: '⏱',
-  //   color: '#0891b2',
-  //   hasInput: true,
-  //   fixedOutputs: [{ id: 'completed', label: 'Completed' }],
-  //   defaultAttrs: () => ({
-  //     duration: { value: 2, unit: 'hours' },
-  //   }),
-  // },
+  WAIT: {
+    label: 'WAIT',
+    icon: '⏱',
+    color: '#0891b2',
+    hasInput: true,
+    fixedOutputs: [{ id: 'completed', label: 'Completed' }],
+    defaultAttrs: () => ({
+      window: { value: 2, unit: 'hour' },
+    }),
+  },
   END: {
     label: 'Complete',
     icon: '⏹',
@@ -228,7 +230,7 @@ const NODE_DEFS = {
   },
 }
 
-const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'END']
+const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'WAIT', 'END']
 const showGrid = ref(true);
 const CHANNEL_TYPE_OPTIONS = [
   { title: 'App engagement', value: 'SEND_ENGAGEMENT' },
@@ -456,6 +458,7 @@ const {
   fitView,
   setViewport,
   toObject,
+  viewport,
 } = useVueFlow()
 
 const nodes = ref([
@@ -1041,7 +1044,95 @@ function clearAll() {
   showClearDialog.value = false;
 }
 
-defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
+const canvasWrapperRef = ref(null)
+const captureFlowScreenshot = async () => {
+  fitView({ padding: 0.08, duration: 0 })
+  await nextTick()
+  await new Promise((resolve) => setTimeout(resolve, 200))
+
+  const el = canvasWrapperRef.value
+  if (!el) return null
+  const COLOR_PROPS = [
+    'backgroundColor', 'color', 'borderColor',
+    'borderTopColor', 'borderRightColor', 'borderBottomColor', 'borderLeftColor',
+    'outlineColor', 'fill',
+  ]
+  const allEls = [el, ...el.querySelectorAll('*')]
+  const colorSaved = allEls.map((child) => {
+    const tag = child.tagName?.toLowerCase()
+    if (tag === 'path' || tag === 'polyline' || tag === 'line') return { child, snapshot: {} }
+    const cs = window.getComputedStyle(child)
+    const snapshot = {}
+    COLOR_PROPS.forEach((prop) => {
+      const computed = cs[prop]
+      if (computed && computed !== 'rgba(0, 0, 0, 0)' && computed !== 'none' && computed !== '') {
+        snapshot[prop] = { original: child.style[prop], computed }
+        child.style[prop] = computed
+      }
+    })
+    return { child, snapshot }
+  })
+
+  const zoom = viewport.value?.zoom ?? 1
+  const scaledStroke = 1.6 * zoom
+
+  const interactionPaths = [...el.querySelectorAll('.vue-flow__edge-interaction')]
+  const interactionSaved = interactionPaths.map((p) => ({ p, display: p.style.display }))
+  interactionPaths.forEach((p) => { p.style.display = 'none' })
+
+  const edgePaths = [...el.querySelectorAll('.vue-flow__edge-path')]
+  const strokeSaved = edgePaths.map((p) => ({
+    p,
+    stroke: p.style.stroke,
+    fill: p.style.fill,
+    strokeWidth: p.style.strokeWidth,
+    strokeOpacity: p.style.strokeOpacity,
+    vectorEffect: p.style.vectorEffect,
+  }))
+  edgePaths.forEach((p) => {
+    const cs = window.getComputedStyle(p)
+    const computedStroke = cs.getPropertyValue('stroke')
+    const strokeColor = (computedStroke && computedStroke !== 'rgb(0, 0, 0)') ? computedStroke : '#b0aa9b'
+    p.style.stroke = strokeColor
+    p.style.fill = 'none'
+    p.style.strokeOpacity = '1'
+    p.style.strokeWidth = String(scaledStroke)
+    p.style.vectorEffect = 'non-scaling-stroke'
+  })
+
+  try {
+    const opts = {
+      cacheBust: true,
+      backgroundColor: '#ffffff',
+      pixelRatio: 2,
+      skipFonts: true,
+    }
+    await toPng(el, opts)
+    return await toPng(el, opts)
+  } finally {
+    colorSaved.forEach(({ child, snapshot }) => {
+      Object.entries(snapshot).forEach(([prop, { original }]) => {
+        child.style[prop] = original
+      })
+    })
+    interactionSaved.forEach(({ p, display }) => { p.style.display = display })
+    strokeSaved.forEach(({ p, stroke, fill, strokeWidth, strokeOpacity, vectorEffect }) => {
+      p.style.stroke = stroke
+      p.style.fill = fill
+      p.style.strokeWidth = strokeWidth
+      p.style.strokeOpacity = strokeOpacity
+      p.style.vectorEffect = vectorEffect
+    })
+  }
+}
+
+defineExpose({
+  loadFlow,
+  buildFlowPayload,
+  validateFlow,
+  clearValidation,
+  captureFlowScreenshot,
+})
 </script>
 
 <template>
@@ -1109,6 +1200,7 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
 
     <!-- ════════════════ CANVAS ════════════════ -->
     <div
+      ref="canvasWrapperRef"
       class="canvas-wrapper"
       :class="{ 'drag-over': isDragOver }"
       @drop="onDrop"
@@ -1138,6 +1230,28 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
         <!-- ── FLOW NODE ── -->
         <template #node-flow-node="{ id, data, selected }">
           <Handle v-if="NODE_DEFS[data.code]?.hasInput" type="target" :position="Position.Left" class="flow-handle-in" />
+
+          <!-- Analytics counts shown above node when in analytics mode -->
+          <div v-if="analyticsNodesMap[id]" class="node-analytics-badge">
+            <VTooltip location="top">
+              <template #activator="{ props }">
+                <span v-bind="props" class="analytics-badge-reached">
+                  <VIcon size="11" style="margin-bottom:1px">tabler-user-check</VIcon>
+                  {{ analyticsNodesMap[id].reachedCount }}
+                </span>
+              </template>
+              <span>Reached</span>
+            </VTooltip>
+            <VTooltip location="top" v-if="data.code !== 'TRIGGER'">
+              <template #activator="{ props }">
+                <span v-bind="props" class="analytics-badge-current">
+                  <VIcon size="11" style="margin-bottom:1px">tabler-users</VIcon>
+                  {{ analyticsNodesMap[id].currentlyAtCount }}
+                </span>
+              </template>
+              <span>Currently at</span>
+            </VTooltip>
+          </div>
 
           <div
             class="flow-node"
@@ -1664,6 +1778,39 @@ defineExpose({ loadFlow, buildFlowPayload, validateFlow, clearValidation })
   0%, 100% { box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25), 0 6px 16px rgba(0,0,0,0.08); }
   50% { box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.15), 0 6px 16px rgba(0,0,0,0.08); }
 }
+/* ── Analytics node badge ── */
+.node-analytics-badge {
+  position: absolute;
+  top: -30px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: auto;
+  z-index: 2;
+}
+.analytics-badge-reached,
+.analytics-badge-current {
+  cursor: default;
+}
+.analytics-badge-reached {
+  display: flex; align-items: center; gap: 3px;
+  background: rgba(var(--v-theme-primary), 0.12);
+  color: rgb(var(--v-theme-primary));
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+.analytics-badge-current {
+  display: flex; align-items: center; gap: 3px;
+  background: rgba(var(--v-theme-warning), 0.15);
+  color: rgb(var(--v-theme-warning));
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+
 .output-port { position: relative; }
 .output-ports {
   position: absolute;

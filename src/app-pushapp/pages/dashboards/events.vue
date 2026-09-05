@@ -108,6 +108,8 @@ const snapStatistics = computed(() => {
   ]
 })
 
+const isSnapLoading = ref(false)
+
 const getStats = async () => {
   if (!selectedEvent.value || analyticsType.value !== 'Snap') return
 
@@ -119,13 +121,18 @@ const getStats = async () => {
   const endTs = new Date(eY, eM - 1, eD, 23, 59, 59, 999).getTime()
   const timezone = window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata"
 
-  await eventStore.fetchEventStats({
-    event_name: selectedEvent.value,
-    dateRange1: startTs,
-    dateRange2: endTs,
-    timezone,
-    cohortId: selectedCohort.value
-  })
+  try {
+    isSnapLoading.value = true
+    await eventStore.fetchEventStats({
+      event_name: selectedEvent.value,
+      dateRange1: startTs,
+      dateRange2: endTs,
+      timezone,
+      cohortId: selectedCohort.value
+    })
+  } finally {
+    isSnapLoading.value = false
+  }
 }
 
 const onDateClosed = (selectedDates, dateStr) => {
@@ -272,10 +279,15 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
     <VCol cols="12">
         <VRow v-if="analyticsType === 'Snap'">
             <VCol cols="12" md="6">
-              <CardStatisticsTransactions
-                  :statistics="snapStatistics"
-                  title="Snap Overview"
-              />
+              <div class="snap-overview-wrap">
+                <CardStatisticsTransactions
+                    :statistics="snapStatistics"
+                    title="Snap Overview"
+                />
+                <div v-if="isSnapLoading" class="snap-overview-loader">
+                  <VProgressCircular indeterminate color="primary" size="40" />
+                </div>
+              </div>
             </VCol>
         </VRow>
 
@@ -343,5 +355,19 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
 <style scoped>
 .border-dashed {
   border: 2px dashed rgba(var(--v-border-color), 0.3);
+}
+.snap-overview-wrap {
+  position: relative;
+}
+.snap-overview-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(1px);
+  border-radius: inherit;
+  z-index: 2;
 }
 </style>

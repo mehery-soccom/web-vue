@@ -935,6 +935,16 @@ watch([TemplateListSimple, ChannelList], () => {
                       :validate="validateAudienceFilter"
                     />
                   </div>
+
+                  <div
+                    v-if="audienceMode === 'slice' || audienceMode === 'filter'"
+                    class="d-flex justify-end mt-6"
+                  >
+                    <AudienceCountCheck
+                      :filter="filter"
+                      :validate="validateAudienceFilter"
+                    />
+                  </div>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">

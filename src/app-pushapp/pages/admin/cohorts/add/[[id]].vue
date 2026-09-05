@@ -1,9 +1,9 @@
 <script setup>
 import { useCohortsStore } from "@app-pushapp/views/admin/cohorts/useCohortsStore";
-import { useCohorts } from "@/app-pushapp/views/admin/cohorts/useCohorts";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 const { show } = inject("snackbar");
 
@@ -20,11 +20,8 @@ const cohort = reactive({
 const formRef = ref();
 const filterRef = ref(null);
 
-const onCreate = async () => {
-  let validationResult = await formRef.value?.validate();
-  if (!validationResult?.valid) return;
-
-  let filtervalid = await filterRef.value?.isValid();
+const validateAudienceFilter = async () => {
+  const filtervalid = await filterRef.value?.isValid();
   let filterStructureValid = true;
   try {
     validateFilterStructure(cohort.filter, null, true, false, false, false);
@@ -32,7 +29,14 @@ const onCreate = async () => {
     filterStructureValid = false;
     show({ message: error.message, color: "error" });
   }
-  if (!filtervalid || !filterStructureValid) return;
+  return !!(filtervalid && filterStructureValid);
+};
+
+const onCreate = async () => {
+  let validationResult = await formRef.value?.validate();
+  if (!validationResult?.valid) return;
+
+  if (!(await validateAudienceFilter())) return;
 
   try {
     isLoading.value = true;
@@ -141,7 +145,7 @@ onMounted(async () => {
       />
     </VCardText>
 
-    <VCardText class="d-flex gap-4">
+    <VCardText class="d-flex align-center gap-4">
       <VBtn v-if="!route.params.id" @click="onCreate" :disabled="isLoading">{{
         isLoading ? "loading..." : "Create"
       }}</VBtn>
@@ -152,6 +156,12 @@ onMounted(async () => {
       >
         Exit
       </VBtn>
+      <VSpacer />
+      <AudienceCountCheck
+        v-if="cohort.filter"
+        :filter="cohort.filter"
+        :validate="validateAudienceFilter"
+      />
     </VCardText>
   </v-card>
 </template>

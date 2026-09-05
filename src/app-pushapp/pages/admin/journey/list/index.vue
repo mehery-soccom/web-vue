@@ -257,6 +257,16 @@ onMounted(async () => {});
           <VIcon icon="mdi-eye" />
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
+        <IconBtn v-if="item.raw.status != 'DRAFT'"
+          :to="{
+            name: 'admin-journey-add-id?',
+            params: { id: item.raw._id },
+            query: { analytics: 'true' },
+          }"
+        >
+          <VIcon icon="tabler-chart-bar" />
+          <VTooltip activator="parent">View Analytics</VTooltip>
+        </IconBtn>
         <IconBtn
           v-if="item.raw.status === 'DRAFT'"
           @click="updateFlowStatus(item.raw._id, 'ON_GOING')"

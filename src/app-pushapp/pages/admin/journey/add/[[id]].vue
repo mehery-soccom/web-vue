@@ -3,6 +3,8 @@ import FlowEditor from "@/app-pushapp/views/admin/journeys/Floweditor.vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import { useFlowsStore } from "@/app-pushapp/views/admin/journeys/useFlowsStore";
+import { toPng } from "html-to-image";
+import * as XLSX from "xlsx";
 
 const FlowsStore = useFlowsStore();
 const route = useRoute();
@@ -13,6 +15,181 @@ const isFetching = ref(false);
 const flowRecord = ref(null);
 const isViewMode = computed(() => !!route.params.id);
 const isEditing = computed(() => "edit" in route.query);
+const isAnalyticsMode = computed(() => route.query.analytics === "true");
+
+// ── Analytics ──────────────────────────────────────────────────────────────
+const analyticsData = ref(null);
+const analyticsLoading = ref(false);
+
+const formatAnalyticsDate = (date) => {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
+const defaultAnalyticsFrom = () => {
+  const d = new Date();
+  d.setDate(d.getDate() - 14);
+  return d;
+};
+const analyticsDateRange = ref(
+  `${formatAnalyticsDate(defaultAnalyticsFrom())} to ${formatAnalyticsDate(new Date())}`,
+);
+
+const parseYmd = (value) => {
+  if (value instanceof Date) return new Date(value);
+  const [y, m, d] = String(value).split("-").map(Number);
+  return new Date(y, (m || 1) - 1, d || 1);
+};
+
+const startOfDayTs = (value) => {
+  const d = parseYmd(value);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
+const endOfDayTs = (value) => {
+  const d = parseYmd(value);
+  d.setHours(23, 59, 59, 999);
+  return d.getTime();
+};
+
+const parseAnalyticsRange = (selectedDates) => {
+  if (Array.isArray(selectedDates) && selectedDates.length === 2) {
+    return {
+      from: startOfDayTs(selectedDates[0]),
+      to: endOfDayTs(selectedDates[1]),
+    };
+  }
+  const [from, to] = String(analyticsDateRange.value || "")
+    .split(" to ").map((part) => part.trim()).filter(Boolean);
+  if (!from || !to) return {};
+  return { from: startOfDayTs(from), to: endOfDayTs(to) };
+};
+
+const ANALYTICS_STATS = [
+  { key: "uniqueProfiles",   label: "Users",        icon: "tabler-users",       color: "info"     },
+  { key: "totalTrips",       label: "Total Trips",  icon: "tabler-route",       color: "primary"  },
+  { key: "runningTrips",     label: "Active",       icon: "tabler-player-play", color: "warning"  },
+  { key: "completedTrips",   label: "Completed",    icon: "tabler-checks",      color: "success"  },
+  { key: "completedSuccess", label: "Success",      icon: "tabler-mood-smile",  color: "success"  },
+  { key: "completedFailure", label: "Failed",       icon: "tabler-mood-sad",    color: "error"    },
+];
+
+const analyticsNodesMap = computed(() => {
+  const map = {};
+  for (const n of analyticsData.value?.nodes || []) {
+    map[n.nodeId] = n;
+  }
+  return map;
+});
+
+async function loadAnalytics(id, selectedDates) {
+  try {
+    analyticsLoading.value = true;
+    const { from, to } = parseAnalyticsRange(selectedDates);
+    const res = await FlowsStore.fetchFlowAnalytics({ id, from, to });
+    analyticsData.value = res.data.data;
+  } catch (e) {
+    console.error("[Analytics] failed to load", e);
+    show({ message: "Failed to load analytics", color: "error" });
+  } finally {
+    analyticsLoading.value = false;
+  }
+}
+
+function onAnalyticsDateClosed(selectedDates) {
+  if (selectedDates.length !== 2) return;
+  if (route.params.id) loadAnalytics(route.params.id, selectedDates);
+}
+
+const analyticsSummaryExportRef = ref(null);
+const isCapturingSummary = ref(false);
+
+const getJourneyDisplayName = () => (flow.name || flowRecord.value?.name || "journey").trim();
+const sanitizeFilePart = (value) => String(value).replace(/[^\w-]+/g, "_").replace(/_+/g, "_");
+
+const getAnalyticsDateFilePart = () => {
+  const parts = String(analyticsDateRange.value || "")
+    .split(" to ").map((part) => part.trim()).filter(Boolean);
+
+  if (parts.length >= 2 && parts[0] !== parts[1]) {
+    return `${parts[0]}-${parts[1]}`;
+  }
+  return parts[0] || formatAnalyticsDate(new Date());
+};
+
+const getAnalyticsFileBaseName = () =>
+  `JA_${sanitizeFilePart(getJourneyDisplayName())}_${getAnalyticsDateFilePart()}`;
+
+const triggerFileDownload = (href, fileName) => {
+  const link = document.createElement("a");
+  link.download = fileName;
+  link.href = href;
+  link.click();
+};
+
+const downloadAnalyticsImages = async () => {
+  const baseName = getAnalyticsFileBaseName();
+
+  if (analyticsSummaryExportRef.value) {
+    isCapturingSummary.value = true;
+    await nextTick();
+
+    try {
+      const summaryCanvas = await html2canvas(analyticsSummaryExportRef.value, {
+        useCORS: true,
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+
+      triggerFileDownload( summaryCanvas.toDataURL("image/png"), `${baseName}.png` );
+    } finally {
+      isCapturingSummary.value = false;
+    }
+  }
+
+  const flowCanvasEl = flowEditorRef.value?.getFlowCanvasElement?.();
+  if (flowCanvasEl) {
+    await nextTick();
+
+    const flowCanvas = await html2canvas(flowCanvasEl, {
+      useCORS: true,
+      backgroundColor: "#ffffff",
+      scale: 2,
+    });
+
+    triggerFileDownload(
+      flowCanvas.toDataURL("image/png"),
+      `${baseName}_flow.png`,
+    );
+  }
+};
+
+const exportAnalyticsToExcel = () => {
+  if (!analyticsData.value?.summary) return;
+
+  const summary = analyticsData.value.summary;
+  const dateParts = String(analyticsDateRange.value || "")
+    .split(" to ")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  const row = {
+    Journey: getJourneyDisplayName(),
+    "Date From": dateParts[0] || "",
+    "Date To": dateParts[1] || dateParts[0] || "",
+  };
+
+  ANALYTICS_STATS.forEach((stat) => {
+    row[stat.label] = summary[stat.key] ?? "—";
+  });
+
+  const worksheet = XLSX.utils.json_to_sheet([row]);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Journey Summary");
+  XLSX.writeFile(workbook, `${getAnalyticsFileBaseName()}.xlsx`);
+};
 const audienceMode = ref("filter");
 const isSyncingAudienceMode = ref(false);
 
@@ -252,14 +429,22 @@ onMounted(async () => {
   if (route.params.id) {
     try {
       isFetching.value = true;
+      if (isAnalyticsMode.value) {
+        activeTab.value = 1;
+        analyticsLoading.value = true;
+      }
       const response = await FlowsStore.fetchFlow({ id: route.params.id });
       flowRecord.value = response.data.data;
       await loadRecordIntoForm(flowRecord.value);
+      await nextTick();
     } catch (e) {
       console.log(e);
       show({ message: "Failed to load flow", color: "error" });
     } finally {
       isFetching.value = false;
+    }
+    if (isAnalyticsMode.value) {
+      loadAnalytics(route.params.id);
     }
     return;
   }
@@ -369,56 +554,146 @@ onMounted(async () => {
     <VWindow v-model="activeTab" class="mt-4">
       <!-- Audience -->
       <VWindowItem>
-        <h3 class="mb-2">Audience</h3>
-        <p class="text-caption mb-4">
-          Choose a cohort or define a real-time filter for the journey audience.
-        </p>
-        <VBtnToggle
-          v-model="audienceMode"
-          mandatory
-          density="compact"
-          color="primary"
-          divided
-          class="mb-6"
-          :disabled="isViewMode && !isEditing"
-        >
-          <VBtn value="cohort">Select Cohort</VBtn>
-          <VBtn value="filter">Real-Time Filter</VBtn>
-        </VBtnToggle>
+        <VCard class="pa-6">
+          <h3 class="mb-2">Audience</h3>
+          <p class="text-caption mb-4">
+            Choose a cohort or define a real-time filter for the journey audience.
+          </p>
+          <VBtnToggle
+            v-model="audienceMode"
+            mandatory
+            density="compact"
+            color="primary"
+            divided
+            class="mb-6"
+            :disabled="isViewMode && !isEditing"
+          >
+            <VBtn value="cohort">Select Cohort</VBtn>
+            <VBtn value="filter">Real-Time Filter</VBtn>
+          </VBtnToggle>
 
-        <FilterBuilder
-          v-if="audienceMode === 'cohort'"
-          v-model="flow.filter"
-          :ignoreEventfilterType="true"
-          :ignoreEventDatafilterType="true"
-          :ignoreCustomEventfilterType="true"
-          :ignoreSlicefilterType="true"
-          :ignoreProfileAttribute="true"
-          :ignoreSystemAttribute="true"
-          :readonly="isViewMode && !isEditing"
-          ref="filterRef"
-        />
+          <FilterBuilder
+            v-if="audienceMode === 'cohort'"
+            v-model="flow.filter"
+            :ignoreEventfilterType="true"
+            :ignoreEventDatafilterType="true"
+            :ignoreCustomEventfilterType="true"
+            :ignoreSlicefilterType="true"
+            :ignoreProfileAttribute="true"
+            :ignoreSystemAttribute="true"
+            :readonly="isViewMode && !isEditing"
+            ref="filterRef"
+          />
 
-        <FilterBuilder
-          v-else
-          v-model="flow.filter"
-          :ignoreEventfilterType="true"
-          :ignoreEventDatafilterType="true"
-          :ignoreCustomEventfilterType="true"
-          :ignoreCohortfilterType="true"
-          :ignoreSlicefilterType="true"
-          :readonly="isViewMode && !isEditing"
-          ref="filterRef"
-        />
+          <FilterBuilder
+            v-else
+            v-model="flow.filter"
+            :ignoreEventfilterType="true"
+            :ignoreEventDatafilterType="true"
+            :ignoreCustomEventfilterType="true"
+            :ignoreCohortfilterType="true"
+            :ignoreSlicefilterType="true"
+            :readonly="isViewMode && !isEditing"
+            ref="filterRef"
+          />
+        </VCard>
       </VWindowItem>
 
       <!-- Flow -->
       <VWindowItem>
-        <FlowEditor
-          ref="flowEditorRef"
-          :initial-flow="flowRecord"
-          :disabled="isViewMode && !isEditing"
-        />
+        <div v-if="isAnalyticsMode" class="analytics-summary mb-4 section-loader-wrap">
+          <div ref="analyticsSummaryExportRef">
+            <VRow align="start" class="ma-0">
+              <!-- Stat cards — span 9 cols -->
+              <VCol cols="12" md="9" class="pa-0 d-flex flex-wrap gap-3">
+                <VCard
+                  v-for="stat in ANALYTICS_STATS"
+                  :key="stat.key"
+                  variant="tonal"
+                  :color="stat.color"
+                  class="analytics-stat-card px-4 py-3"
+                >
+                  <div class="d-flex align-center gap-2">
+                    <VIcon :icon="stat.icon" size="20" />
+                    <div>
+                      <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
+                      <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] ?? '—' }}</div>
+                    </div>
+                  </div>
+                </VCard>
+              </VCol>
+
+              <VCol cols="12" md="3" class="pa-0 ps-md-4" style="min-width: 270px; max-width: 350px;">
+                <div class="d-flex align-center gap-2">
+                  <VMenu transition="scale-transition" open-on-hover>
+                    <template #activator="{ props: menuProps }">
+                      <VBtn
+                        v-show="!isCapturingSummary"
+                        icon="tabler-download"
+                        variant="text"
+                        color="secondary"
+                        size="small"
+                        v-bind="menuProps"
+                      />
+                    </template>
+
+                    <VList density="compact">
+                      <VListItem @click="exportAnalyticsToExcel">
+                        <template #prepend>
+                          <VIcon icon="tabler-file-spreadsheet" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Summary as Excel</VListItemTitle>
+                      </VListItem>
+                      <VListItem @click="downloadSummaryImage">
+                        <template #prepend>
+                          <VIcon icon="tabler-photo" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Summary as Image</VListItemTitle>
+                      </VListItem>
+                      <VListItem @click="downloadFlowImage">
+                        <template #prepend>
+                          <VIcon icon="tabler-vector" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Flow as Image</VListItemTitle>
+                      </VListItem>
+                    </VList>
+                  </VMenu>
+
+                  <div style="min-width: 270px; max-width: 350px;">
+                    <AppDateTimePicker
+                      v-model="analyticsDateRange"
+                      class="flex-grow-1"
+                      placeholder="Select date range"
+                      prepend-inner-icon="tabler-calendar"
+                      :config="{
+                        mode: 'range',
+                        enableTime: false,
+                        dateFormat: 'Y-m-d',
+                        maxDate: 'today',
+                        onClose: onAnalyticsDateClosed,
+                      }"
+                    />
+                  </div>
+                </div>
+              </VCol>
+            </VRow>
+          </div>
+          <div v-if="analyticsLoading" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="40" />
+          </div>
+        </div>
+
+        <div class="section-loader-wrap">
+          <FlowEditor
+            ref="flowEditorRef"
+            :initial-flow="flowRecord"
+            :disabled="isViewMode && !isEditing"
+            :analytics-nodes-map="analyticsNodesMap"
+          />
+          <div v-if="isFetching" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="48" />
+          </div>
+        </div>
       </VWindowItem>
     </VWindow>
   </div>
@@ -427,5 +702,23 @@ onMounted(async () => {
 <style scoped>
 .error-tab {
   color: rgb(var(--v-theme-error));
+}
+.analytics-stat-card {
+  min-width: 130px;
+  flex: 0 0 auto;
+}
+.section-loader-wrap {
+  position: relative;
+}
+.section-loader-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(1px);
+  border-radius: 8px;
+  z-index: 2;
 }
 </style>
