@@ -129,40 +129,41 @@ const triggerFileDownload = (href, fileName) => {
   link.click();
 };
 
-const downloadAnalyticsImages = async () => {
+const captureElementAsPng = async (el) => {
+  const opts = { cacheBust: true, backgroundColor: "#ffffff", pixelRatio: 2, skipFonts: true };
+  await toPng(el, opts);
+  return toPng(el, opts);
+};
+
+const downloadSummaryImage = async () => {
+  if (!analyticsSummaryExportRef.value) return;
+
   const baseName = getAnalyticsFileBaseName();
+  isCapturingSummary.value = true;
+  await nextTick();
 
-  if (analyticsSummaryExportRef.value) {
-    isCapturingSummary.value = true;
-    await nextTick();
-
-    try {
-      const summaryCanvas = await html2canvas(analyticsSummaryExportRef.value, {
-        useCORS: true,
-        backgroundColor: "#ffffff",
-        scale: 2,
-      });
-
-      triggerFileDownload( summaryCanvas.toDataURL("image/png"), `${baseName}.png` );
-    } finally {
-      isCapturingSummary.value = false;
-    }
+  try {
+    const dataUrl = await captureElementAsPng(analyticsSummaryExportRef.value);
+    triggerFileDownload(dataUrl, `${baseName}.png`);
+  } catch (error) {
+    console.error("[Analytics] summary image capture failed", error);
+    show({ message: "Failed to download summary image", color: "error" });
+  } finally {
+    isCapturingSummary.value = false;
   }
+};
 
-  const flowCanvasEl = flowEditorRef.value?.getFlowCanvasElement?.();
-  if (flowCanvasEl) {
-    await nextTick();
-
-    const flowCanvas = await html2canvas(flowCanvasEl, {
-      useCORS: true,
-      backgroundColor: "#ffffff",
-      scale: 2,
-    });
-
-    triggerFileDownload(
-      flowCanvas.toDataURL("image/png"),
-      `${baseName}_flow.png`,
-    );
+const downloadFlowImage = async () => {
+  try {
+    const dataUrl = await flowEditorRef.value?.captureFlowScreenshot?.();
+    if (!dataUrl) {
+      show({ message: "Flow canvas is not ready yet", color: "warning" });
+      return;
+    }
+    triggerFileDownload(dataUrl, `${getAnalyticsFileBaseName()}_flow.png`);
+  } catch (error) {
+    console.error("[Analytics] flow image capture failed", error);
+    show({ message: "Failed to download flow image", color: "error" });
   }
 };
 
