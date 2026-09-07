@@ -395,46 +395,21 @@ const populateSchedule = scheduleData => {
                   <p class="text-caption mb-4">
                     Choose when the campaign will start
                   </p>
-                  <VRadioGroup v-model="schedule.durationType" hide-details disabled>
-                    <VRadio value="immediate">
-                      <template #label>
-                        <span>Start campaign now</span>
-                      </template>
-                    </VRadio>
 
-                    <VRadio value="scheduled">
-                      <template #label>
-                        <div class="d-flex flex-column gap-2">
-                          <div class="d-flex flex-wrap align-center gap-2">
-                            <span>Start campaign at scheduled date/time</span>
-                            <AppDateTimePicker
-                              v-model="schedule.startDate"
-                              :key="schedule.durationType + '1'"
-                              placeholder="Select Date"
-                              class="flex-grow-1 tiny-input"
-                              style="min-width: 170px"
-                              :disabled="schedule.durationType != 'scheduled'"
-                              :config="{ enableTime: true }"
-                            />
-                          </div>
-                        </div>
-                      </template>
-                    </VRadio>
-                  </VRadioGroup>
-                  <div style="display: flex; margin-top: 6px">
+                  <!-- Make it Recurring toggle — shown first -->
+                  <div style="display: flex; align-items: center; margin-bottom: 8px">
                     <VSwitch
                       v-model="schedule.recurringType"
                       hide-details
                       inset
                       color="primary"
-                      class="mr-2" disabled
+                      class="mr-2"
+                      disabled
                     />
-                    <!-- <VTooltip activator="parent" location="bottom">
-                      Make the campaign recurring
-                    </VTooltip> -->
                     <span>Make it Recurring</span>
                   </div>
 
+                  <!-- Recurring details block — directly below the toggle -->
                   <div v-if="!!schedule.recurringType">
                     <VDivider class="my-6" />
 
@@ -457,13 +432,13 @@ const populateSchedule = scheduleData => {
                               placeholder="Select Time"
                               class="flex-grow-1 tiny-input ml-2 input-uniform"
                               style="min-width: 170px"
+                              disabled
                               :config="{
                                 enableTime: true,
                                 noCalendar: true,
                                 dateFormat: 'H:i',
                                 time_24hr: true,
                               }"
-                              @update:modelValue="schedule.schedulePattern = 'daily'" disabled
                             />
                           </template>
                         </VRadio>
@@ -472,7 +447,6 @@ const populateSchedule = scheduleData => {
                           <template #label>
                             <div class="d-flex align-center gap-2 flex-wrap">
                               Repeat on day(s) of week
-                              <!-- <div class="d-flex align-center gap-2 flex-wrap"> -->
                               <AppSelect
                                 v-model="schedule.scheduleDays"
                                 :items="Dow"
@@ -481,7 +455,7 @@ const populateSchedule = scheduleData => {
                                 placeholder="Week Days"
                                 style="min-width: 170px; max-width: 500px; width: fit-content;"
                                 class="input-uniform dif-height"
-                                @update:modelValue="schedule.schedulePattern = 'weekly'" disabled
+                                disabled
                               />
                               <AppDateTimePicker
                                 v-model="schedule.weeklyTime"
@@ -493,15 +467,14 @@ const populateSchedule = scheduleData => {
                                 placeholder="Select Time"
                                 class="flex-grow-1 tiny-input input-uniform"
                                 style="min-width: 170px"
+                                disabled
                                 :config="{
                                   enableTime: true,
                                   noCalendar: true,
                                   dateFormat: 'H:i',
                                   time_24hr: true,
                                 }"
-                                @update:modelValue="schedule.schedulePattern = 'weekly'" disabled
                               />
-                              <!-- </div> -->
                             </div>
                           </template>
                         </VRadio>
@@ -517,7 +490,7 @@ const populateSchedule = scheduleData => {
                                 placeholder="Date"
                                 style="width: 160px"
                                 class="input-uniform dif-height date-num"
-                                @update:modelValue="schedule.schedulePattern = 'monthlyDate'" disabled
+                                disabled
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyDateTime"
@@ -529,14 +502,13 @@ const populateSchedule = scheduleData => {
                                 placeholder="Select Time"
                                 class="flex-grow-1 tiny-input input-uniform"
                                 style="min-width: 170px"
-
+                                disabled
                                 :config="{
                                   enableTime: true,
                                   noCalendar: true,
                                   dateFormat: 'H:i',
                                   time_24hr: true,
                                 }"
-                                @update:modelValue="schedule.schedulePattern = 'monthlyDate'" disabled
                               />
                             </div>
                           </template>
@@ -559,7 +531,7 @@ const populateSchedule = scheduleData => {
                                 placeholder="Week Number"
                                 style="width: 170px"
                                 class="input-uniform dif-height"
-                                @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'" disabled
+                                disabled
                               />
                               <AppSelect
                                 v-model="schedule.scheduleWeekday"
@@ -569,7 +541,7 @@ const populateSchedule = scheduleData => {
                                 placeholder="Week Days"
                                 style="width: 170px"
                                 class="input-uniform dif-height"
-                                @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'" disabled
+                                disabled
                               />
                               <AppDateTimePicker
                                 v-model="schedule.monthlyWeekdayTime"
@@ -581,13 +553,13 @@ const populateSchedule = scheduleData => {
                                 placeholder="Select Time"
                                 class="flex-grow-1 tiny-input input-uniform"
                                 style="min-width: 170px"
+                                disabled
                                 :config="{
                                   enableTime: true,
                                   noCalendar: true,
                                   dateFormat: 'H:i',
                                   time_24hr: true,
                                 }"
-                                @update:modelValue="schedule.schedulePattern = 'monthlyWeekday'" disabled
                               />
                             </div>
                           </template>
@@ -606,6 +578,33 @@ const populateSchedule = scheduleData => {
                         />
                     </div>
                   </div>
+
+                  <!-- Start time radio — shown below the recurring block -->
+                  <VDivider class="my-4" />
+                  <VRadioGroup v-model="schedule.durationType" hide-details disabled>
+                    <VRadio value="immediate">
+                      <template #label>
+                        <span>Start campaign now</span>
+                      </template>
+                    </VRadio>
+
+                    <VRadio value="scheduled">
+                      <template #label>
+                        <div class="d-flex flex-wrap align-center gap-2">
+                          <span>Start campaign at scheduled date/time</span>
+                          <AppDateTimePicker
+                            v-model="schedule.startDate"
+                            :key="schedule.durationType + schedule.recurringType + '1'"
+                            placeholder="Select Date"
+                            class="flex-grow-1 tiny-input"
+                            style="min-width: 170px"
+                            :disabled="schedule.durationType != 'scheduled'"
+                            :config="{ enableTime: true }"
+                          />
+                        </div>
+                      </template>
+                    </VRadio>
+                  </VRadioGroup>
                   </VForm>
                 </VWindowItem>
               </VWindow>

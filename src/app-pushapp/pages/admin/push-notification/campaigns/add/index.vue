@@ -485,12 +485,46 @@ const assistantExpanded = ref(true);
 const aiFlashTabs = ref([]);
 const tabWindowTransition = ref(false);
 const lastAppliedSectionSigs = ref({ template: "", audience: "", schedule: "" });
-
+const lastAiPollMeta = ref({ template: null, audience: null, schedule: null });
 const TAB_ORDER = ["tab-details", "tab-audience", "tab-schedule"];
 
 const sectionSignature = (data) => {
   if (!data || (typeof data === "object" && !Object.keys(data).length)) return "";
   return JSON.stringify(data);
+};
+
+const cloneJson = (value) => {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+};
+
+const valuesEqual = (a, b) => sectionSignature(a) === sectionSignature(b);
+const aiPollFieldChanged = (section, key, nextValue) => {
+  const prevSection = lastAiPollMeta.value[section];
+  if (!prevSection) return true;
+  if (!(key in prevSection)) return nextValue != null && nextValue !== "";
+  return !valuesEqual(prevSection[key], nextValue);
+};
+
+const aiPollSectionChanged = (section, nextData) => {
+  const prev = lastAiPollMeta.value[section];
+  if (!prev) return true;
+  return !valuesEqual(prev, nextData);
+};
+
+const setAiPollMeta = (section, patch) => {
+  lastAiPollMeta.value = {
+    ...lastAiPollMeta.value,
+    [section]: { ...(lastAiPollMeta.value[section] || {}), ...cloneJson(patch) },
+  };
+};
+
+const setAiPollMetaSection = (section, data) => {
+  lastAiPollMeta.value = { ...lastAiPollMeta.value, [section]: cloneJson(data) };
 };
 
 const hasTemplateSectionData = (tpl) =>
@@ -507,10 +541,10 @@ const hasScheduleSectionData = (sch) => {
   return sch.type === "scheduled" || !!runAt || !!sch.isRecurring;
 };
 
-const detectUpdatedTabs = (campaignState) => {
+const detectUpdatedTabs = (campaignState, applied) => {
   const updated = [];
 
-  if (hasTemplateSectionData(campaignState.template)) {
+  if (applied.template && hasTemplateSectionData(campaignState.template)) {
     const sig = sectionSignature(campaignState.template);
     if (sig !== lastAppliedSectionSigs.value.template) {
       updated.push("tab-details");
@@ -518,7 +552,7 @@ const detectUpdatedTabs = (campaignState) => {
     }
   }
 
-  if (hasAudienceSectionData(campaignState.audience)) {
+  if (applied.audience && hasAudienceSectionData(campaignState.audience)) {
     const sig = sectionSignature(campaignState.audience);
     if (sig !== lastAppliedSectionSigs.value.audience) {
       updated.push("tab-audience");
@@ -526,7 +560,7 @@ const detectUpdatedTabs = (campaignState) => {
     }
   }
 
-  if (hasScheduleSectionData(campaignState.schedule)) {
+  if (applied.schedule && hasScheduleSectionData(campaignState.schedule)) {
     const sig = sectionSignature(campaignState.schedule);
     if (sig !== lastAppliedSectionSigs.value.schedule) {
       updated.push("tab-schedule");
@@ -565,107 +599,153 @@ const toScheduleDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
+const resolveTemplateId = (tpl) => {
+  if (!tpl) return null;
+  if (!(tpl.code || tpl.templateId || tpl.templateName)) return null;
+  const match = TemplateListSimple.value.find(
+    (t) =>
+      (tpl.code && t.code === tpl.code) ||
+      t._id === tpl.templateId ||
+      t.code === tpl.templateName ||
+      t.code === tpl.templateId,
+  );
+  return match?._id || tpl.templateId || null;
+};
+
+const resolveChannelId = (appId) => {
+  if (!appId) return null;
+  const channel = ChannelList.value.find((c) => c.channel_id === appId || c._id === appId );
+  return channel?.channel_id || appId;
+};
+
 const applyAssistantCampaignState = (campaignState) => {
   if (!campaignState) return;
 
-  const updatedTabs = detectUpdatedTabs(campaignState);
+  const applied = { template: false, audience: false, schedule: false };
 
   const tpl = campaignState.template;
   if (tpl && typeof tpl === "object") {
-    if (tpl.campaignName) notification.campaignName = tpl.campaignName;
+    const templateMetaPatch = {};
+
+    if (tpl.campaignName != null && tpl.campaignName !== "") {
+      if (aiPollFieldChanged("template", "campaignName", tpl.campaignName)) {
+        notification.campaignName = tpl.campaignName;
+        applied.template = true;
+      }
+      templateMetaPatch.campaignName = tpl.campaignName;
+    }
 
     if (tpl.appId) {
-      const channel = ChannelList.value.find(
-        (c) => c.channel_id === tpl.appId || c._id === tpl.appId,
-      );
-      notification.channel_id = channel?.channel_id || tpl.appId;
+      if (aiPollFieldChanged("template", "appId", tpl.appId)) {
+        notification.channel_id = resolveChannelId(tpl.appId);
+        applied.template = true;
+      } else if (!notification.channel_id && ChannelList.value.length) {
+        notification.channel_id = resolveChannelId(tpl.appId);
+      }
+      templateMetaPatch.appId = tpl.appId;
     }
 
-    if (tpl.code || tpl.templateId || tpl.templateName) {
-      const match = TemplateListSimple.value.find(
-        (t) =>
-          (tpl.code && t.code === tpl.code) ||
-          t._id === tpl.templateId ||
-          t.code === tpl.templateName ||
-          t.code === tpl.templateId,
-      );
-      notification.template = match?._id || tpl.templateId || null;
+    const templateKey = tpl.code || tpl.templateId || tpl.templateName || null;
+    if (templateKey) {
+      if (aiPollFieldChanged("template", "templateKey", templateKey)) {
+        notification.template = resolveTemplateId(tpl);
+        applied.template = true;
+      } else if (!notification.template && TemplateListSimple.value.length) {
+        notification.template = resolveTemplateId(tpl);
+      }
+      templateMetaPatch.templateKey = templateKey;
+      if (tpl.code) templateMetaPatch.code = tpl.code;
+      if (tpl.templateId) templateMetaPatch.templateId = tpl.templateId;
+      if (tpl.templateName) templateMetaPatch.templateName = tpl.templateName;
+    }
+
+    if (Object.keys(templateMetaPatch).length) {
+      setAiPollMeta("template", templateMetaPatch);
     }
   }
 
-  // Audience — pass audience.data.filter through as-is (no operator remapping)
   const rawFilter = campaignState.audience?.filter;
   if (rawFilter?.type === "group" && Array.isArray(rawFilter.children) && rawFilter.children.length) {
-    const clonedFilter = cloneAudienceFilterTree(rawFilter);
-    const hasSlice = clonedFilter.children.some((c) => c.filterType === "slice");
-    audienceMode.value = hasSlice ? "slice" : "filter";
-    nextTick(() => {
-      filter.type = clonedFilter.type;
-      filter.conjunction = clonedFilter.conjunction;
-      filter.children.splice(0, filter.children.length, ...clonedFilter.children);
-    });
+    if (aiPollSectionChanged("audience", campaignState.audience)) {
+      const clonedFilter = cloneAudienceFilterTree(rawFilter);
+      const hasSlice = clonedFilter.children.some((c) => c.filterType === "slice");
+      audienceMode.value = hasSlice ? "slice" : "filter";
+      nextTick(() => {
+        filter.type = clonedFilter.type;
+        filter.conjunction = clonedFilter.conjunction;
+        filter.children.splice(0, filter.children.length, ...clonedFilter.children);
+      });
+      applied.audience = true;
+    }
+    setAiPollMetaSection("audience", campaignState.audience);
   }
 
-  // Schedule
   const sch = campaignState.schedule;
   if (sch && typeof sch === "object") {
-    const runAt = sch.runAt || sch.dtstart || null;
-    const isRecurring = !!sch.isRecurring;
-    const isScheduled = sch.type === "scheduled" || !!runAt || isRecurring;
+    if (aiPollSectionChanged("schedule", sch)) {
+      const runAt = sch.runAt || sch.dtstart || null;
+      const isRecurring = !!sch.isRecurring;
+      const isScheduled = sch.type === "scheduled" || !!runAt || isRecurring;
 
-    if (isScheduled) {
-      schedule.recurringType = isRecurring;
-      schedule.durationType = "scheduled";
+      if (isScheduled) {
+        schedule.recurringType = isRecurring;
+        schedule.durationType = "scheduled";
 
-      if (runAt) schedule.startDate = toScheduleDate(runAt);
-      if (sch.until) schedule.endDate = toScheduleDate(sch.until);
+        if (runAt) schedule.startDate = toScheduleDate(runAt);
+        if (sch.until) schedule.endDate = toScheduleDate(sch.until);
 
-      if (isRecurring) {
-        if (sch.rrule) {
-          const parsed = parseRruleToScheduleFields(sch.rrule);
-          if (parsed) {
-            schedule.schedulePattern = parsed.schedulePattern;
-            if (parsed.dailyTime) schedule.dailyTime = parsed.dailyTime;
-            if (parsed.weeklyTime) schedule.weeklyTime = parsed.weeklyTime;
-            if (parsed.monthlyDateTime) schedule.monthlyDateTime = parsed.monthlyDateTime;
-            if (parsed.monthlyWeekdayTime) schedule.monthlyWeekdayTime = parsed.monthlyWeekdayTime;
-            if (parsed.scheduleDays) schedule.scheduleDays = [...parsed.scheduleDays];
-            if (parsed.scheduleDate) schedule.scheduleDate = parsed.scheduleDate;
-            if (parsed.scheduleWeekday) schedule.scheduleWeekday = [...parsed.scheduleWeekday];
-            if (parsed.scheduleWeek) schedule.scheduleWeek = parsed.scheduleWeek;
-          }
-        } else if (sch.frequency) {
-          if (sch.frequency === "DAILY") schedule.schedulePattern = "daily";
-          else if (sch.frequency === "WEEKLY") schedule.schedulePattern = "weekly";
-          else if (sch.frequency === "MONTHLY") {
-            schedule.schedulePattern = sch.bySetPos ? "monthlyWeekday" : "monthlyDate";
-          }
+        if (isRecurring) {
+          if (sch.rrule) {
+            const parsed = parseRruleToScheduleFields(sch.rrule);
+            if (parsed) {
+              schedule.schedulePattern = parsed.schedulePattern;
+              if (parsed.dailyTime) schedule.dailyTime = parsed.dailyTime;
+              if (parsed.weeklyTime) schedule.weeklyTime = parsed.weeklyTime;
+              if (parsed.monthlyDateTime) schedule.monthlyDateTime = parsed.monthlyDateTime;
+              if (parsed.monthlyWeekdayTime) schedule.monthlyWeekdayTime = parsed.monthlyWeekdayTime;
+              if (parsed.scheduleDays) schedule.scheduleDays = [...parsed.scheduleDays];
+              if (parsed.scheduleDate) schedule.scheduleDate = parsed.scheduleDate;
+              if (parsed.scheduleWeekday) schedule.scheduleWeekday = [...parsed.scheduleWeekday];
+              if (parsed.scheduleWeek) schedule.scheduleWeek = parsed.scheduleWeek;
+            }
+          } else if (sch.frequency) {
+            if (sch.frequency === "DAILY") schedule.schedulePattern = "daily";
+            else if (sch.frequency === "WEEKLY") schedule.schedulePattern = "weekly";
+            else if (sch.frequency === "MONTHLY") {
+              schedule.schedulePattern = sch.bySetPos ? "monthlyWeekday" : "monthlyDate";
+            }
 
-          if (Array.isArray(sch.byDay) && sch.byDay.length) {
-            if (schedule.schedulePattern === "monthlyWeekday") {
-              schedule.scheduleWeekday = [...sch.byDay];
-            } else {
-              schedule.scheduleDays = [...sch.byDay];
+            if (Array.isArray(sch.byDay) && sch.byDay.length) {
+              if (schedule.schedulePattern === "monthlyWeekday") {
+                schedule.scheduleWeekday = [...sch.byDay];
+              } else {
+                schedule.scheduleDays = [...sch.byDay];
+              }
+            }
+            if (Array.isArray(sch.byMonthDay) && sch.byMonthDay.length) {
+              schedule.scheduleDate = String(sch.byMonthDay[0]);
+            }
+            if (sch.bySetPos) {
+              const posMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+              schedule.scheduleWeek = posMap[String(sch.bySetPos)] || sch.bySetPos;
+            }
+            if (sch.recurrenceTime) {
+              const t = sch.recurrenceTime;
+              if (schedule.schedulePattern === "daily") schedule.dailyTime = t;
+              else if (schedule.schedulePattern === "weekly") schedule.weeklyTime = t;
+              else if (schedule.schedulePattern === "monthlyDate") schedule.monthlyDateTime = t;
+              else if (schedule.schedulePattern === "monthlyWeekday") schedule.monthlyWeekdayTime = t;
             }
           }
-          if (Array.isArray(sch.byMonthDay) && sch.byMonthDay.length) {
-            schedule.scheduleDate = String(sch.byMonthDay[0]);
-          }
-          if (sch.bySetPos) {
-            const posMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
-            schedule.scheduleWeek = posMap[String(sch.bySetPos)] || sch.bySetPos;
-          }
-          if (sch.recurrenceTime) {
-            const t = sch.recurrenceTime;
-            if (schedule.schedulePattern === "daily") schedule.dailyTime = t;
-            else if (schedule.schedulePattern === "weekly") schedule.weeklyTime = t;
-            else if (schedule.schedulePattern === "monthlyDate") schedule.monthlyDateTime = t;
-            else if (schedule.schedulePattern === "monthlyWeekday") schedule.monthlyWeekdayTime = t;
-          }
         }
+        applied.schedule = true;
       }
     }
+    setAiPollMetaSection("schedule", sch);
   }
+
+  const updatedTabs = detectUpdatedTabs(campaignState, applied);
+  if (updatedTabs.length) flashAiTabs(updatedTabs);
 };
 
 const onAssistantCampaignState = (campaignState) => {
@@ -684,7 +764,7 @@ watch([TemplateListSimple, ChannelList], () => {
 
 <template>
   <v-row>
-    <v-col cols="12" :md="assistantExpanded ? 8 : 12">
+    <v-col cols="12">
       <v-card title="Push Notification">
         <VTabs v-model="tab">
           <VTab
@@ -924,16 +1004,6 @@ watch([TemplateListSimple, ChannelList], () => {
                         </VAlert>
                       </div>
                     </div>
-                  </div>
-
-                  <div
-                    v-if="audienceMode === 'slice' || audienceMode === 'filter'"
-                    class="d-flex justify-end mt-6"
-                  >
-                    <AudienceCountCheck
-                      :filter="filter"
-                      :validate="validateAudienceFilter"
-                    />
                   </div>
 
                   <div
