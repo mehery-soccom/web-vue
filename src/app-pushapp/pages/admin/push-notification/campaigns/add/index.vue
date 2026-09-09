@@ -480,8 +480,11 @@ const onSendSimple = async () => {
   }
 };
 
+const isAgenticAiEnabled = computed(
+  () => !!window.CONST?.CONFIG?.FEATURES?.PUSHAPP_AGENTIC_AI,
+);
 const pendingAssistantState = ref(null);
-const assistantExpanded = ref(true);
+const assistantExpanded = ref(isAgenticAiEnabled.value);
 const aiFlashTabs = ref([]);
 const tabWindowTransition = ref(false);
 const lastAppliedSectionSigs = ref({ template: "", audience: "", schedule: "" });
@@ -1288,6 +1291,7 @@ watch([TemplateListSimple, ChannelList], () => {
   </v-row>
 
   <CampaignAssistant
+    v-if="isAgenticAiEnabled"
     v-model:expanded="assistantExpanded"
     @campaign-state="onAssistantCampaignState"
   />
