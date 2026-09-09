@@ -1,11 +1,13 @@
 <script setup>
+import { nextTick } from "vue";
 import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsStore";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
+import CampaignAssistant from "@app-pushapp/views/admin/push-notification/CampaignAssistant.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
-import DataService from "@/@common/services/DataService";
+import { parseRruleToScheduleFields, cloneAudienceFilterTree } from "@/app-pushapp/utils/mapAiFormState";
 import * as XLSX from 'xlsx'
 const { show } = inject("snackbar");
 
@@ -477,28 +479,363 @@ const onSendSimple = async () => {
     isLoading.value = false;
   }
 };
+
+const isAgenticAiEnabled = computed(
+  () => !!window.CONST?.CONFIG?.FEATURES?.PUSHAPP_AGENTIC_AI,
+);
+const pendingAssistantState = ref(null);
+const assistantExpanded = ref(isAgenticAiEnabled.value);
+const aiFlashTabs = ref([]);
+const tabWindowTransition = ref(false);
+const lastAppliedSectionSigs = ref({ template: "", audience: "", schedule: "" });
+const lastAiPollMeta = ref({ template: null, audience: null, schedule: null });
+const TAB_ORDER = ["tab-details", "tab-audience", "tab-schedule"];
+
+const sectionSignature = (data) => {
+  if (!data || (typeof data === "object" && !Object.keys(data).length)) return "";
+  return JSON.stringify(data);
+};
+
+const cloneJson = (value) => {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+};
+
+const valuesEqual = (a, b) => sectionSignature(a) === sectionSignature(b);
+const aiPollFieldChanged = (section, key, nextValue) => {
+  const prevSection = lastAiPollMeta.value[section];
+  if (!prevSection) return true;
+  if (!(key in prevSection)) return nextValue != null && nextValue !== "";
+  return !valuesEqual(prevSection[key], nextValue);
+};
+
+const aiPollSectionChanged = (section, nextData) => {
+  const prev = lastAiPollMeta.value[section];
+  if (!prev) return true;
+  return !valuesEqual(prev, nextData);
+};
+
+const setAiPollMeta = (section, patch) => {
+  lastAiPollMeta.value = {
+    ...lastAiPollMeta.value,
+    [section]: { ...(lastAiPollMeta.value[section] || {}), ...cloneJson(patch) },
+  };
+};
+
+const setAiPollMetaSection = (section, data) => {
+  lastAiPollMeta.value = { ...lastAiPollMeta.value, [section]: cloneJson(data) };
+};
+
+const hasTemplateSectionData = (tpl) =>
+  !!(tpl &&
+    typeof tpl === "object" &&
+    (tpl.campaignName || tpl.code || tpl.templateId || tpl.templateName || tpl.appId));
+
+const hasAudienceSectionData = (aud) =>
+  !!(aud?.filter?.type === "group" && aud.filter.children?.length);
+
+const hasScheduleSectionData = (sch) => {
+  if (!sch || typeof sch !== "object" || !Object.keys(sch).length) return false;
+  const runAt = sch.runAt || sch.dtstart || null;
+  return sch.type === "scheduled" || !!runAt || !!sch.isRecurring;
+};
+
+const detectUpdatedTabs = (campaignState, applied) => {
+  const updated = [];
+
+  if (applied.template && hasTemplateSectionData(campaignState.template)) {
+    const sig = sectionSignature(campaignState.template);
+    if (sig !== lastAppliedSectionSigs.value.template) {
+      updated.push("tab-details");
+      lastAppliedSectionSigs.value.template = sig;
+    }
+  }
+
+  if (applied.audience && hasAudienceSectionData(campaignState.audience)) {
+    const sig = sectionSignature(campaignState.audience);
+    if (sig !== lastAppliedSectionSigs.value.audience) {
+      updated.push("tab-audience");
+      lastAppliedSectionSigs.value.audience = sig;
+    }
+  }
+
+  if (applied.schedule && hasScheduleSectionData(campaignState.schedule)) {
+    const sig = sectionSignature(campaignState.schedule);
+    if (sig !== lastAppliedSectionSigs.value.schedule) {
+      updated.push("tab-schedule");
+      lastAppliedSectionSigs.value.schedule = sig;
+    }
+  }
+
+  return updated;
+};
+
+let aiFlashTimer = null;
+
+const flashAiTabs = (updatedTabs) => {
+  if (!updatedTabs.length || !assistantExpanded.value) return;
+
+  aiFlashTabs.value = [...new Set([...aiFlashTabs.value, ...updatedTabs])];
+
+  const targetTab = [...TAB_ORDER].reverse().find((t) => updatedTabs.includes(t));
+  if (targetTab && tab.value !== targetTab) {
+    tabWindowTransition.value = true;
+    tab.value = targetTab;
+    setTimeout(() => {
+      tabWindowTransition.value = false;
+    }, 450);
+  }
+
+  if (aiFlashTimer) clearTimeout(aiFlashTimer);
+  aiFlashTimer = setTimeout(() => {
+    aiFlashTabs.value = aiFlashTabs.value.filter((t) => !updatedTabs.includes(t));
+  }, 4000);
+};
+
+const toScheduleDate = (value) => {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const resolveTemplateId = (tpl) => {
+  if (!tpl) return null;
+  if (!(tpl.code || tpl.templateId || tpl.templateName)) return null;
+  const match = TemplateListSimple.value.find(
+    (t) =>
+      (tpl.code && t.code === tpl.code) ||
+      t._id === tpl.templateId ||
+      t.code === tpl.templateName ||
+      t.code === tpl.templateId,
+  );
+  return match?._id || tpl.templateId || null;
+};
+
+const resolveChannelId = (appId) => {
+  if (!appId) return null;
+  const channel = ChannelList.value.find((c) => c.channel_id === appId || c._id === appId );
+  return channel?.channel_id || appId;
+};
+
+const applyAssistantCampaignState = (campaignState) => {
+  if (!campaignState) return;
+
+  const applied = { template: false, audience: false, schedule: false };
+
+  const tpl = campaignState.template;
+  if (tpl && typeof tpl === "object") {
+    const templateMetaPatch = {};
+
+    if (tpl.campaignName != null && tpl.campaignName !== "") {
+      if (aiPollFieldChanged("template", "campaignName", tpl.campaignName)) {
+        notification.campaignName = tpl.campaignName;
+        applied.template = true;
+      }
+      templateMetaPatch.campaignName = tpl.campaignName;
+    }
+
+    if (tpl.appId) {
+      if (aiPollFieldChanged("template", "appId", tpl.appId)) {
+        notification.channel_id = resolveChannelId(tpl.appId);
+        applied.template = true;
+      } else if (!notification.channel_id && ChannelList.value.length) {
+        notification.channel_id = resolveChannelId(tpl.appId);
+      }
+      templateMetaPatch.appId = tpl.appId;
+    }
+
+    const templateKey = tpl.code || tpl.templateId || tpl.templateName || null;
+    if (templateKey) {
+      if (aiPollFieldChanged("template", "templateKey", templateKey)) {
+        notification.template = resolveTemplateId(tpl);
+        applied.template = true;
+      } else if (!notification.template && TemplateListSimple.value.length) {
+        notification.template = resolveTemplateId(tpl);
+      }
+      templateMetaPatch.templateKey = templateKey;
+      if (tpl.code) templateMetaPatch.code = tpl.code;
+      if (tpl.templateId) templateMetaPatch.templateId = tpl.templateId;
+      if (tpl.templateName) templateMetaPatch.templateName = tpl.templateName;
+    }
+
+    if (Object.keys(templateMetaPatch).length) {
+      setAiPollMeta("template", templateMetaPatch);
+    }
+  }
+
+  const rawFilter = campaignState.audience?.filter;
+  if (rawFilter?.type === "group" && Array.isArray(rawFilter.children) && rawFilter.children.length) {
+    if (aiPollSectionChanged("audience", campaignState.audience)) {
+      const clonedFilter = cloneAudienceFilterTree(rawFilter);
+      const hasSlice = clonedFilter.children.some((c) => c.filterType === "slice");
+      audienceMode.value = hasSlice ? "slice" : "filter";
+      nextTick(() => {
+        filter.type = clonedFilter.type;
+        filter.conjunction = clonedFilter.conjunction;
+        filter.children.splice(0, filter.children.length, ...clonedFilter.children);
+      });
+      applied.audience = true;
+    }
+    setAiPollMetaSection("audience", campaignState.audience);
+  }
+
+  const sch = campaignState.schedule;
+  if (sch && typeof sch === "object") {
+    if (aiPollSectionChanged("schedule", sch)) {
+      const runAt = sch.runAt || sch.dtstart || null;
+      const isRecurring = !!sch.isRecurring;
+      const isScheduled = sch.type === "scheduled" || !!runAt || isRecurring;
+
+      if (isScheduled) {
+        schedule.recurringType = isRecurring;
+        schedule.durationType = "scheduled";
+
+        if (runAt) schedule.startDate = toScheduleDate(runAt);
+        if (sch.until) schedule.endDate = toScheduleDate(sch.until);
+
+        if (isRecurring) {
+          if (sch.rrule) {
+            const parsed = parseRruleToScheduleFields(sch.rrule);
+            if (parsed) {
+              schedule.schedulePattern = parsed.schedulePattern;
+              if (parsed.dailyTime) schedule.dailyTime = parsed.dailyTime;
+              if (parsed.weeklyTime) schedule.weeklyTime = parsed.weeklyTime;
+              if (parsed.monthlyDateTime) schedule.monthlyDateTime = parsed.monthlyDateTime;
+              if (parsed.monthlyWeekdayTime) schedule.monthlyWeekdayTime = parsed.monthlyWeekdayTime;
+              if (parsed.scheduleDays) schedule.scheduleDays = [...parsed.scheduleDays];
+              if (parsed.scheduleDate) schedule.scheduleDate = parsed.scheduleDate;
+              if (parsed.scheduleWeekday) schedule.scheduleWeekday = [...parsed.scheduleWeekday];
+              if (parsed.scheduleWeek) schedule.scheduleWeek = parsed.scheduleWeek;
+            }
+          } else if (sch.frequency) {
+            if (sch.frequency === "DAILY") schedule.schedulePattern = "daily";
+            else if (sch.frequency === "WEEKLY") schedule.schedulePattern = "weekly";
+            else if (sch.frequency === "MONTHLY") {
+              schedule.schedulePattern = sch.bySetPos ? "monthlyWeekday" : "monthlyDate";
+            }
+
+            if (Array.isArray(sch.byDay) && sch.byDay.length) {
+              if (schedule.schedulePattern === "monthlyWeekday") {
+                schedule.scheduleWeekday = [...sch.byDay];
+              } else {
+                schedule.scheduleDays = [...sch.byDay];
+              }
+            }
+            if (Array.isArray(sch.byMonthDay) && sch.byMonthDay.length) {
+              schedule.scheduleDate = String(sch.byMonthDay[0]);
+            }
+            if (sch.bySetPos) {
+              const posMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+              schedule.scheduleWeek = posMap[String(sch.bySetPos)] || sch.bySetPos;
+            }
+            if (sch.recurrenceTime) {
+              const t = sch.recurrenceTime;
+              if (schedule.schedulePattern === "daily") schedule.dailyTime = t;
+              else if (schedule.schedulePattern === "weekly") schedule.weeklyTime = t;
+              else if (schedule.schedulePattern === "monthlyDate") schedule.monthlyDateTime = t;
+              else if (schedule.schedulePattern === "monthlyWeekday") schedule.monthlyWeekdayTime = t;
+            }
+          }
+        }
+        applied.schedule = true;
+      }
+    }
+    setAiPollMetaSection("schedule", sch);
+  }
+
+  const updatedTabs = detectUpdatedTabs(campaignState, applied);
+  if (updatedTabs.length) flashAiTabs(updatedTabs);
+};
+
+const onAssistantCampaignState = (campaignState) => {
+  if (!campaignState) return;
+  pendingAssistantState.value = campaignState;
+  applyAssistantCampaignState(campaignState);
+};
+
+watch([TemplateListSimple, ChannelList], () => {
+  if (pendingAssistantState.value) {
+    applyAssistantCampaignState(pendingAssistantState.value);
+  }
+});
+
 </script>
 
 <template>
   <v-row>
-    <v-col cols="12" md="12">
+    <v-col cols="12">
       <v-card title="Push Notification">
         <VTabs v-model="tab">
-          <VTab value="tab-details" :class="{ 'error-tab': tabErrors['tab-details'] }"> Details 
-            <VIcon v-if="tabErrors['tab-details']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
+          <VTab
+            value="tab-details"
+            :class="{
+              'error-tab': tabErrors['tab-details'],
+              'ai-tab-flash': aiFlashTabs.includes('tab-details'),
+            }"
+          >
+            Details
+            <VIcon
+              v-if="aiFlashTabs.includes('tab-details')"
+              icon="tabler-sparkles"
+              size="14"
+              color="primary"
+              class="ml-1 ai-tab-icon"
+            />
+            <VIcon v-if="tabErrors['tab-details']" size="16" color="error" class="ml-1">
+              mdi-exclamation-thick
+            </VIcon>
           </VTab>
-          <VTab value="tab-audience" :class="{ 'error-tab': tabErrors['tab-audience'] }"> Audience 
-            <VIcon v-if="tabErrors['tab-audience']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
+          <VTab
+            value="tab-audience"
+            :class="{
+              'error-tab': tabErrors['tab-audience'],
+              'ai-tab-flash': aiFlashTabs.includes('tab-audience'),
+            }"
+          >
+            Audience
+            <VIcon
+              v-if="aiFlashTabs.includes('tab-audience')"
+              icon="tabler-sparkles"
+              size="14"
+              color="primary"
+              class="ml-1 ai-tab-icon"
+            />
+            <VIcon v-if="tabErrors['tab-audience']" size="16" color="error" class="ml-1">
+              mdi-exclamation-thick
+            </VIcon>
           </VTab>
-          <VTab value="tab-schedule" :class="{ 'error-tab': tabErrors['tab-schedule'] }"> Scheduling 
-            <VIcon v-if="tabErrors['tab-schedule']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
+          <VTab
+            value="tab-schedule"
+            :class="{
+              'error-tab': tabErrors['tab-schedule'],
+              'ai-tab-flash': aiFlashTabs.includes('tab-schedule'),
+            }"
+          >
+            Scheduling
+            <VIcon
+              v-if="aiFlashTabs.includes('tab-schedule')"
+              icon="tabler-sparkles"
+              size="14"
+              color="primary"
+              class="ml-1 ai-tab-icon"
+            />
+            <VIcon v-if="tabErrors['tab-schedule']" size="16" color="error" class="ml-1">
+              mdi-exclamation-thick
+            </VIcon>
           </VTab>
         </VTabs>
 
         <VForm ref="formRef">
           <VCard flat>
             <VCardText>
-              <VWindow v-model="tab" class="disable-tab-transition">
+              <VWindow
+                v-model="tab"
+                :class="{ 'disable-tab-transition': !tabWindowTransition }"
+              >
                 <VWindowItem value="tab-details">
                   <VRow>
                     <VCol cols="12" md="4">
@@ -952,6 +1289,12 @@ const onSendSimple = async () => {
       </v-card>
     </v-col>
   </v-row>
+
+  <CampaignAssistant
+    v-if="isAgenticAiEnabled"
+    v-model:expanded="assistantExpanded"
+    @campaign-state="onAssistantCampaignState"
+  />
 </template>
 
 <style scoped lang="scss">
@@ -960,6 +1303,39 @@ const onSendSimple = async () => {
   top: 0;
   right: 0;
   padding: 0.5rem;
+}
+
+:deep(.ai-tab-flash) {
+  animation: ai-tab-pulse 0.9s ease-in-out 3;
+  border-radius: 8px;
+}
+
+:deep(.ai-tab-icon) {
+  animation: ai-tab-icon-spin 1.4s ease-in-out infinite;
+}
+
+@keyframes ai-tab-pulse {
+  0%,
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+  50% {
+    background: rgba(var(--v-theme-primary), 0.14);
+    box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.35);
+  }
+}
+
+@keyframes ai-tab-icon-spin {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    opacity: 0.65;
+    transform: scale(1.12) rotate(8deg);
+  }
 }
 </style>
 <style scoped>
