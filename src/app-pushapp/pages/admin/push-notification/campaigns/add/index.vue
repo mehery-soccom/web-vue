@@ -766,6 +766,7 @@ watch([TemplateListSimple, ChannelList], () => {
 </script>
 
 <template>
+  <div>
   <v-row>
     <v-col cols="12">
       <v-card title="Push Notification">
@@ -1295,6 +1296,7 @@ watch([TemplateListSimple, ChannelList], () => {
     v-model:expanded="assistantExpanded"
     @campaign-state="onAssistantCampaignState"
   />
+  </div>
 </template>
 
 <style scoped lang="scss">
