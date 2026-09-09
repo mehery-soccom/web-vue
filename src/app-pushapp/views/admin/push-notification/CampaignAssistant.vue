@@ -142,7 +142,7 @@ const bootstrapSession = async () => {
   try {
     const res = await store.postCampaignAssistantMessage({
       sessionId: null,
-      text: "hi",
+      text: "",
     });
     const body = res?.data ?? res;
     const id = extractSessionId(body);
