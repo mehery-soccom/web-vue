@@ -130,7 +130,7 @@ VCard
 ```
 
 - Toolbar actions: default `VBtn` (height **38px**) or `VBtn icon variant="text"` for refresh  
-- Primary CTA label examples: `New`, `Create Template`, `New Notification`
+- Primary CTA label examples: `New`, `Create Template`, `New Campaign`
 
 **Expectation for testers:** list screens look like a card + toolbar + table, not a big title banner.
 
@@ -498,7 +498,7 @@ Used on:
 | Table | MyDataTable standards |
 | Dialog titles | `text-h6` |
 | Status chips | small tonal |
-| Primary CTA | “New Notification” (may force height **45px** on push list — local override) |
+| Primary CTA | “New Campaign” (may force height **45px** on push list — local override) |
 
 ### Campaign add / view
 

@@ -511,7 +511,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         :to="{ name: 'admin-push-notification-campaigns-add' }"
         style="height: 45px"
       >
-        New Notification
+        New Campaign
       </VBtn>
     </div>
 

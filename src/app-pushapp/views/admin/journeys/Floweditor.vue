@@ -260,8 +260,8 @@ const CHANNEL_TYPE_OPTIONS = [
   { title: 'App engagement', value: 'SEND_ENGAGEMENT' },
   { title: 'Push notification', value: 'SEND_NOTIFICATION' },
   { title: 'WhatsApp', value: 'SEND_MESSAGE' },
-  { title: 'SMS', value: 'SEND_SMS' },
-  { title: 'Email', value: 'SEND_EMAIL' },
+  // { title: 'SMS', value: 'SEND_SMS' },
+  // { title: 'Email', value: 'SEND_EMAIL' },
 ]
 
 function templateListEndpoint(channelType) {
