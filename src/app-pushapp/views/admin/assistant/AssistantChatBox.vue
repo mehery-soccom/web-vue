@@ -16,6 +16,7 @@ const props = defineProps({
   },
   poweredBy: { type: String, default: "⚡ Powered by PushApp AI" },
   messages: { type: Array, default: () => [] },
+  suggestions: { type: Array, default: () => [] },
   isBootstrapping: { type: Boolean, default: false },
   isSending: { type: Boolean, default: false },
   layoutOpenClass: { type: String, default: "assistant-chat-open" },
@@ -26,6 +27,8 @@ const emit = defineEmits(["update:expanded", "send"]);
 const draft = ref("");
 const messagesEl = ref(null);
 const inputRef = ref(null);
+const isScrolling = ref(false);
+let scrollHideTimer = null;
 
 const roleLabel = (role) => (role === "user" ? "You" : "AI");
 
@@ -35,6 +38,46 @@ const isThinking = computed(() => {
   return last?.role === "user";
 });
 
+const suggestionText = (item) => {
+  if (item == null) return "";
+  if (typeof item === "string") return item.trim();
+  return String(
+    item.text ??
+      item.content ??
+      item.title ??
+      item.label ??
+      item.prompt ??
+      item.message ??
+      item.question ??
+      "",
+  ).trim();
+};
+
+const visibleSuggestions = computed(() =>
+  (props.suggestions || []).filter((item) => !!suggestionText(item)),
+);
+
+const showSuggestions = computed(
+  () =>
+    visibleSuggestions.value.length > 0 &&
+    !props.isBootstrapping &&
+    !isThinking.value,
+);
+
+const lastAssistantIndex = computed(() => {
+  for (let i = props.messages.length - 1; i >= 0; i -= 1) {
+    if (props.messages[i]?.role === "assistant") return i;
+  }
+  return -1;
+});
+
+const showSuggestionsOnEmpty = computed(
+  () => showSuggestions.value && props.messages.length === 0,
+);
+
+const showSuggestionsOnMessage = (idx) =>
+  showSuggestions.value && idx === lastAssistantIndex.value;
+
 const formatMessageTime = (timestamp) => {
   if (!timestamp) return "";
   return new Date(timestamp).toLocaleTimeString([], {
@@ -42,6 +85,17 @@ const formatMessageTime = (timestamp) => {
     minute: "2-digit",
   });
 };
+
+const revealScrollbar = () => {
+  isScrolling.value = true;
+  if (scrollHideTimer) clearTimeout(scrollHideTimer);
+  scrollHideTimer = setTimeout(() => {
+    isScrolling.value = false;
+    scrollHideTimer = null;
+  }, 850);
+};
+
+const onMessagesScroll = () => revealScrollbar();
 
 const scrollToBottom = async () => {
   await nextTick();
@@ -62,6 +116,12 @@ const submit = () => {
   const content = draft.value.trim();
   if (!content || props.isBootstrapping || props.isSending) return;
   draft.value = "";
+  emit("send", content);
+};
+
+const onSuggestionClick = (item) => {
+  const content = suggestionText(item);
+  if (!content || props.isBootstrapping || props.isSending) return;
   emit("send", content);
 };
 
@@ -90,13 +150,16 @@ watch(
 );
 
 watch(
-  () => props.messages.length,
+  () => [props.messages.length, visibleSuggestions.value.length, isThinking.value],
   () => {
     if (props.expanded) scrollToBottom();
   },
 );
 
-onBeforeUnmount(() => syncLayoutClass(false));
+onBeforeUnmount(() => {
+  if (scrollHideTimer) clearTimeout(scrollHideTimer);
+  syncLayoutClass(false);
+});
 
 defineExpose({ scrollToBottom, focusInput });
 </script>
@@ -171,7 +234,12 @@ defineExpose({ scrollToBottom, focusInput });
             </div>
           </header>
 
-          <div ref="messagesEl" class="ca-panel__messages">
+          <div
+            ref="messagesEl"
+            class="ca-panel__messages"
+            :class="{ 'is-scrolling': isScrolling }"
+            @scroll.passive="onMessagesScroll"
+          >
             <div
               v-if="isBootstrapping && messages.length === 0"
               class="ca-panel__loading"
@@ -188,7 +256,27 @@ defineExpose({ scrollToBottom, focusInput });
                       <div class="ca-msg__avatar ca-msg__avatar--bot">
                         <VIcon icon="tabler-robot" size="16" />
                       </div>
-                      <div class="ca-msg__bubble">{{ emptyMessage }}</div>
+                      <div
+                        class="ca-msg__bubble"
+                        :class="{ 'ca-msg__bubble--stack': showSuggestionsOnEmpty }"
+                      >
+                        <div class="ca-msg__text">{{ emptyMessage }}</div>
+                        <div
+                          v-if="showSuggestionsOnEmpty"
+                          class="ca-suggestions"
+                        >
+                          <button
+                            v-for="(item, idx) in visibleSuggestions"
+                            :key="`${suggestionText(item)}-${idx}`"
+                            type="button"
+                            class="ca-suggestion"
+                            :disabled="isSending || isBootstrapping"
+                            @click="onSuggestionClick(item)"
+                          >
+                            {{ suggestionText(item) }}
+                          </button>
+                        </div>
+                      </div>
                     </div>
                     <div class="ca-msg__meta">
                       <span class="ca-msg__role">{{ roleLabel("assistant") }}</span>
@@ -212,7 +300,30 @@ defineExpose({ scrollToBottom, focusInput });
                       <VIcon icon="tabler-robot" size="16" />
                     </div>
 
-                    <div class="ca-msg__bubble">{{ msg.content }}</div>
+                    <div
+                      class="ca-msg__bubble"
+                      :class="{
+                        'ca-msg__bubble--stack':
+                          msg.role === 'assistant' && showSuggestionsOnMessage(idx),
+                      }"
+                    >
+                      <div class="ca-msg__text">{{ msg.content }}</div>
+                      <div
+                        v-if="msg.role === 'assistant' && showSuggestionsOnMessage(idx)"
+                        class="ca-suggestions"
+                      >
+                        <button
+                          v-for="(item, sIdx) in visibleSuggestions"
+                          :key="`${suggestionText(item)}-${sIdx}`"
+                          type="button"
+                          class="ca-suggestion"
+                          :disabled="isSending || isBootstrapping"
+                          @click="onSuggestionClick(item)"
+                        >
+                          {{ suggestionText(item) }}
+                        </button>
+                      </div>
+                    </div>
 
                     <div
                       v-if="msg.role === 'user'"
@@ -248,6 +359,7 @@ defineExpose({ scrollToBottom, focusInput });
                   </div>
                 </div>
               </div>
+
             </template>
           </div>
 
@@ -480,6 +592,35 @@ defineExpose({ scrollToBottom, focusInput });
   background: rgba(var(--v-theme-on-surface), 0.025);
   min-height: 0;
   scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.ca-panel__messages::-webkit-scrollbar {
+  width: 6px;
+}
+.ca-panel__messages::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 8px 0;
+}
+.ca-panel__messages::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background-clip: padding-box;
+  transition: background-color 0.2s ease;
+}
+.ca-panel__messages.is-scrolling {
+  scrollbar-color: rgba(var(--v-theme-primary), 0.45) transparent;
+}
+.ca-panel__messages.is-scrolling::-webkit-scrollbar-thumb {
+  background: linear-gradient(
+    180deg,
+    rgba(var(--v-theme-primary), 0.55),
+    rgba(var(--v-theme-primary), 0.28)
+  );
+}
+.ca-panel__messages.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-primary), 0.7);
 }
 .ca-panel__loading {
   height: 100%;
@@ -495,6 +636,50 @@ defineExpose({ scrollToBottom, focusInput });
 
 .ca-empty {
   margin-bottom: 8px;
+}
+
+.ca-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
+.ca-suggestions__label {
+  padding: 0 2px 2px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(var(--v-theme-on-surface), 0.5);
+}
+.ca-suggestion {
+  display: block;
+  width: 100%;
+  padding: 9px 11px;
+  border: 1px solid rgba(var(--v-border-color), calc(var(--v-border-opacity) + 0.04));
+  border-radius: 10px;
+  background: rgba(var(--v-theme-on-surface), 0.03);
+  color: rgba(var(--v-theme-on-surface), 0.86);
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.4;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.ca-suggestion:hover:not(:disabled) {
+  background: rgba(var(--v-theme-primary), 0.06);
+  border-color: rgba(var(--v-theme-primary), 0.22);
+  color: rgba(var(--v-theme-on-surface), 0.95);
+}
+.ca-suggestion:focus-visible {
+  outline: 2px solid rgba(var(--v-theme-primary), 0.45);
+  outline-offset: 1px;
+}
+.ca-suggestion:disabled {
+  opacity: 0.5;
+  cursor: default;
 }
 
 .ca-msg {
@@ -545,6 +730,14 @@ defineExpose({ scrollToBottom, focusInput });
   word-break: break-word;
   white-space: pre-wrap;
   border-radius: 14px;
+}
+.ca-msg__bubble--stack {
+  max-width: min(100%, 340px);
+  padding: 10px 12px;
+  white-space: normal;
+}
+.ca-msg__text {
+  white-space: pre-wrap;
 }
 .ca-msg--user .ca-msg__bubble {
   background: rgb(var(--v-theme-primary));

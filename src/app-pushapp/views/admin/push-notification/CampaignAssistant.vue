@@ -26,6 +26,7 @@ const hasBootstrapped = ref(false);
 const hasFormStateInitialized = ref(false);
 const sessionId = ref(null);
 const messages = ref([]);
+const suggestions = ref([]);
 let pollTimer = null;
 let lastMessageSig = "";
 let lastFormStateSig = "";
@@ -49,6 +50,26 @@ const extractSessionId = (payload) => {
   return session.sessionId || session._id || null;
 };
 
+const extractSuggestions = (session, payload) => {
+  const sources = [
+    session?.suggestions,
+    payload?.suggestions,
+    session?.suggestedReplies,
+    payload?.suggestedReplies,
+    session?.prompts,
+  ];
+  for (const src of sources) {
+    if (Array.isArray(src)) return src;
+  }
+
+  const msgs = Array.isArray(session?.messages) ? session.messages : [];
+  for (let i = msgs.length - 1; i >= 0; i -= 1) {
+    if (Array.isArray(msgs[i]?.suggestions)) return msgs[i].suggestions;
+  }
+
+  return undefined;
+};
+
 const applyPollPayload = (payload, { forceScroll = false } = {}) => {
   if (!payload) return;
   const session = payload.data || payload;
@@ -68,6 +89,9 @@ const applyPollPayload = (payload, { forceScroll = false } = {}) => {
       chatBoxRef.value?.scrollToBottom();
     }
   }
+
+  const nextSuggestions = extractSuggestions(session, payload);
+  if (nextSuggestions !== undefined) suggestions.value = nextSuggestions;
 
   if (session.botStatus) emit("bot-status", session.botStatus);
 };
@@ -180,6 +204,7 @@ const sendMessage = async (content) => {
     timestamp: Date.now(),
   });
   lastMessageSig = messageSignature(messages.value);
+  suggestions.value = [];
 
   isSending.value = true;
   try {
@@ -243,6 +268,7 @@ onBeforeUnmount(() => stopPolling());
     placeholder="Ask anything about your campaign…"
     empty-message="Hi! I'm your AI campaign assistant. How can I help you today?"
     :messages="messages"
+    :suggestions="suggestions"
     :is-bootstrapping="isBootstrapping"
     :is-sending="isSending"
     @update:expanded="emit('update:expanded', $event)"
