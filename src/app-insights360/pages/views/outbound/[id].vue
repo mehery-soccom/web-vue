@@ -264,7 +264,7 @@ function formatTimestamp(ts) {
             v-bind="props"
             @click="downloadReport(false)"
             color="primary"
-            style="width: 45px; height: 45px; min-width: 40px;"
+            style="width: 45px; height: 45px; min-width: 40px; margin-right: 12px"
             class="pa-0"
             variant="flat"
           >
@@ -272,7 +272,7 @@ function formatTimestamp(ts) {
           </VBtn>
         </template>
       </VTooltip>
-      <VTooltip text="Download the list of outbound data">
+      <!-- <VTooltip text="Download the list of outbound data">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
@@ -285,7 +285,7 @@ function formatTimestamp(ts) {
             <VIcon>mdi-download</VIcon>
           </VBtn>
         </template>
-      </VTooltip>
+      </VTooltip> -->
     </div>
     <VCol cols="12">
       <CardStatisticsTransactions :statistics="statsCamp" :title="'Campaign Statistics'"/>

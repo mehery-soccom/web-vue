@@ -247,6 +247,42 @@ export const useProjectStore = defineStore("ProjectStore", {
       }
       return axios.get(url);
     },
+    fetchBotflowSummary(start, end, pagi) {
+      let url = `/api/v1/dashboard/botflow/summary?dateRange1=${start}&dateRange2=${end}`;
+      if (pagi) {
+        if (pagi.page) url += `&page=${pagi.page}`;
+        if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+        if (pagi.filters) {
+          const filterParams = Object.entries(pagi.filters)
+            .filter(([, value]) => value !== null && value !== undefined && value !== "")
+            .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`)
+            .join("&");
+          if (filterParams) url += `&${filterParams}`;
+        }
+      }
+      return axios.get(url);
+    },
+    fetchBotflowTemplateSummary(start, end, queue) {
+      let url = `/api/v1/dashboard/botflow/summary?dateRange1=${start}&dateRange2=${end}&view=templateSummary`;
+      if (queue) url += `&queue=${encodeURIComponent(queue)}`;
+      return axios.get(url);
+    },
+    fetchBotflowCtaDetails(start, end, { queue, templateCode, cta, page, itemsPerPage, filters } = {}) {
+      let url = `/api/v1/dashboard/botflow/cta?dateRange1=${start}&dateRange2=${end}`;
+      if (queue) url += `&queue=${encodeURIComponent(queue)}`;
+      if (templateCode) url += `&templateCode=${encodeURIComponent(templateCode)}`;
+      if (cta) url += `&cta=${encodeURIComponent(cta)}`;
+      if (page) url += `&page=${page}`;
+      if (itemsPerPage) url += `&limit=${itemsPerPage}`;
+      if (filters) {
+        const filterParams = Object.entries(filters)
+          .filter(([, value]) => value !== null && value !== undefined && value !== "")
+          .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`)
+          .join("&");
+        if (filterParams) url += `&${filterParams}`;
+      }
+      return axios.get(url);
+    },
     fetchChatSessions(dateRange1, dateRange2, chatType) {
         let url = `/api/v1/dashboard/chat-sessions-v2?&dateRange1=${dateRange1}&dateRange2=${dateRange2}`;
         
