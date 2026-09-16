@@ -410,7 +410,7 @@ onMounted(async () => {
             v-bind="props"
             @click="openReportDatePicker"
             color="primary"
-            style="width: 45px; height: 45px; min-width: 40px;"
+            style="width: 45px; height: 45px; min-width: 40px;margin-right: -12px;"
             class="pa-0"
             variant="flat"
           >
@@ -418,7 +418,7 @@ onMounted(async () => {
           </VBtn>
         </template>
       </VTooltip>
-      <!-- <AppDateTimePicker
+      <AppDateTimePicker
         v-model="dateRange2" ref="datePickerRef"
         class="hidden-datepicker"
         :config="{
@@ -432,7 +432,7 @@ onMounted(async () => {
           onReady: addApplyButtonToReportPicker,
         }"
       />
-      <VTooltip text="Download the list of Chats">
+      <!-- <VTooltip text="Download the list of Chats">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
