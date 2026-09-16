@@ -26,7 +26,7 @@ const pagination = reactive({
 const headers = [
   { title: "Queue Name", key: "queueName", sortable: false },
   { title: "Queue", key: "queue", sortable: false },
-  { title: "Session/Total", key: "session", sortable: false },
+  { title: "Total", key: "session", sortable: false },
   { title: "Sent", key: "sent", sortable: false },
   { title: "Delivered", key: "delivered", sortable: false },
   { title: "Read", key: "read", sortable: false },

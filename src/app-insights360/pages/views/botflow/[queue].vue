@@ -247,24 +247,24 @@ onMounted(loadCurrentRange);
         @update:options="onUpdateOptions"
       >
         <template #item.sent="{ item }">
-          <RouterLink
+          <!-- <RouterLink
             v-if="contactsRoute(item.raw, false)"
             :to="contactsRoute(item.raw, false)"
             class="text-primary text-decoration-underline"
           >
             {{ item.raw.sent }}
-          </RouterLink>
-          <span v-else>{{ item.raw.sent }}</span>
+          </RouterLink> -->
+          <span>{{ item.raw.sent }}</span>
         </template>
         <template #item.ctaCount="{ item }">
-          <RouterLink
+          <!-- <RouterLink
             v-if="item.raw.ctaName && item.raw.ctaName !== '-' && contactsRoute(item.raw, true)"
             :to="contactsRoute(item.raw, true)"
             class="text-primary text-decoration-underline"
           >
             {{ item.raw.ctaCount }}
-          </RouterLink>
-          <span v-else>{{ item.raw.ctaCount }}</span>
+          </RouterLink> -->
+          <span>{{ item.raw.ctaCount }}</span>
         </template>
       </MyDataTable>
     </VCol>
