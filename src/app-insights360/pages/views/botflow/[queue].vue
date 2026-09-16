@@ -101,16 +101,19 @@ const flattenTemplateSummary = (templateSummary = {}) => {
   return rows;
 };
 
-const contactsRoute = (row, includeCta = false) => ({
-  name: "views-botflow-contacts",
-  params: { queue: queueCode.value },
-  query: {
-    templateCode: row.templateCode,
-    ...(includeCta && row.ctaName && row.ctaName !== "-"
-      ? { cta: row.ctaName }
-      : {}),
-  },
-});
+const contactsRoute = (row, includeCta = false) => {
+  if (!queueCode.value) return null;
+  return {
+    name: "views-botflow-contacts",
+    params: { queue: queueCode.value },
+    query: {
+      templateCode: row.templateCode,
+      ...(includeCta && row.ctaName && row.ctaName !== "-"
+        ? { cta: row.ctaName }
+        : {}),
+    },
+  };
+};
 
 const filteredTableData = computed(() => {
   const filters = pagination.filters || {};
@@ -245,15 +248,17 @@ onMounted(loadCurrentRange);
       >
         <template #item.sent="{ item }">
           <RouterLink
+            v-if="contactsRoute(item.raw, false)"
             :to="contactsRoute(item.raw, false)"
             class="text-primary text-decoration-underline"
           >
             {{ item.raw.sent }}
           </RouterLink>
+          <span v-else>{{ item.raw.sent }}</span>
         </template>
         <template #item.ctaCount="{ item }">
           <RouterLink
-            v-if="item.raw.ctaName && item.raw.ctaName !== '-'"
+            v-if="item.raw.ctaName && item.raw.ctaName !== '-' && contactsRoute(item.raw, true)"
             :to="contactsRoute(item.raw, true)"
             class="text-primary text-decoration-underline"
           >

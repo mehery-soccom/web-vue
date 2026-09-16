@@ -38,8 +38,8 @@ const pagination = reactive({
 });
 
 const headers = [
-  { title: "Lane", key: "lane", sortable: false },
-  { title: "CSID", key: "csid", sortable: false },
+  { title: "Channel", key: "lane", sortable: false },
+  { title: "Contact", key: "csid", sortable: false },
   { title: "Template", key: "template", sortable: false },
   { title: "Button Name", key: "buttonName", sortable: false },
   { title: "Queue", key: "queue", sortable: false },
@@ -185,10 +185,7 @@ const refresh = () => {
               icon
               variant="text"
               size="small"
-              :to="{
-                name: 'views-botflow-queue',
-                params: { queue: queueCode },
-              }"
+              :to="queueCode ? { name: 'views-botflow-queue', params: { queue: queueCode } } : { name: 'views-botflow' }"
             >
               <VIcon icon="tabler-arrow-left" />
             </VBtn>

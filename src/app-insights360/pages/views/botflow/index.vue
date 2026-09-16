@@ -59,6 +59,7 @@ const mapRows = (rows = []) =>
     const stats = row.stats || {};
     return {
       ...row,
+      queue: row.queue || row._id || "",
       session: stats.session ?? 0,
       sent: stats.SENT ?? stats.SEND ?? 0,
       delivered: stats.DLVRD ?? 0,
@@ -169,6 +170,7 @@ const refresh = () => {
       >
         <template #item.queueName="{ item }">
           <RouterLink
+            v-if="item.raw.queue"
             :to="{
               name: 'views-botflow-queue',
               params: { queue: item.raw.queue },
@@ -177,6 +179,7 @@ const refresh = () => {
           >
             {{ item.raw.queueName }}
           </RouterLink>
+          <span v-else>{{ item.raw.queueName }}</span>
         </template>
       </MyDataTable>
     </VCol>
