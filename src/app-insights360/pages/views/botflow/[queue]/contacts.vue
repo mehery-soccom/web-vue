@@ -193,6 +193,36 @@ const contactType = computed(() => {
 });
 
 const isDownloading = ref(false);
+const showGroupForm = ref(false);
+const groupName = ref("");
+const isCreatingGroup = ref(false);
+
+const createGroup = async () => {
+  if (!groupName.value.trim()) {
+    toast.error("Please enter a group name.");
+    return;
+  }
+  isCreatingGroup.value = true;
+  try {
+    const res = await projectStore.fetchBotflowCtaDetailsAll(startTime.value, endTime.value, {
+      queue: queueCode.value,
+      templateCode: templateCode.value,
+      cta: cta.value,
+    });
+    const payload = res?.data || {};
+    const sessions = payload.data?.sessions || payload.sessions || payload.results || [];
+
+    await projectStore.createContactGroup(groupName.value.trim(), sessions);
+    toast.success(`Group "${groupName.value.trim()}" created successfully!`);
+    showGroupForm.value = false;
+    groupName.value = "";
+  } catch (err) {
+    console.error("create group error", err);
+    toast.error("Failed to create group. Please try again.");
+  } finally {
+    isCreatingGroup.value = false;
+  }
+};
 
 window.stillDownloadBotflowCta = async (val) => {
   toast.clearAll();
@@ -284,6 +314,20 @@ const downloadReport = async (force = false) => {
           </p>
         </div>
         <div class="d-flex align-center">
+          <VTooltip text="Create Group">
+            <template #activator="{ props: tipProps }">
+              <VBtn
+                v-bind="tipProps"
+                variant="flat"
+                :color="showGroupForm ? 'secondary' : 'primary'"
+                class="pa-0 me-2"
+                style="width:40px;height:40px;min-width:40px;"
+                @click="showGroupForm = !showGroupForm"
+              >
+                <VIcon>mdi-account-group</VIcon>
+              </VBtn>
+            </template>
+          </VTooltip>
           <VTooltip text="Download report">
             <template #activator="{ props: tipProps }">
               <VBtn
@@ -329,6 +373,45 @@ const downloadReport = async (force = false) => {
           </VTooltip>
         </div>
       </div>
+    </VCol>
+
+    <VCol v-if="showGroupForm" cols="12">
+      <VCard variant="outlined" class="pa-4" style="background-color: #fff;">
+        <div class="d-flex align-center gap-3 flex-wrap">
+          <VIcon color="primary">mdi-account-group</VIcon>
+          <span class="text-body-1 font-weight-medium">Create Contact Group</span>
+          <VTextField
+            v-model="groupName"
+            label="Group Name"
+            placeholder="Enter group name"
+            density="compact"
+            hide-details
+            variant="outlined"
+            style="min-width: 240px; max-width: 360px;"
+            @keydown.enter="createGroup"
+          />
+          <div class="d-flex align-center gap-2 ms-auto">
+            <VBtn
+              color="primary"
+              variant="flat"
+              :loading="isCreatingGroup"
+              :disabled="!groupName.trim()"
+              @click="createGroup"
+            >
+              <VIcon start>mdi-check</VIcon>
+              Save Group
+            </VBtn>
+            <VBtn
+              variant="text"
+              color="secondary"
+              :disabled="isCreatingGroup"
+              @click="showGroupForm = false; groupName = ''"
+            >
+              Cancel
+            </VBtn>
+          </div>
+        </div>
+      </VCard>
     </VCol>
 
     <VCol cols="12">

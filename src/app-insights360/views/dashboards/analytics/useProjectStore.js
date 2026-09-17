@@ -283,6 +283,20 @@ export const useProjectStore = defineStore("ProjectStore", {
       }
       return axios.get(url);
     },
+    fetchBotflowCtaDetailsAll(start, end, { queue, templateCode, cta } = {}) {
+      let url = `/api/v1/dashboard/botflow/cta?dateRange1=${start}&dateRange2=${end}&createGroup=true`;
+      if (queue) url += `&queue=${encodeURIComponent(queue)}`;
+      if (templateCode) url += `&templateCode=${encodeURIComponent(templateCode)}`;
+      if (cta) url += `&cta=${encodeURIComponent(cta)}`;
+      return axios.get(url);
+    },
+    createContactGroup(groupName, sessions) {
+      return axios.post(`${window.location.origin}/admin/api/create-update-group`, {
+        active: true,
+        groupName,
+        sessions,
+      });
+    },
     fetchChatSessions(dateRange1, dateRange2, chatType) {
         let url = `/api/v1/dashboard/chat-sessions-v2?&dateRange1=${dateRange1}&dateRange2=${dateRange2}`;
         
