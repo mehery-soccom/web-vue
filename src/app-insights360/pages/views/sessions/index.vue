@@ -15,6 +15,8 @@ const isLoading = ref(false);
 const isDrawerOpen = ref(false);
 const selectedSession = ref({});
 const sessionTagsMap = ref({});
+const sessionTagsList = ref([]);   // [{ _id, label }]
+const selectedSessionTags = ref([]);
 const startTime = ref();
 const endTime = ref();
 const datePickerRef = ref(null)
@@ -64,7 +66,10 @@ const downloadReport = async (val=false, splitByDay=false) => {
       dateRange2: endTime.value,
       type: 'chat-summary',
       agentCode: window.CONST.APP_USER,
-      meta: { splitByDay: !!splitByDay },
+      meta: {
+        splitByDay: !!splitByDay,
+        ...(selectedSessionTags.value.length ? { sessionTags: selectedSessionTags.value } : {}),
+      },
     }
     if(!!val) params.force = true;
     const response = await projectStore.downloadReports(params);
@@ -167,10 +172,11 @@ const fetchSessions = async (startMs, endMs) => {
     const endStr = formatDateForApi(endMs);
     
     const typePayload = selectedChatType.value === 'All' ? null : selectedChatType.value;
+    const tagsPayload = selectedSessionTags.value.length ? selectedSessionTags.value : null;
 
     console.log(`Fetching: ${startStr} to ${endStr}, Type: ${typePayload}`);
 
-    const response = await projectStore.fetchChatSessions(startStr, endStr, typePayload);
+    const response = await projectStore.fetchChatSessions(startStr, endStr, typePayload, tagsPayload);
     
     if (response?.data) {
         const results = response.data.results || response.data || [];
@@ -199,17 +205,26 @@ const fetchSessions = async (startMs, endMs) => {
   }
 };
 
-const onTypeChange = () => {
+const refetchSessions = () => {
   const [day, month, year] = dateRange.value.split("-").map(Number);
   const d = new Date(year, month - 1, day);
-  
   const start = new Date(d);
   start.setHours(0, 0, 0, 0);
   const end = new Date(d);
   end.setHours(23, 59, 59, 998);
-  
   fetchSessions(start.getTime(), end.getTime());
 };
+
+const onTypeChange = () => refetchSessions();
+
+const isTagFilterActive = ref(false);
+const onTagSearch = () => {
+  isTagFilterActive.value = selectedSessionTags.value.length > 0;
+  refetchSessions();
+};
+watch(selectedSessionTags, (tags) => {
+  if (!tags.length) isTagFilterActive.value = false;
+});
 
 const onDateClosed = (selectedDates) => {
   if (selectedDates.length === 1) {
@@ -395,6 +410,10 @@ onMounted(async () => {
     tagsResponse.data.results.forEach(tag => {
       sessionTagsMap.value[tag._id] = { title: tag.title, category: tag.category };
     });
+    sessionTagsList.value = tagsResponse.data.results.map(tag => ({
+      _id: tag._id,
+      label: `${tag.title} (${tag.category})`,
+    }));
   }
 });
 
@@ -446,6 +465,50 @@ onMounted(async () => {
           </VBtn>
         </template>
       </VTooltip> -->
+
+      <!-- Session Tags multi-select with inline search -->
+      <VAutocomplete
+        v-model="selectedSessionTags"
+        :items="sessionTagsList"
+        item-title="label"
+        item-value="_id"
+        density="compact"
+        variant="outlined"
+        hide-details
+        multiple
+        label="Session Tags"
+        placeholder="Filter by tags…"
+        style="min-width: 220px; max-width: 280px;"
+        no-data-text="No tags available"
+      >
+        <template #append-inner>
+          <VBtn
+            icon
+            size="x-small"
+            :variant="isTagFilterActive ? 'flat' : 'text'"
+            :color="isTagFilterActive ? 'primary' : 'default'"
+            style="width:28px;height:28px;min-width:28px;"
+            @mousedown.stop.prevent="onTagSearch"
+          >
+            <VIcon size="18">mdi-magnify</VIcon>
+          </VBtn>
+        </template>
+        <template #selection="{ item, index }">
+          <VChip
+            v-if="index === 0"
+            size="small"
+            closable
+            class="me-1"
+            @click:close="selectedSessionTags = selectedSessionTags.filter(t => t !== item.value)"
+          >
+            {{ item.title }}
+          </VChip>
+          <span
+            v-if="index === 1"
+            class="text-caption text-medium-emphasis"
+          >+{{ selectedSessionTags.length - 1 }}</span>
+        </template>
+      </VAutocomplete>
 
       <VSelect
         v-model="selectedChatType"

@@ -297,13 +297,12 @@ export const useProjectStore = defineStore("ProjectStore", {
         sessions,
       });
     },
-    fetchChatSessions(dateRange1, dateRange2, chatType) {
+    fetchChatSessions(dateRange1, dateRange2, chatType, sessionTags) {
         let url = `/api/v1/dashboard/chat-sessions-v2?&dateRange1=${dateRange1}&dateRange2=${dateRange2}`;
-        
-        if (chatType) {
-          url += `&chatType=${chatType}`;
+        if (chatType) url += `&chatType=${chatType}`;
+        if (sessionTags && sessionTags.length > 0) {
+          sessionTags.forEach(tag => { url += `&sessionTags=${encodeURIComponent(tag)}`; });
         }
-        
         return axios.get(url);
     },
     fetchSessionTags() {
