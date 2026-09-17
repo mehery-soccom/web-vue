@@ -3,6 +3,7 @@ import { useProjectStore } from "@app-insights360/views/dashboards/analytics/use
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
 import debounce from "lodash/debounce";
+import { toast } from "vue3-toastify";
 
 const route = useRoute();
 const { customPlugin } = useDatePickerFilters();
@@ -65,7 +66,19 @@ const getDefaultWeekRange = () => {
   };
 };
 
-const initial = getDefaultWeekRange();
+const tsToLabel = (s, e) => {
+  const fmt = (d) => d.toLocaleDateString("en-GB").split("/").join("-");
+  return `${fmt(new Date(s))} to ${fmt(new Date(e))}`;
+};
+
+const getInitialRange = () => {
+  const qs = route.query.start ? Number(route.query.start) : null;
+  const qe = route.query.end ? Number(route.query.end) : null;
+  if (qs && qe) return { label: tsToLabel(qs, qe), start: qs, end: qe };
+  return getDefaultWeekRange();
+};
+
+const initial = getInitialRange();
 const dateRange = ref(initial.label);
 const startTime = ref(initial.start);
 const endTime = ref(initial.end);
@@ -173,6 +186,81 @@ const refresh = () => {
   pagination.page = 1;
   loadCurrentRange();
 };
+
+const contactType = computed(() => {
+  const first = tableData.value[0];
+  return first?.contactType || first?.contact?.contactType || first?.lane || "";
+});
+
+const isDownloading = ref(false);
+
+window.stillDownloadBotflowCta = async (val) => {
+  toast.clearAll();
+  await downloadReport(val);
+};
+
+const downloadReport = async (force = false) => {
+  isDownloading.value = true;
+  try {
+    const meta = {
+      queue: queueCode.value,
+      templateCode: templateCode.value,
+      ...(contactType.value ? { contactType: contactType.value } : {}),
+      ...(cta.value ? { cta: cta.value } : {}),
+    };
+    const params = {
+      type: "botflow-cta",
+      start: startTime.value,
+      end: endTime.value,
+      meta,
+      ...(force ? { force: true } : {}),
+    };
+    const response = await projectStore.downloadReports(params);
+    if (response.data?.data?.status === "EXISTS") {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = "-";
+      if (createdAt)
+        formattedDateTime = new Date(createdAt).toLocaleString("en-IN", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report created on ${formattedDateTime}. Available in Report Tab.</div>
+          <div>Download fresh if more data was added after this report was generated.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width:240px;max-height:40px;padding-left:30px;
+            display:flex;align-items:center;background:#1976d2;color:#fff;cursor:pointer;"
+            onclick="window.stillDownloadBotflowCta(true)">Download Fresh</button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true },
+      );
+    } else if (response.data?.data?.status === "IN_PROGRESS") {
+      const createdAt = response.data?.data?.doc?.createdAt;
+      let formattedDateTime = "-";
+      if (createdAt)
+        formattedDateTime = new Date(createdAt).toLocaleString("en-IN", {
+          day: "2-digit", month: "short", year: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: true,
+        });
+      toast.info(
+        `<div style="display:flex;flex-direction:column;gap:8px;">
+          <div>Report creation started on ${formattedDateTime}. Will appear in the Reports tab shortly.</div>
+          <button style="border-radius:4px;border:1px solid #fff;width:240px;max-height:40px;padding-left:30px;
+            display:flex;align-items:center;background:#1976d2;color:#fff;cursor:pointer;"
+            onclick="window.stillDownloadBotflowCta(true)">Download Fresh</button>
+        </div>`,
+        { autoClose: false, dangerouslyHTMLString: true },
+      );
+    } else {
+      toast.success("Download started. Please check after some time.");
+    }
+  } catch (error) {
+    console.error("botflow-cta download error", error);
+    toast.error("Failed to start download.");
+  } finally {
+    isDownloading.value = false;
+  }
+};
 </script>
 
 <template>
@@ -185,7 +273,7 @@ const refresh = () => {
               icon
               variant="text"
               size="small"
-              :to="queueCode ? { name: 'views-botflow-queue', params: { queue: queueCode } } : { name: 'views-botflow' }"
+              :to="queueCode ? { name: 'views-botflow-queue', params: { queue: queueCode }, query: { start: startTime, end: endTime } } : { name: 'views-botflow' }"
             >
               <VIcon icon="tabler-arrow-left" />
             </VBtn>
@@ -196,8 +284,23 @@ const refresh = () => {
           </p>
         </div>
         <div class="d-flex align-center">
+          <VTooltip text="Download report">
+            <template #activator="{ props: tipProps }">
+              <VBtn
+                v-bind="tipProps"
+                variant="flat"
+                color="primary"
+                class="pa-0"
+                style="width:40px;height:40px;min-width:40px;"
+                :loading="isDownloading"
+                @click="downloadReport(false)"
+              >
+                <VIcon>mdi-file-download</VIcon>
+              </VBtn>
+            </template>
+          </VTooltip>
           <AppDateTimePicker
-            style="width: 250px"
+            style="width: 250px; margin: 0 12px;"
             v-model="dateRange"
             prepend-inner-icon="tabler-calendar"
             :config="{
@@ -213,14 +316,14 @@ const refresh = () => {
             <template #activator="{ props: tipProps }">
               <VBtn
                 v-bind="tipProps"
-                icon
-                variant="text"
+                variant="flat"
                 color="primary"
-                class="ms-1"
+                class="pa-0"
+                style="width:40px;height:40px;min-width:40px;"
                 :loading="isLoading"
                 @click="refresh"
               >
-                <VIcon icon="tabler-refresh" />
+                <VIcon>mdi-refresh</VIcon>
               </VBtn>
             </template>
           </VTooltip>

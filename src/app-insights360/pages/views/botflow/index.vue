@@ -9,8 +9,6 @@ const projectStore = useProjectStore();
 const tableData = ref([]);
 const isLoading = ref(false);
 const oldDates = ref([]);
-const startTime = ref();
-const endTime = ref();
 
 const pagination = reactive({
   itemsLength: 0,
@@ -53,6 +51,10 @@ const parseRange = () => {
   const end = new Date(endYear, endMonth - 1, endDay, 23, 59, 59, 998);
   return { start: start.getTime(), end: end.getTime() };
 };
+
+const _r = parseRange();
+const startTime = ref(_r.start);
+const endTime = ref(_r.end);
 
 const mapRows = (rows = []) =>
   rows.map((row) => {
@@ -128,7 +130,7 @@ const refresh = () => {
         </div>
         <div class="d-flex align-center">
           <AppDateTimePicker
-            style="width: 250px"
+            style="width: 250px; margin: 0 12px;"
             v-model="dateRange"
             prepend-inner-icon="tabler-calendar"
             :config="{
@@ -144,14 +146,14 @@ const refresh = () => {
             <template #activator="{ props }">
               <VBtn
                 v-bind="props"
-                icon
-                variant="text"
+                variant="flat"
                 color="primary"
-                class="ms-1"
+                class="pa-0"
+                style="width:40px;height:40px;min-width:40px;"
                 :loading="isLoading"
                 @click="refresh"
               >
-                <VIcon icon="tabler-refresh" />
+                <VIcon>mdi-refresh</VIcon>
               </VBtn>
             </template>
           </VTooltip>
@@ -174,6 +176,7 @@ const refresh = () => {
             :to="{
               name: 'views-botflow-queue',
               params: { queue: item.raw.queue },
+              query: { start: startTime, end: endTime },
             }"
             class="text-primary text-decoration-underline"
           >

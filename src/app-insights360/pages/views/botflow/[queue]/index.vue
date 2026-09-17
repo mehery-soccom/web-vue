@@ -2,6 +2,7 @@
 import { useProjectStore } from "@app-insights360/views/dashboards/analytics/useProjectStore";
 import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters";
 import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue";
+import * as XLSX from "xlsx";
 
 const route = useRoute();
 const { customPlugin } = useDatePickerFilters();
@@ -35,7 +36,6 @@ const headers = [
   { title: "CTA Count", key: "ctaCount", sortable: false },
 ];
 
-const today = new Date();
 const tonight = new Date();
 tonight.setHours(23, 59, 59, 998);
 
@@ -55,7 +55,19 @@ const getDefaultWeekRange = () => {
   };
 };
 
-const initial = getDefaultWeekRange();
+const tsToLabel = (s, e) => {
+  const fmt = (d) => d.toLocaleDateString("en-GB").split("/").join("-");
+  return `${fmt(new Date(s))} to ${fmt(new Date(e))}`;
+};
+
+const getInitialRange = () => {
+  const qs = route.query.start ? Number(route.query.start) : null;
+  const qe = route.query.end ? Number(route.query.end) : null;
+  if (qs && qe) return { label: tsToLabel(qs, qe), start: qs, end: qe };
+  return getDefaultWeekRange();
+};
+
+const initial = getInitialRange();
 const dateRange = ref(initial.label);
 const startTime = ref(initial.start);
 const endTime = ref(initial.end);
@@ -79,23 +91,11 @@ const flattenTemplateSummary = (templateSummary = {}) => {
     const sent = template?.sent ?? 0;
     const ctaEntries = Object.entries(template?.cta || {});
     if (!ctaEntries.length) {
-      rows.push({
-        templateCode,
-        templateName,
-        sent,
-        ctaName: "-",
-        ctaCount: 0,
-      });
+      rows.push({ templateCode, templateName, sent, ctaName: "-", ctaCount: 0 });
       return;
     }
     ctaEntries.forEach(([ctaName, ctaCount]) => {
-      rows.push({
-        templateCode,
-        templateName,
-        sent,
-        ctaName,
-        ctaCount: ctaCount ?? 0,
-      });
+      rows.push({ templateCode, templateName, sent, ctaName, ctaCount: ctaCount ?? 0 });
     });
   });
   return rows;
@@ -108,38 +108,30 @@ const contactsRoute = (row, includeCta = false) => {
     params: { queue: queueCode.value },
     query: {
       templateCode: row.templateCode,
-      ...(includeCta && row.ctaName && row.ctaName !== "-"
-        ? { cta: row.ctaName }
-        : {}),
+      ...(includeCta && row.ctaName && row.ctaName !== "-" ? { cta: row.ctaName } : {}),
+      start: startTime.value,
+      end: endTime.value,
     },
   };
 };
 
 const filteredTableData = computed(() => {
   const filters = pagination.filters || {};
-  return tableData.value.filter((row) => {
-    return Object.entries(filters).every(([key, value]) => {
+  return tableData.value.filter((row) =>
+    Object.entries(filters).every(([key, value]) => {
       if (value === null || value === undefined || value === "") return true;
-      return String(row[key] ?? "")
-        .toLowerCase()
-        .includes(String(value).toLowerCase());
-    });
-  });
+      return String(row[key] ?? "").toLowerCase().includes(String(value).toLowerCase());
+    }),
+  );
 });
 
-watch(filteredTableData, (rows) => {
-  pagination.itemsLength = rows.length;
-}, { immediate: true });
+watch(filteredTableData, (rows) => { pagination.itemsLength = rows.length; }, { immediate: true });
 
 const fetchTemplateSummary = async (start, end) => {
   if (!queueCode.value) return;
   isLoading.value = true;
   try {
-    const response = await projectStore.fetchBotflowTemplateSummary(
-      start,
-      end,
-      queueCode.value,
-    );
+    const response = await projectStore.fetchBotflowTemplateSummary(start, end, queueCode.value);
     const payload = response?.data?.data || response?.data || {};
     queueName.value = payload.queueName || queueCode.value;
     tableData.value = flattenTemplateSummary(payload.templateSummary || {});
@@ -184,6 +176,19 @@ const refresh = () => {
   loadCurrentRange();
 };
 
+const exportToExcel = () => {
+  const rows = filteredTableData.value.map((row) => ({
+    "Template Name": row.templateName || "-",
+    "Sent": row.sent ?? 0,
+    "CTA Button": row.ctaName || "-",
+    "CTA Count": row.ctaCount ?? 0,
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Template CTA Summary");
+  XLSX.writeFile(wb, `Botflow-${queueName.value || queueCode.value}-${dateRange.value}.xlsx`);
+};
+
 onMounted(loadCurrentRange);
 </script>
 
@@ -193,12 +198,7 @@ onMounted(loadCurrentRange);
       <div class="d-flex align-center justify-space-between flex-wrap gap-3">
         <div class="mt-1 ml-3">
           <div class="d-flex align-center gap-2 mb-1">
-            <VBtn
-              icon
-              variant="text"
-              size="small"
-              :to="{ name: 'views-botflow' }"
-            >
+            <VBtn icon variant="text" size="small" :to="{ name: 'views-botflow' }">
               <VIcon icon="tabler-arrow-left" />
             </VBtn>
             <h3 class="mb-0">{{ queueName || queueCode }}</h3>
@@ -219,18 +219,33 @@ onMounted(loadCurrentRange);
               plugins: [customPlugin],
             }"
           />
+          <VTooltip text="Download Excel">
+            <template #activator="{ props: tipProps }">
+              <VBtn
+                v-bind="tipProps"
+                variant="flat"
+                color="primary"
+                class="ms-2 pa-0"
+                style="width:40px;height:40px;min-width:40px;"
+                :disabled="!filteredTableData.length"
+                @click="exportToExcel"
+              >
+                <VIcon>mdi-download</VIcon>
+              </VBtn>
+            </template>
+          </VTooltip>
           <VTooltip text="Refresh">
             <template #activator="{ props: tipProps }">
               <VBtn
                 v-bind="tipProps"
-                icon
-                variant="text"
+                variant="flat"
                 color="primary"
-                class="ms-1"
+                class="ms-2 pa-0"
+                style="width:40px;height:40px;min-width:40px;"
                 :loading="isLoading"
                 @click="refresh"
               >
-                <VIcon icon="tabler-refresh" />
+                <VIcon>mdi-refresh</VIcon>
               </VBtn>
             </template>
           </VTooltip>
@@ -247,24 +262,24 @@ onMounted(loadCurrentRange);
         @update:options="onUpdateOptions"
       >
         <template #item.sent="{ item }">
-          <!-- <RouterLink
+          <RouterLink
             v-if="contactsRoute(item.raw, false)"
             :to="contactsRoute(item.raw, false)"
             class="text-primary text-decoration-underline"
           >
             {{ item.raw.sent }}
-          </RouterLink> -->
-          <span>{{ item.raw.sent }}</span>
+          </RouterLink>
+          <span v-else>{{ item.raw.sent }}</span>
         </template>
         <template #item.ctaCount="{ item }">
-          <!-- <RouterLink
+          <RouterLink
             v-if="item.raw.ctaName && item.raw.ctaName !== '-' && contactsRoute(item.raw, true)"
             :to="contactsRoute(item.raw, true)"
             class="text-primary text-decoration-underline"
           >
             {{ item.raw.ctaCount }}
-          </RouterLink> -->
-          <span>{{ item.raw.ctaCount }}</span>
+          </RouterLink>
+          <span v-else>{{ item.raw.ctaCount }}</span>
         </template>
       </MyDataTable>
     </VCol>
