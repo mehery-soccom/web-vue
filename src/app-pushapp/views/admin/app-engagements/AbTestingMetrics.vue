@@ -31,6 +31,26 @@
     </VRow>
     <div style="margin-left: 40px;font-weight: 800;" v-else-if="!filteredCta.length && !abTesting.enabled"> No CTA available</div>
 
+    <!-- Daily Stats Table -->
+    <VRow v-if="dailyEntries.length" class="mt-3">
+      <VCol cols="12">
+        <h4 class="mb-2">Daily Stats</h4>
+        <MyDataTable
+          :headers="dailyHeaders"
+          :items="dailyEntries"
+          :items-per-page="dailyEntries.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #item.date="{ item }">
+            {{ formatDailyDate(item.raw.date) }}
+          </template>
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow>
+
     <!-- CTA By Hour Table -->
     <!-- <VRow v-if="ctaByHourEntries.length" class="mt-3">
       <VCol cols="12">
@@ -473,6 +493,35 @@ const filteredCta = computed(() => {
 
   return r;
 });
+
+/* ---------- Daily Stats ---------- */
+const dailyHeaders = [
+  { title: "Date", key: "date" },
+  { title: "Total", key: "total", align: "center" },
+  { title: "Sent", key: "sent", align: "center" },
+  { title: "CTA", key: "cta", align: "center" },
+];
+const dailyEntries = computed(() => {
+  const obj = props.stats?.daily || props.stats?.dailly || {};
+  return Object.entries(obj)
+    .map(([date, values = {}]) => ({
+      date,
+      total: values.total ?? 0,
+      sent: values.sent ?? 0,
+      cta: values.cta ?? 0,
+    }))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+});
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const formatDailyDate = (date) => {
+  if (!date) return "—";
+  const match = String(date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return date;
+  const [, year, month, day] = match;
+  return `${day} ${MONTHS[Number(month) - 1]} ${year}`;
+};
 
 /* ---------- CTA BY HOUR ---------- */
 const ctaHeaders = [
