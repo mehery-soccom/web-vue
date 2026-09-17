@@ -67,6 +67,46 @@ export const FILTER_FIELDS_MAP = {
       ],
     },
   },
+  city: {
+    type: "attribute",
+    typeAlias: "computedSystemAttribute",
+    title: "City",
+    value: "geoIP.city.name",
+    inputFieldMeta: {
+      type: "text",
+      operators: ["EQ"],
+    },
+  },
+  country: {
+    type: "attribute",
+    typeAlias: "computedSystemAttribute",
+    title: "Country",
+    value: "geoIP.country.name",
+    inputFieldMeta: {
+      type: "text",
+      operators: ["EQ"],
+    },
+  },
+  area: {
+    type: "attribute",
+    typeAlias: "computedSystemAttribute",
+    title: "Area",
+    value: "geoIP.area.name",
+    inputFieldMeta: {
+      type: "text",
+      operators: ["EQ"],
+    },
+  },
+  region: {
+    type: "attribute",
+    typeAlias: "computedSystemAttribute",
+    title: "Region",
+    value: "geoIP.region.name",
+    inputFieldMeta: {
+      type: "text",
+      operators: ["EQ"],
+    },
+  },
   platform: {
     type: "attribute",
     title: "Platform",

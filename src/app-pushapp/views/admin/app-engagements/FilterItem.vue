@@ -169,6 +169,17 @@ watch(
     }
   },
 );
+function applyDefaultOperator(fieldValue) {
+  if (!fieldValue || props.readonly) return;
+  const field =
+    FILTER_FIELDS_MAP[fieldValue] ||
+    FILTER_FIELDS.value.find((f) => f.value === fieldValue);
+  const operators = field?.inputFieldMeta?.operators;
+  if (operators?.length === 1) {
+    props.element.operator = operators[0];
+  }
+}
+
 watch(
   () => props.element.field,
   async (newVal, oldVal) => {
@@ -181,6 +192,7 @@ watch(
 
       clearErrorAndUpdate();
     }
+    applyDefaultOperator(newVal);
     if (newVal === 'page_open') {
       if (!libraryStore.pageList.length && !libraryStore.pageListLoading) {
         libraryStore.pageListLoading = true;
@@ -280,6 +292,7 @@ function onFilterFieldChange(value) {
   }
   nextTick(() => {
     props.element.field = value;
+    applyDefaultOperator(value);
   });
 
   clearErrorAndUpdate();
