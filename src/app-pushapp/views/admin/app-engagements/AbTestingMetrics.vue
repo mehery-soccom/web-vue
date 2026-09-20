@@ -31,6 +31,23 @@
     </VRow>
     <div style="margin-left: 40px;font-weight: 800;" v-else-if="!filteredCta.length && !abTesting.enabled"> No CTA available</div>
 
+    <!-- CTA by Platform Table -->
+    <VRow v-if="hasCtaByPlatform" class="mt-3">
+      <VCol cols="12">
+        <h4 class="mb-2">CTA by Platform</h4>
+        <MyDataTable
+          :headers="ctaByPlatformHeaders"
+          :items="ctaByPlatformEntries"
+          :items-per-page="ctaByPlatformEntries.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow>
+
     <!-- Daily Stats Table -->
     <VRow v-if="dailyEntries.length" class="mt-3">
       <VCol cols="12">
@@ -492,6 +509,23 @@ const filteredCta = computed(() => {
     .map(([key, value]) => ({ id: key, count: value }));
 
   return r;
+});
+
+/* ---------- CTA by Platform ---------- */
+const hasCtaByPlatform = computed(
+  () => props.stats?.ctaByPlatform != null,
+);
+const ctaByPlatformHeaders = [
+  { title: "Platform", key: "platform" },
+  { title: "Count", key: "count" },
+];
+const ctaByPlatformEntries = computed(() => {
+  const obj = props.stats?.ctaByPlatform || {};
+  return [
+    { platform: "Android", count: obj.android ?? 0 },
+    { platform: "iOS", count: obj.ios ?? 0 },
+    { platform: "Unknown", count: obj.unknown ?? 0 },
+  ];
 });
 
 /* ---------- Daily Stats ---------- */

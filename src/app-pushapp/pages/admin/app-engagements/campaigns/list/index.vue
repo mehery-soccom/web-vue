@@ -35,6 +35,25 @@ const statsRest = ref([
   { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
 ]);
 
+const PLATFORM_CHIP_META = [
+  {
+    key: "android",
+    title: "Android",
+    icon: "tabler-brand-android",
+    color: "success",
+  },
+  { key: "ios", title: "iOS", icon: "tabler-brand-apple", color: "info" },
+  {
+    key: "unknown",
+    title: "Unknown",
+    icon: "tabler-device-unknown",
+    color: "secondary",
+  },
+];
+
+const hasCtaByPlatform = ref(false);
+const ctaByPlatformChips = ref([]);
+
 const formatStatNumber = (num) => {
   if (num >= 1000000) {
     return parseFloat((num / 1000000).toFixed(3)) + "M";
@@ -43,6 +62,12 @@ const formatStatNumber = (num) => {
   }
   return String(num);
 };
+
+const formatPlatformChips = (obj = {}) =>
+  PLATFORM_CHIP_META.map((meta) => ({
+    ...meta,
+    stats: formatStatNumber(obj[meta.key] ?? 0),
+  }));
 
 const fetchStats = async () => {
   try {
@@ -68,6 +93,9 @@ const fetchStats = async () => {
     statsRest.value[1].stats = `${sentPct}%`;
     statsRest.value[2].stats = formatStatNumber(data.ctaCount);
     statsRest.value[3].stats = `${ctaPct}%`;
+
+    hasCtaByPlatform.value = data.ctaByPlatform != null;
+    ctaByPlatformChips.value = formatPlatformChips(data.ctaByPlatform);
   } catch (error) {
     console.error("Failed to fetch app engagement stats", error);
   }
@@ -455,8 +483,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
 <template>
   <VRow id="invoice-list">
-    <div
-      style="
+    <div style="
         width: 100%;
         display: flex;
         justify-content: flex-end;
@@ -464,22 +491,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
         gap: 12px;
         margin-bottom: 16px;
         padding: 0 12px;
-      "
-    >
+      ">
       <VTooltip text="Refresh Data">
         <template #activator="{ props }">
-          <VBtn
-            v-bind="props"
-            icon
-            @click="
-              () => {
-                fetchCampaigns({ ...pagination });
-                fetchStats();
-              }
-            "
-            :loading="isLoading"
-            variant="text"
-          >
+          <VBtn v-bind="props" icon @click="
+            () => {
+              fetchCampaigns({ ...pagination });
+              fetchStats();
+            }
+          " :loading="isLoading" variant="text">
             <VIcon>tabler-refresh</VIcon>
           </VBtn>
         </template>
@@ -487,38 +507,23 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
       <VTooltip text="Export to Excel">
         <template #activator="{ props }">
-          <VBtn
-            v-bind="props"
-            @click="exportToExcel"
-            color="primary"
-            style="width: 45px; height: 45px; min-width: 40px"
-            class="pa-0"
-            variant="flat"
-            :loading="isExporting"
-          >
+          <VBtn v-bind="props" @click="exportToExcel" color="primary" style="width: 45px; height: 45px; min-width: 40px"
+            class="pa-0" variant="flat" :loading="isExporting">
             <VIcon>mdi-download</VIcon>
           </VBtn>
         </template>
       </VTooltip>
 
-      <AppDateTimePicker
-        style="width: 250px; margin-left: auto"
-        v-model="dateRange"
-        prepend-inner-icon="tabler-calendar"
-        :config="{
+      <AppDateTimePicker style="width: 250px; margin-left: auto" v-model="dateRange"
+        prepend-inner-icon="tabler-calendar" :config="{
           mode: 'range',
           dateFormat: 'd-m-Y',
           maxDate: tonight,
           onClose: onDateClosed,
           plugins: [customPlugin],
-        }"
-      />
+        }" />
 
-      <VBtn
-        prepend-icon="tabler-plus"
-        :to="{ name: 'admin-app-engagements-campaigns-add' }"
-        style="height: 45px"
-      >
+      <VBtn prepend-icon="tabler-plus" :to="{ name: 'admin-app-engagements-campaigns-add' }" style="height: 45px">
         New Campaign
       </VBtn>
     </div>
@@ -529,66 +534,59 @@ const onUpdateOptionsDebounced = debounce((options) => {
     <VCol cols="12" md="9">
       <CardStatisticsTransactions :statistics="statsRest" title="Stats" />
     </VCol>
+    <VCol v-if="hasCtaByPlatform" cols="12">
+      <VCard>
+        <VCardText class="d-flex align-center flex-wrap gap-2">
+          <span class="d-flex align-center text-sm font-weight-medium me-1">
+            <VIcon icon="tabler-click" size="18" class="me-1" />
+            CTA
+          </span>
+          <VChip v-for="chip in ctaByPlatformChips" :key="`cta-${chip.key}`" size="small" :color="chip.color"
+            variant="tonal" :prepend-icon="chip.icon">
+            {{ chip.title }} {{ chip.stats }}
+          </VChip>
+        </VCardText>
+      </VCard>
+    </VCol>
 
     <VCol cols="12">
-      <MyDataTable
-        :headers="headers"
-        :items="formattedItems"
-        :loading="isLoading"
-        :server-side="true"
-        v-bind="pagination"
-        @update:options="onUpdateOptionsDebounced"
-      >
+      <MyDataTable :headers="headers" :items="formattedItems" :loading="isLoading" :server-side="true"
+        v-bind="pagination" @update:options="onUpdateOptionsDebounced">
         <!-- Expanded Row Data [ show-expand ] -->
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
             <!-- <td :colspan="headers.length"> -->
             <td :colspan="6">
-              <AbTestingMetrics
-                :abTesting="slotProps.item.raw.abTesting"
-                :stats="slotProps.item.raw.stats"
-              />
+              <AbTestingMetrics :abTesting="slotProps.item.raw.abTesting" :stats="slotProps.item.raw.stats" />
             </td>
           </tr>
         </template>
 
         <!-- status -->
         <template #item.status="{ item }">
-          <VChip
-            :color="
-              {
-                CREATED: 'primary',
-                TESTING: 'info',
-                AWAITING_RESULT: 'info',
-                ABORTED: 'error',
-                ON_GOING: 'success',
-                ENDED: 'error',
-              }[item.raw.status]
-            "
-            variant="tonal"
-            size="small"
-            class="text-capitalize"
-          >
+          <VChip :color="{
+              CREATED: 'primary',
+              TESTING: 'info',
+              AWAITING_RESULT: 'info',
+              ABORTED: 'error',
+              ON_GOING: 'success',
+              ENDED: 'error',
+            }[item.raw.status]
+            " variant="tonal" size="small" class="text-capitalize">
             {{ item.raw.status.replace("_", " ") }}
           </VChip>
         </template>
 
         <!-- A/B enabled -->
         <template #item.abTesting.enabled="{ item }">
-          <VIcon
-            v-if="item.raw.abTesting?.enabled"
-            size="16"
-            :color="
-              {
-                CREATED: 'info',
-                TESTING: 'info',
-                AWAITING_RESULT: 'info',
-                CONCLUDED: 'success',
-                ABORTED: 'error',
-              }[item.raw.abTesting?.state]
-            "
-            start
-          >
+          <VIcon v-if="item.raw.abTesting?.enabled" size="16" :color="{
+              CREATED: 'info',
+              TESTING: 'info',
+              AWAITING_RESULT: 'info',
+              CONCLUDED: 'success',
+              ABORTED: 'error',
+            }[item.raw.abTesting?.state]
+            " start>
             mdi-flask
           </VIcon>
           <VTooltip v-if="item.raw.abTesting?.enabled" activator="parent">{{
@@ -627,11 +625,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <template #item.created.stamp="{ item }">
           <IconBtn>
             <VIcon icon="tabler-clock-filled" size="16" class="me-1" />
-            <VTooltip
-              activator="parent"
-              open-delay="1000"
-              scroll-strategy="close"
-            >
+            <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
               <div class="py-1">
                 <div v-if="item.raw.created && item.raw.created.stamp">
                   <strong>Created:</strong>
@@ -676,14 +670,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <!-- sent_percent -->
         <template #item.stats.sent_percent="{ item }">
           <div class="d-flex align-center">
-            <VProgressLinear
-              :model-value="item.raw.stats.sent_percent"
-              height="6"
-              color="primary"
-              class="flex-grow-1 mr-2"
-              rounded
-              style="min-width: 60px"
-            />
+            <VProgressLinear :model-value="item.raw.stats.sent_percent" height="6" color="primary"
+              class="flex-grow-1 mr-2" rounded style="min-width: 60px" />
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.sent_percent }}%
             </VChip>
@@ -693,14 +681,8 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <!-- cta_percent -->
         <template #item.stats.cta_percent="{ item }">
           <div class="d-flex align-center">
-            <VProgressLinear
-              :model-value="item.raw.stats.cta_percent"
-              height="6"
-              color="primary"
-              class="flex-grow-1 mr-2"
-              rounded
-              style="min-width: 60px"
-            />
+            <VProgressLinear :model-value="item.raw.stats.cta_percent" height="6" color="primary"
+              class="flex-grow-1 mr-2" rounded style="min-width: 60px" />
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.cta_percent }}%
             </VChip>
@@ -709,34 +691,18 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
         <!-- Actions -->
         <template #item.actions="{ item }">
-          <VBtn
-            v-if="item.raw.status !== 'ENDED' && item.raw.status !== 'ABORTED'"
-            variant="outlined"
-            color="error"
-            size="small"
-          >
+          <VBtn v-if="item.raw.status !== 'ENDED' && item.raw.status !== 'ABORTED'" variant="outlined" color="error"
+            size="small">
             <VIcon icon="mdi-stop" start />
             End
 
             <v-dialog activator="parent" max-width="340">
               <template v-slot:default="{ isActive }">
-                <v-card
-                  class=""
-                  prepend-icon="mdi-alert"
-                  text="Are you certain, you want to end this campaign ?"
-                  title="Confirm"
-                >
+                <v-card class="" prepend-icon="mdi-alert" text="Are you certain, you want to end this campaign ?"
+                  title="Confirm">
                   <template v-slot:actions>
-                    <v-btn
-                      class="ml-auto"
-                      text="Yes"
-                      @click="endCampaign(item.raw, isActive)"
-                    ></v-btn>
-                    <v-btn
-                      class="ml-auto"
-                      text="No"
-                      @click="isActive.value = false"
-                    ></v-btn>
+                    <v-btn class="ml-auto" text="Yes" @click="endCampaign(item.raw, isActive)"></v-btn>
+                    <v-btn class="ml-auto" text="No" @click="isActive.value = false"></v-btn>
                   </template>
                 </v-card>
               </template>
@@ -744,12 +710,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
             <VTooltip activator="parent">End this campaign</VTooltip>
           </VBtn>
-          <IconBtn
-            :to="{
-              name: 'admin-app-engagements-campaigns-view-id?',
-              params: { id: item.raw._id },
-            }"
-          >
+          <IconBtn :to="{
+            name: 'admin-app-engagements-campaigns-view-id?',
+            params: { id: item.raw._id },
+          }">
             <VIcon>mdi-eye</VIcon>
             <VTooltip activator="parent">View Campaign Details</VTooltip>
           </IconBtn>
@@ -829,19 +793,24 @@ const onUpdateOptionsDebounced = debounce((options) => {
     inline-size: 12rem;
   }
 }
+
 .my-data-table {
   .v-table__wrapper {
     min-height: 100px;
   }
 }
+
 .campaign-details {
   font-size: 14px;
   line-height: 1.6;
 }
+
 .detail-row {
   display: block;
-  flex-wrap: wrap; /* allows wrapping if not enough space */
-  gap: 0px; /* spacing between blocks */
+  flex-wrap: wrap;
+  /* allows wrapping if not enough space */
+  gap: 0px;
+  /* spacing between blocks */
   margin: 12px 0px;
   // max-width: calc(100vw - 100px);
 }
@@ -855,6 +824,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
   width: 100%;
   margin-top: 10px;
 }
+
 .detail-block h5 {
   margin-bottom: 6px;
   font-size: 15px;

@@ -55,6 +55,27 @@ const statsRest = ref([
   { title: "CTA %", stats: "0%", icon: "tabler-chart-pie", color: "warning" },
 ]);
 
+const PLATFORM_CHIP_META = [
+  {
+    key: "android",
+    title: "Android",
+    icon: "tabler-brand-android",
+    color: "success",
+  },
+  { key: "ios", title: "iOS", icon: "tabler-brand-apple", color: "info" },
+  {
+    key: "unknown",
+    title: "Unknown",
+    icon: "tabler-device-unknown",
+    color: "secondary",
+  },
+];
+
+const hasOpenedByPlatform = ref(false);
+const hasCtaByPlatform = ref(false);
+const openedByPlatformChips = ref([]);
+const ctaByPlatformChips = ref([]);
+
 const formatStatNumber = (num) => {
   if (num >= 1000000) {
     return parseFloat((num / 1000000).toFixed(3)) + "M";
@@ -63,6 +84,12 @@ const formatStatNumber = (num) => {
   }
   return String(num);
 };
+
+const formatPlatformChips = (obj = {}) =>
+  PLATFORM_CHIP_META.map((meta) => ({
+    ...meta,
+    stats: formatStatNumber(obj[meta.key] ?? 0),
+  }));
 
 const fetchStats = async () => {
   try {
@@ -95,6 +122,11 @@ const fetchStats = async () => {
     statsRest.value[3].stats = `${openPct}%`;
     statsRest.value[4].stats = formatStatNumber(data.cta);
     statsRest.value[5].stats = `${ctaPct}%`;
+
+    hasOpenedByPlatform.value = data.openedByPlatform != null;
+    hasCtaByPlatform.value = data.ctaByPlatform != null;
+    openedByPlatformChips.value = formatPlatformChips(data.openedByPlatform);
+    ctaByPlatformChips.value = formatPlatformChips(data.ctaByPlatform);
   } catch (error) {
     console.error("Failed to fetch campaign stats", error);
   }
@@ -521,6 +553,56 @@ const onUpdateOptionsDebounced = debounce((options) => {
     <VCol cols="12" md="10">
       <CardStatisticsTransactions :statistics="statsRest" title="Stats" />
     </VCol>
+    <VCol v-if="hasOpenedByPlatform || hasCtaByPlatform" cols="12">
+      <VCard>
+        <VCardText class="d-flex align-center flex-wrap gap-4">
+          <div
+            v-if="hasOpenedByPlatform"
+            class="d-flex align-center flex-wrap gap-2"
+          >
+            <span class="d-flex align-center text-sm font-weight-medium me-1">
+              <VIcon icon="tabler-mail-opened" size="18" class="me-1" />
+              Opened
+            </span>
+            <VChip
+              v-for="chip in openedByPlatformChips"
+              :key="`opened-${chip.key}`"
+              size="small"
+              :color="chip.color"
+              variant="tonal"
+              :prepend-icon="chip.icon"
+            >
+              {{ chip.title }} {{ chip.stats }}
+            </VChip>
+          </div>
+          <VDivider
+            v-if="hasOpenedByPlatform && hasCtaByPlatform"
+            vertical
+            class="mx-2"
+            style="min-height: 28px"
+          />
+          <div
+            v-if="hasCtaByPlatform"
+            class="d-flex align-center flex-wrap gap-2"
+          >
+            <span class="d-flex align-center text-sm font-weight-medium me-1">
+              <VIcon icon="tabler-click" size="18" class="me-1" />
+              CTA
+            </span>
+            <VChip
+              v-for="chip in ctaByPlatformChips"
+              :key="`cta-${chip.key}`"
+              size="small"
+              :color="chip.color"
+              variant="tonal"
+              :prepend-icon="chip.icon"
+            >
+              {{ chip.title }} {{ chip.stats }}
+            </VChip>
+          </div>
+        </VCardText>
+      </VCard>
+    </VCol>
 
     <VCol cols="12">
       <MyDataTable
@@ -534,7 +616,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <!-- Expanded Row Data [ show-expand ] -->
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
-            <td :colspan="headers.length">
+            <td :colspan="6">
               <NotificationCampaignExpansion
                 :stats="slotProps.item.raw.stats"
               />
