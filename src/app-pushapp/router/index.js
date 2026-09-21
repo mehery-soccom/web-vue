@@ -26,6 +26,7 @@ import CohortsList from '../pages/admin/cohorts/list/index.vue';
 import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
 import LinksPageList from '../pages/config/library/list/index.vue';
+import UninstallDataConfig from '../pages/config/library/uninstall-data/index.vue';
 import ApiCredentialsList from '../pages/config/apicredentials/list/index.vue';
 
 console.log("routes", routes)
@@ -363,6 +364,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "config-library-list",
           component: LinksPageList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/library/uninstall-data",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-library-uninstall-data",
+          component: UninstallDataConfig,
           props: true,
           meta: { layout: "default" },
         },

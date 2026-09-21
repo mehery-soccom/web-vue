@@ -13,11 +13,18 @@ const headers = [
   { title: "Actions", key: "actions", sortable: false },
 ];
 
+const UNINSTALL_DATA_ROW = {
+  label: "Presence",
+  key: "presence",
+  defaultVersion: "—",
+  _synthetic: "uninstall-data",
+};
+
 async function fetchItems() {
   try {
     loading.value = true;
     const res = await libraryStore.readAll();
-    items.value = res.data.results;
+    items.value = [...(res.data.results || []), UNINSTALL_DATA_ROW];
   } catch (error) {
     console.log("fetchItems error", error);
   } finally {
@@ -57,23 +64,31 @@ onMounted(() => {
 
     <MyDataTable :headers="headers" :items="items" :loading="loading">
       <!-- Actions -->
-      <template #item.actions="{ item }">
+      <template #[`item.actions`]="{ item }">
         <IconBtn
-          :to="{
-            name: 'config-library-add-id?',
-            params: { id: item.raw.key },
-            query: { edit: 'versions' },
-          }"
+          :to="
+            item.raw._synthetic === 'uninstall-data'
+              ? { name: 'config-library-uninstall-data' }
+              : {
+                  name: 'config-library-add-id?',
+                  params: { id: item.raw.key },
+                  query: { edit: 'versions' },
+                }
+          "
         >
           <VIcon icon="mdi-eye" />
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
         <IconBtn
-          :to="{
-            name: 'config-library-add-id?',
-            params: { id: item.raw.key },
-            query: { edit: 'details' },
-          }"
+          :to="
+            item.raw._synthetic === 'uninstall-data'
+              ? { name: 'config-library-uninstall-data' }
+              : {
+                  name: 'config-library-add-id?',
+                  params: { id: item.raw.key },
+                  query: { edit: 'details' },
+                }
+          "
         >
           <VIcon icon="mdi-pencil" />
           <VTooltip activator="parent">Edit</VTooltip>
