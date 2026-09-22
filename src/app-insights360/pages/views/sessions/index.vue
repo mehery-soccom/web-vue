@@ -311,7 +311,7 @@ const addApplyButtonToReportPicker = (selectedDates, dateStr, instance) => {
       return el
     }
     popup.appendChild(makeOpt('Combined', 'One file for the full range', false))
-    popup.appendChild(makeOpt('Daily', 'One row per day', true))
+    popup.appendChild(makeOpt('Daily', 'One file per day', true))
 
     const rect = btn.getBoundingClientRect()
     popup.style.position = 'fixed'
