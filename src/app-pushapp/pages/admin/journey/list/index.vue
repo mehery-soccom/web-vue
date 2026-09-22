@@ -20,6 +20,8 @@ const headers = computed(() => [
     title: "Description",
     key: "desc",
     align: "center",
+    maxWidth: "200px",
+    width: "200px",
   },
   {
     title: "Status",
@@ -339,9 +341,10 @@ onMounted(async () => {});
 
 <style>
 .desc-cell {
-  max-width: 40vw;
+  max-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  margin: 0 auto;
 }
 </style>

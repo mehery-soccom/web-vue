@@ -259,7 +259,7 @@ const fetchChartData = async (fromDate, toDate) => {
         x: {
           title: {
             display: true,
-            text: "Time",
+            text: isSingleDay ? "Time" : "Date",
           },
         },
         y: {
