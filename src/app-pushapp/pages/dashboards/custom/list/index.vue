@@ -92,7 +92,7 @@ onMounted(loadBlocks);
             <VIcon icon="tabler-layout-dashboard" size="48" class="mb-3 text-disabled" />
             <h4 class="mb-1">No blocks yet</h4>
             <p class="text-body-2 text-medium-emphasis mb-4">
-              Add your first block with a cohort or custom filter
+              Add your first block with a custom filter
             </p>
             <VBtn color="primary" prepend-icon="tabler-plus" @click="goAdd">
               Add Block

@@ -95,13 +95,13 @@ const snapStatistics = computed(() => {
   return [
     { 
       title: 'Events', 
-      stats: String(eventStore.eventStats.total_events || 0), 
+      stats: (eventStore.eventStats.total_events || 0).toLocaleString("en-IN"), 
       icon: 'tabler-click', 
       color: 'primary' 
     },
     { 
       title: 'Unique Users', 
-      stats: String(eventStore.eventStats.unique_users || 0), 
+      stats: (eventStore.eventStats.unique_users || 0).toLocaleString("en-IN"), 
       icon: 'tabler-users', 
       color: 'success' 
     },

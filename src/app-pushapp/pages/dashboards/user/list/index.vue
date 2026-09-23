@@ -183,7 +183,7 @@ const goToUserDetails = (code) => {
                     variant="tonal"
                     prepend-icon="tabler-user-question"
                   >
-                    {{ guestCount.toLocaleString() }} Guest user{{ guestCount === 1 ? '' : 's' }}
+                    {{ guestCount.toLocaleString("en-IN") }} Guest user{{ guestCount === 1 ? '' : 's' }}
                   </VChip>
                   <VBtn 
                     color="primary" 
@@ -230,7 +230,7 @@ const goToUserDetails = (code) => {
 
       <VCol cols="12" v-if="profilesList.length > 0">
         <h3 class="text-h5 mb-4 mt-2">
-          Results ({{ profilesList.length }}/{{ profilesTotal }})
+          Results ({{ profilesList.length.toLocaleString("en-IN") }}/{{ profilesTotal.toLocaleString("en-IN") }})
         </h3>
         
         <VRow>

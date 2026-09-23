@@ -57,8 +57,8 @@ onMounted(async () => {});
 
 const _data = {
   labels: [
-    `Sends ( ${props.data.sent_to.total} )`,
-    `Opens ( ${props.data.opened.total} )`,
+    `Sends ( ${(props.data.sent_to.total || 0).toLocaleString("en-IN")} )`,
+    `Opens ( ${(props.data.opened.total || 0).toLocaleString("en-IN")} )`,
   ],
   datasets: [
     {

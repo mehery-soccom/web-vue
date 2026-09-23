@@ -211,7 +211,7 @@ watch(
         </template>
         <template v-else>
           <span class="dashboard-block__count" :style="{ color: theme.accent }">
-            {{ (count ?? 0).toLocaleString() }}
+            {{ (count ?? 0).toLocaleString("en-IN") }}
           </span>
           <span class="dashboard-block__users" :style="{ color: theme.accent }">
             users
