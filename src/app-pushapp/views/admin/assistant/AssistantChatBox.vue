@@ -365,11 +365,11 @@ defineExpose({ scrollToBottom, focusInput });
 
           <footer class="ca-panel__footer">
             <div class="ca-input-wrap">
-              <input
+              <textarea
                 ref="inputRef"
                 v-model="draft"
                 class="ca-input"
-                type="text"
+                rows="3"
                 :placeholder="placeholder"
                 :disabled="isBootstrapping || isSending"
                 @keydown="onKeydown"
@@ -841,9 +841,9 @@ defineExpose({ scrollToBottom, focusInput });
 }
 .ca-input-wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
-  padding: 4px 4px 4px 12px;
+  padding: 8px 4px 8px 12px;
   border-radius: 18px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   background: rgb(var(--v-theme-surface));
@@ -859,7 +859,38 @@ defineExpose({ scrollToBottom, focusInput });
   background: transparent;
   font-size: 0.875rem;
   color: rgba(var(--v-theme-on-surface), 0.9);
-  min-height: 36px;
+  resize: none;
+  line-height: 1.5;
+  min-height: calc(1.5em * 3);
+  max-height: calc(1.5em * 8);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.ca-input:hover,
+.ca-input:focus {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--v-theme-on-surface), 0.2) transparent;
+}
+.ca-input::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+/* Appear on hover/focus */
+.ca-input:hover::-webkit-scrollbar,
+.ca-input:focus::-webkit-scrollbar {
+  width: 4px;
+}
+.ca-input:hover::-webkit-scrollbar-track,
+.ca-input:focus::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ca-input:hover::-webkit-scrollbar-thumb,
+.ca-input:focus::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.2);
+  border-radius: 99px;
+}
+.ca-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.4);
 }
 .ca-input::placeholder {
   color: rgba(var(--v-theme-on-surface), 0.4);
