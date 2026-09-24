@@ -53,6 +53,8 @@ watch(
   },
   { deep: true },
 );
+
+defineExpose({ onCheckCount });
 </script>
 
 <template>

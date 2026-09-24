@@ -261,8 +261,8 @@ onBeforeUnmount(() => stopPolling());
   <AssistantChatBox
     ref="chatBoxRef"
     :expanded="expanded"
-    title="Campaign Assistant"
-    subtitle="Ask me to build your campaign"
+    title="PA - ji"
+    subtitle="Beta version"
     minimized-title="PushApp AI"
     minimized-subtitle="How can I help you build your campaign?"
     placeholder="Let's build your campaign"

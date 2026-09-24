@@ -47,6 +47,7 @@ const ChannelList = ref([]);
 const TemplateListSimple = ref([]);
 const formRef = ref();
 const filterRef = ref(null);
+const audienceCountRef = ref(null);
 const scheduleFormRef = ref();
 
 const tabErrors = ref({
@@ -677,6 +678,7 @@ const applyAssistantCampaignState = (campaignState) => {
         filter.type = clonedFilter.type;
         filter.conjunction = clonedFilter.conjunction;
         filter.children.splice(0, filter.children.length, ...clonedFilter.children);
+        nextTick(() => { audienceCountRef.value?.onCheckCount(); });
       });
       applied.audience = true;
     }
@@ -1015,6 +1017,7 @@ watch([TemplateListSimple, ChannelList], () => {
                     class="d-flex justify-end mt-6"
                   >
                     <AudienceCountCheck
+                      ref="audienceCountRef"
                       :filter="filter"
                       :validate="validateAudienceFilter"
                     />
