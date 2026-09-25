@@ -141,9 +141,9 @@ const headers = [
     align: "center",
     filterType: "select",
     filterOptions: [
+      { title: "Cancelled", value: "CANCELLED" },
       { title: "Completed", value: "COMPLETED" },
       { title: "Created", value: "CREATED" },
-      { title: "Ended", value: "ENDED" },
       { title: "Failed", value: "FAILED" },
       { title: "On-going", value: "ON_GOING" },
       { title: "Scheduled", value: "SCHEDULED" },
@@ -634,7 +634,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
             size="small"
             class="text-capitalize"
           >
-            {{ item.raw.status.replace("_", " ") }}
+            {{ item.raw.status === 'ENDED' ? 'CANCELLED' : item.raw.status.replace("_", " ") }}
           </VChip>
           <!-- <VChip
           :color="getStatus(item.raw).color"

@@ -639,14 +639,16 @@ const applyAssistantCampaignState = (campaignState) => {
       templateMetaPatch.campaignName = tpl.campaignName;
     }
 
-    if (tpl.appId) {
-      if (aiPollFieldChanged("template", "appId", tpl.appId)) {
-        notification.channel_id = resolveChannelId(tpl.appId);
+    const rawChannelKey = tpl.channelId || tpl.appId || null;
+    if (rawChannelKey) {
+      const fieldKey = tpl.channelId ? "channelId" : "appId";
+      if (aiPollFieldChanged("template", fieldKey, rawChannelKey)) {
+        notification.channel_id = resolveChannelId(rawChannelKey);
         applied.template = true;
       } else if (!notification.channel_id && ChannelList.value.length) {
-        notification.channel_id = resolveChannelId(tpl.appId);
+        notification.channel_id = resolveChannelId(rawChannelKey);
       }
-      templateMetaPatch.appId = tpl.appId;
+      templateMetaPatch[fieldKey] = rawChannelKey;
     }
 
     const templateKey = tpl.code || tpl.templateId || tpl.templateName || null;
@@ -687,66 +689,86 @@ const applyAssistantCampaignState = (campaignState) => {
 
   const sch = campaignState.schedule;
   if (sch && typeof sch === "object") {
-    if (aiPollSectionChanged("schedule", sch)) {
-      const runAt = sch.runAt || sch.dtstart || null;
-      const isRecurring = !!sch.isRecurring;
-      const isScheduled = sch.type === "scheduled" || !!runAt || isRecurring;
+    const schData = (sch.data && typeof sch.data === "object") ? { ...sch.data, ...sch } : sch;
+    const runAt = schData.runAt || schData.dtstart || null;
+    const isRecurring = !!schData.isRecurring;
+    const isImmediate = schData.type === "immediate";
+    const isScheduled = schData.type === "scheduled" || !!runAt;
+    const hasDurationInfo = isImmediate || isScheduled;
 
-      if (isScheduled) {
-        schedule.recurringType = isRecurring;
-        schedule.durationType = "scheduled";
-
-        if (runAt) schedule.startDate = toScheduleDate(runAt);
-        if (sch.until) schedule.endDate = toScheduleDate(sch.until);
-
-        if (isRecurring) {
-          if (sch.rrule) {
-            const parsed = parseRruleToScheduleFields(sch.rrule);
-            if (parsed) {
-              schedule.schedulePattern = parsed.schedulePattern;
-              if (parsed.dailyTime) schedule.dailyTime = parsed.dailyTime;
-              if (parsed.weeklyTime) schedule.weeklyTime = parsed.weeklyTime;
-              if (parsed.monthlyDateTime) schedule.monthlyDateTime = parsed.monthlyDateTime;
-              if (parsed.monthlyWeekdayTime) schedule.monthlyWeekdayTime = parsed.monthlyWeekdayTime;
-              if (parsed.scheduleDays) schedule.scheduleDays = [...parsed.scheduleDays];
-              if (parsed.scheduleDate) schedule.scheduleDate = parsed.scheduleDate;
-              if (parsed.scheduleWeekday) schedule.scheduleWeekday = [...parsed.scheduleWeekday];
-              if (parsed.scheduleWeek) schedule.scheduleWeek = parsed.scheduleWeek;
-            }
-          } else if (sch.frequency) {
-            if (sch.frequency === "DAILY") schedule.schedulePattern = "daily";
-            else if (sch.frequency === "WEEKLY") schedule.schedulePattern = "weekly";
-            else if (sch.frequency === "MONTHLY") {
-              schedule.schedulePattern = sch.bySetPos ? "monthlyWeekday" : "monthlyDate";
-            }
-
-            if (Array.isArray(sch.byDay) && sch.byDay.length) {
-              if (schedule.schedulePattern === "monthlyWeekday") {
-                schedule.scheduleWeekday = [...sch.byDay];
-              } else {
-                schedule.scheduleDays = [...sch.byDay];
-              }
-            }
-            if (Array.isArray(sch.byMonthDay) && sch.byMonthDay.length) {
-              schedule.scheduleDate = String(sch.byMonthDay[0]);
-            }
-            if (sch.bySetPos) {
-              const posMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
-              schedule.scheduleWeek = posMap[String(sch.bySetPos)] || sch.bySetPos;
-            }
-            if (sch.recurrenceTime) {
-              const t = sch.recurrenceTime;
-              if (schedule.schedulePattern === "daily") schedule.dailyTime = t;
-              else if (schedule.schedulePattern === "weekly") schedule.weeklyTime = t;
-              else if (schedule.schedulePattern === "monthlyDate") schedule.monthlyDateTime = t;
-              else if (schedule.schedulePattern === "monthlyWeekday") schedule.monthlyWeekdayTime = t;
-            }
-          }
-        }
+    if (hasDurationInfo) {
+      if (aiPollFieldChanged("schedule", "type", schData.type)) {
+        schedule.durationType = isImmediate ? "immediate" : "scheduled";
         applied.schedule = true;
       }
+      setAiPollMeta("schedule", { type: schData.type });
+
+      if (aiPollFieldChanged("schedule", "isRecurring", isRecurring)) {
+        schedule.recurringType = isRecurring;
+        applied.schedule = true;
+      }
+      setAiPollMeta("schedule", { isRecurring });
+
+      if (!isImmediate && runAt && aiPollFieldChanged("schedule", "runAt", runAt)) {
+        schedule.startDate = toScheduleDate(runAt);
+        applied.schedule = true;
+      }
+      if (runAt) setAiPollMeta("schedule", { runAt });
+
+      if (schData.until && aiPollFieldChanged("schedule", "until", schData.until)) {
+        schedule.endDate = toScheduleDate(schData.until);
+        applied.schedule = true;
+      }
+      if (schData.until) setAiPollMeta("schedule", { until: schData.until });
+
+      if (isRecurring) {
+        if (schData.rrule && aiPollFieldChanged("schedule", "rrule", schData.rrule)) {
+          const parsed = parseRruleToScheduleFields(schData.rrule);
+          if (parsed) {
+            schedule.schedulePattern = parsed.schedulePattern;
+            if (parsed.dailyTime) schedule.dailyTime = parsed.dailyTime;
+            if (parsed.weeklyTime) schedule.weeklyTime = parsed.weeklyTime;
+            if (parsed.monthlyDateTime) schedule.monthlyDateTime = parsed.monthlyDateTime;
+            if (parsed.monthlyWeekdayTime) schedule.monthlyWeekdayTime = parsed.monthlyWeekdayTime;
+            if (parsed.scheduleDays) schedule.scheduleDays = [...parsed.scheduleDays];
+            if (parsed.scheduleDate) schedule.scheduleDate = parsed.scheduleDate;
+            if (parsed.scheduleWeekday) schedule.scheduleWeekday = [...parsed.scheduleWeekday];
+            if (parsed.scheduleWeek) schedule.scheduleWeek = parsed.scheduleWeek;
+            applied.schedule = true;
+          }
+          setAiPollMeta("schedule", { rrule: schData.rrule });
+        } else if (schData.frequency && aiPollFieldChanged("schedule", "frequency", schData.frequency)) {
+          if (schData.frequency === "DAILY") schedule.schedulePattern = "daily";
+          else if (schData.frequency === "WEEKLY") schedule.schedulePattern = "weekly";
+          else if (schData.frequency === "MONTHLY") {
+            schedule.schedulePattern = schData.bySetPos ? "monthlyWeekday" : "monthlyDate";
+          }
+          if (Array.isArray(schData.byDay) && schData.byDay.length) {
+            if (schedule.schedulePattern === "monthlyWeekday") {
+              schedule.scheduleWeekday = [...schData.byDay];
+            } else {
+              schedule.scheduleDays = [...schData.byDay];
+            }
+          }
+          if (Array.isArray(schData.byMonthDay) && schData.byMonthDay.length) {
+            schedule.scheduleDate = String(schData.byMonthDay[0]);
+          }
+          if (schData.bySetPos) {
+            const posMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+            schedule.scheduleWeek = posMap[String(schData.bySetPos)] || schData.bySetPos;
+          }
+          if (schData.recurrenceTime) {
+            const t = schData.recurrenceTime;
+            if (schedule.schedulePattern === "daily") schedule.dailyTime = t;
+            else if (schedule.schedulePattern === "weekly") schedule.weeklyTime = t;
+            else if (schedule.schedulePattern === "monthlyDate") schedule.monthlyDateTime = t;
+            else if (schedule.schedulePattern === "monthlyWeekday") schedule.monthlyWeekdayTime = t;
+          }
+          applied.schedule = true;
+          setAiPollMeta("schedule", { frequency: schData.frequency });
+        }
+      }
     }
-    setAiPollMetaSection("schedule", sch);
   }
 
   const updatedTabs = detectUpdatedTabs(campaignState, applied);
