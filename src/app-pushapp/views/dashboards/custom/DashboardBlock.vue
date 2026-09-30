@@ -1,10 +1,14 @@
 <script setup>
 import { useTheme } from "vuetify";
-import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
+import { useCustomDashboardStore } from "@/app-pushapp/views/dashboards/custom/useCustomDashboardStore";
 
 const props = defineProps({
   item: { type: Object, required: true },
   colorIndex: { type: Number, default: 0 },
+  dateRange1: { type: Number, default: null },
+  dateRange2: { type: Number, default: null },
+  timezone: { type: String, default: "Asia/Kolkata" },
+  cohortId: { type: String, default: null },
 });
 
 const emit = defineEmits(["edit", "delete"]);
@@ -94,32 +98,47 @@ const theme = computed(() => {
   return palette[props.colorIndex % palette.length];
 });
 
-const AppEngagementsStore = useAppEngagementsStore();
+const store = useCustomDashboardStore();
 const isCountLoading = ref(false);
-const count = ref(null);
+const uniqueUsers = ref(null);
+const totalEvents = ref(null);
+const hasTotalEvents = ref(false);
 const countError = ref(false);
 
-const parseAudienceCount = (res) => {
-  const data = res?.data?.data ?? res?.data ?? {};
-  const value = data.count ?? data.total ?? data.users ?? data.audienceCount;
-  return typeof value === "number" ? value : Number(value);
+const toCount = (value) => {
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : 0;
 };
 
 const loadCount = async () => {
-  if (!props.item?.filter) {
-    count.value = 0;
+  if (!props.item?.filter || props.dateRange1 == null || props.dateRange2 == null) {
+    uniqueUsers.value = 0;
+    totalEvents.value = null;
+    hasTotalEvents.value = false;
     return;
   }
   isCountLoading.value = true;
   countError.value = false;
   try {
-    const res = await AppEngagementsStore.fetchAudienceCount({
+    const payload = {
+      dateRange1: props.dateRange1,
+      dateRange2: props.dateRange2,
+      timezone: props.timezone,
       filter: props.item.filter,
-    });
-    const parsed = parseAudienceCount(res);
-    count.value = Number.isFinite(parsed) ? parsed : 0;
+    };
+    if (props.cohortId) payload.cohortId = props.cohortId;
+
+    const res = await store.fetchEventFilterStats(payload);
+    const data = res?.data ?? {};
+    hasTotalEvents.value =
+      Object.prototype.hasOwnProperty.call(data, "total_events") &&
+      data.total_events != null;
+    uniqueUsers.value = toCount(data.unique_users);
+    totalEvents.value = hasTotalEvents.value ? toCount(data.total_events) : null;
   } catch (e) {
-    count.value = null;
+    uniqueUsers.value = null;
+    totalEvents.value = null;
+    hasTotalEvents.value = false;
     countError.value = true;
   } finally {
     isCountLoading.value = false;
@@ -133,6 +152,10 @@ watch(
   () => props.item?.filter,
   () => loadCount(),
   { deep: true },
+);
+watch(
+  () => [props.dateRange1, props.dateRange2, props.timezone, props.cohortId],
+  () => loadCount(),
 );
 </script>
 
@@ -210,8 +233,17 @@ watch(
           </VBtn>
         </template>
         <template v-else>
+          <template v-if="hasTotalEvents">
+            <span class="dashboard-block__count" :style="{ color: theme.accent }">
+              {{ (totalEvents ?? 0).toLocaleString("en-IN") }}
+            </span>
+            <span class="dashboard-block__users" :style="{ color: theme.accent }">
+              events
+            </span>
+            <span class="dashboard-block__sep" :style="{ color: theme.accent }">·</span>
+          </template>
           <span class="dashboard-block__count" :style="{ color: theme.accent }">
-            {{ (count ?? 0).toLocaleString("en-IN") }}
+            {{ (uniqueUsers ?? 0).toLocaleString("en-IN") }}
           </span>
           <span class="dashboard-block__users" :style="{ color: theme.accent }">
             users
@@ -314,9 +346,17 @@ watch(
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 6px;
   padding: 8px 16px;
   margin-top: auto;
+}
+
+.dashboard-block__sep {
+  font-size: 0.875rem;
+  font-weight: 500;
+  opacity: 0.7;
+  line-height: 1;
 }
 
 .dashboard-block__count {
