@@ -17,9 +17,9 @@ export function buildInternalState() {
       ),
       // action: null,
       action: {
-        type: "SEND_MESSAGE",
+        type: "SEND_WHATSAPP",
         config: Object.fromEntries(
-          ActionRegistry["SEND_MESSAGE"].fields.map((f) => [f.key, null])
+          ActionRegistry["SEND_WHATSAPP"].fields.map((f) => [f.key, null])
         ),
       },
     };

@@ -197,7 +197,7 @@ const NODE_DEFS = {
     hasInput: true,
     fixedOutputs: [],
     defaultAttrs: () => ({
-      channelType: 'SEND_MESSAGE',
+      channelType: 'SEND_WHATSAPP',
       channelId: null,
       template: { code: null, id: null, name: null },
       listeners: [],
@@ -243,7 +243,7 @@ const NODE_DEFS = {
 const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'WAIT', 'END']
 const showGrid = ref(true);
 const MESSAGE_CHANNELS = {
-  SEND_MESSAGE: { contactType: 'WHATSAPP', label: 'WhatsApp Channel' },
+  SEND_WHATSAPP: { contactType: 'WHATSAPP', label: 'WhatsApp Channel' },
   SEND_SMS:     { contactType: 'SMS', label: 'SMS Channel' },
   SEND_EMAIL:   { contactType: 'EMAIL', label: 'Email Channel' },
 }
@@ -259,7 +259,7 @@ function channelFieldLabel(channelType) {
 const CHANNEL_TYPE_OPTIONS = [
   { title: 'App engagement', value: 'SEND_ENGAGEMENT' },
   { title: 'Push notification', value: 'SEND_NOTIFICATION' },
-  { title: 'WhatsApp', value: 'SEND_MESSAGE' },
+  { title: 'WhatsApp', value: 'SEND_WHATSAPP' },
   { title: 'SMS', value: 'SEND_SMS' },
   { title: 'Email', value: 'SEND_EMAIL' },
 ]
@@ -273,7 +273,7 @@ function channelParamName(channelType) {
   return isMessageChannel(channelType) ? 'channelId' : 'appId'
 }
 const CHANNEL_ABBREV = {
-  SEND_MESSAGE:      'WA',
+  SEND_WHATSAPP:      'WA',
   SEND_SMS:          'SMS',
   SEND_EMAIL:        '@',
   SEND_NOTIFICATION: 'PN',
@@ -283,7 +283,7 @@ function channelAbbrev(channelType) {
   return CHANNEL_ABBREV[channelType] || formatLabel(channelType)
 }
 const CHANNEL_ICON = {
-  SEND_MESSAGE:      'tabler-brand-whatsapp',
+  SEND_WHATSAPP:      'tabler-brand-whatsapp',
   SEND_SMS:          'tabler-message',
   SEND_EMAIL:        'tabler-mail',
   SEND_NOTIFICATION: 'tabler-bell-ringing',
@@ -457,7 +457,7 @@ async function loadTemplateOptionsFor(nodeId, channelType, channelOrAppId) {
   if (!channelOrAppId) { cache.templateOptions = []; return }
 
   cache.loadingTemplate = true
-  if (channelType === 'SEND_MESSAGE') {
+  if (channelType === 'SEND_WHATSAPP') {
     const raw = await loadMessageTemplatesRawOnce()
     cache.templateOptions = filterApprovedTemplatesForChannel(raw, channelOrAppId)
   } else if (channelType === 'SEND_SMS' || channelType === 'SEND_EMAIL') {
@@ -1434,7 +1434,7 @@ defineExpose({
               clearable
               @update:model-value="value => onTemplateChange(inspectedNode.id, value, inspectedNode.data.code)"
             />
-            <p v-if="inspectedNode.data.attrs.channelType === 'SEND_MESSAGE' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
+            <p v-if="inspectedNode.data.attrs.channelType === 'SEND_WHATSAPP' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
               No approved templates for this channel yet.
             </p>
             <p v-else-if="(inspectedNode.data.attrs.channelType === 'SEND_SMS' || inspectedNode.data.attrs.channelType === 'SEND_EMAIL') && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
@@ -1572,7 +1572,7 @@ defineExpose({
               clearable
               @update:model-value="value => onTemplateChange(inspectedNode.id, value, inspectedNode.data.code)"
             />
-            <p v-if="inspectedNode.data.attrs.channelType === 'SEND_MESSAGE' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
+            <p v-if="inspectedNode.data.attrs.channelType === 'SEND_WHATSAPP' && inspectedNode.data.attrs.channelId && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
               No approved templates for this channel yet.
             </p>
             <p v-else-if="(inspectedNode.data.attrs.channelType === 'SEND_SMS' || inspectedNode.data.attrs.channelType === 'SEND_EMAIL') && !optionCache[inspectedNode.id]?.loadingTemplate && (optionCache[inspectedNode.id]?.templateOptions || []).length === 0" class="field-hint">
