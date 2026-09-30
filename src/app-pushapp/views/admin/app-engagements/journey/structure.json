@@ -54,7 +54,7 @@
             "actions": [
                 {
                     "id": "n2_a1",
-                    "code": "SEND_MESSAGE",
+                    "code": "SEND_WHATSAPP",
                     "attrs": {
                         "channelId": "wacfb:918999652712",
                         "appId": "6804fa4473af55000147f5df",
@@ -76,7 +76,7 @@
             "actions": [
                 {
                     "id": "n3_a1",
-                    "code": "SEND_MESSAGE",
+                    "code": "SEND_WHATSAPP",
                     "attrs": {
                         "channelId": "wacfb:918999652712",
                         "appId": "6804fa4473af55000147f5df",
