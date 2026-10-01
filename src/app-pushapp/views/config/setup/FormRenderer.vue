@@ -12,15 +12,48 @@ const localValue = reactive({});
 const localValueInitial = ref({});
 const formRef = ref(null);
 
+function parseTimeRanges(val) {
+  const list = Array.isArray(val) ? val.slice(0, 2) : [];
+  const parsed = list
+    .map((item) => {
+      const raw = typeof item === "string" ? item : "";
+      const [start = "", end = ""] = raw.split(" - ");
+      return { start: start.trim().slice(0, 5), end: end.trim().slice(0, 5) };
+    })
+    .filter((range) => range.start || range.end);
+
+  return parsed.length ? parsed : [{ start: "", end: "" }];
+}
+
+function toggleOvernight(field) {
+  const ranges = localValue[field.label];
+  if (!Array.isArray(ranges)) return;
+  if (ranges.length > 1) ranges.splice(1);
+  else ranges.push({ start: "", end: "" });
+}
+
+function endAfterStart(start) {
+  return (end) => {
+    if (!start || !end) return true;
+    return (
+      start.slice(0, 5) < end.slice(0, 5) || "End time must be after start time"
+    );
+  };
+}
+
 watch(
-  () => props.config.value,
-  (val) => {
-    if (Array.isArray(val)) {
-      localValue[props.config.fields[0]?.label] = val;
-    } else if (typeof val === "object") {
+  () => props.config,
+  (config) => {
+    const val = config?.value;
+    const field = config?.fields?.[0];
+    if (field?.type === "time-range") {
+      localValue[field.label] = parseTimeRanges(val);
+    } else if (Array.isArray(val)) {
+      localValue[field?.label] = val;
+    } else if (typeof val === "object" && val !== null) {
       Object.assign(localValue, val);
     } else {
-      localValue[props.config.fields[0]?.label] = val;
+      localValue[field?.label] = val;
     }
     localValueInitial.value = JSON.stringify(localValue);
   },
@@ -33,13 +66,24 @@ async function onSave() {
     return;
   }
 
+  const field = props.config.fields?.[0];
   let value;
-  if (Array.isArray(props.config.value)) {
-    value = localValue[props.config.fields[0]?.label];
-  } else if (typeof props.config.value === "object") {
+  if (field?.type === "time-range") {
+    const ranges = localValue[field.label] || [];
+    value = ranges.map((range) => {
+      const start = String(range.start || "").slice(0, 5);
+      const end = String(range.end || "").slice(0, 5);
+      return `${start} - ${end}`;
+    });
+  } else if (Array.isArray(props.config.value)) {
+    value = localValue[field?.label];
+  } else if (
+    typeof props.config.value === "object" &&
+    props.config.value !== null
+  ) {
     value = localValue;
   } else {
-    value = localValue[props.config.fields[0]?.label];
+    value = localValue[field?.label];
   }
   emit("save", value, props.config);
 }
@@ -117,6 +161,50 @@ async function onSave() {
             @click="() => localValue[field.label].push({ value: null })"
           >
             + New Color
+          </VBtn>
+        </VCol>
+
+        <VCol v-if="field.type === 'time-range'" cols="12">
+          <div
+            v-for="(range, index) in localValue[field.label]"
+            :key="'time_range_' + index"
+            class="mb-2"
+          >
+            <VLabel
+              v-if="localValue[field.label].length > 1"
+              class="mb-1 text-body-2 text-high-emphasis"
+              :text="'Window ' + (index + 1)"
+            />
+            <VRow>
+              <VCol cols="6">
+                <AppTextField
+                  v-model="range.start"
+                  label="From"
+                  type="time"
+                  :rules="[field.required ? requiredValidator : null]"
+                />
+              </VCol>
+              <VCol cols="6">
+                <AppTextField
+                  v-model="range.end"
+                  label="To"
+                  type="time"
+                  :rules="[
+                    field.required ? requiredValidator : null,
+                    endAfterStart(range.start),
+                  ]"
+                />
+              </VCol>
+            </VRow>
+          </div>
+          <VBtn
+            type="button"
+            class="mt-2"
+            :variant="localValue[field.label].length > 1 ? 'tonal' : 'outlined'"
+            :color="localValue[field.label].length > 1 ? 'primary' : 'secondary'"
+            @click="toggleOvernight(field)"
+          >
+            Overnight window
           </VBtn>
         </VCol>
       </template>
