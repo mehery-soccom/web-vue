@@ -902,6 +902,7 @@ function buildFlowPayload() {
             code: a.channelType,
             attrs: {
               channelId: a.channelId,
+              ...(isMessageChannel(a.channelType) ? { type: 'template' } : {}),
               template: {
                 code: a.template?.code,
                 id: a.template?.id,
@@ -940,6 +941,7 @@ function buildFlowPayload() {
             code: a.channelType,
             attrs: {
               channelId: a.channelId,
+              ...(isMessageChannel(a.channelType) ? { type: 'template' } : {}),
               template: {
                 code: a.template?.code,
                 id: a.template?.id,
