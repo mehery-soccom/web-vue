@@ -1,6 +1,7 @@
 <script setup>
 import "@app-insights360/@core/scss/template/index.scss";
 import "@app-insights360/styles/styles.scss";
+import "@app-insights360/assets/vue3-toastify.css"
 
 import { loadFonts } from "@app-insights360/plugins/webfontloader";
 loadFonts();

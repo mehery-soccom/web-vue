@@ -98,7 +98,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 const fetchBlockData = (result, contactType, lane) => {
   if (result) {
     statsCamp.value[0].stats = String(lane ?? "-");
-    statsCamp.value[1].stats = String(result.SENT || 0);   
+    statsCamp.value[1].stats = String(result.SCHLD || 0);   
     statsCamp.value[2].stats = String(result.SENT || 0);
     if (contactType === 'EMAIL') statsCamp.value[3].stats = String(result.READ || 0);
     else statsCamp.value[3].stats = String(result.DLVRD || 0);
@@ -264,7 +264,7 @@ function formatTimestamp(ts) {
             v-bind="props"
             @click="downloadReport(false)"
             color="primary"
-            style="width: 45px; height: 45px; min-width: 40px;"
+            style="width: 45px; height: 45px; min-width: 40px; margin-right: 12px"
             class="pa-0"
             variant="flat"
           >
@@ -272,7 +272,7 @@ function formatTimestamp(ts) {
           </VBtn>
         </template>
       </VTooltip>
-      <VTooltip text="Download the list of outbound data">
+      <!-- <VTooltip text="Download the list of outbound data">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
@@ -285,7 +285,7 @@ function formatTimestamp(ts) {
             <VIcon>mdi-download</VIcon>
           </VBtn>
         </template>
-      </VTooltip>
+      </VTooltip> -->
     </div>
     <VCol cols="12">
       <CardStatisticsTransactions :statistics="statsCamp" :title="'Campaign Statistics'"/>

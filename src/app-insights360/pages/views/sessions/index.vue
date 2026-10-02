@@ -15,6 +15,8 @@ const isLoading = ref(false);
 const isDrawerOpen = ref(false);
 const selectedSession = ref({});
 const sessionTagsMap = ref({});
+const sessionTagsList = ref([]);   // [{ _id, label }]
+const selectedSessionTags = ref([]);
 const startTime = ref();
 const endTime = ref();
 const datePickerRef = ref(null)
@@ -56,7 +58,7 @@ window.downloadFile = (url, name) => {
   document.body.removeChild(link)
 }
 
-const downloadReport = async (val=false) => {
+const downloadReport = async (val=false, splitByDay=false) => {
   isLoading.value = true;
   try {
     let params = {
@@ -64,6 +66,10 @@ const downloadReport = async (val=false) => {
       dateRange2: endTime.value,
       type: 'chat-summary',
       agentCode: window.CONST.APP_USER,
+      meta: {
+        splitByDay: !!splitByDay,
+        ...(selectedSessionTags.value.length ? { sessionTags: selectedSessionTags.value } : {}),
+      },
     }
     if(!!val) params.force = true;
     const response = await projectStore.downloadReports(params);
@@ -166,10 +172,11 @@ const fetchSessions = async (startMs, endMs) => {
     const endStr = formatDateForApi(endMs);
     
     const typePayload = selectedChatType.value === 'All' ? null : selectedChatType.value;
+    const tagsPayload = selectedSessionTags.value.length ? selectedSessionTags.value : null;
 
     console.log(`Fetching: ${startStr} to ${endStr}, Type: ${typePayload}`);
 
-    const response = await projectStore.fetchChatSessions(startStr, endStr, typePayload);
+    const response = await projectStore.fetchChatSessions(startStr, endStr, typePayload, tagsPayload);
     
     if (response?.data) {
         const results = response.data.results || response.data || [];
@@ -198,17 +205,26 @@ const fetchSessions = async (startMs, endMs) => {
   }
 };
 
-const onTypeChange = () => {
+const refetchSessions = () => {
   const [day, month, year] = dateRange.value.split("-").map(Number);
   const d = new Date(year, month - 1, day);
-  
   const start = new Date(d);
   start.setHours(0, 0, 0, 0);
   const end = new Date(d);
   end.setHours(23, 59, 59, 998);
-  
   fetchSessions(start.getTime(), end.getTime());
 };
+
+const onTypeChange = () => refetchSessions();
+
+const isTagFilterActive = ref(false);
+const onTagSearch = () => {
+  isTagFilterActive.value = selectedSessionTags.value.length > 0;
+  refetchSessions();
+};
+watch(selectedSessionTags, (tags) => {
+  if (!tags.length) isTagFilterActive.value = false;
+});
 
 const onDateClosed = (selectedDates) => {
   if (selectedDates.length === 1) {
@@ -251,27 +267,73 @@ const formatDurationHHMMSS = (ms) => {
   return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
 };
 
+let _fpTypePopup = null
+
+const removeFpTypePopup = () => {
+  if (_fpTypePopup) { _fpTypePopup.remove(); _fpTypePopup = null }
+}
+
 const addApplyButtonToReportPicker = (selectedDates, dateStr, instance) => {
   if (instance.__applyAdded) return
   instance.__applyAdded = true
 
+  instance.config.onClose = [...(instance.config.onClose || []), removeFpTypePopup]
   const btn = document.createElement('button')
   btn.type = 'button'
   btn.innerText = 'Apply'
   btn.className = 'flatpickr-custom-apply-btn'
 
-  btn.onclick = async () => {
+  btn.onclick = () => {
     if (!instance.selectedDates || instance.selectedDates.length === 0) return
-
     const start = instance.selectedDates[0]
     const end = instance.selectedDates.length === 1 ? instance.selectedDates[0] : instance.selectedDates[1]
     startTime.value = `${String(start.getDate()).padStart(2,'0')}-${String(start.getMonth()+1).padStart(2,'0')}-${start.getFullYear()}`
     endTime.value = `${String(end.getDate()).padStart(2,'0')}-${String(end.getMonth()+1).padStart(2,'0')}-${end.getFullYear()}`
 
-    instance.close()
-    await downloadReport()
+    if (_fpTypePopup) { removeFpTypePopup(); return }
+
+    const popup = document.createElement('div')
+    popup.className = 'fp-type-popup'
+    _fpTypePopup = popup
+
+    const makeOpt = (label, sub, splitByDay) => {
+      const el = document.createElement('button')
+      el.type = 'button'
+      el.className = 'fp-type-opt'
+      el.innerHTML = `<span class="fp-type-opt__label">${label}</span><span class="fp-type-opt__sub">${sub}</span>`
+      el.addEventListener('mousedown', async (e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        removeFpTypePopup()
+        instance.close()
+        await downloadReport(false, splitByDay)
+      })
+      return el
+    }
+    popup.appendChild(makeOpt('Combined', 'One file for the full range', false))
+    popup.appendChild(makeOpt('Daily', 'One file per day', true))
+
+    const rect = btn.getBoundingClientRect()
+    popup.style.position = 'fixed'
+    popup.style.zIndex = '99999'
+    popup.style.left = `${rect.left}px`
+    popup.style.width = `${rect.width}px`
+
+    const spaceAbove = rect.top
+    const popupH = 88
+    if (spaceAbove >= popupH + 8) {
+      popup.style.top = `${rect.top - popupH - 6}px`
+    } else {
+      popup.style.top = `${rect.bottom + 6}px`
+    }
+
+    document.body.appendChild(popup)
   }
-  instance.calendarContainer.appendChild(btn)
+
+  const wrap = document.createElement('div')
+  wrap.className = 'fp-apply-wrap'
+  wrap.appendChild(btn)
+  instance.calendarContainer.appendChild(wrap)
 }
 const exportToExcel = () => {
   const formattedData = tableData.value.map((item) => {
@@ -348,6 +410,10 @@ onMounted(async () => {
     tagsResponse.data.results.forEach(tag => {
       sessionTagsMap.value[tag._id] = { title: tag.title, category: tag.category };
     });
+    sessionTagsList.value = tagsResponse.data.results.map(tag => ({
+      _id: tag._id,
+      label: `${tag.title} (${tag.category})`,
+    }));
   }
 });
 
@@ -385,7 +451,7 @@ onMounted(async () => {
           onReady: addApplyButtonToReportPicker,
         }"
       />
-      <VTooltip text="Download the list of Chats">
+      <!-- <VTooltip text="Download the list of Chats">
         <template #activator="{ props }">
           <VBtn
             v-bind="props"
@@ -398,7 +464,51 @@ onMounted(async () => {
             <VIcon>mdi-download</VIcon>
           </VBtn>
         </template>
-      </VTooltip>
+      </VTooltip> -->
+
+      <!-- Session Tags multi-select with inline search -->
+      <VAutocomplete
+        v-model="selectedSessionTags"
+        :items="sessionTagsList"
+        item-title="label"
+        item-value="_id"
+        density="compact"
+        variant="outlined"
+        hide-details
+        multiple
+        label="Session Tags"
+        placeholder="Filter by tags…"
+        style="min-width: 220px; max-width: 280px;"
+        no-data-text="No tags available"
+      >
+        <template #append-inner>
+          <VBtn
+            icon
+            size="x-small"
+            :variant="isTagFilterActive ? 'flat' : 'text'"
+            :color="isTagFilterActive ? 'primary' : 'default'"
+            style="width:28px;height:28px;min-width:28px;"
+            @mousedown.stop.prevent="onTagSearch"
+          >
+            <VIcon size="18">mdi-magnify</VIcon>
+          </VBtn>
+        </template>
+        <template #selection="{ item, index }">
+          <VChip
+            v-if="index === 0"
+            size="small"
+            closable
+            class="me-1"
+            @click:close="selectedSessionTags = selectedSessionTags.filter(t => t !== item.value)"
+          >
+            {{ item.title }}
+          </VChip>
+          <span
+            v-if="index === 1"
+            class="text-caption text-medium-emphasis"
+          >+{{ selectedSessionTags.length - 1 }}</span>
+        </template>
+      </VAutocomplete>
 
       <VSelect
         v-model="selectedChatType"
@@ -626,15 +736,47 @@ onMounted(async () => {
   width: 0; 
   height: 0; 
 }
+.fp-apply-wrap {
+  padding: 0 8px 8px;
+}
 .flatpickr-custom-apply-btn {
   font-size: 12px;
   background: #1976d2;
   border: none;
-  padding: 6px;
+  padding: 7px 12px;
   border-radius: 6px;
   cursor: pointer;
   color: white;
-  margin: 8px;
-  width: calc(100% - 16px);
+  width: 100%;
+  text-align: center;
 }
+.flatpickr-custom-apply-btn:hover { background: #1565c0; }
+
+/* body-level popup — z-index beats flatpickr */
+.fp-type-popup {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 6px 24px rgba(0,0,0,.15);
+}
+.fp-type-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  transition: background .12s;
+}
+.fp-type-opt + .fp-type-opt { border-top: 1px solid #e0e0e0; }
+.fp-type-opt:hover { background: #f0f6ff; }
+.fp-type-opt__label { font-size: 13px; font-weight: 600; color: #1976d2; }
+.fp-type-opt__sub   { font-size: 11px; color: #888; }
 </style>
