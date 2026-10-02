@@ -31,6 +31,43 @@
     </VRow>
     <div style="margin-left: 40px;font-weight: 800;" v-else-if="!filteredCta.length && !abTesting.enabled"> No CTA available</div>
 
+    <!-- CTA by Platform Table -->
+    <VRow v-if="hasCtaByPlatform" class="mt-3">
+      <VCol cols="12">
+        <h4 class="mb-2">CTA by Platform</h4>
+        <MyDataTable
+          :headers="ctaByPlatformHeaders"
+          :items="ctaByPlatformEntries"
+          :items-per-page="ctaByPlatformEntries.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow>
+
+    <!-- Daily Stats Table -->
+    <VRow v-if="dailyEntries.length" class="mt-3">
+      <VCol cols="12">
+        <h4 class="mb-2">Daily Stats</h4>
+        <MyDataTable
+          :headers="dailyHeaders"
+          :items="dailyEntries"
+          :items-per-page="dailyEntries.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #item.date="{ item }">
+            {{ formatDailyDate(item.raw.date) }}
+          </template>
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow>
+
     <!-- CTA By Hour Table -->
     <!-- <VRow v-if="ctaByHourEntries.length" class="mt-3">
       <VCol cols="12">
@@ -68,7 +105,7 @@
           </VCol>
           <VCol cols="12" md="4">
             <strong>Target Audience:</strong>
-            {{ abTesting.targetAudienceCount }}
+            {{ Number.isFinite(abTesting.targetAudienceCount) ? abTesting.targetAudienceCount.toLocaleString("en-IN") : (abTesting.targetAudienceCount ?? "—") }}
           </VCol>
         </VRow>
         <VRow>
@@ -76,7 +113,7 @@
             <strong>Sample Size:</strong> {{ abTesting.sampleSize }} %
           </VCol>
           <VCol cols="12" md="4">
-            <strong>Sample Size Count:</strong> {{ abTesting.sampleSizeCount }}
+            <strong>Sample Size Count:</strong> {{ Number.isFinite(abTesting.sampleSizeCount) ? abTesting.sampleSizeCount.toLocaleString("en-IN") : (abTesting.sampleSizeCount ?? "—") }}
           </VCol>
           <VCol cols="12" md="4">
             <strong>Evaluation Window:</strong>
@@ -317,11 +354,11 @@ const metricRows = computed(() => {
     const conversion = sent > 0 ? ((cta / sent) * 100).toFixed(1) : "0.0";
     return {
       variant: v,
-      sent,
-      cta,
-      dismissed: m.dismissed || 0,
-      expired: m.expired || 0,
-      resolved: m.resolved || 0,
+      sent: sent.toLocaleString("en-IN"),
+      cta: cta.toLocaleString("en-IN"),
+      dismissed: (m.dismissed || 0).toLocaleString("en-IN"),
+      expired: (m.expired || 0).toLocaleString("en-IN"),
+      resolved: (m.resolved || 0).toLocaleString("en-IN"),
       cta_percent: `${conversion}%`,
       conversionValue: parseFloat(conversion),
     };
@@ -329,13 +366,15 @@ const metricRows = computed(() => {
 
   // Add total row
   if (metrics.totalSample || metrics.totalResolved) {
+    const totalSent = metrics.totalSample || 0;
+    const totalCta = (metrics.A?.cta ?? 0) + (metrics.B?.cta ?? 0);
     rows.push({
       variant: "Total",
-      sent: metrics.totalSample || 0,
-      cta: (metrics.A?.cta ?? 0) + (metrics.B?.cta ?? 0),
-      dismissed: (metrics.A?.dismissed ?? 0) + (metrics.B?.dismissed ?? 0),
-      expired: (metrics.A?.expired ?? 0) + (metrics.B?.expired ?? 0),
-      resolved: metrics.totalResolved || 0,
+      sent: totalSent.toLocaleString("en-IN"),
+      cta: totalCta.toLocaleString("en-IN"),
+      dismissed: ((metrics.A?.dismissed ?? 0) + (metrics.B?.dismissed ?? 0)).toLocaleString("en-IN"),
+      expired: ((metrics.A?.expired ?? 0) + (metrics.B?.expired ?? 0)).toLocaleString("en-IN"),
+      resolved: (metrics.totalResolved || 0).toLocaleString("en-IN"),
       cta_percent: "—",
       conversionValue: 0,
     });
@@ -355,24 +394,26 @@ const metricRowsDistribution = (param) => {
     const conversion = sent > 0 ? ((cta / sent) * 100).toFixed(1) : "0.0";
     return {
       variant: v,
-      sent,
-      cta,
-      dismissed: m.dismissed || 0,
-      expired: m.expired || 0,
-      resolved: m.resolved || 0,
+      sent: sent.toLocaleString("en-IN"),
+      cta: cta.toLocaleString("en-IN"),
+      dismissed: (m.dismissed || 0).toLocaleString("en-IN"),
+      expired: (m.expired || 0).toLocaleString("en-IN"),
+      resolved: (m.resolved || 0).toLocaleString("en-IN"),
       cta_percent: `${conversion}%`,
       conversionValue: parseFloat(conversion),
     };
   });
 
   if (metrics.totalSample || metrics.totalResolved) {
+    const totalSent = metrics.totalSample || 0;
+    const totalCta = (metrics.A?.cta ?? 0) + (metrics.B?.cta ?? 0);
     rows.push({
       variant: "Total",
-      sent: metrics.totalSample || 0,
-      cta: (metrics.A?.cta ?? 0) + (metrics.B?.cta ?? 0),
-      dismissed: (metrics.A?.dismissed ?? 0) + (metrics.B?.dismissed ?? 0),
-      expired: (metrics.A?.expired ?? 0) + (metrics.B?.expired ?? 0),
-      resolved: metrics.totalResolved || 0,
+      sent: totalSent.toLocaleString("en-IN"),
+      cta: totalCta.toLocaleString("en-IN"),
+      dismissed: ((metrics.A?.dismissed ?? 0) + (metrics.B?.dismissed ?? 0)).toLocaleString("en-IN"),
+      expired: ((metrics.A?.expired ?? 0) + (metrics.B?.expired ?? 0)).toLocaleString("en-IN"),
+      resolved: (metrics.totalResolved || 0).toLocaleString("en-IN"),
       cta_percent: "—",
       conversionValue: 0,
     });
@@ -428,17 +469,18 @@ const distributionRows = computed(() => {
     const totalCtaPct =
       sampleSize > 0 ? ((totalCtaParam / sampleSize) * 100).toFixed(1) : "—";
 
+    const rawAudience = ab.targetAudienceCountDistributionWise?.[param];
     rows.push({
       param,
-      targetAudience: ab.targetAudienceCountDistributionWise?.[param] ?? "—",
-      sampleSize,
-      totalCta: totalCtaParam,
+      targetAudience: Number.isFinite(rawAudience) ? rawAudience.toLocaleString("en-IN") : "—",
+      sampleSize: sampleSize.toLocaleString("en-IN"),
+      totalCta: totalCtaParam.toLocaleString("en-IN"),
       totalCtaPct,
       winner: ab.winnerDistributionWise?.[param] || "—",
       state: ab.stateDistributionWise?.[param] || "—",
     });
 
-    totalAudience += ab.targetAudienceCountDistributionWise?.[param] || 0;
+    totalAudience += rawAudience || 0;
     totalSample += sampleSize;
     totalCta += totalCtaParam;
   }
@@ -446,9 +488,9 @@ const distributionRows = computed(() => {
   // append total summary row
   const totalRow = {
     param: "Total",
-    targetAudience: totalAudience,
-    sampleSize: totalSample,
-    totalCta,
+    targetAudience: totalAudience.toLocaleString("en-IN"),
+    sampleSize: totalSample.toLocaleString("en-IN"),
+    totalCta: totalCta.toLocaleString("en-IN"),
     totalCtaPct:
       totalSample > 0 ? ((totalCta / totalSample) * 100).toFixed(1) : "—",
     winner: "-",
@@ -469,10 +511,56 @@ const filteredCta = computed(() => {
   // remove internal or undesired keys
   const r = Object.entries(cta)
     .filter(([key]) => key !== "__count")
-    .map(([key, value]) => ({ id: key, count: value }));
+    .map(([key, value]) => ({ id: key, count: Number.isFinite(value) ? value.toLocaleString("en-IN") : value }));
 
   return r;
 });
+
+/* ---------- CTA by Platform ---------- */
+const hasCtaByPlatform = computed(
+  () => props.stats?.ctaByPlatform != null,
+);
+const ctaByPlatformHeaders = [
+  { title: "Platform", key: "platform" },
+  { title: "Count", key: "count" },
+];
+const ctaByPlatformEntries = computed(() => {
+  const obj = props.stats?.ctaByPlatform || {};
+  return [
+    { platform: "Android", count: (obj.android ?? 0).toLocaleString("en-IN") },
+    { platform: "iOS", count: (obj.ios ?? 0).toLocaleString("en-IN") },
+    { platform: "Unknown", count: (obj.unknown ?? 0).toLocaleString("en-IN") },
+  ];
+});
+
+/* ---------- Daily Stats ---------- */
+const dailyHeaders = [
+  { title: "Date", key: "date" },
+  { title: "Total", key: "total", align: "center" },
+  { title: "Sent", key: "sent", align: "center" },
+  { title: "CTA", key: "cta", align: "center" },
+];
+const dailyEntries = computed(() => {
+  const obj = props.stats?.daily || props.stats?.dailly || {};
+  return Object.entries(obj)
+    .map(([date, values = {}]) => ({
+      date,
+      total: (values.total ?? 0).toLocaleString("en-IN"),
+      sent: (values.sent ?? 0).toLocaleString("en-IN"),
+      cta: (values.cta ?? 0).toLocaleString("en-IN"),
+    }))
+    .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
+});
+
+const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+const formatDailyDate = (date) => {
+  if (!date) return "—";
+  const match = String(date).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!match) return date;
+  const [, year, month, day] = match;
+  return `${day} ${MONTHS[Number(month) - 1]} ${year}`;
+};
 
 /* ---------- CTA BY HOUR ---------- */
 const ctaHeaders = [

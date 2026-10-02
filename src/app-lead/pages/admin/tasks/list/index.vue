@@ -3,8 +3,8 @@ import { ref, reactive, inject, onMounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import debounce from 'lodash/debounce'
 import { useTaskStore } from '@/app-lead/views/admin/tasks/useTasksStore.js'
-import AppDateTimePicker from "@/app-insights360/@core/components/app-form-elements/AppDateTimePicker.vue"
-import { useDatePickerFilters } from "@app-insights360/views/dashboards/analytics/useDatePickerFilters"
+import AppDateTimePicker from "@/app-lead/@core/components/app-form-elements/AppDateTimePicker.vue"
+import { useDatePickerFilters } from "@app-lead/views/dashboard/useDatePickerFilters"
 
 const { show } = inject('snackbar')
 const taskStore = useTaskStore()
@@ -34,13 +34,14 @@ const today = new Date()
 const tonight = new Date()
 tonight.setHours(23, 59, 59, 999)
 
-const oneWeekAgo = new Date()
-oneWeekAgo.setDate(oneWeekAgo.getDate() - 6)
+const thirtyDaysAhead = new Date()
+thirtyDaysAhead.setDate(thirtyDaysAhead.getDate() + 30)
+thirtyDaysAhead.setHours(23, 59, 59, 999)
 
-const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-")
-const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-")
+const formattedStart = today.toLocaleDateString("en-GB").split("/").join("-")
+const formattedEnd = thirtyDaysAhead.toLocaleDateString("en-GB").split("/").join("-")
 const dateRange = ref(`${formattedStart} to ${formattedEnd}`)
-const selectedDateObjects = ref([oneWeekAgo, tonight]) 
+const selectedDateObjects = ref([today, thirtyDaysAhead])
 
 const headers = computed(() => [
     { title: 'Name', key: 'recipient.name', sortable: true },
@@ -204,7 +205,6 @@ onMounted(() => {
                     :config="{
                         mode: 'range',
                         dateFormat: 'd-m-Y',
-                        maxDate: tonight,
                         position: 'auto right',
                         onClose: onDateClosed,
                         plugins: [customPlugin],

@@ -53,6 +53,8 @@ watch(
   },
   { deep: true },
 );
+
+defineExpose({ onCheckCount });
 </script>
 
 <template>
@@ -65,7 +67,7 @@ watch(
     >
       <VIcon start icon="tabler-users" size="18" />
       <template v-if="audienceCount !== null">
-        {{ audienceCount.toLocaleString() }} users
+        {{ audienceCount.toLocaleString("en-IN") }} users
       </template>
       <template v-else> — users </template>
     </VBtn>

@@ -57,8 +57,12 @@ export const useAppEngagements = (source, config = {}) => {
     const filterField = FILTER_FIELDS_MAP[source.field];
     if (!filterField) return [];
     const filterFieldInputType = filterField.inputFieldMeta?.type;
+    const allowedOperators = filterField.inputFieldMeta?.operators;
     // console.log("FILTER_OPERATORS filterFieldInputType", filterFieldInputType);
     return _FILTER_OPERATORS.filter((el) => {
+      if (allowedOperators?.length && !allowedOperators.includes(el.value)) {
+        return false;
+      }
       let r = true;
       if (el.strictApplicableTypes) {
         if (

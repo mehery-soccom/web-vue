@@ -7,6 +7,9 @@ import Home from "@/app-insights360/pages/dashboards/home/index.vue";
 import Agent from "@/app-insights360/pages/views/agent/index.vue";
 import Meta from "@/app-insights360/pages/views/meta/index.vue";
 import Sessions from "@/app-insights360/pages/views/sessions/index.vue";
+import Botflow from "@/app-insights360/pages/views/botflow/index.vue";
+import BotflowTemplateSummary from "@/app-insights360/pages/views/botflow/[queue]/index.vue";
+import BotflowCtaContacts from "@/app-insights360/pages/views/botflow/[queue]/contacts.vue";
 import Campaign from "@/app-insights360/pages/views/campaign/index.vue";
 import Reports from "@/app-insights360/pages/views/reports/index.vue";
 import Outbound from "@/app-insights360/pages/views/outbound/[id].vue";
@@ -76,6 +79,33 @@ export default BootRouter.route({
       ],
     },
     {
+      path: "/views/botflow",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "views-botflow",
+          component: Botflow,
+          props: true,
+          meta: { layout: "default" },
+        },
+        {
+          path: ":queue/contacts",
+          name: "views-botflow-contacts",
+          component: BotflowCtaContacts,
+          props: true,
+          meta: { layout: "default" },
+        },
+        {
+          path: ":queue",
+          name: "views-botflow-queue",
+          component: BotflowTemplateSummary,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/views/sessions",
       component: DefaultLayout,
       children: [
@@ -115,11 +145,11 @@ export default BootRouter.route({
       ],
     },
     {
-      path: "/views/outbound/:id", 
+      path: "/views/outbound", 
       component: DefaultLayout,
       children: [
         {
-          path: "",
+          path: ":id",
           name: "views-outbound-id", 
           component: Outbound,
           props: true,
@@ -128,11 +158,11 @@ export default BootRouter.route({
       ],
     },
     {
-      path: "/views/cta/:id", 
+      path: "/views/cta", 
       component: DefaultLayout,
       children: [
         {
-          path: "",
+          path: ":id",
           name: "views-cta-id", 
           component: Cta,
           props: true, 

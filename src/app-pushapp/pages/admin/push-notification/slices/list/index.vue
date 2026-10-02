@@ -197,7 +197,7 @@ onMounted(async () => {
 
       <!-- subscribers count -->
       <template #item.subscribers="{ item }">
-        {{ item.raw.buildStats?.tokensSubscribed || 0 }}
+        {{ (item.raw.buildStats?.tokensSubscribed || 0).toLocaleString("en-IN") }}
       </template>
 
       <!-- channel -->

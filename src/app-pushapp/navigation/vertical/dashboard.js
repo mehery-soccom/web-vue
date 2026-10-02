@@ -19,6 +19,10 @@ export default [
         title: "User Analytics",
         to: "dashboards-user-list",
       },
+      {
+        title: "Custom Dashboard",
+        to: "dashboards-custom-list",
+      },
       // {
       //   title: 'eCommerce',
       //   to: 'dashboards-ecommerce',

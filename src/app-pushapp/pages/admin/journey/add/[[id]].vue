@@ -1,6 +1,7 @@
 <script setup>
 import FlowEditor from "@/app-pushapp/views/admin/journeys/Floweditor.vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import { useFlowsStore } from "@/app-pushapp/views/admin/journeys/useFlowsStore";
 import { toPng } from "html-to-image";
@@ -289,21 +290,35 @@ watch(audienceMode, (newMode, oldMode) => {
   if (switchedBetweenAudienceModes) resetJourneyFilter();
 });
 
+const validateAudienceFilter = async () => {
+  const filterValid = await filterRef.value?.isValid();
+  let filterStructureValid = true;
+  try {
+    validateFilterStructure(flow.filter, null, true, true, true, false);
+  } catch (error) {
+    filterStructureValid = false;
+    show({ message: error.message, color: "error" });
+  }
+  return !!(filterValid && filterStructureValid);
+};
+
 const isValidTab = async (tab, silent = false) => {
   let valid = true;
 
   switch (tab) {
     case 0: {
-      const filterValid = await filterRef.value?.isValid();
-      let filterStructureValid = true;
-      try {
-        validateFilterStructure(flow.filter, null, true, true, true, false);
-      } catch (error) {
-        filterStructureValid = false;
-        if (!silent) show({ message: error.message, color: "error" });
+      if (silent) {
+        const filterValid = await filterRef.value?.isValid(true);
+        let filterStructureValid = true;
+        try {
+          validateFilterStructure(flow.filter, null, true, true, true, false);
+        } catch {
+          filterStructureValid = false;
+        }
+        if (!filterValid || !filterStructureValid) valid = false;
+      } else if (!(await validateAudienceFilter())) {
+        valid = false;
       }
-
-      if (!filterValid || !filterStructureValid) valid = false;
       break;
     }
     default:
@@ -597,6 +612,12 @@ onMounted(async () => {
             :readonly="isViewMode && !isEditing"
             ref="filterRef"
           />
+          <div class="d-flex justify-end mt-6">
+            <AudienceCountCheck
+              :filter="flow.filter"
+              :validate="validateAudienceFilter"
+            />
+          </div>
         </VCard>
       </VWindowItem>
 

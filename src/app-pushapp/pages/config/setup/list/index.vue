@@ -25,17 +25,25 @@ const setupMap = {
     ],
     group: "App Settings",
   },
+  pa_app_silentperiod: {
+    label: "Silent period",
+    desc: "Quiet hours when pushes are held",
+    fields: [{ label: "Silent period", type: "time-range", required: true }],
+    group: "App Settings",
+  },
 };
 const isLoading = ref(false);
 const panel = ref(0);
 const configList = ref([]);
-const configValue = (value, item) => {
-  let r = Array.isArray(value)
-    ? value.map((v) => v.value).join(", ")
-    : typeof value === "object"
-    ? value.value
-    : value;
-  return r;
+const configValue = (value) => {
+  if (Array.isArray(value)) {
+    return value
+      .map((v) => (v && typeof v === "object" ? v.value : v))
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (value && typeof value === "object") return value.value;
+  return value;
 };
 const groupedConfigs = computed(() => {
   return configList.value.reduce((groups, cfg) => {
@@ -140,7 +148,7 @@ onMounted(async () => {
     </VExpansionPanels>
 
     <!-- Edit dialog -->
-    <VDialog v-model="editDialog" max-width="500px">
+    <VDialog v-model="editDialog" max-width="560px">
       <VCard v-if="selectedConfig">
         <VCardTitle>{{ selectedConfig.label || "Edit Config" }}</VCardTitle>
         <VCardSubtitle v-if="selectedConfig.desc">{{

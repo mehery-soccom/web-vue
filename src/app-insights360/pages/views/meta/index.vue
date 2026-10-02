@@ -160,7 +160,7 @@ onMounted(async () => {
       <DemoDataTableKitchenSink
         :headers="headers"
         :productList="tempTable"
-        :title="'Meta Template Data'"
+        :title="'Meta Analytics'"
         :fixed-column="true"
         item-value="templateId"
       >
