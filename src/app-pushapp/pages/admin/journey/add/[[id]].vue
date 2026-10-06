@@ -104,6 +104,7 @@ function onAnalyticsDateClosed(selectedDates) {
   if (route.params.id) loadAnalytics(route.params.id, selectedDates);
 }
 
+const refreshAnalytics = () => { if (route.params.id) loadAnalytics(route.params.id); };
 const analyticsSummaryExportRef = ref(null);
 const isCapturingSummary = ref(false);
 
@@ -627,7 +628,7 @@ onMounted(async () => {
           <div ref="analyticsSummaryExportRef">
             <VRow align="start" class="ma-0">
               <!-- Stat cards — span 9 cols -->
-              <VCol cols="12" md="9" class="pa-0 d-flex flex-wrap gap-3">
+              <VCol cols="12" md="8" class="pa-0 d-flex flex-wrap gap-3">
                 <VCard
                   v-for="stat in ANALYTICS_STATS"
                   :key="stat.key"
@@ -645,9 +646,25 @@ onMounted(async () => {
                 </VCard>
               </VCol>
 
-              <VCol cols="12" md="3" class="pa-0 ps-md-4" style="min-width: 270px; max-width: 350px;">
-                <div class="d-flex align-center gap-2">
-                  <VMenu transition="scale-transition" open-on-hover>
+              <VCol cols="12" md="4" class="pa-0 ms-auto d-flex justify-end" style="min-width: 350px; max-width: 400px;">
+                <div class="d-flex align-center justify-end gap-2">
+                  <div style="min-width: 270px; max-width: 350px;">
+                    <AppDateTimePicker
+                      v-model="analyticsDateRange"
+                      class="flex-grow-1"
+                      placeholder="Select date range"
+                      prepend-inner-icon="tabler-calendar"
+                      :config="{
+                        mode: 'range',
+                        enableTime: false,
+                        dateFormat: 'Y-m-d',
+                        maxDate: 'today',
+                        onClose: onAnalyticsDateClosed,
+                      }"
+                    />
+                  </div>
+                  <div style="min-width: 40px;">
+                    <VMenu transition="scale-transition" open-on-hover>
                     <template #activator="{ props: menuProps }">
                       <VBtn
                         v-show="!isCapturingSummary"
@@ -680,21 +697,20 @@ onMounted(async () => {
                       </VListItem>
                     </VList>
                   </VMenu>
-
-                  <div style="min-width: 270px; max-width: 350px;">
-                    <AppDateTimePicker
-                      v-model="analyticsDateRange"
-                      class="flex-grow-1"
-                      placeholder="Select date range"
-                      prepend-inner-icon="tabler-calendar"
-                      :config="{
-                        mode: 'range',
-                        enableTime: false,
-                        dateFormat: 'Y-m-d',
-                        maxDate: 'today',
-                        onClose: onAnalyticsDateClosed,
-                      }"
-                    />
+                  </div>
+                  <div style="min-width: 40px;">
+                    <VBtn
+                      v-show="!isCapturingSummary"
+                      icon
+                      variant="text"
+                      color="secondary"
+                      size="small"
+                      :loading="analyticsLoading"
+                      @click="refreshAnalytics"
+                    >
+                      <VIcon icon="tabler-refresh" />
+                      <VTooltip activator="parent">Refresh</VTooltip>
+                    </VBtn>
                   </div>
                 </div>
               </VCol>

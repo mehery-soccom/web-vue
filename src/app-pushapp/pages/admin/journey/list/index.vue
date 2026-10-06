@@ -20,8 +20,6 @@ const headers = computed(() => [
     title: "Description",
     key: "desc",
     align: "center",
-    maxWidth: "200px",
-    width: "200px",
   },
   {
     title: "Status",
@@ -36,29 +34,15 @@ const headers = computed(() => [
     ],
   },
   {
-    title: "Created at",
-    key: "createdAt",
+    title: "Time",
+    key: "audit",
     align: "center",
-  },
-  {
-    title: "Created By",
-    key: "createdBy",
-    align: "center",
-  },
-  {
-    title: "Updated at",
-    key: "updatedAt",
-    align: "center",
-  },
-  {
-    title: "Updated By",
-    key: "updatedBy",
-    align: "center",
+    sortable: false,
   },
   {
     title: "Actions",
     key: "actions",
-    align: "start",
+    align: "center",
     sortable: false,
   },
 ]);
@@ -156,7 +140,44 @@ const deleteItem = (id, dialogCloseRef) => {
     });
 };
 
-onMounted(async () => {});
+const statusLabel = (status, started) => {
+  if (status === "ON_GOING") return started ? "Resumed" : "Journey Start";
+  if (status === "PAUSED") return "Paused";
+  if (status === "ENDED") return "Terminated";
+  return status;
+};
+
+const statusRows = (item) => {
+  const rows = [
+    {
+      label: "Created",
+      byLabel: "Created by",
+      stamp: item?.createTime?.stamp,
+      byUser: item?.createTime?.byUser,
+    },
+    {
+      label: "Updated",
+      byLabel: "Updated by",
+      stamp: item?.updateTime?.stamp,
+      byUser: item?.updateTime?.byUser,
+    },
+  ];
+
+  let started = false;
+  for (const entry of item?.statusHistory || []) {
+    const status = String(entry?.status || "").toUpperCase();
+    if (!status || status === "DRAFT") continue;
+    rows.push({
+      label: statusLabel(status, started),
+      byLabel: "By",
+      stamp: entry?.time?.stamp,
+      byUser: entry?.time?.byUser,
+    });
+    if (status === "ON_GOING") started = true;
+  }
+
+  return rows;
+};
 </script>
 
 <template>
@@ -227,25 +248,21 @@ onMounted(async () => {});
         </VChip>
       </template>
 
-      <!-- created at -->
-        <template #item.createdAt="{ item }">
-          <span v-if="item.raw.createTime && item.raw.createTime.stamp">{{ smartFormatDate(item.raw.createTime.stamp) }}</span>
-          <span v-else>-</span>
-        </template>
-
-      <template #item.createdBy="{ item }">
-        <span v-if="item.raw.createTime && item.raw.createTime.byUser">{{ item.raw.createTime.byUser }}</span>
-        <span v-else>-</span>
-      </template>
-
-      <template #item.updatedAt="{ item }">
-        <span v-if="item.raw.updateTime && item.raw.updateTime.stamp">{{ smartFormatDate(item.raw.updateTime.stamp) }}</span>
-        <span v-else>-</span>
-      </template>
-
-      <template #item.updatedBy="{ item }">
-        <span v-if="item.raw.updateTime && item.raw.updateTime.byUser">{{ item.raw.updateTime.byUser }}</span>
-        <span v-else>-</span>
+      <template #item.audit="{ item }">
+        <IconBtn>
+          <VIcon icon="tabler-clock-filled" size="16" />
+          <VTooltip activator="parent" open-delay="1000" scroll-strategy="close">
+            <div class="py-1">
+              <div v-for="(row, index) in statusRows(item.raw)" :key="index">
+                <strong>{{ row.label }}:</strong>
+                {{ row.stamp ? smartFormatDate(row.stamp) : "-" }}
+                <div v-if="row.byUser">
+                  <strong>{{ row.byLabel }}: </strong>{{ row.byUser }}
+                </div>
+              </div>
+            </div>
+          </VTooltip>
+        </IconBtn>
       </template>
 
       <!-- Actions -->
@@ -341,7 +358,7 @@ onMounted(async () => {});
 
 <style>
 .desc-cell {
-  max-width: 180px;
+  max-width: 500px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
