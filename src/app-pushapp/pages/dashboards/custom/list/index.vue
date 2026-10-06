@@ -33,25 +33,26 @@ const timezone =
   window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] ||
   "Asia/Kolkata";
 
-const parsedDateRange = computed(() => {
-  if (!dateRange.value) return { dateRange1: null, dateRange2: null };
-  const parts = String(dateRange.value).split(" to ");
-  if (!parts[0]) return { dateRange1: null, dateRange2: null };
-  const [sD, sM, sY] = parts[0].split("-").map(Number);
-  const [eD, eM, eY] = (parts[1] || parts[0]).split("-").map(Number);
-  if (![sD, sM, sY, eD, eM, eY].every(Number.isFinite)) {
-    return { dateRange1: null, dateRange2: null };
-  }
+const toStampRange = (value) => {
+  const parts = String(value || "").split(" to ");
+  const start = parts[0]?.trim();
+  const end = (parts[1] || start)?.trim();
+  if (!start || !end) return null;
+  const [sD, sM, sY] = start.split("-").map(Number);
+  const [eD, eM, eY] = end.split("-").map(Number);
+  if (![sD, sM, sY, eD, eM, eY].every(Number.isFinite)) return null;
   return {
     dateRange1: new Date(sY, sM - 1, sD, 0, 0, 0, 0).getTime(),
     dateRange2: new Date(eY, eM - 1, eD, 23, 59, 59, 999).getTime(),
   };
-});
+};
+
+const appliedDateRange = ref(toStampRange(dateRange.value));
 
 const onDateClosed = (selectedDates, dateStr) => {
-  if (selectedDates.length === 2) {
-    dateRange.value = dateStr;
-  }
+  if (!selectedDates || selectedDates.length < 2) return;
+  const parsed = toStampRange(dateStr);
+  if (parsed) appliedDateRange.value = parsed;
 };
 
 const loadBlocks = async () => {
@@ -190,8 +191,8 @@ onMounted(() => {
           <DashboardBlock
             :item="item"
             :color-index="idx"
-            :date-range1="parsedDateRange.dateRange1"
-            :date-range2="parsedDateRange.dateRange2"
+            :date-range1="appliedDateRange.dateRange1"
+            :date-range2="appliedDateRange.dateRange2"
             :timezone="timezone"
             :cohort-id="selectedCohort"
             @edit="onEdit"
