@@ -20,8 +20,8 @@ const isDeleting = ref(false);
 const selectedCohort = ref(null);
 const tonight = new Date().setHours(23, 59, 59, 999);
 const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-");
-const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
-const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
+const today = new Date();
+const dateRange = ref(`${formatDate(today)} to ${formatDate(today)}`);
 
 const formattedCohortList = computed(() => {
   return (cohortsStore.cohorts || [])
