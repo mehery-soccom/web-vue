@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import paJiIcon from "@app-pushapp/assets/images/pa-ji2.png";
 
 defineOptions({ inheritAttrs: false });
 
@@ -178,7 +179,7 @@ defineExpose({ scrollToBottom, focusInput });
         >
           <div class="ca-minimized">
             <div class="ca-minimized__icon">
-              <VIcon icon="tabler-sparkles" size="22" />
+              <img :src="paJiIcon" alt="PA-ji" class="ca-brand-img" />
             </div>
             <div class="ca-minimized__body">
               <div class="ca-minimized__title-row">
@@ -210,7 +211,7 @@ defineExpose({ scrollToBottom, focusInput });
           <header class="ca-panel__header">
             <div class="ca-panel__brand">
               <div class="ca-panel__avatar">
-                <VIcon icon="tabler-robot" size="20" />
+                <img :src="paJiIcon" alt="PA-ji" class="ca-brand-img" />
               </div>
               <div>
                 <div class="ca-panel__title">{{ title }}</div>
@@ -460,15 +461,15 @@ defineExpose({ scrollToBottom, focusInput });
   background: rgb(var(--v-theme-surface));
 }
 .ca-minimized__icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
+  overflow: hidden;
+  background: transparent;
 }
 .ca-minimized__body {
   flex: 1;
@@ -561,15 +562,22 @@ defineExpose({ scrollToBottom, focusInput });
   min-width: 0;
 }
 .ca-panel__avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: rgb(var(--v-theme-primary));
   flex-shrink: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.ca-brand-img {
+  width: 130%;
+  height: 130%;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
 }
 .ca-panel__title {
   font-weight: 700;
