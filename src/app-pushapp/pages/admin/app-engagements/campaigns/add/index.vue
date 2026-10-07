@@ -3,11 +3,17 @@ import Template from "@app-pushapp/pages/admin/app-engagements/templates/add/[[i
 import Audience from "@app-pushapp/views/admin/app-engagements/Audience.vue";
 import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
-import { onMounted } from "vue";
+import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
+import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
+import EngagementCampaignAssistant from "@app-pushapp/views/admin/app-engagements/EngagementCampaignAssistant.vue";
+import { normalizeAiFilterTree } from "@/app-pushapp/utils/mapAiFormState";
+import { onMounted, nextTick } from "vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
+const libraryStore = useLibraryStore();
+const { FILTER_FIELDS_MAP } = useAppEngagements();
 
 const route = useRoute();
 const router = useRouter();
@@ -185,7 +191,7 @@ const clearError = (field) => {
   errors.value[field] = null;
 };
 const buildSchedulePayload = (form) => {
-  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timezone = form.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
   const payload = {
     durationType: form.durationType,
     startDate: form.startDate ? new Date(form.startDate).getTime() : null,
@@ -354,7 +360,357 @@ const create = async () => {
 // );
 onMounted(async () => {
   await fetchTemplateList();
-  // setInterval(()=> console.log("add page", templateRef?.isPreStep?.value, templateBRef?.isPreStep?.value), 10000);
+});
+
+const isAgenticAiEnabled = computed(
+  () => !!window.CONST?.CONFIG?.FEATURES?.PUSHAPP_AGENTIC_AI,
+);
+const pendingAssistantState = ref(null);
+const assistantExpanded = ref(isAgenticAiEnabled.value);
+const aiFlashTabs = ref([]);
+const tabWindowTransition = ref(false);
+const lastAppliedSectionSigs = ref({
+  trigger: "",
+  template: "",
+  audience: "",
+  schedule: "",
+});
+const lastAiPollMeta = ref({
+  trigger: null,
+  template: null,
+  audience: null,
+  schedule: null,
+});
+const TAB_ORDER = [0, 1, 2, 3];
+
+const sectionSignature = (data) => {
+  if (!data || (typeof data === "object" && !Object.keys(data).length)) return "";
+  return JSON.stringify(data);
+};
+
+const cloneJson = (value) => {
+  if (value == null) return value;
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch {
+    return value;
+  }
+};
+
+const valuesEqual = (a, b) => sectionSignature(a) === sectionSignature(b);
+
+const aiPollFieldChanged = (section, key, nextValue) => {
+  const prevSection = lastAiPollMeta.value[section];
+  if (!prevSection) return true;
+  if (!(key in prevSection)) return nextValue != null && nextValue !== "";
+  return !valuesEqual(prevSection[key], nextValue);
+};
+
+const aiPollSectionChanged = (section, nextData) => {
+  const prev = lastAiPollMeta.value[section];
+  if (!prev) return true;
+  return !valuesEqual(prev, nextData);
+};
+
+const setAiPollMeta = (section, patch) => {
+  lastAiPollMeta.value = {
+    ...lastAiPollMeta.value,
+    [section]: { ...(lastAiPollMeta.value[section] || {}), ...cloneJson(patch) },
+  };
+};
+
+const setAiPollMetaSection = (section, data) => {
+  lastAiPollMeta.value = { ...lastAiPollMeta.value, [section]: cloneJson(data) };
+};
+
+const hasSectionData = (data) =>
+  !!(data && typeof data === "object" && Object.keys(data).length);
+
+let aiFlashTimer = null;
+
+const flashAiTabs = (updatedTabs) => {
+  if (!updatedTabs.length || !assistantExpanded.value) return;
+
+  aiFlashTabs.value = [...new Set([...aiFlashTabs.value, ...updatedTabs])];
+
+  const targetTab = [...TAB_ORDER].reverse().find((t) => updatedTabs.includes(t));
+  if (targetTab != null && activeTab.value !== targetTab) {
+    tabWindowTransition.value = true;
+    activeTab.value = targetTab;
+    setTimeout(() => {
+      tabWindowTransition.value = false;
+    }, 450);
+  }
+
+  if (aiFlashTimer) clearTimeout(aiFlashTimer);
+  aiFlashTimer = setTimeout(() => {
+    aiFlashTabs.value = aiFlashTabs.value.filter((t) => !updatedTabs.includes(t));
+  }, 4000);
+};
+
+const applyFilterTree = (target, tree) => {
+  target.type = tree.type;
+  target.conjunction = tree.conjunction || "and";
+  target.children.splice(0, target.children.length, ...tree.children);
+};
+
+const ensureCatalogList = async (field) => {
+  if (field === "page_open") {
+    if (!libraryStore.pageList.length && !libraryStore.pageListLoading) {
+      libraryStore.pageListLoading = true;
+      try {
+        const response = await libraryStore.read({ id: "pages" });
+        libraryStore.pageList = response.data.data.options || [];
+      } finally {
+        libraryStore.pageListLoading = false;
+      }
+    }
+    return libraryStore.pageList;
+  }
+  if (field === "widget_open") {
+    if (!libraryStore.placeholderList.length && !libraryStore.placeholderListLoading) {
+      libraryStore.placeholderListLoading = true;
+      try {
+        const response = await libraryStore.read({ id: "placeholders" });
+        libraryStore.placeholderList = response.data.data.options || [];
+      } finally {
+        libraryStore.placeholderListLoading = false;
+      }
+    }
+    return libraryStore.placeholderList;
+  }
+  return [];
+};
+
+const mapCatalogValue = (list, value) => {
+  const mapOne = (item) => {
+    const n = String(item ?? "").trim().toLowerCase();
+    const match = list.find(
+      (opt) =>
+        String(opt.code ?? "").toLowerCase() === n ||
+        String(opt.label ?? "").toLowerCase() === n,
+    );
+    return match?.code ?? item;
+  };
+  if (Array.isArray(value)) return value.map(mapOne);
+  if (value == null || value === "") return value;
+  return [mapOne(value)];
+};
+
+const resolveCatalogValues = async (tree) => {
+  if (!tree?.children) return tree;
+  for (const child of tree.children) {
+    if (child.type === "group") {
+      await resolveCatalogValues(child);
+      continue;
+    }
+    if (child.field === "page_open" || child.field === "widget_open") {
+      const list = await ensureCatalogList(child.field);
+      child.value = mapCatalogValue(list, child.value);
+    }
+  }
+  return tree;
+};
+
+const applyActiveWindow = (sch) => {
+  const rule = sch.rrule || "";
+  const hours = sch.activeHours || {};
+  campaign.schedule.rrule = rule;
+  campaign.schedule.activeHours = { ...hours };
+  campaign.schedule.enableActiveWindow = sch.enableActiveWindow !== false;
+  campaign.schedule.recurringType = !!campaign.schedule.enableActiveWindow;
+
+  if (rule.includes("FREQ=DAILY")) {
+    campaign.schedule.schedulePattern = "daily";
+    campaign.schedule.startTime = hours.start || null;
+    campaign.schedule.endTime = hours.end || null;
+  } else if (rule.includes("FREQ=WEEKLY")) {
+    campaign.schedule.schedulePattern = "weekly";
+    campaign.schedule.scheduleDays = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
+    campaign.schedule.weeklyStartTime = hours.start || null;
+    campaign.schedule.weeklyEndTime = hours.end || null;
+  } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYMONTHDAY")) {
+    campaign.schedule.schedulePattern = "monthlyDate";
+    campaign.schedule.scheduleDate = rule.match(/BYMONTHDAY=(\d+)/)?.[1];
+    campaign.schedule.monthlyDateStartTime = hours.start || null;
+    campaign.schedule.monthlyDateEndTime = hours.end || null;
+  } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYSETPOS")) {
+    const weekMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+    campaign.schedule.schedulePattern = "monthlyWeekday";
+    campaign.schedule.scheduleWeek = weekMap[rule.match(/BYSETPOS=(-?\d+)/)?.[1]];
+    campaign.schedule.scheduleWeekday = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
+    campaign.schedule.monthlyWeekdayStartTime = hours.start || null;
+    campaign.schedule.monthlyWeekdayEndTime = hours.end || null;
+  }
+};
+
+const applyAssistantCampaignState = async (campaignState) => {
+  if (!campaignState) return;
+
+  const applied = { trigger: false, template: false, audience: false, schedule: false };
+  const updated = [];
+
+  const triggerFilter = campaignState.trigger?.triggerFilter;
+  if (triggerFilter && aiPollSectionChanged("trigger", triggerFilter)) {
+    const tree = await resolveCatalogValues(
+      normalizeAiFilterTree(triggerFilter, FILTER_FIELDS_MAP),
+    );
+    if (tree?.children?.length) {
+      applyFilterTree(campaign.triggerFilter, tree);
+      applied.trigger = true;
+      const sig = sectionSignature(triggerFilter);
+      if (sig !== lastAppliedSectionSigs.value.trigger) {
+        updated.push(0);
+        lastAppliedSectionSigs.value.trigger = sig;
+      }
+    }
+  }
+  if (triggerFilter) setAiPollMetaSection("trigger", triggerFilter);
+
+  const tpl = campaignState.template;
+  if (hasSectionData(tpl)) {
+    const title = tpl.title || tpl.campaignTitle;
+    if (title && aiPollFieldChanged("template", "title", title)) {
+      campaign.title = title;
+      applied.template = true;
+    }
+    if (title) setAiPollMeta("template", { title });
+
+    const template = tpl.action?.template || tpl.template;
+    const templateId = template?.id || null;
+    if (templateId && aiPollFieldChanged("template", "templateId", templateId)) {
+      campaign.action.template = {
+        ...campaign.action.template,
+        id: template.id,
+        code: template.code ?? campaign.action.template.code,
+        type: template.type ?? campaign.action.template.type,
+        subType: template.subType ?? campaign.action.template.subType,
+      };
+      router.replace({ query: { ...route.query, t_edit: templateId } });
+      applied.template = true;
+    }
+    if (templateId) setAiPollMeta("template", { templateId });
+
+    const templateB = tpl.action?.templateB || tpl.templateB;
+    if (templateB?.id && aiPollFieldChanged("template", "templateBId", templateB.id)) {
+      campaign.abTesting.enabled = true;
+      campaign.action.templateB = {
+        ...campaign.action.templateB,
+        id: templateB.id,
+        code: templateB.code,
+        type: templateB.type,
+        subType: templateB.subType,
+      };
+      router.replace({ query: { ...route.query, t_b_edit: templateB.id } });
+      applied.template = true;
+    }
+    if (templateB?.id) setAiPollMeta("template", { templateBId: templateB.id });
+
+    if (applied.template) {
+      const sig = sectionSignature(tpl);
+      if (sig !== lastAppliedSectionSigs.value.template) {
+        updated.push(1);
+        lastAppliedSectionSigs.value.template = sig;
+      }
+    }
+  }
+
+  const aud = campaignState.audience;
+  if (hasSectionData(aud)) {
+    if (aud.userSet && aiPollFieldChanged("audience", "userSet", aud.userSet)) {
+      campaign.audience.userSet = aud.userSet;
+      applied.audience = true;
+    }
+    if (aud.userSet) setAiPollMeta("audience", { userSet: aud.userSet });
+
+    if (aud.filter && aiPollFieldChanged("audience", "filter", aud.filter)) {
+      const tree = await resolveCatalogValues(
+        normalizeAiFilterTree(aud.filter, FILTER_FIELDS_MAP),
+      );
+      if (tree?.children?.length) {
+        await nextTick();
+        applyFilterTree(campaign.filter, tree);
+        applied.audience = true;
+        const sig = sectionSignature(aud.filter);
+        if (sig !== lastAppliedSectionSigs.value.audience) {
+          updated.push(2);
+          lastAppliedSectionSigs.value.audience = sig;
+        }
+      }
+    }
+    if (aud.filter) setAiPollMeta("audience", { filter: aud.filter });
+  }
+
+  const sch = campaignState.schedule;
+  if (hasSectionData(sch)) {
+    if (sch.durationType && aiPollFieldChanged("schedule", "durationType", sch.durationType)) {
+      campaign.schedule.durationType = sch.durationType;
+      applied.schedule = true;
+    }
+    if (sch.durationType) setAiPollMeta("schedule", { durationType: sch.durationType });
+
+    if (sch.startDate != null && aiPollFieldChanged("schedule", "startDate", sch.startDate)) {
+      campaign.schedule.startDate = sch.startDate;
+      applied.schedule = true;
+    }
+    if ("startDate" in sch) setAiPollMeta("schedule", { startDate: sch.startDate });
+
+    if (sch.endDate != null && aiPollFieldChanged("schedule", "endDate", sch.endDate)) {
+      campaign.schedule.endDate = sch.endDate;
+      applied.schedule = true;
+    }
+    if ("endDate" in sch) setAiPollMeta("schedule", { endDate: sch.endDate });
+
+    if (
+      "enableActiveWindow" in sch &&
+      aiPollFieldChanged("schedule", "enableActiveWindow", !!sch.enableActiveWindow)
+    ) {
+      campaign.schedule.enableActiveWindow = !!sch.enableActiveWindow;
+      campaign.schedule.recurringType = !!sch.enableActiveWindow;
+      applied.schedule = true;
+    }
+    if ("enableActiveWindow" in sch) {
+      setAiPollMeta("schedule", { enableActiveWindow: !!sch.enableActiveWindow });
+    }
+
+    const windowSig = JSON.stringify({
+      rrule: sch.rrule || null,
+      activeHours: sch.activeHours || null,
+    });
+    if (sch.rrule && aiPollFieldChanged("schedule", "window", windowSig)) {
+      applyActiveWindow(sch);
+      applied.schedule = true;
+      setAiPollMeta("schedule", { window: windowSig });
+    }
+
+    if (sch.timezone && aiPollFieldChanged("schedule", "timezone", sch.timezone)) {
+      campaign.schedule.timezone = sch.timezone;
+      applied.schedule = true;
+    }
+    if (sch.timezone) setAiPollMeta("schedule", { timezone: sch.timezone });
+
+    if (applied.schedule) {
+      const sig = sectionSignature(sch);
+      if (sig !== lastAppliedSectionSigs.value.schedule) {
+        updated.push(3);
+        lastAppliedSectionSigs.value.schedule = sig;
+      }
+    }
+  }
+
+  if (updated.length) flashAiTabs(updated);
+};
+
+const onAssistantCampaignState = (campaignState) => {
+  if (!campaignState) return;
+  pendingAssistantState.value = campaignState;
+  applyAssistantCampaignState(campaignState);
+};
+
+watch(templateList, () => {
+  if (pendingAssistantState.value) {
+    applyAssistantCampaignState(pendingAssistantState.value);
+  }
 });
 </script>
 
@@ -402,10 +758,20 @@ onMounted(async () => {
           v-for="(item, index) in tabs"
           :key="item.icon"
           :value="index"
-          :class="{ 'error-tab': tabErrors[index] }"
+          :class="{
+            'error-tab': tabErrors[index],
+            'ai-tab-flash': aiFlashTabs.includes(index),
+          }"
         >
           <VIcon size="20" start :icon="item.icon" />
           {{ item.title }}
+          <VIcon
+            v-if="aiFlashTabs.includes(index)"
+            icon="tabler-sparkles"
+            size="14"
+            color="primary"
+            class="ml-1 ai-tab-icon"
+          />
           <VIcon v-if="tabErrors[index]" color="error" size="16" class="ml-1">
             mdi-exclamation-thick
           </VIcon>
@@ -560,6 +926,12 @@ onMounted(async () => {
       <!-- tab-goals -->
       <!-- <VWindowItem> Goals </VWindowItem> -->
     </VWindow>
+
+    <EngagementCampaignAssistant
+      v-if="isAgenticAiEnabled"
+      v-model:expanded="assistantExpanded"
+      @campaign-state="onAssistantCampaignState"
+    />
   </div>
 </template>
 
@@ -571,5 +943,38 @@ onMounted(async () => {
 .error-tab {
   color: #d32f2f !important; /* red text */
   font-weight: 600;
+}
+
+:deep(.ai-tab-flash) {
+  animation: ai-tab-pulse 0.9s ease-in-out 3;
+  border-radius: 8px;
+}
+
+:deep(.ai-tab-icon) {
+  animation: ai-tab-icon-spin 1.4s ease-in-out infinite;
+}
+
+@keyframes ai-tab-pulse {
+  0%,
+  100% {
+    background: transparent;
+    box-shadow: none;
+  }
+  50% {
+    background: rgba(var(--v-theme-primary), 0.14);
+    box-shadow: inset 0 0 0 1px rgba(var(--v-theme-primary), 0.35);
+  }
+}
+
+@keyframes ai-tab-icon-spin {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.15);
+  }
 }
 </style>
