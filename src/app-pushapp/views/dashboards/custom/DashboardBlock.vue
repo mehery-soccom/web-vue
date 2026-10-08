@@ -360,8 +360,8 @@ watch(
 }
 
 .dashboard-block__count {
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   line-height: 1;
 }
 
