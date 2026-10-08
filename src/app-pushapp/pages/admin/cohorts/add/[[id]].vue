@@ -12,6 +12,8 @@ const router = useRouter();
 const CohortsStore = useCohortsStore();
 const { clearCache } = useAppEngagements();
 const isLoading = ref(false);
+const isViewMode = computed(() => !!route.params.id);
+const isEditing = computed(() => "edit" in route.query);
 const cohort = reactive({
   name: null,
   desc: null,
@@ -63,6 +65,35 @@ const onCreate = async () => {
   }
 };
 
+const onUpdate = async () => {
+  let validationResult = await formRef.value?.validate();
+  if (!validationResult?.valid) return;
+
+  if (!(await validateAudienceFilter())) return;
+
+  try {
+    isLoading.value = true;
+
+    await CohortsStore.updateCohort({
+      id: route.params.id,
+      name: cohort.name,
+      desc: cohort.desc,
+      filter: cohort.filter,
+    });
+    clearCache("cohort");
+    show({ message: "Cohort updated successfully", color: "success" });
+    router.push({ name: "admin-cohorts-list" });
+  } catch (error) {
+    const apiErr = error.response?.data;
+    show({
+      message: apiErr?.error?.message || apiErr?.message || "something went wrong",
+      color: "error",
+    });
+  } finally {
+    isLoading.value = false;
+  }
+};
+
 onMounted(async () => {
   if (route.params.id) {
     CohortsStore.fetchCohort({ id: route.params.id })
@@ -107,7 +138,7 @@ onMounted(async () => {
   <v-card>
     <v-card-item class="pb-0">
       <v-card-title
-        >{{ route.params.id ? "View" : "Build" }} Cohort</v-card-title
+        >{{ isEditing ? "Edit" : route.params.id ? "View" : "Build" }} Cohort</v-card-title
       >
       <v-card-subtitle></v-card-subtitle>
     </v-card-item>
@@ -121,7 +152,7 @@ onMounted(async () => {
               placeholder="Cohort name"
               :rules="[requiredValidator]"
               prepend-inner-icon="mdi-text-box"
-              :readonly="!!route.params.id"
+              :readonly="isViewMode"
             />
           </VCol>
           <VCol cols="12" md="8">
@@ -129,7 +160,7 @@ onMounted(async () => {
               v-model="cohort.desc"
               placeholder="Optional Description"
               prepend-inner-icon="mdi-text-box"
-              :readonly="!!route.params.id"
+              :readonly="isViewMode && !isEditing"
             />
           </VCol>
         </VRow>
@@ -141,13 +172,16 @@ onMounted(async () => {
         :ignoreCohortfilterType="true"
         :showScannedEvents="true"
         ref="filterRef"
-        :readonly="!!route.params.id"
+        :readonly="isViewMode && !isEditing"
       />
     </VCardText>
 
     <VCardText class="d-flex align-center gap-4">
       <VBtn v-if="!route.params.id" @click="onCreate" :disabled="isLoading">{{
         isLoading ? "loading..." : "Create"
+      }}</VBtn>
+      <VBtn v-else-if="isEditing" @click="onUpdate" :disabled="isLoading">{{
+        isLoading ? "loading..." : "Update"
       }}</VBtn>
       <VBtn
         variant="tonal"

@@ -160,6 +160,16 @@ onMounted(async () => {});
           <VIcon icon="mdi-eye" />
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
+        <!-- <IconBtn
+          :to="{
+            name: 'admin-cohorts-add-id?',
+            params: { id: item.raw._id },
+            query: { edit: null },
+          }"
+        >
+          <VIcon icon="mdi-pencil-outline" />
+          <VTooltip activator="parent">Edit</VTooltip>
+        </IconBtn> -->
         <IconBtn v-if="item.raw.active">
           <VIcon>mdi-trash</VIcon>
           <v-dialog activator="parent" max-width="340">
