@@ -238,7 +238,8 @@ const eventDataFields = computed(() => {
   const matchedDefs = Object.values(FILTER_FIELDS_MAP).filter((f) => {
     if (f.type !== "eventData") return false;
     if (ids.includes(f.eventId)) return true;
-    if (props.connectedAppEvent && f.title === props.connectedAppEvent)
+    // match on the key: title is now the display label
+    if (props.connectedAppEvent && f.eventId === props.connectedAppEvent)
       return true;
     return false;
   });
@@ -248,6 +249,13 @@ const eventDataFields = computed(() => {
     ...new Set(matchedDefs.flatMap((e) => e.meta?.dataProperties || [])),
   ].map((p) => ({ title: p, value: p }));
 });
+// Field search matches the shown title and, for events, the internal key too (keys were searchable before labels).
+const fieldFilter = (_value, query, item) => {
+  const q = String(query || "").toLowerCase();
+  const raw = item?.raw || {};
+  return [raw.title, raw.eventId].some((s) => String(s || "").toLowerCase().includes(q));
+};
+
 const selectedFieldMeta = computed(() => {
   if (props.element.filterType === "eventData") {
     return {
@@ -368,10 +376,19 @@ defineExpose({ isValid });
             : 'Select field'
         "
         class="filter-entity field"
+        :custom-filter="fieldFilter"
         @update:modelValue="onFilterFieldChange"
       >
         <template #item="{ props, item }">
           <VListItem v-bind="props">
+            <!-- events: show the internal key under the display label -->
+            <VListItemSubtitle
+              v-if="item.raw.eventId && item.raw.eventId !== item.raw.title"
+              class="text-xs"
+              style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace"
+            >
+              {{ item.raw.eventId }}
+            </VListItemSubtitle>
             <VListItemSubtitle class="ml-auto text-xs text-gray-500">
               <span v-if="item.raw.meta?.projection != null">
                 Projection : {{ item.raw.meta?.projection }}

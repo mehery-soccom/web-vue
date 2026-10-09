@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch, nextTick, reactive } from 'vue'
+import { ref, computed, watch, nextTick, reactive, onMounted } from 'vue'
 import { toPng } from 'html-to-image'
 import {
   VueFlow,
@@ -81,17 +81,27 @@ async function fetchOnce(key, url, params, mapFn) {
 }
 
 async function loadSystemAndCustomEventsOnce() {
+  // title = what the dropdown shows (Event Master label for custom events); name = what nodes save, unchanged.
   const systemEvents = Object.values(FILTER_FIELDS_MAP).filter(e => e.type === 'event')
-      .map(e => ({ title: e.title, value: e.value }))
+      .map(e => ({ title: e.title, value: e.value, name: e.title }))
 
   const customEvents = await fetchOnce('customEvents', API.customEvents, {}, (data) => {
       const items = extractArray(data)
-      return items.sort((a, b) => a.eventName.localeCompare(b.eventName)).map(i => ({ title: i.eventName, value: i.eventName,}))
+      return items
+        .map(i => ({ title: i.displayLabel || i.eventName, value: i.eventName, name: i.eventName }))
+        .sort((a, b) => a.title.localeCompare(b.title))
     },
   )
 
   return [ ...systemEvents, ...customEvents ]
 }
+
+// Canvas shows Event Master labels for Trigger / Expected nodes (looked up live, so saved journeys show them too).
+const eventLabels = ref({})
+onMounted(async () => {
+  const options = await loadSystemAndCustomEventsOnce()
+  eventLabels.value = Object.fromEntries(options.map(o => [o.value, o.title]))
+})
 
 async function loadMessageChannelsOnce(contactType) {
   return fetchOnce(`messageChannels:${contactType}`, API.messageChannels(contactType), {}, (data) => {
@@ -1304,7 +1314,7 @@ defineExpose({
               <span class="flow-node-code">{{ NODE_DEFS[data.code]?.label }}</span>
             </div>
             <div class="flow-node-body">
-              <template v-if="data.code === 'TRIGGER'">{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No Event Selected' }}</template>
+              <template v-if="data.code === 'TRIGGER'">{{ eventLabels[data.attrs.appevent] || formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No Event Selected' }}</template>
               <template v-else-if="data.code === 'CONDITION'">
                 {{ (data.attrs.filter?.children?.length || 0) }} condition(s)
               </template>
@@ -1314,7 +1324,7 @@ defineExpose({
                 · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
               <template v-else-if="data.code === 'EXPECTATION'">
-                <div>{{ formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
+                <div>{{ eventLabels[data.attrs.appevent] || formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
                 <div v-if="data.attrs.channelType">{{ channelAbbrev(data.attrs.channelType) }}
                 <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />  
                 · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
@@ -1375,7 +1385,7 @@ defineExpose({
               :disabled="disabled"
               @update:model-value="value => {
                 setNodeAttr('appevent', value)
-                setNodeAttr('name', optionCache[inspectedNode.id]?.eventOptions?.find(o => o.value === value)?.title || '')
+                setNodeAttr('name', optionCache[inspectedNode.id]?.eventOptions?.find(o => o.value === value)?.name || '')
               }"
             />
           </template>
@@ -1514,7 +1524,7 @@ defineExpose({
               :disabled="disabled"
               @update:model-value="value => {
                 setNodeAttr('appevent', value)
-                setNodeAttr('name', optionCache[inspectedNode.id]?.eventOptions?.find(o => o.value === value)?.title || '')
+                setNodeAttr('name', optionCache[inspectedNode.id]?.eventOptions?.find(o => o.value === value)?.name || '')
               }"
             />
             <AppTextField

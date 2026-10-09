@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, inject, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSequenceStore } from '@app-pushapp/views/dashboards/sequence/useSequenceStore';
+import { loadEventLabels } from '@app-pushapp/views/config/event-master/eventMaster';
 import draggable from 'vuedraggable';
 
 const route = useRoute();
@@ -37,12 +38,21 @@ const formatEventName = (str) => {
     .join(' ');
 };
 
+// Event Master labels; display only, the step still stores the event key.
+const eventLabels = ref({});
+
 const availableEvents = computed(() => {
   return store.uniqueEvents.map(event => ({
     value: event,
-    label: event
+    label: eventLabels.value[event] || event
   })).sort((a, b) => a.label.localeCompare(b.label));
 });
+
+// Search matches the label or the event key
+const eventFilter = (_value, query, item) => {
+  const q = String(query || '').toLowerCase();
+  return [item.raw.label, item.raw.value].some(s => String(s || '').toLowerCase().includes(q));
+};
 
 watch(() => formData.value.name, (newName) => {
   if (isViewMode.value) return;
@@ -89,7 +99,8 @@ const loadSequence = async () => {
 onMounted(async () => {
   isFetching.value = true;
   try {
-    await store.fetchUniqueEvents();
+    const [, labels] = await Promise.all([store.fetchUniqueEvents(), loadEventLabels()]);
+    eventLabels.value = labels;
     if (sequenceId.value) await loadSequence();
   } catch (error) {
     show({
@@ -239,6 +250,7 @@ const handleSubmit = async () => {
                       :items="availableEvents"
                       item-title="label"
                       item-value="value"
+                      :custom-filter="eventFilter"
                       label="Select Event"
                       placeholder="Search for an event..."
                       :rules="[requiredValidator]"

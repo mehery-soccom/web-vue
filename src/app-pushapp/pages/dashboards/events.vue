@@ -10,8 +10,10 @@ import SessionEvents from "@app-pushapp/views/dashboards/event/SessionEvents.vue
 import EventDevices from "@app-pushapp/views/dashboards/event/EventDevices.vue"
 import EventGeo from "@app-pushapp/views/dashboards/event/EventGeo.vue"
 import EventProperty from "@app-pushapp/views/dashboards/event/EventProperty.vue"
+import { dotColor } from "@app-pushapp/views/config/event-master/eventMaster"
 
 const eventStore = useEventStore()
+const route = useRoute()
 const { customPlugin } = useDatePickerFilters()
 
 const cohortsStore = useCohortsStore()
@@ -43,14 +45,26 @@ const optionIcons = {
   Devices: 'tabler-device-mobile'
 }
 
+// Value stays the event key, so every stats call and tab below is unchanged; only the label shown differs.
 const formattedEventList = computed(() => {
-  return eventStore.uniqueEvents
+  return eventStore.eventOptions
     .map(event => ({
-      title: event,
-      value: event
+      title: event.displayLabel,
+      value: event.eventName,
     }))
     .sort((a, b) => a.title.localeCompare(b.title))
 })
+
+// Search matches the label or the event key
+const eventFilter = (_value, query, item) => {
+  const q = (query || '').toLowerCase()
+  return item.raw.title.toLowerCase().includes(q) || item.raw.value.toLowerCase().includes(q)
+}
+
+const selectedEventOption = computed(() => formattedEventList.value.find(e => e.value === selectedEvent.value))
+
+// On focus Vuetify fills the search with the selected label; select it so typing starts a fresh search.
+const selectSearchText = (e) => setTimeout(() => e?.target?.select?.(), 0)
 
 const formattedCohortList = computed(() => {
   return cohortsStore.cohorts
@@ -145,7 +159,9 @@ const onDateClosed = (selectedDates, dateStr) => {
 const isSessionDisabled = computed(() => ['app_open', 'page_open'].includes(selectedEvent.value))
 
 onMounted(async () => {
-  await eventStore.fetchUniqueEvents()
+  await eventStore.fetchEventOptions()
+  // Deep link from Event Master: /dashboards/events?event=<eventName> preselects it (default date range)
+  if (route.query.event) selectedEvent.value = String(route.query.event)
 
   const res = await cohortsStore.fetchCohorts({  paginate: false  })
   cohortsStore.cohorts = res.data.results
@@ -166,12 +182,53 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
           <VAutocomplete
             v-model="selectedEvent"
             :items="sessionFilteredEvents"
+            :custom-filter="eventFilter"
+            :menu-props="{ contentClass: 'event-picker-menu' }"
             label="Event"
             variant="outlined"
-            placeholder="Select event"
+            placeholder="Search event label or internal key"
             density="compact"
-            style="min-width: 250px;"
-          />
+            class="event-picker"
+            @focus="selectSearchText"
+            style="min-width: 360px; max-width: 460px;"
+          >
+            <!-- Label keeps priority; the key shrinks first and ends in "…" instead of being clipped. Hover shows both. -->
+            <template #selection>
+              <span
+                v-if="selectedEventOption"
+                class="event-selection"
+                :title="selectedEventOption.title !== selectedEventOption.value ? `${selectedEventOption.title} (${selectedEventOption.value})` : selectedEventOption.title"
+              >
+                <span class="event-dot" :style="{ background: dotColor(selectedEventOption.value) }" />
+                <span class="event-selection__label">{{ selectedEventOption.title }}</span>
+                <span v-if="selectedEventOption.title !== selectedEventOption.value" class="event-selection__key text-disabled font-mono text-caption">
+                  ({{ selectedEventOption.value }})
+                </span>
+              </span>
+            </template>
+            <template #item="{ props, item }">
+              <VListItem v-bind="props" :title="undefined" class="event-option">
+                <template #prepend>
+                  <span class="event-dot me-3" :style="{ background: dotColor(item.raw.value) }" />
+                </template>
+                <VListItemTitle class="font-weight-bold">{{ item.raw.title }}</VListItemTitle>
+                <VListItemSubtitle class="font-mono">{{ item.raw.value }}</VListItemSubtitle>
+                <template #append>
+                  <VIcon v-if="item.raw.value === selectedEvent" icon="tabler-check" color="primary" size="18" />
+                </template>
+              </VListItem>
+            </template>
+            <!-- Pinned to the bottom of the menu so it's visible without scrolling the whole event list -->
+            <template #append-item>
+              <div class="event-master-cta">
+                <VListItem :to="{ path: '/config/event-master/list' }" class="justify-center">
+                  <VListItemTitle class="text-primary text-center d-flex align-center justify-center gap-2">
+                    <VIcon icon="tabler-settings" size="18" /> Manage event labels in Event Master
+                  </VListItemTitle>
+                </VListItem>
+              </div>
+            </template>
+          </VAutocomplete>
 
           <VAutocomplete
             v-model="selectedCohort"
@@ -356,6 +413,67 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
 .border-dashed {
   border: 2px dashed rgba(var(--v-border-color), 0.3);
 }
+.event-dot {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+/* Closed picker: the selected label/key gets the whole field. The (empty) search input only takes
+   space again while the field is focused, i.e. while typing. */
+.event-picker :deep(.v-autocomplete__selection) {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 100%;
+}
+.event-picker :deep(.v-field:not(.v-field--focused) .v-field__input > input) {
+  flex: 0 0 0;
+  min-width: 0;
+  width: 0;
+  padding: 0;
+}
+.event-selection {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+  overflow: hidden;
+}
+.event-selection__label,
+.event-selection__key {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-selection__label {
+  flex: 0 1 auto;
+}
+.event-selection__key {
+  flex: 0 100 auto; /* shrinks long before the label does */
+}
+.event-master-cta {
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  border-top: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+  background: rgb(var(--v-theme-surface));
+}
+/* full-bleed row: the theme's list-item margin + radius left a gap around the hover */
+.event-master-cta :deep(.v-list-item) {
+  margin: 0 !important;
+  border-radius: 0 !important;
+  min-block-size: 52px;
+}
+/* separator between event options in the picker */
+.event-option {
+  border-bottom: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
+}
 .snap-overview-wrap {
   position: relative;
 }
@@ -369,5 +487,12 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
   backdrop-filter: blur(1px);
   border-radius: inherit;
   z-index: 2;
+}
+</style>
+<style>
+/* Event picker menu (teleported, so not reachable from scoped styles): no bottom padding,
+   so the pinned "Manage event labels" CTA sits flush with the menu's bottom edge. */
+.event-picker-menu .v-list {
+  padding-block-end: 0 !important;
 }
 </style>
