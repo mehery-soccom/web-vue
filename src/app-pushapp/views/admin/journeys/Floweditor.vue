@@ -81,7 +81,6 @@ async function fetchOnce(key, url, params, mapFn) {
 }
 
 async function loadSystemAndCustomEventsOnce() {
-  // title = what the dropdown shows (Event Master label for custom events); name = what nodes save, unchanged.
   const systemEvents = Object.values(FILTER_FIELDS_MAP).filter(e => e.type === 'event')
       .map(e => ({ title: e.title, value: e.value, name: e.title }))
 
@@ -1078,6 +1077,171 @@ function formatLabel(value) {
   const str = String(value || '').toLowerCase().replaceAll('_', ' ')
   return str.charAt(0).toUpperCase() + str.slice(1)
 }
+
+const escapeHtml = (value) =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+
+const nodeBodyLines = (node) => {
+  const data = node.data || {}
+  const attrs = data.attrs || {}
+  if (data.code === 'TRIGGER') {
+    return [formatLabel(attrs.name) || formatLabel(attrs.appevent) || 'No Event Selected']
+  }
+  if (data.code === 'CONDITION') {
+    return [`${attrs.filter?.children?.length || 0} condition(s)`]
+  }
+  if (data.code === 'ACTOR') {
+    return [`${channelAbbrev(attrs.channelType)} · ${attrs.template?.name || attrs.template?.code || 'No Template'}`]
+  }
+  if (data.code === 'EXPECTATION') {
+    const lines = [`${formatLabel(attrs.name) || formatLabel(attrs.appevent) || 'No event'} (${attrs.window?.value ?? ''}${attrs.window?.unit?.[0] || ''})`]
+    if (attrs.channelType) {
+      lines.push(`${channelAbbrev(attrs.channelType)} · ${attrs.template?.name || attrs.template?.code || 'No Template'}`)
+    }
+    return lines
+  }
+  if (data.code === 'WAIT') {
+    return [`Wait for (${attrs.window?.value ?? ''}${attrs.window?.unit?.[0] || ''})`]
+  }
+  if (data.code === 'END') {
+    return [attrs.status ? formatLabel(attrs.status) : 'Terminates Flow']
+  }
+  return ['']
+}
+
+const buildFlowHtml = (title = 'Journey flow') => {
+  const flowNodes = nodes.value || []
+  if (!flowNodes.length) return ''
+
+  const NODE_W = 220
+  const NODE_H = 86
+  let minX = Infinity
+  let minY = Infinity
+  let maxX = -Infinity
+  let maxY = -Infinity
+
+  flowNodes.forEach((node) => {
+    const x = node.position?.x ?? 0
+    const y = node.position?.y ?? 0
+    minX = Math.min(minX, x)
+    minY = Math.min(minY, y - 36)
+    maxX = Math.max(maxX, x + NODE_W + 24)
+    maxY = Math.max(maxY, y + NODE_H + 24)
+  })
+
+  const pad = 56
+  const width = Math.max(320, maxX - minX + pad * 2)
+  const height = Math.max(240, maxY - minY + pad * 2)
+  const ox = pad - minX
+  const oy = pad - minY
+  const nodeById = Object.fromEntries(flowNodes.map((node) => [node.id, node]))
+
+  const edgeMarkup = (edges.value || []).map((edge) => {
+    const source = nodeById[edge.source]
+    const target = nodeById[edge.target]
+    if (!source || !target) return ''
+    const outputs = getOutputs(source)
+    const handle = edge.sourceHandle || edge.data?.output
+    const outIndex = Math.max(0, outputs.findIndex((output) => output.id === handle))
+    const outCount = Math.max(outputs.length, 1)
+    const sx = (source.position?.x ?? 0) + ox + NODE_W
+    const sy = (source.position?.y ?? 0) + oy + ((outIndex + 0.5) / outCount) * NODE_H
+    const tx = (target.position?.x ?? 0) + ox
+    const ty = (target.position?.y ?? 0) + oy + NODE_H / 2
+    const bend = Math.max(48, Math.abs(tx - sx) / 2)
+    const label = edge.label || outputs[outIndex]?.label || ''
+    const mx = (sx + tx) / 2
+    const my = (sy + ty) / 2
+    return `<path d="M ${sx} ${sy} C ${sx + bend} ${sy}, ${tx - bend} ${ty}, ${tx} ${ty}" />${
+      label
+        ? `<text x="${mx}" y="${my - 8}" text-anchor="middle">${escapeHtml(label)}</text>`
+        : ''
+    }`
+  }).join('')
+
+  const cardMarkup = flowNodes.map((node) => {
+    const def = NODE_DEFS[node.data?.code] || {}
+    const x = (node.position?.x ?? 0) + ox
+    const y = (node.position?.y ?? 0) + oy
+    const stats = props.analyticsNodesMap?.[node.id]
+    const badges = stats
+      ? `<div class="badges"><span class="reached">Reached ${escapeHtml(stats.reachedCount ?? 0)}</span>${
+          node.data?.code === 'TRIGGER'
+            ? ''
+            : `<span class="current">Here ${escapeHtml(stats.currentlyAtCount ?? 0)}</span>`
+        }</div>`
+      : ''
+    const body = nodeBodyLines(node).map((line) => escapeHtml(line)).join('<br>')
+    return `<article class="node" style="left:${x}px;top:${y}px;--c:${def.color || '#94a3b8'}">${badges}<div class="card"><div class="head"><span>${def.icon || ''}</span><span>${escapeHtml(def.label || node.data?.code || 'Node')}</span></div><div class="body">${body}</div></div></article>`
+  }).join('')
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${escapeHtml(title)}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #f6f5f2; color: #2f2b3d; font-family: Inter, Segoe UI, sans-serif; }
+  .toolbar { position: sticky; top: 0; z-index: 2; display: flex; gap: 8px; align-items: center; padding: 10px 14px; background: #fff; border-bottom: 1px solid #e6e3dc; }
+  .toolbar strong { margin-right: auto; }
+  button { border: 1px solid #d9d5cc; background: #fff; border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .stage { overflow: auto; height: calc(100vh - 52px); }
+  .canvas { position: relative; transform-origin: top left; background-image: linear-gradient(#ebe8e0 1px, transparent 1px), linear-gradient(90deg, #ebe8e0 1px, transparent 1px); background-size: 20px 20px; }
+  svg.edges { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+  svg.edges path { fill: none; stroke: #b0aa9b; stroke-width: 1.6; }
+  svg.edges text { font-size: 10px; fill: #6e6b7b; }
+  .node { position: absolute; width: ${NODE_W}px; }
+  .badges { display: flex; justify-content: center; gap: 6px; margin-bottom: 6px; font-size: 11px; font-weight: 700; }
+  .reached, .current { border-radius: 999px; padding: 2px 8px; }
+  .reached { background: #ece9ff; color: #7367f0; }
+  .current { background: #fff1e3; color: #c2410c; }
+  .card { background: #fff; border: 1.5px solid var(--c); border-radius: 9px; box-shadow: 0 6px 16px rgba(0,0,0,0.05); }
+  .head { display: flex; gap: 6px; align-items: center; padding: 7px 10px; color: var(--c); font-size: 12px; font-weight: 700; border-bottom: 1px solid #f0eee8; }
+  .body { padding: 9px 11px 11px; font-size: 12px; line-height: 1.4; word-break: break-word; }
+</style>
+</head>
+<body>
+  <div class="toolbar">
+    <strong>${escapeHtml(title)}</strong>
+    <button type="button" onclick="setZoom(zoom * 1.2)">Zoom in</button>
+    <button type="button" onclick="setZoom(zoom / 1.2)">Zoom out</button>
+    <button type="button" onclick="fit()">Fit</button>
+  </div>
+  <div class="stage" id="stage">
+    <div class="canvas" id="canvas" style="width:${width}px;height:${height}px">
+      <svg class="edges" viewBox="0 0 ${width} ${height}">${edgeMarkup}</svg>
+      ${cardMarkup}
+    </div>
+  </div>
+<script>
+  let zoom = 1;
+  const canvas = document.getElementById('canvas');
+  const stage = document.getElementById('stage');
+  function setZoom(next) {
+    zoom = Math.min(6, Math.max(0.15, next));
+    canvas.style.transform = 'scale(' + zoom + ')';
+  }
+  function fit() {
+    const pad = 24;
+    const scale = Math.min(
+      (stage.clientWidth - pad) / ${width},
+      (stage.clientHeight - pad) / ${height},
+      1
+    );
+    setZoom(scale > 0 ? scale : 1);
+  }
+  fit();
+</${'script'}>
+</body>
+</html>`
+}
+
 function clearAll() {
   if (props.disabled) return
   const trigger = nodes.value.find((n) => n.data.code === 'TRIGGER')
@@ -1174,6 +1338,7 @@ defineExpose({
   validateFlow,
   clearValidation,
   captureFlowScreenshot,
+  buildFlowHtml,
 })
 </script>
 

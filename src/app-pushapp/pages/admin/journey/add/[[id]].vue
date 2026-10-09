@@ -169,6 +169,18 @@ const downloadFlowImage = async () => {
   }
 };
 
+const downloadFlowHtml = () => {
+  const html = flowEditorRef.value?.buildFlowHtml?.(getJourneyDisplayName());
+  if (!html) {
+    show({ message: "Flow canvas is not ready yet", color: "warning" });
+    return;
+  }
+  const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  triggerFileDownload(url, `${getAnalyticsFileBaseName()}_flow.html`);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
 const exportAnalyticsToExcel = () => {
   if (!analyticsData.value?.summary) return;
 
@@ -694,6 +706,12 @@ onMounted(async () => {
                           <VIcon icon="tabler-vector" size="18" class="me-2" />
                         </template>
                         <VListItemTitle>Download Flow as Image</VListItemTitle>
+                      </VListItem>
+                      <VListItem @click="downloadFlowHtml">
+                        <template #prepend>
+                          <VIcon icon="tabler-file-code" size="18" class="me-2" />
+                        </template>
+                        <VListItemTitle>Download Flow as HTML</VListItemTitle>
                       </VListItem>
                     </VList>
                   </VMenu>

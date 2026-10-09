@@ -1,6 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
-import paJiIcon from "@app-pushapp/assets/images/pa-ji2.png";
+import paJiIcon from "@app-pushapp/assets/images/pa-ji3.png";
 
 defineOptions({ inheritAttrs: false });
 
@@ -573,8 +573,8 @@ defineExpose({ scrollToBottom, focusInput });
   background: transparent;
 }
 .ca-brand-img {
-  width: 130%;
-  height: 130%;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
   object-position: center 22%;
   display: block;
