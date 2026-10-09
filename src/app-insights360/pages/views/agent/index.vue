@@ -211,7 +211,7 @@ onMounted(async () => {
       <DemoDataTableKitchenSink
         :headers="headers" :loading="isLoading"
         :productList="tempTable"
-        :title="'Agent Data'"
+        :title="'Agent Analytics'"
       >
         <template #item.agent="{ item }">
           <span style="min-width: 100px; display: inline-block">{{

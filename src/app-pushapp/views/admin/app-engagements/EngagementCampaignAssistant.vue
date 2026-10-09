@@ -1,21 +1,21 @@
 <script setup>
 import { onBeforeUnmount, ref, watch } from "vue";
-import { mapAiFormStateToCampaignState, extractAiFormState, formStateSignature } from "@/app-pushapp/utils/mapAiFormState";
+import {
+  mapAiFormStateToEngagementState,
+  extractAiFormState,
+  formStateSignature,
+} from "@/app-pushapp/utils/mapAiFormState";
 import AssistantChatBox from "@app-pushapp/views/admin/assistant/AssistantChatBox.vue";
-import { usePushNotificationStore } from "./usePushNotificationStore";
+import { useAppEngagementsStore } from "./useAppEngagementsStore";
 
 const props = defineProps({
   expanded: { type: Boolean, default: false },
 });
 
-const emit = defineEmits([
-  "update:expanded",
-  "campaign-state",
-  "bot-status",
-]);
+const emit = defineEmits(["update:expanded", "campaign-state", "bot-status"]);
 
 const { show } = inject("snackbar");
-const store = usePushNotificationStore();
+const store = useAppEngagementsStore();
 const chatBoxRef = ref(null);
 
 const POLL_MS = 10000;
@@ -105,7 +105,7 @@ const applyFormStatePayload = (payload) => {
   const sig = formStateSignature(formState);
   if (sig && sig === lastFormStateSig) return;
 
-  const campaignState = mapAiFormStateToCampaignState(formState);
+  const campaignState = mapAiFormStateToEngagementState(formState);
   if (!campaignState) return;
 
   lastFormStateSig = sig;
@@ -122,20 +122,20 @@ const stopPolling = () => {
 const pollSession = async () => {
   if (!sessionId.value) return;
   try {
-    const res = await store.fetchCampaignAssistantSession(sessionId.value);
+    const res = await store.fetchEngagementAssistantSession(sessionId.value);
     applyPollPayload(res?.data ?? res);
   } catch (error) {
-    console.warn("[CampaignAssistant] poll failed", error);
+    console.warn("[EngagementCampaignAssistant] poll failed", error);
   }
 };
 
 const pollFormState = async () => {
   if (!sessionId.value || !hasFormStateInitialized.value) return;
   try {
-    const res = await store.fetchCampaignAiFormState(sessionId.value);
+    const res = await store.fetchEngagementAiFormState(sessionId.value);
     applyFormStatePayload(res?.data ?? res);
   } catch (error) {
-    console.warn("[CampaignAssistant] form-state poll failed", error);
+    console.warn("[EngagementCampaignAssistant] form-state poll failed", error);
   }
 };
 
@@ -152,11 +152,11 @@ const startPolling = () => {
 const initFormState = async () => {
   if (!sessionId.value || hasFormStateInitialized.value) return;
   try {
-    const res = await store.initCampaignAiFormState(sessionId.value);
+    const res = await store.initEngagementAiFormState(sessionId.value);
     applyFormStatePayload(res?.data ?? res);
     hasFormStateInitialized.value = true;
   } catch (error) {
-    console.warn("[CampaignAssistant] form-state init failed", error);
+    console.warn("[EngagementCampaignAssistant] form-state init failed", error);
   }
 };
 
@@ -164,7 +164,7 @@ const bootstrapSession = async () => {
   if (hasBootstrapped.value || isBootstrapping.value) return;
   isBootstrapping.value = true;
   try {
-    const res = await store.postCampaignAssistantMessage({
+    const res = await store.postEngagementAssistantMessage({
       sessionId: null,
       text: "",
     });
@@ -210,7 +210,7 @@ const sendMessage = async (content) => {
   try {
     if (!sessionId.value) await bootstrapSession();
 
-    await store.postCampaignAssistantMessage({
+    await store.postEngagementAssistantMessage({
       sessionId: sessionId.value,
       text: content,
     });

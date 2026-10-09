@@ -54,14 +54,7 @@ const PLATFORM_CHIP_META = [
 const hasCtaByPlatform = ref(false);
 const ctaByPlatformChips = ref([]);
 
-const formatStatNumber = (num) => {
-  if (num >= 1000000) {
-    return parseFloat((num / 1000000).toFixed(3)) + "M";
-  } else if (num >= 10000) {
-    return parseFloat((num / 1000).toFixed(2)) + "K";
-  }
-  return String(num);
-};
+const formatStatNumber = (num) => Number(num || 0).toLocaleString("en-IN");
 
 const formatPlatformChips = (obj = {}) =>
   PLATFORM_CHIP_META.map((meta) => ({
@@ -362,7 +355,7 @@ const endedStamp = (history) => {
 };
 const formatDate2 = (stamp) => {
   if (!stamp) return "-";
-  return new Date(stamp).toLocaleString();
+  return new Date(stamp).toLocaleString("en-IN");
 };
 function formatFieldName(field) {
   if (field === null || field === undefined) return "";
@@ -665,6 +658,17 @@ const onUpdateOptionsDebounced = debounce((options) => {
             item.raw.created.byUser
           }}</span>
           <span v-else> - </span>
+        </template>
+
+        <!-- numeric count columns with comma formatting -->
+        <template #item.stats.total="{ item }">
+          {{ (item.raw.stats?.total || 0).toLocaleString("en-IN") }}
+        </template>
+        <template #item.stats.sent="{ item }">
+          {{ (item.raw.stats?.sent || 0).toLocaleString("en-IN") }}
+        </template>
+        <template #item.stats.cta.__count="{ item }">
+          {{ (item.raw.stats?.cta?.__count || 0).toLocaleString("en-IN") }}
         </template>
 
         <!-- sent_percent -->

@@ -75,15 +75,15 @@ const filteredCta = computed(() => {
   // remove internal or undesired keys
   const r = Object.entries(cta)
     .filter(([key]) => key !== "__count")
-    .map(([key, value]) => ({ id: key, count: value }));
+    .map(([key, value]) => ({ id: key, count: Number.isFinite(value) ? value.toLocaleString("en-IN") : value }));
 
   return r;
 });
 
 const platformRows = (obj = {}) => [
-  { platform: "Android", count: obj.android ?? 0 },
-  { platform: "iOS", count: obj.ios ?? 0 },
-  { platform: "Unknown", count: obj.unknown ?? 0 },
+  { platform: "Android", count: (obj.android ?? 0).toLocaleString("en-IN") },
+  { platform: "iOS", count: (obj.ios ?? 0).toLocaleString("en-IN") },
+  { platform: "Unknown", count: (obj.unknown ?? 0).toLocaleString("en-IN") },
 ];
 
 const platformHeaders = [

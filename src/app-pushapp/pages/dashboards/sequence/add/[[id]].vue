@@ -40,7 +40,7 @@ const formatEventName = (str) => {
 const availableEvents = computed(() => {
   return store.uniqueEvents.map(event => ({
     value: event,
-    label: formatEventName(event)
+    label: event
   })).sort((a, b) => a.label.localeCompare(b.label));
 });
 

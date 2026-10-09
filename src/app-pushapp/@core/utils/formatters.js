@@ -48,6 +48,10 @@ export const formatDateToMonthShort = (value, toTimeForCurrentDay = true) => {
 };
 export const prefixWithPlus = (value) => (value > 0 ? `+${value}` : value);
 
+export const fmtNum = (n) => {
+  const num = Number(n);
+  return Number.isFinite(num) ? num.toLocaleString("en-IN") : (n ?? "");
+};
 import { differenceInDays, format, isYesterday, parseISO } from "date-fns";
 
 export const smartFormatDate = (dateStr, showTime = true) => {

@@ -1,6 +1,9 @@
 import { defineStore } from "pinia";
 import DataService from "@/@common/services/DataService";
 
+const APP_ENGAGEMENT_CHAT_URL = "/nexuz/agentic/api/v1/appEngagement";
+const agenticTenant = () => window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo";
+
 export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
   state: () => ({
     buttonGroupList: [
@@ -361,6 +364,24 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
     },
     fetchAudienceCount(params) {
       return DataService.axios.post("/api/v1/analytics/audience/count", params);
+    },
+
+    postEngagementAssistantMessage({ sessionId = null, text }) {
+      return DataService.axios.post(APP_ENGAGEMENT_CHAT_URL, { sessionId, text },
+        { skipApiContext: true, params: { tnt: agenticTenant() } },
+      );
+    },
+
+    fetchEngagementAssistantSession(sessionId) {
+      return DataService.axios.get(APP_ENGAGEMENT_CHAT_URL, { params: { sessionId, tnt: agenticTenant() }, skipApiContext: true });
+    },
+
+    initEngagementAiFormState(sessionId) {
+      return DataService.axios.post("/api/v1/ai-form-state", { sessionId, feature: "campaign" });
+    },
+
+    fetchEngagementAiFormState(sessionId) {
+      return DataService.axios.get(`/api/v1/ai-form-state/${sessionId}`);
     },
   },
 });

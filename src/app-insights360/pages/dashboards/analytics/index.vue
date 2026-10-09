@@ -121,6 +121,33 @@ var statsLead = ref([
   },
 ]);
 
+var statsBill = ref([
+  {
+    title: "Local Billing Units",
+    color: "primary",
+    icon: "tabler-receipt",
+    stats: "0",
+  },
+  {
+    title: "Local Total Minutes",
+    color: "success",
+    icon: "tabler-stopwatch",
+    stats: "0",
+  },
+  {
+    title: "International Billing Units",
+    color: "error",
+    icon: "tabler-receipt",
+    stats: "0",
+  },
+  {
+    title: "International Total Minutes",
+    color: "warning",
+    icon: "tabler-stopwatch",
+    stats: "0",
+  },
+]);
+
 const statsCamp = ref([
   {
     title: "Sent",
@@ -640,6 +667,21 @@ const fetchChartData = async (start, end, chan, agent, type) => {
     console.error("fetchChartData error:", error);
   }
 };
+const fetchBillingUnits = async (start, end, chan, agent, type) => {
+  try {
+    const response = await projectStore.fetchBillingUnit(start, end, chan, agent, type);
+    const total1 = response?.data?.data?.LOCAL?.totalBillingUnits;
+    const total2 = response?.data?.data?.LOCAL?.totalDuration;
+    const total3 = response?.data?.data?.INTERNATIONAL?.totalBillingUnits;
+    const total4 = response?.data?.data?.INTERNATIONAL?.totalDuration;
+    if (total1 != null) statsBill.value[0].stats = String(total1);
+    if (total2 != null) statsBill.value[1].stats = String(formatDurationInMinutes(total2));
+    if (total3 != null) statsBill.value[2].stats = String(total3);
+    if (total4 != null) statsBill.value[3].stats = String(formatDurationInMinutes(total4));
+  } catch (error) {
+    console.error("analytics error", error);
+  }
+};
 
 const exportToExcel = () => {
   const data = [];
@@ -658,6 +700,10 @@ const exportToExcel = () => {
 
   statsCamp.value.forEach(stat => {
     data.push({ Group: 'Campaign', Title: stat.title, Stats: stat.stats });
+  });
+
+  statsBill.value.forEach(stat => {
+    data.push({ Group: 'Billing', Title: stat.title, Stats: stat.stats });
   });
 
   convoStats.value.forEach(stat => {
@@ -688,6 +734,23 @@ const formatDuration = (seconds) => {
   } else {
     return `${seconds.toFixed(0)} second${seconds >= 2 ? "s" : ""}`;
   }
+};
+
+const formatDurationInMinutes = (seconds) => {
+  if (!seconds || isNaN(seconds)) return "0 mins";
+
+  let totalMinutes = Math.ceil(seconds / 60);
+  const days = Math.floor(totalMinutes / (24 * 60));
+  totalMinutes %= 24 * 60;
+  const hours = Math.floor(totalMinutes / 60);
+  totalMinutes %= 60;
+
+  const parts = [];
+  if (days) parts.push(`${days} day${days > 1 ? "s" : ""}`);
+  if (hours) parts.push(`${hours} hour${hours > 1 ? "s" : ""}`);
+  if (totalMinutes || parts.length === 0) parts.push(`${totalMinutes} min${totalMinutes > 1 ? "s" : ""}`);
+
+  return parts.join(" ");
 };
 const onDateSelect = (selectedDates, dateStr) => {
   console.log("Selected:", selectedDates, dateStr);
@@ -757,6 +820,7 @@ const allAnalytics = async (start, end, chan, agent, type) => {
       fetchBotResolvedChat(start, end, chan),
       fetchBotSatScore(start, end, chan),
       fetchLeadMsg(start, end, agent, type),
+      fetchBillingUnits(start, end, chan, agent, type),
       fetchStartLag(start, end, chan, agent, type),
       fetchAvgResponse(start, end, chan, agent, type),
       fetchAvgDuration(start, end, chan, agent, type),
@@ -771,22 +835,6 @@ const allAnalytics = async (start, end, chan, agent, type) => {
     console.error("allAnalytics error", error);
     isLoading.value = false;
   }
-  // fetchOpenChat(start, end, chan, agent, type);
-  // fetchResolvedChat(start, end, chan, agent, type);
-  // fetchSatScore(start, end, chan, agent, type);
-  // fetchBotOpenChat(start, end, chan);
-  // fetchBotResolvedChat(start, end, chan);
-  // fetchBotSatScore(start, end, chan);
-  // fetchLeadMsg(start, end, agent, type);
-  // // fetchStartLag(start, end, chan, agent, type);
-  // // fetchAvgResponse(start, end, chan, agent, type);
-  // // fetchAvgDuration(start, end, chan, agent, type);
-  // fetchAvgDurationResponse(start, end, chan, agent, type);
-  // fetchTotalConv(start, end, chan, agent, type);
-  // fetchUniqueConv(start, end, chan, agent, type);
-  // fetchCampaignData(start, end, chan, agent, type);
-  // fetchChartData(start, end, chan, agent, type);
-  // fetchActiveUserStats(start, end, chan);
 };
 
 onBeforeMount(() => {
@@ -937,6 +985,16 @@ onMounted(async () => {
 
     <VCol
       v-for="statistics in statsLead"
+      :key="statistics.title + '_' + statistics.stats"
+      cols="12"
+      sm="6"
+      md="3"
+    >
+      <CardStatisticsHorizontal v-bind="statistics" />
+    </VCol>
+
+    <VCol
+      v-for="statistics in statsBill"
       :key="statistics.title + '_' + statistics.stats"
       cols="12"
       sm="6"

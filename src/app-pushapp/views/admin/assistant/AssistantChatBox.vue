@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import paJiIcon from "@app-pushapp/assets/images/pa-ji2.png";
 
 defineOptions({ inheritAttrs: false });
 
@@ -178,7 +179,7 @@ defineExpose({ scrollToBottom, focusInput });
         >
           <div class="ca-minimized">
             <div class="ca-minimized__icon">
-              <VIcon icon="tabler-sparkles" size="22" />
+              <img :src="paJiIcon" alt="PA-ji" class="ca-brand-img" />
             </div>
             <div class="ca-minimized__body">
               <div class="ca-minimized__title-row">
@@ -210,7 +211,7 @@ defineExpose({ scrollToBottom, focusInput });
           <header class="ca-panel__header">
             <div class="ca-panel__brand">
               <div class="ca-panel__avatar">
-                <VIcon icon="tabler-robot" size="20" />
+                <img :src="paJiIcon" alt="PA-ji" class="ca-brand-img" />
               </div>
               <div>
                 <div class="ca-panel__title">{{ title }}</div>
@@ -365,11 +366,11 @@ defineExpose({ scrollToBottom, focusInput });
 
           <footer class="ca-panel__footer">
             <div class="ca-input-wrap">
-              <input
+              <textarea
                 ref="inputRef"
                 v-model="draft"
                 class="ca-input"
-                type="text"
+                rows="3"
                 :placeholder="placeholder"
                 :disabled="isBootstrapping || isSending"
                 @keydown="onKeydown"
@@ -460,15 +461,15 @@ defineExpose({ scrollToBottom, focusInput });
   background: rgb(var(--v-theme-surface));
 }
 .ca-minimized__icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
+  overflow: hidden;
+  background: transparent;
 }
 .ca-minimized__body {
   flex: 1;
@@ -561,15 +562,22 @@ defineExpose({ scrollToBottom, focusInput });
   min-width: 0;
 }
 .ca-panel__avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: rgb(var(--v-theme-primary));
   flex-shrink: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.ca-brand-img {
+  width: 130%;
+  height: 130%;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
 }
 .ca-panel__title {
   font-weight: 700;
@@ -841,9 +849,9 @@ defineExpose({ scrollToBottom, focusInput });
 }
 .ca-input-wrap {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   gap: 6px;
-  padding: 4px 4px 4px 12px;
+  padding: 8px 4px 8px 12px;
   border-radius: 18px;
   border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity));
   background: rgb(var(--v-theme-surface));
@@ -859,7 +867,38 @@ defineExpose({ scrollToBottom, focusInput });
   background: transparent;
   font-size: 0.875rem;
   color: rgba(var(--v-theme-on-surface), 0.9);
-  min-height: 36px;
+  resize: none;
+  line-height: 1.5;
+  min-height: calc(1.5em * 3);
+  max-height: calc(1.5em * 8);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.ca-input:hover,
+.ca-input:focus {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(var(--v-theme-on-surface), 0.2) transparent;
+}
+.ca-input::-webkit-scrollbar {
+  width: 0;
+  background: transparent;
+}
+/* Appear on hover/focus */
+.ca-input:hover::-webkit-scrollbar,
+.ca-input:focus::-webkit-scrollbar {
+  width: 4px;
+}
+.ca-input:hover::-webkit-scrollbar-track,
+.ca-input:focus::-webkit-scrollbar-track {
+  background: transparent;
+}
+.ca-input:hover::-webkit-scrollbar-thumb,
+.ca-input:focus::-webkit-scrollbar-thumb {
+  background: rgba(var(--v-theme-on-surface), 0.2);
+  border-radius: 99px;
+}
+.ca-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(var(--v-theme-on-surface), 0.4);
 }
 .ca-input::placeholder {
   color: rgba(var(--v-theme-on-surface), 0.4);

@@ -247,17 +247,72 @@ export const useProjectStore = defineStore("ProjectStore", {
       }
       return axios.get(url);
     },
-    fetchChatSessions(dateRange1, dateRange2, chatType) {
-        let url = `/api/v1/dashboard/chat-sessions-v2?&dateRange1=${dateRange1}&dateRange2=${dateRange2}`;
-        
-        if (chatType) {
-          url += `&chatType=${chatType}`;
+    fetchBotflowSummary(start, end, pagi) {
+      let url = `/api/v1/dashboard/botflow/summary?dateRange1=${start}&dateRange2=${end}`;
+      if (pagi) {
+        if (pagi.page) url += `&page=${pagi.page}`;
+        if (pagi.itemsPerPage) url += `&limit=${pagi.itemsPerPage}`;
+        if (pagi.filters) {
+          const filterParams = Object.entries(pagi.filters)
+            .filter(([, value]) => value !== null && value !== undefined && value !== "")
+            .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`)
+            .join("&");
+          if (filterParams) url += `&${filterParams}`;
         }
-        
+      }
+      return axios.get(url);
+    },
+    fetchBotflowTemplateSummary(start, end, queue) {
+      let url = `/api/v1/dashboard/botflow/summary?dateRange1=${start}&dateRange2=${end}&view=templateSummary`;
+      if (queue) url += `&queue=${encodeURIComponent(queue)}`;
+      return axios.get(url);
+    },
+    fetchBotflowCtaDetails(start, end, { queue, templateCode, cta, page, itemsPerPage, filters } = {}) {
+      let url = `/api/v1/dashboard/botflow/cta?dateRange1=${start}&dateRange2=${end}`;
+      if (queue) url += `&queue=${encodeURIComponent(queue)}`;
+      if (templateCode) url += `&templateCode=${encodeURIComponent(templateCode)}`;
+      if (cta) url += `&cta=${encodeURIComponent(cta)}`;
+      if (page) url += `&page=${page}`;
+      if (itemsPerPage) url += `&limit=${itemsPerPage}`;
+      if (filters) {
+        const filterParams = Object.entries(filters)
+          .filter(([, value]) => value !== null && value !== undefined && value !== "")
+          .map(([key, value]) => `search[${encodeURIComponent(key)}]=${encodeURIComponent(value)}`)
+          .join("&");
+        if (filterParams) url += `&${filterParams}`;
+      }
+      return axios.get(url);
+    },
+    fetchBotflowCtaDetailsAll(start, end, { queue, templateCode, cta } = {}) {
+      let url = `/api/v1/dashboard/botflow/cta?dateRange1=${start}&dateRange2=${end}&createGroup=true`;
+      if (queue) url += `&queue=${encodeURIComponent(queue)}`;
+      if (templateCode) url += `&templateCode=${encodeURIComponent(templateCode)}`;
+      if (cta) url += `&cta=${encodeURIComponent(cta)}`;
+      return axios.get(url);
+    },
+    createContactGroup(groupName, sessions) {
+      return axios.post(`${window.location.origin}/admin/api/create-update-group`, {
+        active: true,
+        groupName,
+        sessions,
+      });
+    },
+    fetchChatSessions(dateRange1, dateRange2, chatType, sessionTags) {
+        let url = `/api/v1/dashboard/chat-sessions-v2?&dateRange1=${dateRange1}&dateRange2=${dateRange2}`;
+        if (chatType) url += `&chatType=${chatType}`;
+        if (sessionTags && sessionTags.length > 0) {
+          sessionTags.forEach(tag => { url += `&sessionTags=${encodeURIComponent(tag)}`; });
+        }
         return axios.get(url);
     },
     fetchSessionTags() {
       return axios.get('/api/v1/dashboard/session-tags');
+    },
+    fetchBillingUnit(start, end, contact, agent, agentType) {
+      let url = `/api/v1/dashboard/billingUnits?start=${start}&end=${end}`;
+      if (contact && contact != "All Channels") url += `&contactType=${contact}`;
+      if (agent && agentType && agent != "all_teams") url += `&${agentType}=${agent}`;
+      return axios.get(url);
     },
   },
 });

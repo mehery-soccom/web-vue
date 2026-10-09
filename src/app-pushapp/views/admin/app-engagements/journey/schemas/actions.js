@@ -1,5 +1,5 @@
 export const ActionRegistry = {
-  SEND_MESSAGE: {
+  SEND_WHATSAPP: {
     label: "Send a Message",
     fields: [
       {
@@ -53,7 +53,7 @@ export const ActionRegistry = {
 
     toServer(config) {
       return {
-        code: "SEND_MESSAGE",
+        code: "SEND_WHATSAPP",
         attrs: {
           appId: config.appId,
           channelId: config.channelId,
