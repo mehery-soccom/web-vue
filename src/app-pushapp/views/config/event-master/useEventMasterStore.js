@@ -26,6 +26,7 @@ export const useEventMasterStore = defineStore("EventMasterStore", {
     /** body: { label?, dataType?, required? } — edit-only, key must already exist */
     async updateProperty(eventName, key, body) {
       const res = await DataService.axios.put(`${BASE}/${enc(eventName)}/properties/${enc(key)}`, body);
+      resetEventLabels(); // a changed data type changes the filter inputs
       return res.data.data;
     },
     /** Last 7 days of activity, same endpoint and params as Event Analytics' Snap view. */

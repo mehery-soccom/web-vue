@@ -17,8 +17,37 @@ export function loadEventLabels() {
   return labelsPromise;
 }
 
-/** Call after a label changes so pickers pick up the new text. */
-export const resetEventLabels = () => (labelsPromise = null);
+const typePromises = {};
+
+/** { propertyKey: dataType } for one event (own + managed keys; untyped = STRING). Cached per event. Display/filter only. */
+export function loadEventPropertyTypes(eventName) {
+  if (!typePromises[eventName]) {
+    typePromises[eventName] = DataService.axios
+      .get(`/api/v1/event-definition/${encodeURIComponent(eventName)}`)
+      .then((res) => {
+        const d = res.data.data || {};
+        const types = {};
+        for (const p of d.managedPropertyList || []) types[p.key] = p.dataType;
+        for (const p of d.propertyList || []) types[p.key] = p.dataType || "STRING";
+        return types;
+      })
+      .catch(() => {
+        delete typePromises[eventName]; // retry next time
+        return {};
+      });
+  }
+  return typePromises[eventName];
+}
+
+/** Filter input type for an Event Master data type: text | number | boolean | date. */
+export const filterInputType = (dataType) =>
+  ({ INTEGER: "number", FLOAT: "number", BOOLEAN: "boolean", DATE: "date" })[dataType] || "text";
+
+/** Call after a label or property type changes so pickers/filters pick up the new data. */
+export const resetEventLabels = () => {
+  labelsPromise = null;
+  for (const k of Object.keys(typePromises)) delete typePromises[k];
+};
 
 export const HIDE_MESSAGE =
   "Hidden events are not displayed in your dashboards or reports. No data is lost and events can be unhidden at any time. If a hidden event records activity, it automatically becomes visible again.";

@@ -1,5 +1,6 @@
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, nextTick, reactive, watch } from "vue";
+import { loadEventPropertyTypes, filterInputType } from "@/app-pushapp/views/config/event-master/eventMaster";
 import FilterBuilder from "./FilterBuilder.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
@@ -55,12 +56,15 @@ const {
 const clearErrorAndUpdate = () => {
   hasError.value = false;
 
-  const inputType =
-    FILTER_FIELDS_MAP[props.element.field]?.inputFieldMeta?.type;
+  // Event properties aren't in FILTER_FIELDS_MAP: their type comes from Event Master (selectedFieldMeta).
+  const inputType = selectedFieldMeta.value?.inputFieldMeta?.type;
+  // Numbers go to the API as numbers (99), never strings ("99").
   if (
     inputType === "number" &&
     props.element.value !== null &&
-    props.element.value !== ""
+    props.element.value !== undefined &&
+    props.element.value !== "" &&
+    !Number.isNaN(Number(props.element.value))
   ) {
     props.element.value = Number(props.element.value);
   }
@@ -231,11 +235,13 @@ const findCustomEvent = (node, result = []) => {
   return result;
 };
 const customEventIds = computed(() => findCustomEvent(props.rootFilter));
-const eventDataFields = computed(() => {
-  if (props.element.filterType !== "eventData") return [];
 
+// Event Master data types per event ({ eventKey: { propertyKey: "STRING" | "INTEGER" | ... } }), loaded on demand.
+const eventPropertyTypes = reactive({});
+const matchedEventDefs = computed(() => {
+  if (props.element.filterType !== "eventData") return [];
   const ids = customEventIds.value;
-  const matchedDefs = Object.values(FILTER_FIELDS_MAP).filter((f) => {
+  return Object.values(FILTER_FIELDS_MAP).filter((f) => {
     if (f.type !== "eventData") return false;
     if (ids.includes(f.eventId)) return true;
     // match on the key: title is now the display label
@@ -243,11 +249,36 @@ const eventDataFields = computed(() => {
       return true;
     return false;
   });
+});
+watch(
+  matchedEventDefs,
+  (defs) => {
+    for (const d of defs) {
+      if (d.eventId && !eventPropertyTypes[d.eventId]) {
+        eventPropertyTypes[d.eventId] = {}; // mark as requested
+        loadEventPropertyTypes(d.eventId).then((t) => (eventPropertyTypes[d.eventId] = t));
+      }
+    }
+  },
+  { immediate: true },
+);
 
-  if (!matchedDefs.length) return [];
-  return [
-    ...new Set(matchedDefs.flatMap((e) => e.meta?.dataProperties || [])),
-  ].map((p) => ({ title: p, value: p }));
+const eventDataFields = computed(() => {
+  const seen = new Set();
+  const fields = [];
+  for (const def of matchedEventDefs.value) {
+    for (const key of def.meta?.dataProperties || []) {
+      if (seen.has(key)) continue; // same key on several events: first definition wins
+      seen.add(key);
+      fields.push({
+        title: key,
+        value: key,
+        // untyped = STRING (Event Master default) -> text input
+        inputType: filterInputType(eventPropertyTypes[def.eventId]?.[key]),
+      });
+    }
+  }
+  return fields;
 });
 // Field search matches the shown title and, for events, the internal key too (keys were searchable before labels).
 const fieldFilter = (_value, query, item) => {
@@ -258,13 +289,20 @@ const fieldFilter = (_value, query, item) => {
 
 const selectedFieldMeta = computed(() => {
   if (props.element.filterType === "eventData") {
-    return {
-      inputFieldMeta: {
-        type: "text",
-      },
-    };
+    // input + operators follow the property's Event Master type (same as profile attributes)
+    const type =
+      eventDataFields.value.find((f) => f.value === props.element.field)?.inputType || "text";
+    return { inputFieldMeta: { type } };
   }
   return FILTER_FIELDS_MAP[props.element.field];
+});
+
+// Operators for Event Property filters follow the type (text: contains/starts with…, number: <, >…, date, boolean: =, ≠).
+const operatorItems = computed(() => {
+  const ops = FILTER_OPERATORS.value;
+  if (props.element.filterType !== "eventData") return ops;
+  const type = selectedFieldMeta.value?.inputFieldMeta?.type;
+  return ops.filter((o) => !o.strictApplicableTypes || o.strictApplicableTypes.includes(type));
 });
 const confirmCohortSelection = () => {
   skipCohortCheck.value = true;
@@ -414,7 +452,7 @@ defineExpose({ isValid });
           selectedFieldMeta?.inputFieldMeta?.type !== 'frequency'
         "
         v-model="element.operator"
-        :items="FILTER_OPERATORS"
+        :items="operatorItems"
         placeholder="Operator"
         class="filter-entity operator"
         @update:modelValue="clearErrorAndUpdate"
