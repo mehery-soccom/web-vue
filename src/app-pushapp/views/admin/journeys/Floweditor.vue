@@ -15,6 +15,7 @@ import { MiniMap } from '@vue-flow/minimap'
 import axios from 'axios'
 import { FILTER_FIELDS_MAP } from '../app-engagements/data/filterOptions'
 import FilterBuilder from '../app-engagements/FilterBuilder.vue'
+import EventAutocomplete from '../../config/event-master/EventAutocomplete.vue'
 
 // Props
 
@@ -97,6 +98,7 @@ async function loadSystemAndCustomEventsOnce() {
 
 // Canvas shows Event Master labels for Trigger / Expected nodes (looked up live, so saved journeys show them too).
 const eventLabels = ref({})
+const eventKeyHint = (key) => !!key && !!eventLabels.value[key] && eventLabels.value[key] !== key
 onMounted(async () => {
   const options = await loadSystemAndCustomEventsOnce()
   eventLabels.value = Object.fromEntries(options.map(o => [o.value, o.title]))
@@ -1479,7 +1481,10 @@ defineExpose({
               <span class="flow-node-code">{{ NODE_DEFS[data.code]?.label }}</span>
             </div>
             <div class="flow-node-body">
-              <template v-if="data.code === 'TRIGGER'">{{ eventLabels[data.attrs.appevent] || formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No Event Selected' }}</template>
+              <template v-if="data.code === 'TRIGGER'">
+                <div class="font-weight-bold">{{ eventLabels[data.attrs.appevent] || formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No Event Selected' }}</div>
+                <div v-if="eventKeyHint(data.attrs.appevent)" class="flow-node-key">{{ data.attrs.appevent }}</div>
+              </template>
               <template v-else-if="data.code === 'CONDITION'">
                 {{ (data.attrs.filter?.children?.length || 0) }} condition(s)
               </template>
@@ -1489,7 +1494,8 @@ defineExpose({
                 · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
               </template>
               <template v-else-if="data.code === 'EXPECTATION'">
-                <div>{{ eventLabels[data.attrs.appevent] || formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }} ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
+                <div><span class="font-weight-bold">{{ eventLabels[data.attrs.appevent] || formatLabel(data.attrs.name) || formatLabel(data.attrs.appevent) || 'No event' }}</span> ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
+                <div v-if="eventKeyHint(data.attrs.appevent)" class="flow-node-key">{{ data.attrs.appevent }}</div>
                 <div v-if="data.attrs.channelType">{{ channelAbbrev(data.attrs.channelType) }}
                 <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />  
                 · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
@@ -1540,12 +1546,12 @@ defineExpose({
 
           <!-- TRIGGER -->
           <template v-if="inspectedNode.data.code === 'TRIGGER'">
-            <AppSelect
+            <EventAutocomplete
               label="App Event"
+              app-style
+              placeholder="Search event label or internal key"
               :model-value="inspectedNode.data.attrs.appevent"
               :items="optionCache[inspectedNode.id]?.eventOptions || []"
-              item-title="title"
-              item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingEvents"
               :disabled="disabled"
               @update:model-value="value => {
@@ -1679,12 +1685,12 @@ defineExpose({
 
           <!-- EXPECTATION -->
           <template v-else-if="inspectedNode.data.code === 'EXPECTATION'">
-            <AppSelect
+            <EventAutocomplete
               label="Expected Event"
+              app-style
+              placeholder="Search event label or internal key"
               :model-value="inspectedNode.data.attrs.appevent"
               :items="optionCache[inspectedNode.id]?.eventOptions || []"
-              item-title="title"
-              item-value="value"
               :loading="optionCache[inspectedNode.id]?.loadingEvents"
               :disabled="disabled"
               @update:model-value="value => {
@@ -1981,6 +1987,7 @@ defineExpose({
   font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
   color: color-mix(in srgb, var(--node-color) 75%, black);
 }
+.flow-node-key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; opacity: .6; margin-top: 2px; }
 .flow-node-body { padding: 9px 11px 11px; font-size: 12px; min-height: 16px; word-break: break-word; }
 .flow-node.invalid {
   border-color: #dc2626 !important;

@@ -174,13 +174,14 @@ const setHidden = async (hidden) => {
   }
 };
 
+// Fixed widths (with table-layout: fixed below): the columns stay put when a row turns into inputs.
 const propertyHeaders = [
-  { title: "Property", key: "label" },
-  { title: KEY_LABEL, key: "key" },
-  { title: "Data Type", key: "dataType" },
-  { title: "Required", key: "required" },
-  { title: "Last Updated", key: "updatedAt", sortable: false },
-  { title: "Actions", key: "actions", sortable: false, align: "end" },
+  { title: "Property", key: "label", width: "21%" },
+  { title: KEY_LABEL, key: "key", width: "25%" },
+  { title: "Data Type", key: "dataType", width: "14%" },
+  { title: "Required", key: "required", width: "14%" },
+  { title: "Last Updated", key: "updatedAt", sortable: false, width: "14%" },
+  { title: "Actions", key: "actions", sortable: false, align: "end", width: "12%" }, // room for the ✓ ✕ buttons
 ];
 const managedHeaders = [
   { title: KEY_LABEL, key: "key" },
@@ -209,10 +210,7 @@ const managedHeaders = [
         <div>
           <div class="d-flex align-center flex-wrap gap-3 mb-1">
             <h4 class="text-h4">{{ event.displayLabel }}</h4>
-            <EventKeyChip :event-key="event.eventName" />
-            <VChip v-if="event.managedObjectType" size="small" color="info" label>Managed · {{ event.managedObjectType }}</VChip>
-            <!-- ponytail: "Managed_…" events sent without ops have no managedObjectType; tag by name until they send ops -->
-            <VChip v-else-if="/^managed_/i.test(event.eventName)" size="small" color="info" label>Managed</VChip>            <VChip v-if="event.hidden" size="small" label prepend-icon="tabler-eye-off">Hidden</VChip>
+            <VChip v-if="event.hidden" size="small" label prepend-icon="tabler-eye-off">Hidden</VChip>
           </div>
           <div v-if="activityText" class="text-body-2 d-flex align-center gap-1">
             <VIcon icon="tabler-activity" size="16" /> {{ activityText }}
@@ -351,9 +349,9 @@ const managedHeaders = [
           />
         </template>
 
-        <MyDataTable :headers="propertyHeaders" :items="filteredProps" :items-per-page="25">
+        <MyDataTable :headers="propertyHeaders" :items="filteredProps" :items-per-page="25" class="property-table">
           <template #item.label="{ item }">
-            <AppTextField v-if="isEditingProp(item.raw)" v-model="rowDraft(item.raw).label" density="compact" :autofocus="!editMode" style="inline-size: 140px" />
+            <AppTextField v-if="isEditingProp(item.raw)" v-model="rowDraft(item.raw).label" density="compact" :autofocus="!editMode" style="inline-size: 100%" />
             <span v-else class="font-weight-medium text-high-emphasis">{{ item.raw.label }}</span>
           </template>
           <template #item.key="{ item }">
@@ -366,12 +364,12 @@ const managedHeaders = [
               :items="DATA_TYPES"
               density="compact"
               placeholder="Type"
-              style="inline-size: 120px"
+              style="inline-size: 100%"
             />
             <VChip v-else size="small" color="primary" variant="tonal">{{ dataTypeTitle(item.raw.dataType) }}</VChip>
           </template>
           <template #item.required="{ item }">
-            <MyBooleanPicker v-if="isEditingProp(item.raw)" v-model="rowDraft(item.raw).required" style="inline-size: 136px" />
+            <MyBooleanPicker v-if="isEditingProp(item.raw)" v-model="rowDraft(item.raw).required" style="inline-size: 100%" />
             <span v-else class="d-inline-flex align-center gap-1" :class="item.raw.required ? 'text-success' : 'text-disabled'">
               <VIcon icon="tabler-point-filled" size="14" /> {{ item.raw.required ? "Yes" : "No" }}
             </span>
@@ -436,6 +434,22 @@ const managedHeaders = [
 <style scoped>
 .event-details td {
   vertical-align: middle;
+}
+
+/* No layout shift when editing: columns have fixed widths and the inputs fill them. */
+.property-table :deep(table) {
+  table-layout: fixed;
+  min-inline-size: 1000px; /* narrow screens scroll sideways instead of squeezing the columns (Actions needs ~120px) */
+}
+.property-table :deep(td),
+.property-table :deep(th) {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* never clip the action buttons or their header */
+.property-table :deep(td:last-child),
+.property-table :deep(th:last-child) {
+  overflow: visible;
 }
 </style>
 <style scoped>

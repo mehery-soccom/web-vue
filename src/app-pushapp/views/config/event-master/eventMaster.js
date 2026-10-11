@@ -69,15 +69,6 @@ export const DEFAULT_DATA_TYPE = "STRING"; // any property without a type is tre
 
 export const dataTypeTitle = (value) => DATA_TYPES.find((t) => t.value === (value || DEFAULT_DATA_TYPE))?.title;
 
-const DOT_COLORS = ["#28C76F", "#7367F0", "#00BAD1", "#FF9F43", "#C084FC", "#FF4C51", "#2E9BFF"];
-
-/** Stable colour per event key, so the same event always gets the same dot. */
-export function dotColor(eventName = "") {
-  let hash = 0;
-  for (const ch of eventName) hash = (hash * 31 + ch.charCodeAt(0)) | 0;
-  return DOT_COLORS[Math.abs(hash) % DOT_COLORS.length];
-}
-
 const dateFmt = new Intl.DateTimeFormat("en-GB", {
   day: "2-digit",
   month: "short",

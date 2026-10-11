@@ -31,6 +31,10 @@ const resolvedFieldName = computed(() => {
 
   const cached = localCache[filterType] || [];
   const found = cached.find((x) => x.value === field);
+  // events: show the key next to the Event Master label, like the event dropdowns
+  if (filterType === "customEvent" && found?.eventId && found.eventId !== found.title) {
+    return `${found.title} (${found.eventId})`;
+  }
   return found?.title || field;
 });
 

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, nextTick, reactive, watch } from "vue";
 import { loadEventPropertyTypes, filterInputType } from "@/app-pushapp/views/config/event-master/eventMaster";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
@@ -280,6 +281,9 @@ const eventDataFields = computed(() => {
   }
   return fields;
 });
+// Event and System Event fields get the shared event dropdown.
+const isEventField = computed(() => ["customEvent", "event"].includes(props.element.filterType));
+
 // Field search matches the shown title and, for events, the internal key too (keys were searchable before labels).
 const fieldFilter = (_value, query, item) => {
   const q = String(query || "").toLowerCase();
@@ -400,8 +404,18 @@ defineExpose({ isValid });
         @update:modelValue="onFilterTypeChange"
       />
 
-      <!-- Field -->
+      <!-- Field: events use the shared event dropdown (label + key, pinned Event Master link) -->
+      <EventAutocomplete
+        v-if="isEventField"
+        v-model="element.field"
+        :items="FILTER_FIELDS"
+        app-style
+        placeholder="Select event"
+        class="filter-entity field"
+        @update:modelValue="onFilterFieldChange"
+      />
       <AppAutocomplete
+        v-else
         v-model="element.field"
         :items="
           element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS

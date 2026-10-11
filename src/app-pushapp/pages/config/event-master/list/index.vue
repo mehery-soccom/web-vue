@@ -1,6 +1,6 @@
 <script setup>
 import { useEventMasterStore } from "@app-pushapp/views/config/event-master/useEventMasterStore";
-import { apiError, dotColor, lastUpdated } from "@app-pushapp/views/config/event-master/eventMaster";
+import { apiError, lastUpdated } from "@app-pushapp/views/config/event-master/eventMaster";
 import EventKeyChip from "@app-pushapp/views/config/event-master/EventKeyChip.vue";
 import HideEventDialog from "@app-pushapp/views/config/event-master/HideEventDialog.vue";
 
@@ -143,7 +143,6 @@ const unhide = async (item) => {
       >
         <template #item.displayLabel="{ item }">
           <div class="d-flex align-center gap-2" :class="{ 'is-hidden': item.raw.hidden }">
-            <span class="dot" :style="{ background: dotColor(item.raw.eventName) }" />
             <span class="font-weight-medium text-high-emphasis">
               {{ item.raw.displayLabel }}
               <VTooltip v-if="item.raw.description" activator="parent" location="top" max-width="360">
@@ -211,14 +210,6 @@ const unhide = async (item) => {
 </template>
 
 <style lang="scss" scoped>
-.dot {
-  display: inline-block;
-  flex-shrink: 0;
-  block-size: 8px;
-  border-radius: 50%;
-  inline-size: 8px;
-}
-
 .is-hidden {
   opacity: 0.5;
 }
