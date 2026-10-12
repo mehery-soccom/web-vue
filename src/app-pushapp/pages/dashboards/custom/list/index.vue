@@ -72,7 +72,14 @@ const loadBlocks = async () => {
   }
 };
 
+const MAX_BLOCKS = 12;
+const isAtBlockLimit = computed(() => blocks.value.length >= MAX_BLOCKS);
+
 const goAdd = () => {
+  if (isAtBlockLimit.value) {
+    show({ message: "You can add up to 12 blocks", color: "warning" });
+    return;
+  }
   router.push({ name: "dashboards-custom-add-id?" });
 };
 
@@ -155,7 +162,7 @@ onMounted(() => {
                 plugins: [customPlugin],
               }"
             />
-            <VBtn color="primary" prepend-icon="tabler-plus" @click="goAdd">
+            <VBtn color="primary" prepend-icon="tabler-plus" :disabled="isAtBlockLimit" @click="goAdd">
               Add Block
             </VBtn>
           </div>

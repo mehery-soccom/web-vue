@@ -34,8 +34,9 @@ let scrollHideTimer = null;
 const roleLabel = (role) => (role === "user" ? "You" : "AI");
 
 const isThinking = computed(() => {
-  if (props.isSending) return true;
   const last = props.messages[props.messages.length - 1];
+  if (last?.role === "status") return false;
+  if (props.isSending) return true;
   return last?.role === "user";
 });
 
@@ -290,9 +291,20 @@ defineExpose({ scrollToBottom, focusInput });
                 v-for="(msg, idx) in messages"
                 :key="`${msg.role}-${msg.timestamp}-${idx}`"
                 class="ca-msg"
-                :class="msg.role === 'user' ? 'ca-msg--user' : 'ca-msg--assistant'"
+                :class="msg.role === 'user' ? 'ca-msg--user' : msg.role === 'status' ? 'ca-msg--status' : 'ca-msg--assistant'"
               >
-                <div class="ca-msg__body">
+                <div v-if="msg.role === 'status'" class="ca-status">
+                  <VProgressCircular
+                    v-if="isSending && idx === messages.length - 1"
+                    indeterminate
+                    size="14"
+                    width="2"
+                    color="primary"
+                  />
+                  <VIcon v-else icon="tabler-check" size="14" color="success" />
+                  <span>{{ msg.content }}</span>
+                </div>
+                <div v-else class="ca-msg__body">
                   <div class="ca-msg__row">
                     <div
                       v-if="msg.role === 'assistant'"
@@ -710,6 +722,19 @@ defineExpose({ scrollToBottom, focusInput });
 }
 .ca-msg--assistant {
   justify-content: flex-start;
+}
+.ca-msg--status {
+  justify-content: flex-start;
+}
+.ca-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 2px 2px 2px 4px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: rgba(var(--v-theme-on-surface), 0.72);
 }
 .ca-msg__body {
   max-width: 88%;

@@ -104,17 +104,30 @@ const uniqueUsers = ref(null);
 const totalEvents = ref(null);
 const hasTotalEvents = ref(false);
 const countError = ref(false);
+let countAbort = null;
+let countRequestId = 0;
 
 const toCount = (value) => {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+const isAborted = (error) =>
+  error?.code === "ERR_CANCELED" ||
+  error?.name === "CanceledError" ||
+  error?.name === "AbortError";
+
 const loadCount = async () => {
+  countAbort?.abort();
+  const controller = new AbortController();
+  countAbort = controller;
+  const requestId = ++countRequestId;
+
   if (!props.item?.filter || props.dateRange1 == null || props.dateRange2 == null) {
     uniqueUsers.value = 0;
     totalEvents.value = null;
     hasTotalEvents.value = false;
+    isCountLoading.value = false;
     return;
   }
   isCountLoading.value = true;
@@ -128,7 +141,8 @@ const loadCount = async () => {
     };
     if (props.cohortId) payload.cohortId = props.cohortId;
 
-    const res = await store.fetchEventFilterStats(payload);
+    const res = await store.fetchEventFilterStats(payload, controller.signal);
+    if (requestId !== countRequestId) return;
     const data = res?.data ?? {};
     hasTotalEvents.value =
       Object.prototype.hasOwnProperty.call(data, "total_events") &&
@@ -136,14 +150,19 @@ const loadCount = async () => {
     uniqueUsers.value = toCount(data.unique_users);
     totalEvents.value = hasTotalEvents.value ? toCount(data.total_events) : null;
   } catch (e) {
+    if (isAborted(e) || requestId !== countRequestId) return;
     uniqueUsers.value = null;
     totalEvents.value = null;
     hasTotalEvents.value = false;
     countError.value = true;
   } finally {
-    isCountLoading.value = false;
+    if (requestId === countRequestId) isCountLoading.value = false;
   }
 };
+
+onBeforeUnmount(() => {
+  countAbort?.abort();
+});
 
 const iconName = computed(() => props.item?.icon || "tabler-chart-bar");
 

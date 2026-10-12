@@ -32,8 +32,10 @@ export const useCustomDashboardStore = defineStore("CustomDashboardStore", {
     deleteDashboard({ id }) {
       return DataService.axios.delete(`/api/v1/analytics/management/dashboard/${id}`);
     },
-    fetchEventFilterStats(params) {
-      return DataService.axios.post("/api/v1/analytics/events/filter/stats", params);
+    fetchEventFilterStats(params, signal) {
+      return DataService.axios.post("/api/v1/analytics/events/filter/stats", params, {
+        signal,
+      });
     },
   },
 });
