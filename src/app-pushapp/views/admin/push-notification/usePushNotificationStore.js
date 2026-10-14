@@ -353,5 +353,10 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     fetchCampaignAiFormState(sessionId) {
       return DataService.axios.get(`/api/v1/ai-form-state/${sessionId}`);
     },
+
+    /** POST / record the launched campaign against the AI form-state session */
+    finalizeCampaignAiFormState(sessionId, body) {
+      return DataService.axios.post(`/api/v1/ai-form-state/${sessionId}/finalize`, body);
+    },
   },
 });

@@ -313,6 +313,10 @@ onBeforeUnmount(() => {
   stopPolling();
   streamAbort?.abort();
 });
+
+defineExpose({
+  getSessionId: () => sessionId.value,
+});
 </script>
 
 <template>

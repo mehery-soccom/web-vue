@@ -470,6 +470,7 @@ const onSendSimple = async () => {
     };
 
     await pushNotificationStore.createScheduledCampaign(pushPayload);
+    await finalizeAiFormState(pushPayload);
 
     show({ message: "Notification sent successfully", color: "success" });
     router.push({ name: "admin-push-notification-campaigns-list" });
@@ -484,6 +485,28 @@ const onSendSimple = async () => {
 const isAgenticAiEnabled = computed(
   () => !!window.CONST?.CONFIG?.FEATURES?.PUSHAPP_AGENTIC_AI,
 );
+const assistantRef = ref(null);
+const finalizeAiFormState = async (campaign) => {
+  if (!isAgenticAiEnabled.value) return;
+  const sessionId = assistantRef.value?.getSessionId?.();
+  if (!sessionId || !campaign) return;
+
+  try {
+    await pushNotificationStore.finalizeCampaignAiFormState(sessionId, {
+      finalState: {
+        template: {
+          channelId: campaign.channelId,
+          campaignName: campaign.campaignName,
+          ...campaign.template,
+        },
+        audience: campaign.to || {},
+        schedule: campaign.schedule || {},
+      },
+    });
+  } catch (error) {
+    console.warn("[campaign] ai form-state finalize failed", error);
+  }
+};
 const pendingAssistantState = ref(null);
 const assistantExpanded = ref(isAgenticAiEnabled.value);
 const aiFlashTabs = ref([]);
@@ -1318,6 +1341,7 @@ watch([TemplateListSimple, ChannelList], () => {
 
   <CampaignAssistant
     v-if="isAgenticAiEnabled"
+    ref="assistantRef"
     v-model:expanded="assistantExpanded"
     @campaign-state="onAssistantCampaignState"
   />
