@@ -292,15 +292,10 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
 
     /** POST a chat message as an event stream. First call: sessionId null. Later: include sessionId. */
     async postCampaignAssistantMessage({ sessionId = null, text, onEvent, signal }) {
-      const tenant =
-        window.CONST?.CONFIG?.SETUP?.TENANT ||
-        window.CONST?.CONFIG?.tenant ||
-        "demo";
       const url = new URL(
         PERSISTENT_CHAT_URL,
         window.location.origin,
       );
-      url.searchParams.set("tnt", tenant);
 
       const response = await fetch(url.toString(), {
         method: "POST",
@@ -340,7 +335,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     /** GET / poll session messages by sessionId */
     fetchCampaignAssistantSession(sessionId) {
       return DataService.axios.get(PERSISTENT_CHAT_URL, 
-        { params: { sessionId, tnt: window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo" }, 
+        { params: { sessionId }, 
           skipApiContext: true, toast: false });
     },
 

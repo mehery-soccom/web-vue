@@ -368,12 +368,12 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
 
     postEngagementAssistantMessage({ sessionId = null, text }) {
       return DataService.axios.post(APP_ENGAGEMENT_CHAT_URL, { sessionId, text },
-        { skipApiContext: true, params: { tnt: agenticTenant() } },
+        { skipApiContext: true },
       );
     },
 
     fetchEngagementAssistantSession(sessionId) {
-      return DataService.axios.get(APP_ENGAGEMENT_CHAT_URL, { params: { sessionId, tnt: agenticTenant() }, skipApiContext: true });
+      return DataService.axios.get(APP_ENGAGEMENT_CHAT_URL, { params: { sessionId }, skipApiContext: true });
     },
 
     initEngagementAiFormState(sessionId) {
