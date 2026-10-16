@@ -15,6 +15,7 @@ import { MiniMap } from '@vue-flow/minimap'
 import axios from 'axios'
 import { FILTER_FIELDS_MAP } from '../app-engagements/data/filterOptions'
 import FilterBuilder from '../app-engagements/FilterBuilder.vue'
+import { fmtNum } from '@app-pushapp/@core/utils/formatters'
 import EventAutocomplete from '../../config/event-master/EventAutocomplete.vue'
 
 // Props
@@ -1171,10 +1172,10 @@ const buildFlowHtml = (title = 'Journey flow') => {
     const y = (node.position?.y ?? 0) + oy
     const stats = props.analyticsNodesMap?.[node.id]
     const badges = stats
-      ? `<div class="badges"><span class="reached">Reached ${escapeHtml(stats.reachedCount ?? 0)}</span>${
+      ? `<div class="badges"><span class="reached">Reached ${escapeHtml(fmtNum(stats.reachedCount ?? 0))}</span>${
           node.data?.code === 'TRIGGER'
             ? ''
-            : `<span class="current">Here ${escapeHtml(stats.currentlyAtCount ?? 0)}</span>`
+            : `<span class="current">Here ${escapeHtml(fmtNum(stats.currentlyAtCount ?? 0))}</span>`
         }</div>`
       : ''
     const body = nodeBodyLines(node).map((line) => escapeHtml(line)).join('<br>')
@@ -1446,7 +1447,7 @@ defineExpose({
               <template #activator="{ props }">
                 <span v-bind="props" class="analytics-badge-reached">
                   <VIcon size="11" style="margin-bottom:1px">tabler-user-check</VIcon>
-                  {{ analyticsNodesMap[id].reachedCount }}
+                  {{ fmtNum(analyticsNodesMap[id].reachedCount) }}
                 </span>
               </template>
               <span>Reached</span>
@@ -1455,7 +1456,7 @@ defineExpose({
               <template #activator="{ props }">
                 <span v-bind="props" class="analytics-badge-current">
                   <VIcon size="11" style="margin-bottom:1px">tabler-users</VIcon>
-                  {{ analyticsNodesMap[id].currentlyAtCount }}
+                  {{ fmtNum(analyticsNodesMap[id].currentlyAtCount) }}
                 </span>
               </template>
               <span>Currently at</span>

@@ -4,6 +4,7 @@ import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilde
 import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import { useFlowsStore } from "@/app-pushapp/views/admin/journeys/useFlowsStore";
+import { fmtNum } from "@app-pushapp/@core/utils/formatters";
 import { toPng } from "html-to-image";
 import * as XLSX from "xlsx";
 
@@ -652,7 +653,7 @@ onMounted(async () => {
                     <VIcon :icon="stat.icon" size="20" />
                     <div>
                       <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
-                      <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] ?? '—' }}</div>
+                      <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] != null ? fmtNum(analyticsData.summary[stat.key]) : '—' }}</div>
                     </div>
                   </div>
                 </VCard>
