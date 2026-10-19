@@ -4,6 +4,7 @@ import { useCustomDashboardStore } from "@/app-pushapp/views/dashboards/custom/u
 import { useCohortsStore } from "@app-pushapp/views/admin/cohorts/useCohortsStore";
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
+import draggable from "vuedraggable";
 
 const { show } = inject("snackbar");
 const router = useRouter();
@@ -90,6 +91,26 @@ const onEdit = (item) => {
 const onDelete = (item) => {
   deleteTarget.value = item;
   isDeleteDialogOpen.value = true;
+};
+
+let orderBeforeDrag = [];
+
+const onDragStart = () => {
+  orderBeforeDrag = [...blocks.value];
+};
+
+const onDragEnd = async ({ oldIndex, newIndex }) => {
+  if (oldIndex === newIndex) return;
+  try {
+    await store.reorderDashboards(blocks.value.map((block) => block._id));
+  } catch (error) {
+    blocks.value = orderBeforeDrag;
+    const apiErr = error.response?.data;
+    show({
+      message: apiErr?.error?.message || apiErr?.message || "Failed to save block order",
+      color: "error",
+    });
+  }
 };
 
 const confirmDelete = async () => {
@@ -187,24 +208,33 @@ onMounted(() => {
           </VCard>
         </VCol>
 
-        <VCol
-          v-for="(item, idx) in blocks"
-          :key="item._id"
-          cols="12"
-          sm="6"
-          md="4"
-          lg="3"
-        >
-          <DashboardBlock
-            :item="item"
-            :color-index="idx"
-            :date-range1="appliedDateRange.dateRange1"
-            :date-range2="appliedDateRange.dateRange2"
-            :timezone="timezone"
-            :cohort-id="selectedCohort"
-            @edit="onEdit"
-            @delete="onDelete"
-          />
+        <VCol v-else cols="12">
+          <draggable
+            v-model="blocks"
+            item-key="_id"
+            class="v-row"
+            filter=".dashboard-block__actions"
+            :prevent-on-filter="false"
+            :animation="200"
+            ghost-class="dashboard-block-ghost"
+            @start="onDragStart"
+            @end="onDragEnd"
+          >
+            <template #item="{ element: item, index: idx }">
+              <VCol cols="12" sm="6" md="4" lg="3" class="dashboard-block-col">
+                <DashboardBlock
+                  :item="item"
+                  :color-index="idx"
+                  :date-range1="appliedDateRange.dateRange1"
+                  :date-range2="appliedDateRange.dateRange2"
+                  :timezone="timezone"
+                  :cohort-id="selectedCohort"
+                  @edit="onEdit"
+                  @delete="onDelete"
+                />
+              </VCol>
+            </template>
+          </draggable>
         </VCol>
       </template>
     </VRow>
@@ -240,3 +270,17 @@ onMounted(() => {
     </VDialog>
   </div>
 </template>
+
+<style scoped lang="scss">
+.dashboard-block-col {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.dashboard-block-ghost {
+  opacity: 0.4;
+}
+</style>
