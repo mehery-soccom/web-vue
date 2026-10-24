@@ -1,3 +1,5 @@
+import { CITIES, STATES } from "./geoOptions";
+
 export const FILTER_TYPES = [
   { title: "Cohort", value: "cohort" },
   { title: "Event", value: "customEvent" },
@@ -73,7 +75,8 @@ export const FILTER_FIELDS_MAP = {
     title: "City",
     value: "geoIP.city.name",
     inputFieldMeta: {
-      type: "text",
+      type: "select",
+      options: CITIES,
       operators: ["EQ"],
     },
   },
@@ -103,7 +106,8 @@ export const FILTER_FIELDS_MAP = {
     title: "Region",
     value: "geoIP.region.name",
     inputFieldMeta: {
-      type: "text",
+      type: "select",
+      options: STATES,
       operators: ["EQ"],
     },
   },

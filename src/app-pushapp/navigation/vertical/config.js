@@ -6,6 +6,11 @@ export default [
     to: "config-setup-list",
   },
   {
+    title: "Event Master",
+    icon: { icon: "tabler-database" },
+    to: "config-event-master-list",
+  },
+  {
     title: "Library",
     icon: { icon: "tabler-books" },
     to: "config-library-list",

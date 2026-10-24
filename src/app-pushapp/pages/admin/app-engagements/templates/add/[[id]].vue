@@ -543,8 +543,8 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
       </v-col>
 
       <!-- Preview Column -->
-      <VCol v-if="!isPreStep" cols="12" md="4" style="margin-top: 13px">
-        <VRow style="height: 100%; max-height: 550px">
+      <VCol v-if="!isPreStep" cols="12" md="4" style="margin-top: 13px;container-type: inline-size;">
+        <VRow class="row-block">
           <v-col cols="12" class="d-flex justify-center pt-0">
             <NotificationPreviewApp
               :template="templatePreview"
@@ -557,4 +557,21 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
   </div>
 </template>
 
-<style scoped lang="scss"></style>
+<style>
+.row-block {
+  height: 100%;
+  max-height: 550px;
+}
+@container (max-width: 300px) {
+  .row-block {
+    height: auto;
+    aspect-ratio: 9 / 15;
+  }
+}
+@container (max-width: 259px) {
+  .row-block {
+    height: auto;
+    aspect-ratio: 9 / 14;
+  }
+}
+</style>

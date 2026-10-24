@@ -10,8 +10,10 @@ import SessionEvents from "@app-pushapp/views/dashboards/event/SessionEvents.vue
 import EventDevices from "@app-pushapp/views/dashboards/event/EventDevices.vue"
 import EventGeo from "@app-pushapp/views/dashboards/event/EventGeo.vue"
 import EventProperty from "@app-pushapp/views/dashboards/event/EventProperty.vue"
+import EventAutocomplete from "@app-pushapp/views/config/event-master/EventAutocomplete.vue"
 
 const eventStore = useEventStore()
+const route = useRoute()
 const { customPlugin } = useDatePickerFilters()
 
 const cohortsStore = useCohortsStore()
@@ -43,14 +45,18 @@ const optionIcons = {
   Devices: 'tabler-device-mobile'
 }
 
+// Value stays the event key, so every stats call and tab below is unchanged; only the label shown differs.
 const formattedEventList = computed(() => {
-  return eventStore.uniqueEvents
+  return eventStore.eventOptions
     .map(event => ({
-      title: event,
-      value: event
+      title: event.displayLabel,
+      value: event.eventName,
     }))
     .sort((a, b) => a.title.localeCompare(b.title))
 })
+
+
+
 
 const formattedCohortList = computed(() => {
   return cohortsStore.cohorts
@@ -145,7 +151,9 @@ const onDateClosed = (selectedDates, dateStr) => {
 const isSessionDisabled = computed(() => ['app_open', 'page_open'].includes(selectedEvent.value))
 
 onMounted(async () => {
-  await eventStore.fetchUniqueEvents()
+  await eventStore.fetchEventOptions()
+  // Deep link from Event Master: /dashboards/events?event=<eventName> preselects it (default date range)
+  if (route.query.event) selectedEvent.value = String(route.query.event)
 
   const res = await cohortsStore.fetchCohorts({  paginate: false  })
   cohortsStore.cohorts = res.data.results
@@ -163,14 +171,15 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
         <h3 class="text-h5">Event Analytics</h3>
         
         <div class="d-flex gap-4 align-center flex-wrap">
-          <VAutocomplete
+          <EventAutocomplete
             v-model="selectedEvent"
             :items="sessionFilteredEvents"
             label="Event"
-            variant="outlined"
-            placeholder="Select event"
+            placeholder="Search event label or internal key"
             density="compact"
-            style="min-width: 250px;"
+            show-key
+            :manage-link="false"
+            style="min-width: 360px; max-width: 460px;"
           />
 
           <VAutocomplete

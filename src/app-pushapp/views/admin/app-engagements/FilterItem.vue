@@ -1,5 +1,7 @@
 <script setup>
-import { ref, onMounted, nextTick } from "vue";
+import { ref, onMounted, nextTick, reactive, watch } from "vue";
+import { loadEventPropertyTypes, filterInputType } from "@/app-pushapp/views/config/event-master/eventMaster";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
 import FilterBuilder from "./FilterBuilder.vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
@@ -55,12 +57,15 @@ const {
 const clearErrorAndUpdate = () => {
   hasError.value = false;
 
-  const inputType =
-    FILTER_FIELDS_MAP[props.element.field]?.inputFieldMeta?.type;
+  // Event properties aren't in FILTER_FIELDS_MAP: their type comes from Event Master (selectedFieldMeta).
+  const inputType = selectedFieldMeta.value?.inputFieldMeta?.type;
+  // Numbers go to the API as numbers (99), never strings ("99").
   if (
     inputType === "number" &&
     props.element.value !== null &&
-    props.element.value !== ""
+    props.element.value !== undefined &&
+    props.element.value !== "" &&
+    !Number.isNaN(Number(props.element.value))
   ) {
     props.element.value = Number(props.element.value);
   }
@@ -231,32 +236,77 @@ const findCustomEvent = (node, result = []) => {
   return result;
 };
 const customEventIds = computed(() => findCustomEvent(props.rootFilter));
-const eventDataFields = computed(() => {
-  if (props.element.filterType !== "eventData") return [];
 
+// Event Master data types per event ({ eventKey: { propertyKey: "STRING" | "INTEGER" | ... } }), loaded on demand.
+const eventPropertyTypes = reactive({});
+const matchedEventDefs = computed(() => {
+  if (props.element.filterType !== "eventData") return [];
   const ids = customEventIds.value;
-  const matchedDefs = Object.values(FILTER_FIELDS_MAP).filter((f) => {
+  return Object.values(FILTER_FIELDS_MAP).filter((f) => {
     if (f.type !== "eventData") return false;
     if (ids.includes(f.eventId)) return true;
-    if (props.connectedAppEvent && f.title === props.connectedAppEvent)
+    // match on the key: title is now the display label
+    if (props.connectedAppEvent && f.eventId === props.connectedAppEvent)
       return true;
     return false;
   });
-
-  if (!matchedDefs.length) return [];
-  return [
-    ...new Set(matchedDefs.flatMap((e) => e.meta?.dataProperties || [])),
-  ].map((p) => ({ title: p, value: p }));
 });
+watch(
+  matchedEventDefs,
+  (defs) => {
+    for (const d of defs) {
+      if (d.eventId && !eventPropertyTypes[d.eventId]) {
+        eventPropertyTypes[d.eventId] = {}; // mark as requested
+        loadEventPropertyTypes(d.eventId).then((t) => (eventPropertyTypes[d.eventId] = t));
+      }
+    }
+  },
+  { immediate: true },
+);
+
+const eventDataFields = computed(() => {
+  const seen = new Set();
+  const fields = [];
+  for (const def of matchedEventDefs.value) {
+    for (const key of def.meta?.dataProperties || []) {
+      if (seen.has(key)) continue; // same key on several events: first definition wins
+      seen.add(key);
+      fields.push({
+        title: key,
+        value: key,
+        // untyped = STRING (Event Master default) -> text input
+        inputType: filterInputType(eventPropertyTypes[def.eventId]?.[key]),
+      });
+    }
+  }
+  return fields;
+});
+// Event and System Event fields get the shared event dropdown.
+const isEventField = computed(() => ["customEvent", "event"].includes(props.element.filterType));
+
+// Field search matches the shown title and, for events, the internal key too (keys were searchable before labels).
+const fieldFilter = (_value, query, item) => {
+  const q = String(query || "").toLowerCase();
+  const raw = item?.raw || {};
+  return [raw.title, raw.eventId].some((s) => String(s || "").toLowerCase().includes(q));
+};
+
 const selectedFieldMeta = computed(() => {
   if (props.element.filterType === "eventData") {
-    return {
-      inputFieldMeta: {
-        type: "text",
-      },
-    };
+    // input + operators follow the property's Event Master type (same as profile attributes)
+    const type =
+      eventDataFields.value.find((f) => f.value === props.element.field)?.inputType || "text";
+    return { inputFieldMeta: { type } };
   }
   return FILTER_FIELDS_MAP[props.element.field];
+});
+
+// Operators for Event Property filters follow the type (text: contains/starts with…, number: <, >…, date, boolean: =, ≠).
+const operatorItems = computed(() => {
+  const ops = FILTER_OPERATORS.value;
+  if (props.element.filterType !== "eventData") return ops;
+  const type = selectedFieldMeta.value?.inputFieldMeta?.type;
+  return ops.filter((o) => !o.strictApplicableTypes || o.strictApplicableTypes.includes(type));
 });
 const confirmCohortSelection = () => {
   skipCohortCheck.value = true;
@@ -354,8 +404,18 @@ defineExpose({ isValid });
         @update:modelValue="onFilterTypeChange"
       />
 
-      <!-- Field -->
+      <!-- Field: events use the shared event dropdown (label + key, pinned Event Master link) -->
+      <EventAutocomplete
+        v-if="isEventField"
+        v-model="element.field"
+        :items="FILTER_FIELDS"
+        app-style
+        placeholder="Select event"
+        class="filter-entity field"
+        @update:modelValue="onFilterFieldChange"
+      />
       <AppAutocomplete
+        v-else
         v-model="element.field"
         :items="
           element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS
@@ -368,10 +428,19 @@ defineExpose({ isValid });
             : 'Select field'
         "
         class="filter-entity field"
+        :custom-filter="fieldFilter"
         @update:modelValue="onFilterFieldChange"
       >
         <template #item="{ props, item }">
           <VListItem v-bind="props">
+            <!-- events: show the internal key under the display label -->
+            <VListItemSubtitle
+              v-if="item.raw.eventId && item.raw.eventId !== item.raw.title"
+              class="text-xs"
+              style="font-family: ui-monospace, SFMono-Regular, Menlo, monospace"
+            >
+              {{ item.raw.eventId }}
+            </VListItemSubtitle>
             <VListItemSubtitle class="ml-auto text-xs text-gray-500">
               <span v-if="item.raw.meta?.projection != null">
                 Projection : {{ item.raw.meta?.projection }}
@@ -397,7 +466,7 @@ defineExpose({ isValid });
           selectedFieldMeta?.inputFieldMeta?.type !== 'frequency'
         "
         v-model="element.operator"
-        :items="FILTER_OPERATORS"
+        :items="operatorItems"
         placeholder="Operator"
         class="filter-entity operator"
         @update:modelValue="clearErrorAndUpdate"

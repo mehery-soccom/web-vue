@@ -208,7 +208,7 @@ export const useAppEngagements = (source, config = {}) => {
         const results = response.data.data.map((el) => {
           const r = {
             type: _type,
-            title: el.eventName,
+            title: el.displayLabel || el.eventName, // Event Master label; display only, value/eventId stay the key
             value: _type === "eventData" ? el._id : el.eventName,
             eventId: el.eventName,
             meta: {

@@ -26,3 +26,4 @@ pnpm-debug.log*
 
 # iconify dist files
 src/@iconify/icons-bundle.js
+.gstack/

@@ -1,5 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, ref, watch } from "vue";
+import paJiIcon from "@app-pushapp/assets/images/pa-ji3.png";
 
 defineOptions({ inheritAttrs: false });
 
@@ -33,8 +34,9 @@ let scrollHideTimer = null;
 const roleLabel = (role) => (role === "user" ? "You" : "AI");
 
 const isThinking = computed(() => {
-  if (props.isSending) return true;
   const last = props.messages[props.messages.length - 1];
+  if (last?.role === "status") return false;
+  if (props.isSending) return true;
   return last?.role === "user";
 });
 
@@ -178,7 +180,7 @@ defineExpose({ scrollToBottom, focusInput });
         >
           <div class="ca-minimized">
             <div class="ca-minimized__icon">
-              <VIcon icon="tabler-sparkles" size="22" />
+              <img :src="paJiIcon" alt="PA-ji" class="ca-brand-img" />
             </div>
             <div class="ca-minimized__body">
               <div class="ca-minimized__title-row">
@@ -210,7 +212,7 @@ defineExpose({ scrollToBottom, focusInput });
           <header class="ca-panel__header">
             <div class="ca-panel__brand">
               <div class="ca-panel__avatar">
-                <VIcon icon="tabler-robot" size="20" />
+                <img :src="paJiIcon" alt="PA-ji" class="ca-brand-img" />
               </div>
               <div>
                 <div class="ca-panel__title">{{ title }}</div>
@@ -289,9 +291,20 @@ defineExpose({ scrollToBottom, focusInput });
                 v-for="(msg, idx) in messages"
                 :key="`${msg.role}-${msg.timestamp}-${idx}`"
                 class="ca-msg"
-                :class="msg.role === 'user' ? 'ca-msg--user' : 'ca-msg--assistant'"
+                :class="msg.role === 'user' ? 'ca-msg--user' : msg.role === 'status' ? 'ca-msg--status' : 'ca-msg--assistant'"
               >
-                <div class="ca-msg__body">
+                <div v-if="msg.role === 'status'" class="ca-status">
+                  <VProgressCircular
+                    v-if="isSending && idx === messages.length - 1"
+                    indeterminate
+                    size="14"
+                    width="2"
+                    color="primary"
+                  />
+                  <VIcon v-else icon="tabler-check" size="14" color="success" />
+                  <span>{{ msg.content }}</span>
+                </div>
+                <div v-else class="ca-msg__body">
                   <div class="ca-msg__row">
                     <div
                       v-if="msg.role === 'assistant'"
@@ -460,15 +473,15 @@ defineExpose({ scrollToBottom, focusInput });
   background: rgb(var(--v-theme-surface));
 }
 .ca-minimized__icon {
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: rgb(var(--v-theme-primary));
-  background: rgba(var(--v-theme-primary), 0.12);
+  overflow: hidden;
+  background: transparent;
 }
 .ca-minimized__body {
   flex: 1;
@@ -561,15 +574,22 @@ defineExpose({ scrollToBottom, focusInput });
   min-width: 0;
 }
 .ca-panel__avatar {
-  width: 36px;
-  height: 36px;
+  width: 44px;
+  height: 44px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #fff;
-  background: rgb(var(--v-theme-primary));
   flex-shrink: 0;
+  overflow: hidden;
+  background: transparent;
+}
+.ca-brand-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 22%;
+  display: block;
 }
 .ca-panel__title {
   font-weight: 700;
@@ -702,6 +722,19 @@ defineExpose({ scrollToBottom, focusInput });
 }
 .ca-msg--assistant {
   justify-content: flex-start;
+}
+.ca-msg--status {
+  justify-content: flex-start;
+}
+.ca-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  padding: 2px 2px 2px 4px;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: rgba(var(--v-theme-on-surface), 0.72);
 }
 .ca-msg__body {
   max-width: 88%;

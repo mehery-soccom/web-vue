@@ -197,8 +197,9 @@ const currentComponent = computed(() => {
     </template>
 
     <!-- Forward no-data slot ( only if provided ) -->
+    <!-- Vuetify calls no-data without props; v-bind of undefined crashes renderSlot -->
     <template v-if="hasSlot('no-data')" #no-data="slotProps">
-      <slot name="no-data" v-bind="slotProps" />
+      <slot name="no-data" v-bind="slotProps || {}" />
     </template>
     <template v-else #no-data>
       <div

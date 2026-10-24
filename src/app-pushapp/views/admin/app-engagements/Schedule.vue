@@ -10,37 +10,52 @@ const emit = defineEmits(["update:modelValue", "update:journey"]);
 
 const form = reactive(JSON.parse(JSON.stringify(props.modelValue)));
 
+const listsEqual = (left, right) => {
+  if (left === right) return true;
+  if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+  return left.every((item, index) => item === right[index]);
+};
+
+const assignField = (key, value) => {
+  if (Array.isArray(value)) {
+    if (!listsEqual(form[key], value)) form[key] = value;
+    return;
+  }
+  if (form[key] !== value) form[key] = value;
+};
+
 watch(
   () => props.modelValue,
   (val) => {
-    Object.assign(form, val);
-    if (val?.rrule) {
-      const rule = val.rrule;
-      const hours = val.activeHours || {};
-      form.recurringType = !!val.enableActiveWindow;
+    if (!val) return;
+    if (val !== form) Object.assign(form, val);
+    if (!val.rrule) return;
 
-      if (rule.includes("FREQ=DAILY")) {
-        form.schedulePattern = "daily";
-        form.startTime = hours.start || null;
-        form.endTime = hours.end || null;
-      } else if (rule.includes("FREQ=WEEKLY")) {
-        form.schedulePattern = "weekly";
-        form.scheduleDays = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
-        form.weeklyStartTime = hours.start || null;
-        form.weeklyEndTime = hours.end || null;
-      } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYMONTHDAY")) {
-        form.schedulePattern = "monthlyDate";
-        form.scheduleDate = rule.match(/BYMONTHDAY=(\d+)/)?.[1];
-        form.monthlyDateStartTime = hours.start || null;
-        form.monthlyDateEndTime = hours.end || null;
-      } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYSETPOS")) {
-        form.schedulePattern = "monthlyWeekday";
-        const weekMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
-        form.scheduleWeek = weekMap[rule.match(/BYSETPOS=(-?\d+)/)?.[1]];
-        form.scheduleWeekday = rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",") || [];
-        form.monthlyWeekdayStartTime = hours.start || null;
-        form.monthlyWeekdayEndTime = hours.end || null;
-      }
+    const rule = val.rrule;
+    const hours = val.activeHours || {};
+    assignField("recurringType", !!val.enableActiveWindow);
+
+    if (rule.includes("FREQ=DAILY")) {
+      assignField("schedulePattern", "daily");
+      assignField("startTime", hours.start || null);
+      assignField("endTime", hours.end || null);
+    } else if (rule.includes("FREQ=WEEKLY")) {
+      assignField("schedulePattern", "weekly");
+      assignField("scheduleDays", rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",").filter(Boolean) || []);
+      assignField("weeklyStartTime", hours.start || null);
+      assignField("weeklyEndTime", hours.end || null);
+    } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYMONTHDAY")) {
+      assignField("schedulePattern", "monthlyDate");
+      assignField("scheduleDate", rule.match(/BYMONTHDAY=(\d+)/)?.[1]);
+      assignField("monthlyDateStartTime", hours.start || null);
+      assignField("monthlyDateEndTime", hours.end || null);
+    } else if (rule.includes("FREQ=MONTHLY") && rule.includes("BYSETPOS")) {
+      const weekMap = { 1: "FIRST", 2: "SECOND", 3: "THIRD", 4: "FOURTH", "-1": "LAST" };
+      assignField("schedulePattern", "monthlyWeekday");
+      assignField("scheduleWeek", weekMap[rule.match(/BYSETPOS=(-?\d+)/)?.[1]]);
+      assignField("scheduleWeekday", rule.match(/BYDAY=([^;]+)/)?.[1]?.split(",").filter(Boolean) || []);
+      assignField("monthlyWeekdayStartTime", hours.start || null);
+      assignField("monthlyWeekdayEndTime", hours.end || null);
     }
   },
   { deep: true, immediate: true }

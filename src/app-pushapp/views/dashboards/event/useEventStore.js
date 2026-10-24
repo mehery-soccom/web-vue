@@ -4,6 +4,7 @@ import { defineStore } from "pinia";
 export const useEventStore = defineStore("EventStore", {
   state: () => ({
     uniqueEvents: [],
+    eventOptions: [], // [{ eventName, displayLabel }] from Event Master, hidden events removed
     eventStats: {
       total_events: 0,
       unique_users: 0,
@@ -18,6 +19,19 @@ export const useEventStore = defineStore("EventStore", {
         return res.data;
       } catch (error) {
         console.error("Error fetching unique events:", error);
+      }
+    },
+
+    // Event picker options with Event Master labels. Hidden events are left out.
+    async fetchEventOptions() {
+      try {
+        const res = await DataService.axios.get("/api/v1/event-definition");
+        this.eventOptions = (res.data.data || [])
+          .filter((e) => !e.hidden)
+          .map((e) => ({ eventName: e.eventName, displayLabel: e.displayLabel || e.eventName }));
+        return this.eventOptions;
+      } catch (error) {
+        console.error("Error fetching event options:", error);
       }
     },
 

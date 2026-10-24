@@ -123,6 +123,8 @@ const validateAudienceFilter = async () => {
   return !!(filterValid && filterStructureValid);
 };
 
+const MAX_BLOCKS = 12;
+
 const onSave = async () => {
   const validationResult = await formRef.value?.validate();
   if (!validationResult?.valid) return;
@@ -141,6 +143,16 @@ const onSave = async () => {
       await store.updateDashboard({ id: route.params.id, ...payload });
       show({ message: "Block updated successfully", color: "success" });
     } else {
+      const existing = await store.fetchDashboards({ page: 1, itemsPerPage: MAX_BLOCKS });
+      const total =
+        existing?.data?.pagination?.total ??
+        existing?.data?.results?.length ??
+        existing?.data?.data?.length ??
+        0;
+      if (total >= MAX_BLOCKS) {
+        show({ message: "You can add up to 12 blocks", color: "warning" });
+        return;
+      }
       await store.createDashboard(payload);
       show({ message: "Block created successfully", color: "success" });
     }

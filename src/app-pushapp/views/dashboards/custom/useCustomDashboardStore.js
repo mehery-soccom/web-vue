@@ -18,7 +18,7 @@ export const useCustomDashboardStore = defineStore("CustomDashboardStore", {
         params: {
           page,
           limit: itemsPerPage,
-          sort: sort || "-createdAt",
+          ...(sort && { sort }),
           search: filters,
         },
       });
@@ -32,8 +32,13 @@ export const useCustomDashboardStore = defineStore("CustomDashboardStore", {
     deleteDashboard({ id }) {
       return DataService.axios.delete(`/api/v1/analytics/management/dashboard/${id}`);
     },
-    fetchEventFilterStats(params) {
-      return DataService.axios.post("/api/v1/analytics/events/filter/stats", params);
+    reorderDashboards(orderedIds) {
+      return DataService.axios.put("/api/v1/analytics/management/dashboard/reorder", { orderedIds });
+    },
+    fetchEventFilterStats(params, signal) {
+      return DataService.axios.post("/api/v1/analytics/events/filter/stats", params, {
+        signal,
+      });
     },
   },
 });

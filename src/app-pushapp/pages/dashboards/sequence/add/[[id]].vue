@@ -2,6 +2,8 @@
 import { ref, onMounted, computed, inject, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useSequenceStore } from '@app-pushapp/views/dashboards/sequence/useSequenceStore';
+import { loadEventLabels } from '@app-pushapp/views/config/event-master/eventMaster';
+import EventAutocomplete from '@app-pushapp/views/config/event-master/EventAutocomplete.vue';
 import draggable from 'vuedraggable';
 
 const route = useRoute();
@@ -37,11 +39,14 @@ const formatEventName = (str) => {
     .join(' ');
 };
 
+// Event Master labels; display only, the step still stores the event key.
+const eventLabels = ref({});
+
 const availableEvents = computed(() => {
   return store.uniqueEvents.map(event => ({
     value: event,
-    label: event
-  })).sort((a, b) => a.label.localeCompare(b.label));
+    title: eventLabels.value[event] || event
+  })).sort((a, b) => a.title.localeCompare(b.title));
 });
 
 watch(() => formData.value.name, (newName) => {
@@ -89,7 +94,8 @@ const loadSequence = async () => {
 onMounted(async () => {
   isFetching.value = true;
   try {
-    await store.fetchUniqueEvents();
+    const [, labels] = await Promise.all([store.fetchUniqueEvents(), loadEventLabels()]);
+    eventLabels.value = labels;
     if (sequenceId.value) await loadSequence();
   } catch (error) {
     show({
@@ -234,17 +240,15 @@ const handleSubmit = async () => {
                   </VCol>
                   
                   <VCol class="px-2">
-                    <VAutocomplete
+                    <EventAutocomplete
                       v-model="element.event_name"
                       :items="availableEvents"
-                      item-title="label"
-                      item-value="value"
                       label="Select Event"
                       placeholder="Search for an event..."
                       :rules="[requiredValidator]"
-                      variant="outlined"
                       density="comfortable"
                       hide-details="auto"
+                      show-key
                       :disabled="isViewMode"
                     />
                   </VCol>

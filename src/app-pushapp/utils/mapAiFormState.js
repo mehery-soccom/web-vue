@@ -1,3 +1,9 @@
+import {
+  FILTER_TYPES,
+  FILTER_FIELDS_MAP as STATIC_FILTER_FIELDS,
+  FILTER_OPERATORS,
+} from "@/app-pushapp/views/admin/app-engagements/data/filterOptions";
+
 const emptyFilterChild = () => ({
   type: "filter",
   filterType: null,
@@ -220,4 +226,136 @@ export function mapAiFormStateToCampaignState(formState) {
     schedule: schedule?.data ?? null,
     version: formState.version,
   };
+}
+
+/** Map GET /ai-form-state payload into an in-app engagement campaign. */
+export function mapAiFormStateToEngagementState(formState) {
+  if (!formState?.sections) return null;
+
+  const { template, audience, schedule, trigger } = formState.sections;
+
+  return {
+    template: template?.data ?? null,
+    audience: audience?.data ?? null,
+    schedule: schedule?.data ?? null,
+    trigger: trigger?.data ?? null,
+    version: formState.version,
+  };
+}
+
+const normLabel = (value) => String(value ?? "").trim().toLowerCase();
+
+function resolveFilterType(raw) {
+  if (raw == null || raw === "") return null;
+  const n = normLabel(raw);
+  const match = FILTER_TYPES.find(
+    (t) =>
+      normLabel(t.value) === n ||
+      normLabel(t.valueAlias) === n ||
+      normLabel(t.title) === n,
+  );
+  return match?.value || raw;
+}
+
+function fieldCatalog(extraFields) {
+  const merged = { ...STATIC_FILTER_FIELDS };
+  if (extraFields && typeof extraFields === "object") {
+    Object.values(extraFields).forEach((field) => {
+      if (field?.value) merged[field.value] = field;
+    });
+  }
+  return Object.values(merged);
+}
+
+function resolveField(raw, extraFields) {
+  if (raw == null || raw === "") return null;
+  const n = normLabel(raw);
+  const match = fieldCatalog(extraFields).find(
+    (f) => normLabel(f.value) === n || normLabel(f.title) === n,
+  );
+  return match?.value || raw;
+}
+
+function resolveOperator(raw) {
+  if (raw == null || raw === "") return null;
+  const n = normLabel(raw);
+  const match = FILTER_OPERATORS.find(
+    (op) =>
+      normLabel(op.value) === n ||
+      normLabel(op.title) === n ||
+      normLabel(op.text) === n ||
+      normLabel(op.sign) === n,
+  );
+  return match?.value || raw;
+}
+
+function resolveOptionValue(fieldValue, raw, extraFields) {
+  const field = fieldCatalog(extraFields).find((f) => f.value === fieldValue);
+  const options = field?.inputFieldMeta?.options;
+  const forceArray =
+    !!field?.inputFieldMeta?.multiple || typeof options === "string";
+
+  const mapOne = (value) => {
+    if (!Array.isArray(options)) return value;
+    const n = normLabel(value);
+    const opt = options.find(
+      (o) => normLabel(o.value) === n || normLabel(o.title) === n,
+    );
+    return opt ? opt.value : value;
+  };
+
+  if (raw == null) return raw;
+  const mapped = Array.isArray(raw) ? raw.map(mapOne) : mapOne(raw);
+  if (!forceArray) return mapped;
+  return Array.isArray(mapped) ? mapped : [mapped];
+}
+
+function normalizeFilterNode(node, extraFields) {
+  if (!node || node.type !== "filter") return null;
+  const field = resolveField(node.field, extraFields);
+  return {
+    _id: node._id || crypto.randomUUID(),
+    type: "filter",
+    filterType: resolveFilterType(node.filterType),
+    field,
+    operator: resolveOperator(node.operator),
+    value: resolveOptionValue(field, node.value ?? null, extraFields),
+    freqOperator: node.freqOperator ?? null,
+    freqCount: node.freqCount ?? null,
+    freqPeriod: node.freqPeriod ?? null,
+    scannedEvents: node.scannedEvents ?? null,
+  };
+}
+
+/** Turn AI form-state filters (labels or a single node) into a FilterBuilder group. */
+export function normalizeAiFilterTree(node, extraFields) {
+  if (!node) return null;
+
+  if (node.type === "group") {
+    const children = (node.children || [])
+      .map((child) =>
+        child?.type === "group"
+          ? normalizeAiFilterTree(child, extraFields)
+          : normalizeFilterNode(child, extraFields),
+      )
+      .filter(Boolean);
+    if (!children.length) return null;
+    return {
+      type: "group",
+      conjunction: node.conjunction || "and",
+      children,
+    };
+  }
+
+  if (node.type === "filter") {
+    const child = normalizeFilterNode(node, extraFields);
+    if (!child?.field && !child?.filterType) return null;
+    return {
+      type: "group",
+      conjunction: "and",
+      children: child ? [child] : [],
+    };
+  }
+
+  return null;
 }

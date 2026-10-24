@@ -2,6 +2,52 @@ import DataService from "@/@common/services/DataService";
 import { defineStore } from "pinia";
 
 const PERSISTENT_CHAT_URL = "/nexuz/agentic/api/v1/persistentChat";
+
+const parseSseBlock = (raw) => {
+  let event = "message";
+  const dataLines = [];
+  raw.split("\n").forEach((line) => {
+    if (!line || line.startsWith(":")) return;
+    if (line.startsWith("event:")) event = line.slice(6).trim();
+    else if (line.startsWith("data:")) dataLines.push(line.slice(5).trim());
+  });
+  if (!dataLines.length) return null;
+  const dataText = dataLines.join("\n");
+  let data = dataText;
+  try {
+    data = JSON.parse(dataText);
+  } catch (e) {
+    data = dataText;
+  }
+  return { event, data };
+};
+
+const readCampaignChatEvents = async (response, onEvent) => {
+  if (!response.body) return;
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+
+  const flush = (block) => {
+    const evt = parseSseBlock(block);
+    if (evt) onEvent?.(evt);
+  };
+
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true }).replace(/\r\n/g, "\n");
+    let splitAt = buffer.indexOf("\n\n");
+    while (splitAt !== -1) {
+      flush(buffer.slice(0, splitAt));
+      buffer = buffer.slice(splitAt + 2);
+      splitAt = buffer.indexOf("\n\n");
+    }
+  }
+
+  buffer += decoder.decode();
+  if (buffer.trim()) flush(buffer);
+};
 export const usePushNotificationStore = defineStore("PushNotificationStore", {
   state: () => ({
     buttonGroupList: [
@@ -244,18 +290,52 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       );
     },
 
-    /** POST a chat message. First call: sessionId null. Later: include sessionId. */
-    postCampaignAssistantMessage({ sessionId = null, text }) {
-      return DataService.axios.post(PERSISTENT_CHAT_URL,
-        { sessionId, text }, 
-        { skipApiContext: true, toast: false, 
-          params: { tnt: window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo" } });
+    /** POST a chat message as an event stream. First call: sessionId null. Later: include sessionId. */
+    async postCampaignAssistantMessage({ sessionId = null, text, onEvent, signal }) {
+      const url = new URL(
+        PERSISTENT_CHAT_URL,
+        window.location.origin,
+      );
+
+      const response = await fetch(url.toString(), {
+        method: "POST",
+        credentials: "include",
+        signal,
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "text/event-stream",
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        },
+        body: JSON.stringify({ sessionId, text }),
+      });
+
+      if (!response.ok) {
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (e) {
+          data = {};
+        }
+        const error = new Error("Failed to send message");
+        error.response = { data };
+        throw error;
+      }
+
+      const contentType = response.headers.get("content-type") || "";
+      if (contentType.includes("application/json")) {
+        const body = await response.json();
+        onEvent?.({ event: "done", data: body?.data || body });
+        return body;
+      }
+
+      await readCampaignChatEvents(response, onEvent);
+      return null;
     },
 
     /** GET / poll session messages by sessionId */
     fetchCampaignAssistantSession(sessionId) {
       return DataService.axios.get(PERSISTENT_CHAT_URL, 
-        { params: { sessionId, tnt: window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo" }, 
+        { params: { sessionId }, 
           skipApiContext: true, toast: false });
     },
 
@@ -267,6 +347,11 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
     /** GET / poll AI form state (template, audience, schedule) by sessionId */
     fetchCampaignAiFormState(sessionId) {
       return DataService.axios.get(`/api/v1/ai-form-state/${sessionId}`);
+    },
+
+    /** POST / record the launched campaign against the AI form-state session */
+    finalizeCampaignAiFormState(sessionId, body) {
+      return DataService.axios.post(`/api/v1/ai-form-state/${sessionId}/finalize`, body);
     },
   },
 });
