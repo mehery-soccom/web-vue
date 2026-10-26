@@ -15,6 +15,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  extraSuggestions: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const attrs = useAttrs();
@@ -30,7 +34,7 @@ function flattenKeys(obj = {}, parent = "") {
 
 const flatSuggestions = computed(() => {
   const appendSuggestions = ["data."]; // can be a prop
-  return [...flattenKeys(props.suggestions), ...appendSuggestions];
+  return [...new Set([...flattenKeys(props.suggestions), ...appendSuggestions, ...props.extraSuggestions])];
 });
 
 const model = defineModel({ type: String, default: "" });
@@ -41,7 +45,9 @@ const setupTextcomplete = () => {
   const editorEl = textareaRef.value?.$el?.querySelector(props.type);
   if (!editorEl) return;
 
-  const textcomplete = new Textcomplete(new Textarea(editorEl));
+  const textcomplete = new Textcomplete(new Textarea(editorEl), {
+    dropdown: { maxCount: Infinity },
+  });
 
   textcomplete.register([
     {

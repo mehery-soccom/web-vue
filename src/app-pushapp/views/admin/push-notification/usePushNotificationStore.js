@@ -290,6 +290,10 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       );
     },
 
+    fetchCustomerMasterFields() {
+      return DataService.axios.get("/api/v1/customer/master/field");
+    },
+
     /** POST a chat message as an event stream. First call: sessionId null. Later: include sessionId. */
     async postCampaignAssistantMessage({ sessionId = null, text, onEvent, signal }) {
       const url = new URL(

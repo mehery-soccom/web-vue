@@ -29,7 +29,8 @@ const swatch = ref([]);
 const props = defineProps({
   formData: { type: Object, required: true },
   fields: { type: Array, required: true },
-  readonly: { type: Boolean, default: false }
+  readonly: { type: Boolean, default: false },
+  extraSuggestions: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['update:formData'])
@@ -233,6 +234,7 @@ defineExpose({ validate });
         :placeholder="f.placeholder"
         :rules="f.required ? [required] : []"
         :suggestions="get(local, 'model.' + f.textinputstylesKey)"
+        :extra-suggestions="props.extraSuggestions"
       />
       <AppRichTextEditor
         v-else-if="f.type === 'richtext'"

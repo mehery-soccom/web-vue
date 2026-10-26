@@ -4,6 +4,7 @@ import NotificationPreview from "@app-pushapp/views/admin/push-notification/Noti
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
+import { useProfileVariables } from "@app-pushapp/views/admin/push-notification/useProfileVariables";
 const { show } = inject("snackbar");
 import { useLibraryStore } from "@/app-pushapp/views/config/library/useLibraryStore";
 
@@ -126,6 +127,7 @@ async function fetchItems() {
     console.log("fetchItems error", error);
   }
 }
+const { profileSuggestions, fetchProfileFields, buildProfileVarMap } = useProfileVariables();
 const formRef = ref();
 const formRefVersion = ref(1);
 
@@ -196,6 +198,7 @@ onMounted(async () => {
   }
   if(fromMetaStore?.$state?.meta?.prefs?.pa_app_logo) template.style.logo_url = fromMetaStore.$state.meta.prefs.pa_app_logo;
   fetchItems();
+  fetchProfileFields();
 });
 const normalizeUrl = (v) => {
   if (!v) return null;
@@ -250,6 +253,7 @@ const onCreate = async () => {
             button_url: normalizeUrl(buttonGroupValue.value[b.text]),
           })),
         },
+        profileVarMap: buildProfileVarMap(template.model?.profile),
         // model: {
         //   ...(template.model || {}),
         //   data,
@@ -259,6 +263,7 @@ const onCreate = async () => {
       payload = {
         ...template,
         options: {},
+        profileVarMap: buildProfileVarMap(template.model?.profile),
         // model: {
         //   ...(template.model || {}),
         //   data,
@@ -316,6 +321,7 @@ const onUpdate = async () => {
               })),
             }
           : {},
+        profileVarMap: buildProfileVarMap(template.model?.profile),
     }
 
     await pushNotificationStore.updateTemplate(template._id, payload);
@@ -453,6 +459,7 @@ watch(
                           :rules="[required, max50]"
                           prepend-inner-icon="mdi-format-title"
                           :suggestions="template.model"
+                          :extra-suggestions="profileSuggestions"
                         />
                       </VCol>
 
@@ -465,6 +472,7 @@ watch(
                           prepend-inner-icon="mdi-message-text"
                           type="textarea"
                           :suggestions="template.model"
+                          :extra-suggestions="profileSuggestions"
                         />
                       </VCol>
 
@@ -548,6 +556,7 @@ watch(
                                 prepend-inner-icon="mdi-text"
                                 density="compact"
                                 :suggestions="template.model"
+                                :extra-suggestions="profileSuggestions"
                               />
                             </VCol>
                             <VCol
@@ -699,7 +708,7 @@ watch(
                         toRef(template.style, 'line_2'),
                         toRef(template.style, 'line_3'),
                       ]"
-                      :dynamic-prefixes="['data']"
+                      :dynamic-prefixes="['data', 'profile']"
                     />
                   </VCol>
                 </VRow>

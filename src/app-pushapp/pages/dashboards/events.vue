@@ -30,11 +30,11 @@ const trendOptions = ['Time of Day', 'Events over period', 'Users over period']
 const selectedSession = ref(null)
 const sessionOptions = ['Time To', 'Pages To']
 
-// Date Logic: Default last 7 days
+// Date Logic: Default today
 const tonight = new Date().setHours(23, 59, 59, 999)
 const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-")
-const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6))
-const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`)
+const today = new Date()
+const dateRange = ref(`${formatDate(today)} to ${formatDate(today)}`)
 
 const optionIcons = {
   Snap: 'tabler-bolt',

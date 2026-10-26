@@ -9,6 +9,7 @@ import TemplatePresetSelector from "@/app-pushapp/views/admin/app-engagements/Te
 // import popupScript from "@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/PopupFunction";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
+import { useProfileVariables } from "@app-pushapp/views/admin/push-notification/useProfileVariables";
 
 const required = (v) => !!v || "This field is required";
 
@@ -26,6 +27,7 @@ const props = defineProps({
 
 const { TYPES, SUB_TYPES } = useAppEngagements();
 const AppEngagementsStore = useAppEngagementsStore();
+const { profileSuggestions, fetchProfileFields, buildProfileVarMap } = useProfileVariables();
 
 const route = useRoute();
 const IS_PAGE = route.name?.includes("admin-app-engagements-templates-add");
@@ -145,6 +147,7 @@ const createPayload = () => {
   if (template.view) delete template.view;
   return {
     ...template,
+    profileVarMap: buildProfileVarMap(template.model?.profile),
   };
 };
 const notificationPreviewRef = ref(null);
@@ -320,6 +323,7 @@ const fetchDetails = async (val, isCopy = false) => {
 };
 
 onMounted(async () => {
+  fetchProfileFields();
   if (PARAM_ID || QUERY_COPY || TEMPLATE_ID.value) isPreStep.value = false;
   if (TEMPLATE_ID.value) await fetchDetails(TEMPLATE_ID.value);
   else if (PARAM_ID) await fetchDetails(PARAM_ID);
@@ -497,6 +501,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                         :formData="template"
                         :fields="formFields"
                         :readonly="props.readonly"
+                        :extra-suggestions="profileSuggestions"
                         @update:formData="onFormUpdate"
                       />
                     </VForm>
@@ -516,7 +521,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                           toRef(template.style, 'line_3'),
                           toRef(template.style, 'richline_1'),
                         ]"
-                        :dynamic-prefixes="['data']"
+                        :dynamic-prefixes="['data', 'profile']"
                       />
                     </VCol>
                   </VRow>

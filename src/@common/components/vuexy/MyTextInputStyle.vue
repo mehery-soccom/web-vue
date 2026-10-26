@@ -21,6 +21,7 @@ const props = defineProps({
   icon: { type: [String, Number, Boolean], default: null },
   iconPlacement: { type: String, default: null },
   suggestions: { type: Array, default: () => [] },
+  extraSuggestions: { type: Array, default: () => [] },
   swatches: Array,
   disabled: { type: Boolean , default: false }
 })
@@ -53,7 +54,7 @@ watch(() => props.modelValue, (val) => {
           :label="label"
           :placeholder="placeholder"
           :rules="rules"
-          :suggestions="suggestions" :disabled="disabled"
+          :suggestions="suggestions" :extra-suggestions="extraSuggestions" :disabled="disabled"
         />
       </VCol>
       <VCol cols="1" class="d-flex align-center justify-end">

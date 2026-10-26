@@ -170,12 +170,12 @@ const headers = [
     sortable: false,
     align: "center",
   },
-  {
-    title: "Created by",
-    key: "created.byUser",
-    sortable: false,
-    align: "center",
-  },
+  // {
+  //   title: "Created by",
+  //   key: "created.byUser",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Count",
     key: "stats.total",
@@ -653,12 +653,12 @@ const onUpdateOptionsDebounced = debounce((options) => {
           }}
         </template>
 
-        <template #item.created.byUser="{ item }">
+        <!-- <template #item.created.byUser="{ item }">
           <span v-if="item.raw.created && item.raw.created.byUser">{{
             item.raw.created.byUser
           }}</span>
           <span v-else> - </span>
-        </template>
+        </template> -->
 
         <!-- numeric count columns with comma formatting -->
         <template #item.stats.total="{ item }">
