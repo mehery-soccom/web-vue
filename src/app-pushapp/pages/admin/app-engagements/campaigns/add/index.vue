@@ -927,11 +927,11 @@ watch(templateList, () => {
       <!-- <VWindowItem> Goals </VWindowItem> -->
     </VWindow>
 
-    <!-- <EngagementCampaignAssistant
+    <EngagementCampaignAssistant
       v-if="isAgenticAiEnabled"
       v-model:expanded="assistantExpanded"
       @campaign-state="onAssistantCampaignState"
-    /> -->
+    />
   </div>
 </template>
 
