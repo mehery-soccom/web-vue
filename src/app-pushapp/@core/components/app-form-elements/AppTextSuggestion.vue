@@ -67,12 +67,34 @@ const setupTextcomplete = () => {
     },
   ]);
 
+  // textcomplete scrolls every activated (hovered) item to the top, which cascades the list to the bottom
+  const keepItemInView = (listEl, itemEl) => {
+    const top = itemEl.offsetTop;
+    const bottom = top + itemEl.offsetHeight;
+    if (top < listEl.scrollTop) listEl.scrollTop = top;
+    else if (bottom > listEl.scrollTop + listEl.clientHeight) {
+      listEl.scrollTop = bottom - listEl.clientHeight;
+    }
+  };
+
   // Ensure dropdown appended to body
   textcomplete.on("rendered", () => {
     const dropdownEl = textcomplete.dropdown?.el;
     if (dropdownEl && !document.body.contains(dropdownEl)) {
       document.body.appendChild(dropdownEl);
     }
+
+    (textcomplete.dropdown?.items || []).forEach((item) => {
+      const activate = item.activate.bind(item);
+      item.activate = () => {
+        const listEl = textcomplete.dropdown.el;
+        const scrollTop = listEl.scrollTop;
+        activate();
+        listEl.scrollTop = scrollTop;
+        keepItemInView(listEl, item.el);
+        return item;
+      };
+    });
   });
 
   const reposition = () => {

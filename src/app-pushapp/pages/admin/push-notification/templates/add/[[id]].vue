@@ -253,7 +253,7 @@ const onCreate = async () => {
             button_url: normalizeUrl(buttonGroupValue.value[b.text]),
           })),
         },
-        profileVarMap: buildProfileVarMap(template.model?.profile),
+        profileVarMap: buildProfileVarMap(template.style),
         // model: {
         //   ...(template.model || {}),
         //   data,
@@ -263,7 +263,7 @@ const onCreate = async () => {
       payload = {
         ...template,
         options: {},
-        profileVarMap: buildProfileVarMap(template.model?.profile),
+        profileVarMap: buildProfileVarMap(template.style),
         // model: {
         //   ...(template.model || {}),
         //   data,
@@ -321,7 +321,7 @@ const onUpdate = async () => {
               })),
             }
           : {},
-        profileVarMap: buildProfileVarMap(template.model?.profile),
+        profileVarMap: buildProfileVarMap(template.style),
     }
 
     await pushNotificationStore.updateTemplate(template._id, payload);

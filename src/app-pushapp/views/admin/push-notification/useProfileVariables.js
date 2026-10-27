@@ -24,9 +24,19 @@ export function useProfileVariables() {
     }
   };
 
-  const buildProfileVarMap = (profileModel = {}) => {
+  const getUsedProfileKeys = (style = {}) => {
+    const keys = new Set();
+    const regex = /{{\s*profile\.([a-zA-Z0-9_]+)\s*}}/g;
+    let match;
+    const { html, ...fields } = style || {};
+    const text = JSON.stringify(fields);
+    while ((match = regex.exec(text)) !== null) keys.add(match[1]);
+    return [...keys];
+  };
+
+  const buildProfileVarMap = (style = {}) => {
     const map = {};
-    Object.keys(profileModel || {}).forEach((k) => {
+    getUsedProfileKeys(style).forEach((k) => {
       if (k === "name") {
         map[k] = "profile.name.formattedName";
         return;

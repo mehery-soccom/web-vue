@@ -147,7 +147,7 @@ const createPayload = () => {
   if (template.view) delete template.view;
   return {
     ...template,
-    profileVarMap: buildProfileVarMap(template.model?.profile),
+    profileVarMap: buildProfileVarMap(template.style),
   };
 };
 const notificationPreviewRef = ref(null);
