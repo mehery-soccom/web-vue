@@ -55,4 +55,10 @@ export default [
     icon: { icon: "mdi-vector-polyline" },
     to: "admin-journey-list",
   },
+  {
+    title: "Usage",
+    icon: { icon: "tabler-chart-bar" },
+    to: "admin-usage",
+    requiresAgenticAi: true,
+  },
 ];

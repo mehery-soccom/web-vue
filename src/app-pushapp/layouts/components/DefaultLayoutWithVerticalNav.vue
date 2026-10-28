@@ -16,10 +16,13 @@ import { VerticalNavLayout } from "@app-pushapp/@layouts";
 
 const { appRouteTransition, isLessThanOverlayNavBreakpoint } = useThemeConfig();
 const { width: windowWidth } = useWindowSize();
+
+const isAgenticAiEnabled = !!window.CONST?.CONFIG?.FEATURES?.PUSHAPP_AGENTIC_AI;
+const visibleNavItems = navItems.filter((item) => !item.requiresAgenticAi || isAgenticAiEnabled);
 </script>
 
 <template>
-  <VerticalNavLayout :nav-items="navItems">
+  <VerticalNavLayout :nav-items="visibleNavItems">
     <!-- 👉 navbar -->
     <template #navbar="{ toggleVerticalOverlayNavActive }">
       <div class="d-flex h-100 align-center">

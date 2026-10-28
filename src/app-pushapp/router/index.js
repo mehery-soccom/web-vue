@@ -26,6 +26,7 @@ import ChannelsList from '../pages/admin/channels/list/index.vue';
 import Cohorts from '../pages/admin/cohorts/list/index.vue';
 import FlowList from '../pages/admin/journey/list/index.vue';
 import FlowAdd from '../pages/admin/journey/add/[[id]].vue'
+import Usage from '../pages/admin/usage/index.vue';
 import CohortsList from '../pages/admin/cohorts/list/index.vue';
 import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
@@ -226,6 +227,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-journey-add-id?",
           component: FlowAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/usage",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-usage",
+          component: Usage,
           props: true,
           meta: { layout: "default" },
         },
