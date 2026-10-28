@@ -28,8 +28,62 @@ const sessionId = ref(null);
 const messages = ref([]);
 const suggestions = ref([]);
 let pollTimer = null;
+let streamAbort = null;
 let lastMessageSig = "";
 let lastFormStateSig = "";
+
+const SILENT_EVENTS = new Set(["message", "running", "done", "status", "progress", "ping"]);
+
+const eventProgressText = (eventName, data) => {
+  if (data == null) return "";
+  if (typeof data === "string") return data.trim();
+  const keys = ["message","text","reply","content","label","detail","description","title","step","phase","action"];
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  const name = String(eventName || "").trim();
+  if (name && !SILENT_EVENTS.has(name.toLowerCase())) return name;
+  return "";
+};
+
+const isTerminalEvent = (eventName, data) => {
+  const status = String(
+    (data && typeof data === "object" && data.status) || eventName || "",
+  ).toLowerCase();
+  return (
+    String(eventName || "").toLowerCase() === "done" ||
+    ["done", "collecting", "complete", "completed", "idle"].includes(status)
+  );
+};
+
+const pushStatus = (text) => {
+  const last = messages.value[messages.value.length - 1];
+  if (last?.role === "status" && last.content === text) return;
+  messages.value.push({
+    role: "status",
+    content: text,
+    timestamp: Date.now(),
+  });
+  chatBoxRef.value?.scrollToBottom();
+};
+
+const handleStreamEvent = (evt) => {
+  const raw = evt?.data;
+  const data = raw && typeof raw === "object" ? raw : { text: raw };
+  const nextId = extractSessionId(data);
+  if (nextId) sessionId.value = nextId;
+
+  const text = eventProgressText(evt?.event, data);
+  if (!isTerminalEvent(evt?.event, data) && text) {
+    pushStatus(text);
+    pollFormState();
+    return;
+  }
+
+  if (Array.isArray(data.messages)) applyPollPayload(data, { forceScroll: true });
+  if (data.botStatus) emit("bot-status", data.botStatus);
+};
 
 const normalizeMessages = (list = []) =>
   list.map((m) => ({
@@ -160,28 +214,31 @@ const initFormState = async () => {
   }
 };
 
+const postChat = (text) => {
+  streamAbort?.abort();
+  streamAbort = new AbortController();
+  return store.postEngagementAssistantMessage({
+    sessionId: sessionId.value,
+    text,
+    signal: streamAbort.signal,
+    onEvent: handleStreamEvent,
+  });
+};
+
 const bootstrapSession = async () => {
   if (hasBootstrapped.value || isBootstrapping.value) return;
   isBootstrapping.value = true;
   try {
-    const res = await store.postEngagementAssistantMessage({
-      sessionId: null,
-      text: "",
-    });
-    const body = res?.data ?? res;
-    const id = extractSessionId(body);
-    if (id) sessionId.value = id;
-
+    await postChat("");
     if (sessionId.value) {
       await initFormState();
       await pollAll();
       startPolling();
-    } else if (Array.isArray(body?.messages) || Array.isArray(body?.data?.messages)) {
-      applyPollPayload(body, { forceScroll: true });
     }
 
     hasBootstrapped.value = true;
   } catch (error) {
+    if (error?.name === "CanceledError") return;
     const apiErr = error.response?.data;
     show({
       message:
@@ -210,14 +267,12 @@ const sendMessage = async (content) => {
   try {
     if (!sessionId.value) await bootstrapSession();
 
-    await store.postEngagementAssistantMessage({
-      sessionId: sessionId.value,
-      text: content,
-    });
+    await postChat(content);
 
     await pollAll();
     startPolling();
   } catch (error) {
+    if (error?.name === "CanceledError") return;
     const last = messages.value[messages.value.length - 1];
     if (last?.role === "user" && last.content === content) {
       messages.value.pop();
@@ -254,7 +309,10 @@ watch(
   { immediate: true },
 );
 
-onBeforeUnmount(() => stopPolling());
+onBeforeUnmount(() => {
+  stopPolling();
+  streamAbort?.abort();
+});
 </script>
 
 <template>

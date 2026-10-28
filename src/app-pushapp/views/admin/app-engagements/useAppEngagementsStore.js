@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import DataService from "@/@common/services/DataService";
+import { postEventStream } from "@/app-pushapp/utils/eventStream";
 
 const APP_ENGAGEMENT_CHAT_URL = "/nexuz/agentic/api/v1/appEngagement";
 const agenticTenant = () => window.CONST?.CONFIG?.SETUP?.TENANT || window.CONST?.CONFIG?.tenant || "demo";
@@ -366,10 +367,9 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
       return DataService.axios.post("/api/v1/analytics/audience/count", params);
     },
 
-    postEngagementAssistantMessage({ sessionId = null, text }) {
-      return DataService.axios.post(APP_ENGAGEMENT_CHAT_URL, { sessionId, text },
-        { skipApiContext: true },
-      );
+    /** POST a chat message as an event stream. First call: sessionId null. Later: include sessionId. */
+    postEngagementAssistantMessage({ sessionId = null, text, onEvent, signal }) {
+      return postEventStream(APP_ENGAGEMENT_CHAT_URL, { sessionId, text }, { onEvent, signal });
     },
 
     fetchEngagementAssistantSession(sessionId) {

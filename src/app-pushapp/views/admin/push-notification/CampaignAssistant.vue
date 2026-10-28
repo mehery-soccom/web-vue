@@ -238,7 +238,7 @@ const bootstrapSession = async () => {
 
     hasBootstrapped.value = true;
   } catch (error) {
-    if (error?.name === "AbortError") return;
+    if (error?.name === "CanceledError") return;
     const apiErr = error.response?.data;
     show({
       message:
@@ -272,7 +272,7 @@ const sendMessage = async (content) => {
     await pollAll();
     startPolling();
   } catch (error) {
-    if (error?.name === "AbortError") return;
+    if (error?.name === "CanceledError") return;
     const last = messages.value[messages.value.length - 1];
     if (last?.role === "user" && last.content === content) {
       messages.value.pop();
