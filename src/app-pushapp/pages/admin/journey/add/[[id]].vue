@@ -56,17 +56,36 @@ const endOfDayTs = (value) => {
   return d.getTime();
 };
 
+const formatDdMmYyyy = (value) => {
+  const d = parseYmd(value);
+  const day = String(d.getDate()).padStart(2, "0");
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  return `${day}/${month}/${d.getFullYear()}`;
+};
+
+const analyticsDateFormat = "DD/MM/YYYY";
+
+const analyticsTimezone = () =>
+  window.CONST?.CONFIG?.SETUP?.POSTMAN_TIMEZONE_OFFSET?.split("::")[0] || "Asia/Kolkata";
+
 const parseAnalyticsRange = (selectedDates) => {
   if (Array.isArray(selectedDates) && selectedDates.length === 2) {
     return {
       from: startOfDayTs(selectedDates[0]),
       to: endOfDayTs(selectedDates[1]),
+      fromStr: formatDdMmYyyy(selectedDates[0]),
+      toStr: formatDdMmYyyy(selectedDates[1]),
     };
   }
   const [from, to] = String(analyticsDateRange.value || "")
     .split(" to ").map((part) => part.trim()).filter(Boolean);
   if (!from || !to) return {};
-  return { from: startOfDayTs(from), to: endOfDayTs(to) };
+  return {
+    from: startOfDayTs(from),
+    to: endOfDayTs(to),
+    fromStr: formatDdMmYyyy(from),
+    toStr: formatDdMmYyyy(to),
+  };
 };
 
 const ANALYTICS_STATS = [
@@ -89,8 +108,16 @@ const analyticsNodesMap = computed(() => {
 async function loadAnalytics(id, selectedDates) {
   try {
     analyticsLoading.value = true;
-    const { from, to } = parseAnalyticsRange(selectedDates);
-    const res = await FlowsStore.fetchFlowAnalytics({ id, from, to });
+    const { from, to, fromStr, toStr } = parseAnalyticsRange(selectedDates);
+    const res = await FlowsStore.fetchFlowAnalytics({
+      id,
+      from,
+      to,
+      fromStr,
+      toStr,
+      tz: analyticsTimezone(),
+      format: analyticsDateFormat,
+    });
     analyticsData.value = res.data.data;
   } catch (e) {
     console.error("[Analytics] failed to load", e);
@@ -641,30 +668,36 @@ onMounted(async () => {
           <div ref="analyticsSummaryExportRef">
             <VRow align="start" class="ma-0">
               <!-- Stat cards — span 9 cols -->
-              <VCol cols="12" md="8" class="pa-0 d-flex flex-wrap gap-3">
-                <VCard
-                  v-for="stat in ANALYTICS_STATS"
-                  :key="stat.key"
-                  variant="tonal"
-                  :color="stat.color"
-                  class="analytics-stat-card px-4 py-3"
-                >
-                  <div class="d-flex align-center gap-2">
-                    <VIcon :icon="stat.icon" size="20" />
-                    <div>
-                      <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
-                      <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] != null ? fmtNum(analyticsData.summary[stat.key]) : '—' }}</div>
+              <VCol cols="12" md="8" class="pa-0 d-flex flex-column">
+                <div class="d-flex flex-wrap gap-3">
+                  <VCard
+                    v-for="stat in ANALYTICS_STATS"
+                    :key="stat.key"
+                    variant="tonal"
+                    :color="stat.color"
+                    class="analytics-stat-card px-4 py-3"
+                  >
+                    <div class="d-flex align-center gap-2">
+                      <VIcon :icon="stat.icon" size="20" />
+                      <div>
+                        <div class="text-caption text-medium-emphasis">{{ stat.label }}</div>
+                        <div class="text-h6 font-weight-bold">{{ analyticsData?.summary?.[stat.key] != null ? fmtNum(analyticsData.summary[stat.key]) : '—' }}</div>
+                      </div>
                     </div>
-                  </div>
-                </VCard>
+                  </VCard>
+                </div>
+                <p class="analytics-date-disclaimer text-caption text-disabled text-start mt-2 mb-0 pl-2">
+                  <!-- <VIcon icon="tabler-info-circle" size="14" /> -->
+                  Disclaimer : Counts include journeys that started in the selected dates. A journey that started earlier is not included, even if it finished in this range.
+                </p>
               </VCol>
 
-              <VCol cols="12" md="4" class="pa-0 ms-auto d-flex justify-end" style="min-width: 350px; max-width: 400px;">
-                <div class="d-flex align-center justify-end gap-2">
-                  <div style="min-width: 270px; max-width: 350px;">
+              <VCol cols="12" md="4" class="pa-0 ms-auto" style="min-width: 350px; max-width: 400px;">
+                <div class="d-flex align-center gap-2">
+                  <div class="flex-grow-1" style="min-width: 270px;">
                     <AppDateTimePicker
                       v-model="analyticsDateRange"
-                      class="flex-grow-1"
+                      class="w-100"
                       placeholder="Select date range"
                       prepend-inner-icon="tabler-calendar"
                       :config="{
@@ -763,6 +796,15 @@ onMounted(async () => {
 .analytics-stat-card {
   min-width: 130px;
   flex: 0 0 auto;
+}
+.analytics-date-disclaimer {
+  font-style: italic;
+  line-height: 1.35;
+}
+.analytics-date-disclaimer :deep(.v-icon) {
+  margin-inline-end: 4px;
+  vertical-align: text-bottom;
+  font-style: normal;
 }
 .section-loader-wrap {
   position: relative;
