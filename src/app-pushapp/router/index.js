@@ -21,6 +21,7 @@ import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.v
 import CampaignView2 from '../pages/admin/push-notification/campaigns/view/[[id]].vue';
 import CustomDashboardList from "../pages/dashboards/custom/list/index.vue";
 import CustomDashboardAdd from "../pages/dashboards/custom/add/[[id]].vue";
+import CohortDynamix from "../pages/dashboards/cohort-dynamix/index.vue";
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
 import Cohorts from '../pages/admin/cohorts/list/index.vue';
@@ -409,6 +410,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "dashboards-custom-add-id?",
           component: CustomDashboardAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/dashboards/cohort-dynamix",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-cohort-dynamix",
+          component: CohortDynamix,
           props: true,
           meta: { layout: "default" },
         },

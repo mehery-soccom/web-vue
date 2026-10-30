@@ -23,6 +23,10 @@ export default [
         title: "Custom Dashboard",
         to: "dashboards-custom-list",
       },
+      {
+        title: "Cohort Dynamix",
+        to: "dashboards-cohort-dynamix",
+      },
       // {
       //   title: 'eCommerce',
       //   to: 'dashboards-ecommerce',
