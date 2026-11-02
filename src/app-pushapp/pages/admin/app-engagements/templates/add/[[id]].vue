@@ -4,6 +4,8 @@ import DynamicForm from "@/app-pushapp/views/admin/app-engagements/form/dynamicF
 import DynamicFieldEditor from "@/app-pushapp/components/DynamicFieldEditor.vue";
 import NotificationPreviewApp from "@/app-pushapp/views/admin/push-notification/NotificationPreviewApp.vue";
 import TemplatePresetSelector from "@/app-pushapp/views/admin/app-engagements/TemplatePresetSelector.vue";
+import PageMarkerPreview from "@/app-pushapp/views/admin/app-engagements/PageMarkerPreview.vue";
+import { PAGE_MARKER_TYPES } from "@/app-pushapp/views/admin/app-engagements/data/subTypes";
 // import popupStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopupStyle";
 // import popoverStyle from "@/app-pushapp/views/admin/push-notification/previews/stylesForPreviews/PopoverStyle";
 // import popupScript from "@/app-pushapp/views/admin/push-notification/previews/jsForPreviews/PopupFunction";
@@ -112,6 +114,41 @@ const formFields = computed(() => {
   );
   return matched?.form?.fields ?? [];
 });
+const catalogPages = ref([]);
+const previewMode = ref("template");
+const pageMarkerType = computed(() => PAGE_MARKER_TYPES[template.type]);
+const selectedPage = computed(() =>
+  pageMarkerType.value ? catalogPages.value.find((p) => p.code === template.style.page_id) : null
+);
+
+const fetchCatalogPages = async () => {
+  try {
+    const res = await AppEngagementsStore.fetchCatalogPages();
+    catalogPages.value = res?.data?.data?.options || [];
+  } catch (error) {
+    console.log("fetchCatalogPages error", error);
+  }
+};
+
+const onMarkerSelect = (markerId) => {
+  template.style.placeholder_id = markerId;
+};
+
+watch(
+  pageMarkerType,
+  (type) => {
+    if (type && !catalogPages.value.length) fetchCatalogPages();
+  },
+  { immediate: true }
+);
+
+watch(
+  () => selectedPage.value?.code,
+  (code) => {
+    previewMode.value = code ? "page" : "template";
+  }
+);
+
 const formRef = ref();
 const formRefVersion = ref(1);
 const isInitialLoad = ref(true);
@@ -502,6 +539,7 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
                         :fields="formFields"
                         :readonly="props.readonly"
                         :extra-suggestions="profileSuggestions"
+                        :pages="catalogPages"
                         @update:formData="onFormUpdate"
                       />
                     </VForm>
@@ -549,14 +587,32 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
 
       <!-- Preview Column -->
       <VCol v-if="!isPreStep" cols="12" md="4" style="margin-top: 13px;container-type: inline-size;">
-        <VRow class="row-block">
-          <v-col cols="12" class="d-flex justify-center pt-0">
-            <NotificationPreviewApp
-              :template="templatePreview"
-              ref="notificationPreviewRef"
+        <div v-if="selectedPage" class="d-flex justify-center mb-3">
+          <VBtnToggle v-model="previewMode" density="compact" variant="outlined" color="primary" divided mandatory>
+            <VBtn value="page" size="small" prepend-icon="tabler-photo">Page</VBtn>
+            <VBtn value="template" size="small" prepend-icon="tabler-template">Template</VBtn>
+          </VBtnToggle>
+        </div>
+        <div class="preview-stack">
+          <div v-if="selectedPage && previewMode === 'page'" class="d-flex justify-center">
+            <PageMarkerPreview
+              :page="selectedPage"
+              :template="template"
+              :marker-type="pageMarkerType"
+              :selected-id="template.style.placeholder_id"
+              :readonly="props.readonly"
+              @select="onMarkerSelect"
             />
-          </v-col>
-        </VRow>
+          </div>
+          <VRow :class="['row-block', { 'preview-hidden': selectedPage && previewMode === 'page' }]">
+            <v-col cols="12" class="d-flex justify-center pt-0">
+              <NotificationPreviewApp
+                :template="templatePreview"
+                ref="notificationPreviewRef"
+              />
+            </v-col>
+          </VRow>
+        </div>
       </VCol>
     </v-row>
   </div>
@@ -566,6 +622,16 @@ defineExpose({ isPreStep, isValid, _onCreate, _onUpdate, saveTemplate });
 .row-block {
   height: 100%;
   max-height: 550px;
+}
+.preview-stack {
+  position: relative;
+  height: 100%;
+}
+.preview-stack .preview-hidden {
+  position: absolute;
+  inset: 0 0 auto 0;
+  visibility: hidden;
+  pointer-events: none;
 }
 @container (max-width: 300px) {
   .row-block {

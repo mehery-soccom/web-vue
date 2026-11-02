@@ -16,7 +16,7 @@ import MyTextInputStyle from '@/@common/components/vuexy/MyTextInputStyle.vue'
 import { usePushNotification } from "@app-pushapp/views/admin/push-notification/usePushNotification";
 import { useMetaStore } from "@/app-pushapp/views/common/useMetaStore";
 import { useAppEngagementsStore } from '../useAppEngagementsStore'
-import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG } from '../data/subTypes'
+import { ICONS_LIST, FONT_SIZES, GRADIENT_DIRS, GRADIENT_DIRS_2, TEMPLATE_ALIGN, TEMPLATES_CONFIG, PAGE_MARKER_TYPES } from '../data/subTypes'
 import { useLibraryStore } from '@/app-pushapp/views/config/library/useLibraryStore'
 
 const libraryStore = useLibraryStore()
@@ -30,7 +30,8 @@ const props = defineProps({
   formData: { type: Object, required: true },
   fields: { type: Array, required: true },
   readonly: { type: Boolean, default: false },
-  extraSuggestions: { type: Array, default: () => [] }
+  extraSuggestions: { type: Array, default: () => [] },
+  pages: { type: Array, default: () => [] }
 })
 
 const emit = defineEmits(['update:formData'])
@@ -40,10 +41,27 @@ const local = reactive(JSON.parse(JSON.stringify(props.formData)))
 let isUpdating = false;
 const required = (v) => !!v || "This field is required";
 const placeholders = ref([]);
+const markerType = computed(() => PAGE_MARKER_TYPES[props.formData.type])
+const pageMarkersOf = (page) =>
+  (page?.screenshot?.markers || []).filter(m => m.type === markerType.value)
+const filteredPages = computed(() => props.pages.filter(p => pageMarkersOf(p).length))
+const selectedPage = computed(() => props.pages.find(p => p.code === get(local, 'style.page_id')))
 const filteredPlaceholders = computed(() => {
+  if (selectedPage.value) {
+    return pageMarkersOf(selectedPage.value).map(m => ({
+      code: m.id,
+      label: placeholders.value.find(p => p.code === m.id)?.label || m.id,
+    }))
+  }
   if (!props.formData.type) return placeholders.value
   return placeholders.value.filter(p => p.type === props.formData.type)
 })
+
+watch(selectedPage, (page) => {
+  if (!page) return;
+  const current = get(local, 'style.placeholder_id');
+  if (current && !pageMarkersOf(page).some(m => m.id === current)) set(local, 'style.placeholder_id', null);
+});
 
 watch(() => get(local, 'style.placeholder_id'), 
   (newVal) => {
@@ -143,6 +161,16 @@ defineExpose({ validate });
         :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
         item-title="title"
         item-value="value"
+      />
+      <AppSelect
+        v-if="f.type === 'selectPage'" :disabled="props.readonly"
+        :model-value="get(local, f.path)"
+        @update:modelValue="val => set(local, f.path, val)"
+        :items="filteredPages"
+        :label="f.label" :placeholder="f.placeholder" :rules="f.required ? [required] : []"
+        item-title="label"
+        item-value="code"
+        clearable
       />
       <AppSelect
         v-if="f.type === 'selectPlaceholder'" :disabled="props.readonly"

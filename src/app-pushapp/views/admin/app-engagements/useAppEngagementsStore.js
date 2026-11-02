@@ -363,6 +363,9 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
     fetchPlaceholders() {
       return DataService.axios.get(`/api/v1/catalog/placeholders/options`);
     },
+    fetchCatalogPages() {
+      return DataService.axios.get(`/api/v1/catalog/pages`);
+    },
     fetchAudienceCount(params) {
       return DataService.axios.post("/api/v1/analytics/audience/count", params);
     },

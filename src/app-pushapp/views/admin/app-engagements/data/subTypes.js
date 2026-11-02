@@ -55,6 +55,10 @@ export const ALIGNMENT = [
   { title: "Vertical", value: "vertical" },
   { title: "Horizontal", value: "horizontal" }
 ]
+export const PAGE_MARKER_TYPES = {
+  tooltip: "tooltip",
+  inline: "placeholder",
+};
 export const ICONS_PLACEMENT = [
   { title: "Prepend", value: "prepend" },
   { title: "Append", value: "append" }
@@ -3116,6 +3120,18 @@ export const SUB_TYPES = [
     form: {
       fields: [
         {
+          id: "page-select",
+          name: "",
+          path: "style.page_id",
+          type: "selectPage",
+          label: "Page",
+          placeholder: "Select page",
+          cols: 12,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
           id: "road-car-bg-gradient-dir",
           name: "",
           path: "style.placeholder_id",
@@ -3473,6 +3489,18 @@ export const SUB_TYPES = [
     form: {
       fields: [
         {
+          id: "page-select",
+          name: "",
+          path: "style.page_id",
+          type: "selectPage",
+          label: "Page",
+          placeholder: "Select page",
+          cols: 12,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
           id: "road-car-bg-gradient-dir",
           name: "",
           path: "style.placeholder_id",
@@ -3656,6 +3684,18 @@ export const SUB_TYPES = [
     type: "inline",
     form: {
       fields: [
+        {
+          id: "page-select",
+          name: "",
+          path: "style.page_id",
+          type: "selectPage",
+          label: "Page",
+          placeholder: "Select page",
+          cols: 12,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
         {
           id: "road-car-bg-gradient-dir",
           name: "",
@@ -3865,6 +3905,18 @@ export const SUB_TYPES = [
     form: {
       fields: [
         {
+          id: "page-select",
+          name: "",
+          path: "style.page_id",
+          type: "selectPage",
+          label: "Page",
+          placeholder: "Select page",
+          cols: 12,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
+        {
           id: "road-car-bg-gradient-dir",
           name: "",
           path: "style.placeholder_id",
@@ -4067,6 +4119,18 @@ export const SUB_TYPES = [
     type: "inline",
     form: {
       fields: [
+        {
+          id: "page-select",
+          name: "",
+          path: "style.page_id",
+          type: "selectPage",
+          label: "Page",
+          placeholder: "Select page",
+          cols: 12,
+          required: false,
+          readonly: false,
+          defaultValue: null,
+        },
         {
           id: "road-car-bg-gradient-dir",
           name: "",
