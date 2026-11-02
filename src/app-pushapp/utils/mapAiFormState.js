@@ -248,12 +248,10 @@ const normLabel = (value) => String(value ?? "").trim().toLowerCase();
 function resolveFilterType(raw) {
   if (raw == null || raw === "") return null;
   const n = normLabel(raw);
-  const match = FILTER_TYPES.find(
-    (t) =>
-      normLabel(t.value) === n ||
-      normLabel(t.valueAlias) === n ||
-      normLabel(t.title) === n,
-  );
+  const match =
+    FILTER_TYPES.find((t) => normLabel(t.value) === n) ||
+    FILTER_TYPES.find((t) => normLabel(t.valueAlias) === n) ||
+    FILTER_TYPES.find((t) => normLabel(t.title) === n);
   return match?.value || raw;
 }
 
@@ -270,22 +268,24 @@ function fieldCatalog(extraFields) {
 function resolveField(raw, extraFields) {
   if (raw == null || raw === "") return null;
   const n = normLabel(raw);
-  const match = fieldCatalog(extraFields).find(
-    (f) => normLabel(f.value) === n || normLabel(f.title) === n,
-  );
+  const catalog = fieldCatalog(extraFields);
+  const match =
+    catalog.find((f) => normLabel(f.value) === n) ||
+    catalog.find((f) => normLabel(f.title) === n);
   return match?.value || raw;
 }
 
 function resolveOperator(raw) {
   if (raw == null || raw === "") return null;
   const n = normLabel(raw);
-  const match = FILTER_OPERATORS.find(
-    (op) =>
-      normLabel(op.value) === n ||
-      normLabel(op.title) === n ||
-      normLabel(op.text) === n ||
-      normLabel(op.sign) === n,
-  );
+  const match =
+    FILTER_OPERATORS.find((op) => normLabel(op.value) === n) ||
+    FILTER_OPERATORS.find(
+      (op) =>
+        normLabel(op.title) === n ||
+        normLabel(op.text) === n ||
+        normLabel(op.sign) === n,
+    );
   return match?.value || raw;
 }
 

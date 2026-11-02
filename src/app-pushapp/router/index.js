@@ -15,6 +15,7 @@ import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue'
 import CampaignView from '../pages/admin/app-engagements/campaigns/view/[[id]].vue';
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import Slices from '../pages/admin/push-notification/slices/list/index.vue';
+import SliceAdd from '../pages/admin/push-notification/slices/add/[[id]].vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index.vue';
 import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.vue';
@@ -358,6 +359,19 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "admin-push-notification-slices-list",
           component: Slices,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/admin/push-notification/slices/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-slices-add-id?",
+          component: SliceAdd,
           props: true,
           meta: { layout: "default" },
         },
