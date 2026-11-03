@@ -62,7 +62,8 @@ const cancelEdit = (field) => {
 const saveField = async (field) => {
   savingField.value = field;
   try {
-    event.value = await store.update(eventName.value, { [field]: draft[field] });
+    const { event: updated } = await store.update(eventName.value, { [field]: draft[field] });
+    if (updated) event.value = updated;
     draft[field] = null;
     show({ message: "Event updated", color: "success" });
   } catch (e) {
@@ -72,6 +73,121 @@ const saveField = async (field) => {
   } finally {
     savingField.value = null;
   }
+};
+
+// RFM lives in its own draft: null means "not editing", and null is also a real rfmValueProperty value.
+const rfmDraft = ref(null); // { isRfmConversionEvent, rfmValueProperty }
+const rfmError = ref("");
+
+const rfmPropertyOptions = computed(() =>
+  (event.value?.propertyList || []).map((p) => ({
+    title: p.label && p.label !== p.key ? `${p.label} (${p.key})` : p.key,
+    value: p.key,
+  })),
+);
+
+const savedRfmProperty = computed(() => {
+  const key = event.value?.rfmValueProperty;
+  if (!key) return null;
+  const match = (event.value.propertyList || []).find((p) => p.key === key);
+  return { key, label: match?.label && match.label !== key ? match.label : "" };
+});
+
+// Once the API has this event as the RFM conversion, Yes is permanent.
+const rfmLocked = computed(() => Boolean(event.value?.isRfmConversionEvent));
+
+// Draft wins while a row pencil or Edit Event is open, so No hides the property row immediately.
+const showRfmPropertyRow = computed(() =>
+  rfmDraft.value ? Boolean(rfmDraft.value.isRfmConversionEvent) || rfmLocked.value : rfmLocked.value,
+);
+
+const rfmPayload = (source) => {
+  const isRfmConversionEvent = rfmLocked.value || Boolean(source?.isRfmConversionEvent);
+  const key = source?.rfmValueProperty || null;
+  return { isRfmConversionEvent, rfmValueProperty: isRfmConversionEvent ? key : null };
+};
+
+const enablingRfm = (payload) => payload.isRfmConversionEvent && !rfmLocked.value;
+
+const rfmChanged = (payload) =>
+  payload.isRfmConversionEvent !== Boolean(event.value?.isRfmConversionEvent) ||
+  (payload.rfmValueProperty || null) !== (event.value?.rfmValueProperty || null);
+
+const validateRfm = (payload) => {
+  if (payload.isRfmConversionEvent && !payload.rfmValueProperty) {
+    rfmError.value = (event.value?.propertyList || []).length ? "Select a property" : "This event has no properties";
+    return false;
+  }
+  rfmError.value = "";
+  return true;
+};
+
+const startRfmEdit = () => {
+  if (rfmLocked.value) return;
+  rfmError.value = "";
+  rfmDraft.value = {
+    isRfmConversionEvent: Boolean(event.value?.isRfmConversionEvent),
+    rfmValueProperty: event.value?.rfmValueProperty || null,
+  };
+};
+
+const cancelRfmEdit = () => {
+  rfmDraft.value = null;
+  rfmError.value = "";
+};
+
+const rfmConfirmOpen = ref(false);
+const rfmConfirmMode = ref(null); // "row" | "all"
+
+// applied: false means another event already owns RFM. Drop the Yes draft; the saved flag stays false.
+const applyEventResult = (result, sentRfm) => {
+  if (result?.rfm?.applied === false) {
+    show({ message: result.rfm.message || "Cannot enable RFM for this event", color: "error" });
+    cancelRfmEdit();
+    return false;
+  }
+  if (result?.event) event.value = result.event;
+  else if (sentRfm?.isRfmConversionEvent) {
+    event.value = { ...event.value, isRfmConversionEvent: true, rfmValueProperty: sentRfm.rfmValueProperty };
+  }
+  return true;
+};
+
+const commitRfm = async () => {
+  const payload = rfmPayload(rfmDraft.value);
+  if (!validateRfm(payload)) return;
+  if (!rfmChanged(payload)) return cancelRfmEdit();
+  savingField.value = "rfm";
+  try {
+    const result = await store.update(eventName.value, payload);
+    if (!applyEventResult(result, payload)) return;
+    cancelRfmEdit();
+    show({ message: "Event updated", color: "success" });
+  } catch (e) {
+    show({ message: apiError(e, "Unable to update event"), color: "error" });
+  } finally {
+    savingField.value = null;
+  }
+};
+
+const saveRfm = async () => {
+  if (!rfmDraft.value) return;
+  const payload = rfmPayload(rfmDraft.value);
+  if (!validateRfm(payload)) return;
+  if (!rfmChanged(payload)) return cancelRfmEdit();
+  if (enablingRfm(payload)) {
+    rfmConfirmMode.value = "row";
+    rfmConfirmOpen.value = true;
+    return;
+  }
+  await commitRfm();
+};
+
+const confirmRfmEnable = async () => {
+  const mode = rfmConfirmMode.value;
+  rfmConfirmOpen.value = false;
+  if (mode === "all") await saveAll({ confirmed: true });
+  else await commitRfm();
 };
 
 // ---- Inline edit: one property row at a time ----
@@ -102,19 +218,35 @@ const toDraft = (p) => ({ label: p.label || p.key, dataType: p.dataType || DEFAU
 const enterEditMode = () => {
   propDraft.value = null;
   startEdit("displayLabel", "description");
+  if (!rfmLocked.value) startRfmEdit();
   for (const p of event.value.propertyList || []) propDrafts[p.key] = toDraft(p);
   editMode.value = true;
 };
 
-const saveAll = async () => {
+const saveAll = async (opts = {}) => {
   savingAll.value = true;
   try {
     // Event fields first: a duplicate label (409) stops here and keeps edit mode open with the error.
     const body = {};
     for (const f of ["displayLabel", "description"]) if ((draft[f] || "") !== (event.value[f] || "")) body[f] = draft[f];
+    let sentRfm = null;
+    if (rfmDraft.value) {
+      const rfm = rfmPayload(rfmDraft.value);
+      if (!validateRfm(rfm)) return;
+      if (rfmChanged(rfm)) {
+        if (!opts.confirmed && enablingRfm(rfm)) {
+          rfmConfirmMode.value = "all";
+          rfmConfirmOpen.value = true;
+          return;
+        }
+        sentRfm = rfm;
+        Object.assign(body, rfm);
+      }
+    }
     if (Object.keys(body).length) {
       try {
-        event.value = await store.update(eventName.value, body);
+        const result = await store.update(eventName.value, body);
+        if (!applyEventResult(result, sentRfm)) return;
       } catch (e) {
         if (e?.response?.status === 409) return (labelError.value = apiError(e));
         throw e;
@@ -146,6 +278,8 @@ function cancelAll() {
   draft.description = null;
   propDraft.value = null;
   labelError.value = "";
+  rfmDraft.value = null;
+  rfmError.value = "";
 }
 
 watch(eventName, load, { immediate: true });
@@ -164,7 +298,8 @@ const hiding = ref(false);
 const setHidden = async (hidden) => {
   hiding.value = true;
   try {
-    event.value = await store.update(eventName.value, { hidden });
+    const { event: updated } = await store.update(eventName.value, { hidden });
+    if (updated) event.value = updated;
     hideOpen.value = false;
     show({ message: hidden ? "Event hidden" : "Event visible again", color: "success" });
   } catch (e) {
@@ -315,6 +450,61 @@ const managedHeaders = [
               </td>
             </tr>
 
+            <!-- RFM Conversion Event -->
+            <tr>
+              <td class="text-medium-emphasis">Monetary event for RFM</td>
+              <td class="py-3">
+                <div v-if="rfmDraft && !rfmLocked" class="rfm-yes-no">
+                  <MyBooleanPicker
+                    v-model="rfmDraft.isRfmConversionEvent"
+                    style="inline-size: 100%"
+                    @update:model-value="rfmError = ''"
+                  />
+                </div>
+                <span v-else class="d-inline-flex align-center gap-1" :class="event.isRfmConversionEvent ? 'text-success' : 'text-disabled'">
+                  <VIcon icon="tabler-point-filled" size="14" /> {{ event.isRfmConversionEvent ? "Yes" : "No" }}
+                </span>
+              </td>
+              <!-- One pencil / tick for the flag and the property. It spans both rows while the property row is open. -->
+              <td class="text-end text-no-wrap" :rowspan="showRfmPropertyRow ? 2 : 1">
+                <template v-if="rfmLocked">
+                  <VIcon icon="tabler-lock" size="18" class="text-disabled me-2" />
+                  <VTooltip activator="parent" location="top">RFM conversion cannot be changed</VTooltip>
+                </template>
+                <template v-else-if="editMode" />
+                <template v-else-if="rfmDraft">
+                  <IconBtn color="success" :loading="savingField === 'rfm'" @click="saveRfm"><VIcon icon="tabler-check" /></IconBtn>
+                  <IconBtn @click="cancelRfmEdit"><VIcon icon="tabler-x" /></IconBtn>
+                </template>
+                <IconBtn v-else color="primary" @click="startRfmEdit"><VIcon icon="tabler-pencil" /></IconBtn>
+              </td>
+            </tr>
+
+            <!-- RFM Value Property: only while the conversion flag is Yes -->
+            <tr v-if="showRfmPropertyRow">
+              <td class="text-medium-emphasis">Data property for monetary value</td>
+              <td class="py-3">
+                <AppSelect
+                  v-if="rfmDraft"
+                  v-model="rfmDraft.rfmValueProperty"
+                  :items="rfmPropertyOptions"
+                  class="rfm-property-select flex-grow-0"
+                  density="compact"
+                  placeholder="Select a property"
+                  :error-messages="rfmError"
+                  clearable
+                  @update:model-value="rfmError = ''"
+                  @keyup.enter="editMode ? saveAll() : saveRfm()"
+                  @keyup.esc="editMode ? cancelAll() : cancelRfmEdit()"
+                />
+                <span v-else-if="savedRfmProperty" class="d-inline-flex align-center flex-wrap gap-2">
+                  <span v-if="savedRfmProperty.label" class="font-weight-medium text-high-emphasis">{{ savedRfmProperty.label }}</span>
+                  <EventKeyChip :event-key="savedRfmProperty.key" />
+                </span>
+                <span v-else class="text-disabled">—</span>
+              </td>
+            </tr>
+
             <!-- Last Updated -->
             <tr>
               <td class="text-medium-emphasis">Last Updated</td>
@@ -427,6 +617,21 @@ const managedHeaders = [
       </AppCardActions>
 
       <HideEventDialog v-model="hideOpen" :event="event" :loading="hiding" @confirm="setHidden(true)" />
+
+      <VDialog v-model="rfmConfirmOpen" max-width="480">
+        <VCard>
+          <VCardItem>
+            <VCardTitle>Enable RFM conversion?</VCardTitle>
+          </VCardItem>
+          <VCardText>
+            <p class="text-body-2 mb-0">Once enabled, this cannot be changed or disabled. Are you sure?</p>
+          </VCardText>
+          <VCardActions class="justify-end gap-2 pa-4">
+            <VBtn color="secondary" variant="tonal" @click="rfmConfirmOpen = false">Cancel</VBtn>
+            <VBtn color="primary" variant="elevated" @click="confirmRfmEnable">Enable</VBtn>
+          </VCardActions>
+        </VCard>
+      </VDialog>
     </template>
   </div>
 </template>
@@ -434,6 +639,17 @@ const managedHeaders = [
 <style scoped>
 .event-details td {
   vertical-align: middle;
+}
+
+/* Same width as the Required column so Yes/No split the control the same way. */
+.rfm-yes-no {
+  inline-size: 140px;
+  max-inline-size: 100%;
+}
+.rfm-property-select {
+  flex-grow: 0;
+  inline-size: 320px;
+  max-inline-size: 100%;
 }
 
 /* No layout shift when editing: columns have fixed widths and the inputs fill them. */

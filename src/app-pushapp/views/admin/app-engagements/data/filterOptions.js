@@ -135,6 +135,15 @@ export const FILTER_FIELDS_MAP = {
       ],
     },
   },
+  rfmCohort: {
+    type: "attribute",
+    title: "RFM Cohort",
+    value: "rfm.cohort",
+    inputFieldMeta: {
+      type: "text",
+      operators: ["EQ"],
+    },
+  },
 
   /* Profile Attributes */
   // fetch from api

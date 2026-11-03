@@ -45,6 +45,7 @@ export const useAppEngagements = (source, config = {}) => {
           ? "attribute"
           : source.filterType;
       if (o.type !== ft) return false;
+      if (o.value === "rfm.cohort" && source.field !== "rfm.cohort") return false;
       if (ft === "slice" && config.channelId.value) {
         return String(o.channelId) === String(config.channelId.value);
       }

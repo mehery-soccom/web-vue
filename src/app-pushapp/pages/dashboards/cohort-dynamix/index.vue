@@ -16,7 +16,6 @@ const { show } = inject("snackbar");
 const vuetifyTheme = useTheme();
 
 const WINDOW_OPTIONS = [
-  { title: "Yesterday", value: 1 },
   { title: "Last 7 days", value: 7 },
   { title: "Last 30 days", value: 30 },
   { title: "Last 60 days", value: 60 },
@@ -68,7 +67,7 @@ yesterday.setDate(yesterday.getDate() - 1);
 yesterday.setHours(23, 59, 59, 999);
 
 // Cohort transitions (sankey)
-const selectedWindow = ref(1);
+const selectedWindow = ref(7);
 const sankeyData = ref(null);
 const isSankeyLoading = ref(false);
 let sankeyAbort = null;

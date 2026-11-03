@@ -34,6 +34,8 @@ import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
 import Setup from '../pages/config/setup/list';
 import LinksPageList from '../pages/config/library/list/index.vue';
+import EventMasterList from '../pages/config/event-master/list/index.vue';
+import EventMasterView from '../pages/config/event-master/view/[name].vue';
 import UninstallDataConfig from '../pages/config/library/uninstall-data/index.vue';
 import ApiCredentialsList from '../pages/config/apicredentials/list/index.vue';
 
@@ -489,6 +491,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "config-library-uninstall-data",
           component: UninstallDataConfig,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/event-master/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-event-master-list",
+          component: EventMasterList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/event-master/view/:name",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-event-master-view",
+          component: EventMasterView,
           props: true,
           meta: { layout: "default" },
         },

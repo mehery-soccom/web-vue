@@ -63,8 +63,8 @@ const hiding = ref(false);
 const undo = reactive({ open: false, event: null });
 
 const setHidden = async (item, hidden) => {
-  const data = await store.update(item.eventName, { hidden });
-  replace(data);
+  const { event: data } = await store.update(item.eventName, { hidden });
+  if (data) replace(data);
   return data;
 };
 

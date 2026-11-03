@@ -17,11 +17,16 @@ export const useEventMasterStore = defineStore("EventMasterStore", {
       const res = await DataService.axios.get(`${BASE}/${enc(eventName)}`);
       return res.data.data;
     },
-    /** body: { displayLabel?, description?, hidden? } */
+    /**
+     * body: { displayLabel?, description?, hidden?, isRfmConversionEvent?, rfmValueProperty? }
+     * Returns { event, rfm }. event is null when data has no eventName (RFM conflict sends data: {}).
+     * rfm is the sibling payload, e.g. { applied, message, eventName, displayLabel }.
+     */
     async update(eventName, body) {
       const res = await DataService.axios.put(`${BASE}/${enc(eventName)}`, body);
       resetEventLabels();
-      return res.data.data;
+      const data = res.data?.data;
+      return { event: data?.eventName ? data : null, rfm: res.data?.rfm || null };
     },
     /** body: { label?, dataType?, required? } — edit-only, key must already exist */
     async updateProperty(eventName, key, body) {

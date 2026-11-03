@@ -136,6 +136,20 @@ onMounted(async () => {});
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
     >
+      <template #item.name="{ item }">
+        <div class="d-flex align-center justify-center gap-2">
+          <span>{{ item.raw.name }}</span>
+          <VChip
+            v-if="item.raw.subtype === 'RFM'"
+            size="x-small"
+            color="primary"
+            variant="tonal"
+          >
+            RFM
+          </VChip>
+        </div>
+      </template>
+
       <!-- active -->
       <template #item.active="{ item }">
         <VIcon v-if="item.raw.active" size="16" color="success" start>
@@ -161,6 +175,7 @@ onMounted(async () => {});
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
         <IconBtn
+          v-if="item.raw.subtype !== 'RFM'"
           :to="{
             name: 'admin-cohorts-add-id?',
             params: { id: item.raw._id },
@@ -170,6 +185,12 @@ onMounted(async () => {});
           <VIcon icon="mdi-pencil-outline" />
           <VTooltip activator="parent">Edit</VTooltip>
         </IconBtn>
+        <span v-else class="d-inline-flex">
+          <IconBtn disabled>
+            <VIcon icon="mdi-pencil-outline" />
+          </IconBtn>
+          <VTooltip activator="parent">System RFM cohorts can't be edited</VTooltip>
+        </span>
         <IconBtn v-if="item.raw.active">
           <VIcon>mdi-trash</VIcon>
           <v-dialog activator="parent" max-width="340">

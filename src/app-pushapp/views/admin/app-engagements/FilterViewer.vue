@@ -1,6 +1,7 @@
 <script setup>
 import { computed, onMounted } from "vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
+import { FILTER_OPERATORS } from "@/app-pushapp/views/admin/app-engagements/data/filterOptions";
 
 const props = defineProps({
   node: { type: Object, required: true },
@@ -20,11 +21,19 @@ const indent = computed(() => ({
   marginLeft: "10px",
 }));
 
+const isRfmCohort = computed(() => props.node?.field === "rfm.cohort");
+
+const rfmOperatorLabel = computed(() => {
+  const match = FILTER_OPERATORS.find((op) => op.value === props.node?.operator);
+  return match?.title || props.node?.operator || "";
+});
+
 const resolvedFieldName = computed(() => {
   const filterType = props.node?.filterType;
   const field = props.node?.field;
 
   if (!filterType || !field) return "";
+  if (field === "rfm.cohort") return "RFM Cohort";
   if (!["cohort", "slice", "customEvent"].includes(filterType)) {
     return formatFieldName(field);
   }
@@ -85,6 +94,13 @@ onMounted(async () => {
             <span v-if="node.freqPeriod">
               {{ formatFieldName(node.freqPeriod).toLowerCase() }}
             </span>
+          </template>
+
+          <!-- system RFM cohort: Equals and the value as stored -->
+          <template v-else-if="isRfmCohort">
+            <strong> {{ resolvedFieldName }}</strong>
+            {{ rfmOperatorLabel }}
+            <strong>{{ node.value }}</strong>
           </template>
 
           <!-- normal filter -->

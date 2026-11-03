@@ -12,13 +12,14 @@ const router = useRouter();
 const CohortsStore = useCohortsStore();
 const { clearCache } = useAppEngagements();
 const isLoading = ref(false);
-const isViewMode = computed(() => !!route.params.id);
-const isEditing = computed(() => "edit" in route.query);
 const cohort = reactive({
   name: null,
   desc: null,
   filter: null,
 });
+const isViewMode = computed(() => !!route.params.id);
+const isSystemRfm = computed(() => cohort.subtype === "RFM");
+const isEditing = computed(() => "edit" in route.query && !isSystemRfm.value);
 const formRef = ref();
 const filterRef = ref(null);
 
@@ -66,6 +67,8 @@ const onCreate = async () => {
 };
 
 const onUpdate = async () => {
+  if (isSystemRfm.value) return;
+
   let validationResult = await formRef.value?.validate();
   if (!validationResult?.valid) return;
 
@@ -172,7 +175,7 @@ onMounted(async () => {
         :ignoreCohortfilterType="true"
         :showScannedEvents="true"
         ref="filterRef"
-        :readonly="isViewMode && !isEditing"
+        :readonly="(isViewMode && !isEditing) || isSystemRfm"
       />
     </VCardText>
 
