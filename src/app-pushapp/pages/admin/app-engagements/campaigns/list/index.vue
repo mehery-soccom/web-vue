@@ -442,6 +442,9 @@ const exportToExcel = async () => {
         "Delivery %": `${sentPercent}%`,
         "Total CTA": ctaCount,
         "CTA %": `${ctaPercent}%`,
+        Events: typeof item.stats?.success?.event === "number" ? item.stats.success.event : "",
+        Users: typeof item.stats?.success?.user === "number" ? item.stats.success.user : "",
+        Value: typeof item.stats?.success?.value === "number" ? item.stats.success.value : "",
       };
 
       const dynamicCTAs = {};
@@ -550,7 +553,11 @@ const onUpdateOptionsDebounced = debounce((options) => {
           <tr class="v-data-table__tr">
             <!-- <td :colspan="headers.length"> -->
             <td :colspan="6">
-              <AbTestingMetrics :abTesting="slotProps.item.raw.abTesting" :stats="slotProps.item.raw.stats" />
+              <AbTestingMetrics
+                :abTesting="slotProps.item.raw.abTesting"
+                :stats="slotProps.item.raw.stats"
+                :success="slotProps.item.raw.success"
+              />
             </td>
           </tr>
         </template>

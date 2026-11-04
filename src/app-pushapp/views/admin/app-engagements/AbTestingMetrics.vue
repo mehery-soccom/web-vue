@@ -48,6 +48,31 @@
       </VCol>
     </VRow>
 
+    <!-- Success event totals -->
+    <VRow v-if="hasSuccessStats" class="mt-3">
+      <VCol cols="12">
+        <div class="d-flex align-center flex-wrap gap-2 mb-2">
+          <h4 class="mb-0">Success</h4>
+          <span
+            v-if="successLabel"
+            class="text-body-1 font-weight-medium text-high-emphasis"
+          >
+            {{ successLabel }}
+          </span>
+        </div>
+        <MyDataTable
+          :headers="successHeaders"
+          :items="successRows"
+          :items-per-page="successRows.length"
+          :page="1"
+          density="compact"
+          class="elevation-1"
+        >
+          <template #bottom></template>
+        </MyDataTable>
+      </VCol>
+    </VRow>
+
     <!-- Daily Stats Table -->
     <VRow v-if="dailyEntries.length" class="mt-3">
       <VCol cols="12">
@@ -332,6 +357,7 @@ const props = defineProps({
     required: true,
   },
   stats: Object,
+  success: { type: Object, default: null },
 });
 
 /* ---------- TABLE HEADERS ---------- */
@@ -515,6 +541,29 @@ const filteredCta = computed(() => {
 
   return r;
 });
+
+/* ---------- Success event ---------- */
+const successLabel = computed(() => {
+  const event = props.success?.event;
+  if (!event) return "";
+  return props.success.eventProperty
+    ? `${event} - ${props.success.eventProperty}`
+    : event;
+});
+const successHeaders = [
+  { title: "Metric", key: "metric" },
+  { title: "Count", key: "count" },
+];
+const successRows = computed(() =>
+  [
+    { metric: "Events", value: props.stats?.success?.event },
+    { metric: "Users", value: props.stats?.success?.user },
+    { metric: "Value", value: props.stats?.success?.value },
+  ]
+    .filter((row) => typeof row.value === "number")
+    .map((row) => ({ metric: row.metric, count: row.value.toLocaleString("en-IN") })),
+);
+const hasSuccessStats = computed(() => successRows.value.length > 0);
 
 /* ---------- CTA by Platform ---------- */
 const hasCtaByPlatform = computed(

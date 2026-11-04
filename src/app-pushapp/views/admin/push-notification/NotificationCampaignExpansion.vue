@@ -39,6 +39,30 @@
       </VCol>
     </VRow>
 
+    <!-- Success event totals -->
+    <VCol v-if="hasSuccessStats" cols="8" class="mt-3">
+      <div class="d-flex align-center flex-wrap gap-2 mb-2">
+        <h4 class="mb-0">Success:</h4>
+        <span
+          v-if="successLabel"
+          class="text-body-1 font-weight-medium text-high-emphasis"
+        >
+          {{ successLabel }}
+        </span>
+      </div>
+
+      <MyDataTable
+        :headers="successHeaders"
+        :items="successRows"
+        :items-per-page="successRows.length"
+        :page="1"
+        density="compact"
+        class="elevation-1"
+      >
+        <template #bottom></template>
+      </MyDataTable>
+    </VCol>
+
     <!-- Opened by Platform Table -->
     <VRow v-if="hasOpenedByPlatform" class="mt-3">
       <VCol cols="8">
@@ -63,6 +87,7 @@ import { computed } from "vue";
 
 const props = defineProps({
   stats: Object,
+  success: { type: Object, default: null },
 });
 
 /* ---------- Filtered CTA ---------- */
@@ -98,6 +123,29 @@ const hasCtaByPlatform = computed(
 const ctaByPlatformEntries = computed(() =>
   platformRows(props.stats?.ctaByPlatform),
 );
+
+/* ---------- Success event ---------- */
+const successLabel = computed(() => {
+  const event = props.success?.event;
+  if (!event) return "";
+  return props.success.eventProperty
+    ? `${event} - ${props.success.eventProperty}`
+    : event;
+});
+const successHeaders = [
+  { title: "Metric", key: "metric" },
+  { title: "Count", key: "count" },
+];
+const successRows = computed(() =>
+  [
+    { metric: "Events", value: props.stats?.success?.event },
+    { metric: "Users", value: props.stats?.success?.user },
+    { metric: "Value", value: props.stats?.success?.value },
+  ]
+    .filter((row) => typeof row.value === "number")
+    .map((row) => ({ metric: row.metric, count: row.value.toLocaleString("en-IN") })),
+);
+const hasSuccessStats = computed(() => successRows.value.length > 0);
 
 /* ---------- Opened by Platform ---------- */
 const hasOpenedByPlatform = computed(

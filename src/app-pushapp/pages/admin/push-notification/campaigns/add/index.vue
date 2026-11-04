@@ -6,6 +6,9 @@ import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
 import CampaignAssistant from "@app-pushapp/views/admin/push-notification/CampaignAssistant.vue";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { dataTypeTitle, loadEventPropertyTypes } from "@/app-pushapp/views/config/event-master/eventMaster";
+import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import { parseRruleToScheduleFields, cloneAudienceFilterTree } from "@/app-pushapp/utils/mapAiFormState";
 import * as XLSX from 'xlsx'
@@ -15,6 +18,7 @@ const route = useRoute();
 const router = useRouter();
 const channelsStore = useChannelsStore();
 const pushNotificationStore = usePushNotificationStore();
+const eventStore = useEventStore();
 
 const tab = ref("tab-details");
 const isLoading = ref(false);
@@ -49,10 +53,45 @@ const formRef = ref();
 const filterRef = ref(null);
 const audienceCountRef = ref(null);
 const scheduleFormRef = ref();
+const successFormRef = ref();
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successPropertyOptions = ref([]);
+const successPropertiesLoading = ref(false);
+const successEventsLoading = ref(false);
+const NUMERIC_PROPERTY_TYPES = new Set(["INTEGER", "FLOAT"]);
+
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+watch(successEvent, async (eventName) => {
+  successEventProperty.value = null;
+  successPropertyOptions.value = [];
+  if (!eventName) return;
+
+  successPropertiesLoading.value = true;
+  try {
+    const types = await loadEventPropertyTypes(eventName);
+    if (successEvent.value !== eventName) return;
+    successPropertyOptions.value = Object.entries(types || {})
+      .filter(([, dataType]) => NUMERIC_PROPERTY_TYPES.has(dataType))
+      .map(([key, dataType]) => ({ title: key, value: key, dataType }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+  } finally {
+    if (successEvent.value === eventName) successPropertiesLoading.value = false;
+  }
+});
 
 const tabErrors = ref({
   "tab-details": false,
   "tab-audience": false,
+  "tab-success": false,
   "tab-schedule": false,
 });
 
@@ -151,6 +190,15 @@ const validateTab = async (tabName, silent = false) => {
       }
       break;
 
+    case "tab-success":
+      if (successFormRef.value) {
+        const successValidation = await successFormRef.value.validate();
+        if (!successValidation?.valid) valid = false;
+      } else if (!successEvent.value) {
+        valid = false;
+      }
+      break;
+
     case "tab-schedule":
       const scheduleValidation = await scheduleFormRef.value?.validate();
       if (!scheduleValidation?.valid) valid = false;
@@ -161,7 +209,7 @@ const validateTab = async (tabName, silent = false) => {
 };
 
 const validateAllTabs = async (silent = false) => {
-  const tabs = ["tab-details", "tab-audience", "tab-schedule" ];
+  const tabs = ["tab-details", "tab-audience", "tab-success", "tab-schedule"];
   const results = await Promise.all(tabs.map(tab => validateTab(tab, silent)));
   return results.every(Boolean);
 };
@@ -392,6 +440,11 @@ const buildSchedulePayload = (schedule) => {
 };
 
 onMounted(async () => {
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
+
   let channelsRes = await channelsStore.fetchChannels().catch((error) => error);
   if (channelsRes.results) {
     ChannelList.value = channelsRes.results;
@@ -458,6 +511,12 @@ const onSendSimple = async () => {
       },
       channelId: notification.channel_id,
       schedule: buildSchedulePayload(schedule),
+      success: {
+        event: successEvent.value,
+        ...(successEventProperty.value
+          ? { eventProperty: successEventProperty.value }
+          : {}),
+      },
       template: {
         code: template.code,
         data: template.model?.data,
@@ -513,7 +572,7 @@ const aiFlashTabs = ref([]);
 const tabWindowTransition = ref(false);
 const lastAppliedSectionSigs = ref({ template: "", audience: "", schedule: "" });
 const lastAiPollMeta = ref({ template: null, audience: null, schedule: null });
-const TAB_ORDER = ["tab-details", "tab-audience", "tab-schedule"];
+const TAB_ORDER = ["tab-details", "tab-audience", "tab-success", "tab-schedule"];
 
 const sectionSignature = (data) => {
   if (!data || (typeof data === "object" && !Object.keys(data).length)) return "";
@@ -857,6 +916,25 @@ watch([TemplateListSimple, ChannelList], () => {
             </VIcon>
           </VTab>
           <VTab
+            value="tab-success"
+            :class="{
+              'error-tab': tabErrors['tab-success'],
+              'ai-tab-flash': aiFlashTabs.includes('tab-success'),
+            }"
+          >
+            Success
+            <VIcon
+              v-if="aiFlashTabs.includes('tab-success')"
+              icon="tabler-sparkles"
+              size="14"
+              color="primary"
+              class="ml-1 ai-tab-icon"
+            />
+            <VIcon v-if="tabErrors['tab-success']" size="16" color="error" class="ml-1">
+              mdi-exclamation-thick
+            </VIcon>
+          </VTab>
+          <VTab
             value="tab-schedule"
             :class="{
               'error-tab': tabErrors['tab-schedule'],
@@ -1067,6 +1145,57 @@ watch([TemplateListSimple, ChannelList], () => {
                       :validate="validateAudienceFilter"
                     />
                   </div>
+                </VWindowItem>
+
+                <VWindowItem value="tab-success">
+                  <VForm ref="successFormRef">
+                    <h3 class="mb-2">Success</h3>
+                    <p class="text-caption mb-4">
+                      Choose the event that counts as a successful outcome
+                    </p>
+                    <VRow>
+                      <VCol cols="12" md="6">
+                        <EventAutocomplete
+                          v-model="successEvent"
+                          :items="successEventItems"
+                          app-style
+                          label="Event"
+                          placeholder="Event Name"
+                          :rules="[requiredValidator]"
+                          :loading="successEventsLoading"
+                        />
+                      </VCol>
+                      <VCol cols="12" md="6">
+                        <AppAutocomplete
+                          v-model="successEventProperty"
+                          :items="successPropertyOptions"
+                          label="Event property"
+                          placeholder="Select property"
+                          persistent-hint
+                          hint="Property to be tracked"
+                          clearable
+                          :disabled="!successEvent"
+                          :loading="successPropertiesLoading"
+                        >
+                          <template #item="{ props, item }">
+                            <VListItem v-bind="props">
+                              <VListItemSubtitle class="ml-auto text-xs text-gray-500">
+                                <!-- <span v-if="item.raw.dataType">
+                                  Type : {{ dataTypeTitle(item.raw.dataType) }}
+                                </span> -->
+                              </VListItemSubtitle>
+                            </VListItem>
+                          </template>
+                        </AppAutocomplete>
+                        <p
+                          v-if="successEvent && !successPropertiesLoading && !successPropertyOptions.length"
+                          class="text-caption text-medium-emphasis mt-1"
+                        >
+                          This event has no numeric properties.
+                        </p>
+                      </VCol>
+                    </VRow>
+                  </VForm>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
@@ -1314,9 +1443,15 @@ watch([TemplateListSimple, ChannelList], () => {
                 >{{ isLoading ? "loading..." : "Launch" }}
               </VBtn>
               <VBtn
-                v-if="tab === 'tab-audience'"
+                v-if="tab === 'tab-success'"
                 variant="tonal"
                 @click="tab = 'tab-schedule'"
+                >Next<VIcon end icon="mdi-arrow-right"
+              /></VBtn>
+              <VBtn
+                v-if="tab === 'tab-audience'"
+                variant="tonal"
+                @click="tab = 'tab-success'"
                 >Next<VIcon end icon="mdi-arrow-right"
               /></VBtn>
               <VBtn

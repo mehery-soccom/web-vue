@@ -9,9 +9,14 @@ import EngagementCampaignAssistant from "@app-pushapp/views/admin/app-engagement
 import { normalizeAiFilterTree } from "@/app-pushapp/utils/mapAiFormState";
 import { onMounted, nextTick } from "vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { loadEventPropertyTypes } from "@/app-pushapp/views/config/event-master/eventMaster";
+import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
+import { requiredValidator } from "@app-pushapp/@core/utils/validators";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
+const eventStore = useEventStore();
 const libraryStore = useLibraryStore();
 const { FILTER_FIELDS_MAP } = useAppEngagements();
 
@@ -133,6 +138,10 @@ const tabs = [
     icon: "tabler-users",
   },
   {
+    title: "Success",
+    icon: "tabler-circle-check",
+  },
+  {
     title: "Scheduling",
     icon: "tabler-layout-grid",
   },
@@ -159,6 +168,40 @@ const templateRef = ref();
 const templateBRef = ref();
 const audienceRef = ref();
 const scheduleRef = ref();
+const successFormRef = ref();
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successPropertyOptions = ref([]);
+const successPropertiesLoading = ref(false);
+const successEventsLoading = ref(false);
+const NUMERIC_PROPERTY_TYPES = new Set(["INTEGER", "FLOAT"]);
+
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+watch(successEvent, async (eventName) => {
+  successEventProperty.value = null;
+  successPropertyOptions.value = [];
+  if (!eventName) return;
+
+  successPropertiesLoading.value = true;
+  try {
+    const types = await loadEventPropertyTypes(eventName);
+    if (successEvent.value !== eventName) return;
+    successPropertyOptions.value = Object.entries(types || {})
+      .filter(([, dataType]) => NUMERIC_PROPERTY_TYPES.has(dataType))
+      .map(([key, dataType]) => ({ title: key, value: key, dataType }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+  } finally {
+    if (successEvent.value === eventName) successPropertiesLoading.value = false;
+  }
+});
 const errors = ref({});
 const temp = ref(null);
 const tempB = ref(null);
@@ -262,6 +305,14 @@ const isValidTab = async (tab, silent = false) => {
       }
       break;
     case 3:
+      if (successFormRef.value) {
+        const successValidation = await successFormRef.value.validate();
+        if (!successValidation?.valid) valid = false;
+      } else if (!successEvent.value) {
+        valid = false;
+      }
+      break;
+    case 4:
       let scheduleValid = await scheduleRef.value?.isValid(silent);
       if (!scheduleValid) {
         valid = false;
@@ -315,7 +366,13 @@ const create = async () => {
         ...campaign,
         triggerFilter: campaign.triggerFilter,
         filter: cohortFilter ? { type: "group", conjunction: "and", children: [cohortFilter] } : campaign.filter,
-        schedule: buildSchedulePayload(campaign.schedule)
+        schedule: buildSchedulePayload(campaign.schedule),
+        success: {
+          event: successEvent.value,
+          ...(successEventProperty.value
+            ? { eventProperty: successEventProperty.value }
+            : {}),
+        },
         // schedule: {
         //   ...campaign.schedule,
         //   startDate: campaign.schedule.startDate ? new Date(campaign.schedule.startDate).getTime() : null,
@@ -359,6 +416,10 @@ const create = async () => {
 //   { immediate: true }
 // );
 onMounted(async () => {
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
   await fetchTemplateList();
 });
 
@@ -381,7 +442,7 @@ const lastAiPollMeta = ref({
   audience: null,
   schedule: null,
 });
-const TAB_ORDER = [0, 1, 2, 3];
+const TAB_ORDER = [0, 1, 2, 3, 4];
 
 const sectionSignature = (data) => {
   if (!data || (typeof data === "object" && !Object.keys(data).length)) return "";
@@ -692,7 +753,7 @@ const applyAssistantCampaignState = async (campaignState) => {
     if (applied.schedule) {
       const sig = sectionSignature(sch);
       if (sig !== lastAppliedSectionSigs.value.schedule) {
-        updated.push(3);
+        updated.push(4);
         lastAppliedSectionSigs.value.schedule = sig;
       }
     }
@@ -912,6 +973,50 @@ watch(templateList, () => {
           v-model:filter="campaign.filter"
           v-model:abTesting="campaign.abTesting"
         />
+      </VWindowItem>
+
+      <!-- tab-success -->
+      <VWindowItem>
+        <VCard class="pa-6">
+          <VForm ref="successFormRef">
+            <h3 class="mb-2">Success</h3>
+            <p class="text-caption mb-4">
+              Choose the event that counts as a successful outcome
+            </p>
+            <VRow>
+              <VCol cols="12" md="6">
+                <EventAutocomplete
+                  v-model="successEvent"
+                  :items="successEventItems"
+                  app-style
+                  label="Success event"
+                  placeholder="Event Name"
+                  :rules="[requiredValidator]"
+                  :loading="successEventsLoading"
+                />
+              </VCol>
+              <VCol cols="12" md="6">
+                <AppAutocomplete
+                  v-model="successEventProperty"
+                  :items="successPropertyOptions"
+                  label="Event property"
+                  placeholder="Select property"
+                  persistent-hint
+                  hint="Property to be tracked"
+                  clearable
+                  :disabled="!successEvent"
+                  :loading="successPropertiesLoading"
+                />
+                <p
+                  v-if="successEvent && !successPropertiesLoading && !successPropertyOptions.length"
+                  class="text-caption text-medium-emphasis mt-1"
+                >
+                  This event has no numeric properties.
+                </p>
+              </VCol>
+            </VRow>
+          </VForm>
+        </VCard>
       </VWindowItem>
 
       <!-- tab-schedule -->

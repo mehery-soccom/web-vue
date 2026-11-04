@@ -276,6 +276,7 @@ function formatFieldName(field) {
   const withSpaces = str.replace(/_/g, " ");
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
+const exportOptionalStat = (value) => (typeof value === "number" ? value : "");
 const getReadableRecurrence = (schedule) => {
   if (!schedule) return "N/A";
 
@@ -432,6 +433,9 @@ const exportToExcel = async () => {
         "Opened %": `${openedPercent}%`,
         "Total CTA": ctaCount,
         "CTA %": `${ctaPercent}%`,
+        Events: exportOptionalStat(item.stats?.success?.event),
+        Users: exportOptionalStat(item.stats?.success?.user),
+        Value: exportOptionalStat(item.stats?.success?.value),
       };
 
       const dynamicCTAs = {};
@@ -612,6 +616,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <td :colspan="6">
               <NotificationCampaignExpansion
                 :stats="slotProps.item.raw.stats"
+                :success="slotProps.item.raw.success"
               />
             </td>
           </tr>
