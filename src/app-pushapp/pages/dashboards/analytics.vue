@@ -9,6 +9,7 @@ import { ref, onMounted, toRaw, nextTick, computed } from "vue";
 const { customPlugin } = useDatePickerFilters();
 const projectStore = useProjectStore();
 
+const isDauLoading = ref(false);
 const isMauLoading = ref(false);
 const isChartLoading = ref(false);
 const chartData = ref({ labels: [], datasets: [] });
@@ -42,6 +43,7 @@ oneWeekAgo.setDate(oneWeekAgo.getDate() - 6);
 oneWeekAgo.setHours(0,0,0,0);
 const formattedStart = oneWeekAgo.toLocaleDateString("en-GB").split("/").join("-");
 const formattedEnd = today.toLocaleDateString("en-GB").split("/").join("-");
+const selectedDauDate = ref(formattedEnd);
 const dates = `${formattedStart} to ${formattedEnd}`;
 var dateRange = ref(dates);
 const globalDateRange = ref([]);
@@ -116,11 +118,43 @@ const statsMau = ref([
 const statsDauAll = computed(() => [...statsDauCount.value, ...statsDau.value]);
 const statsMauAll = computed(() => [...statsMauCount.value, ...statsMau.value]);
 
+const toDauPeriod = (value) => {
+  const [day, month, year] = String(value).split("-");
+  return `${year}${month}${day}`;
+};
+
+let lastDauPeriod = toDauPeriod(selectedDauDate.value);
+let dauRequestId = 0;
+
+const onDauDateChange = (value) => {
+  if (!value) return;
+  const period = toDauPeriod(value);
+  if (!/^\d{8}$/.test(period) || period === lastDauPeriod) return;
+  lastDauPeriod = period;
+  fetchDauMauData("DAU", period);
+};
+
+const sumDauDocs = (docs, period) => {
+  const matches = (Array.isArray(docs) ? docs : []).filter(
+    (doc) => String(doc?.period) === String(period)
+  );
+  return matches.reduce((total, doc) => {
+    total.count += Number(doc?.count) || 0;
+    total.primaryEvents.event_activity += Number(doc?.primaryEvents?.event_activity) || 0;
+    total.primaryEvents.profile_update += Number(doc?.primaryEvents?.profile_update) || 0;
+    return total;
+  }, { count: 0, primaryEvents: { event_activity: 0, profile_update: 0 } });
+};
+
 const fetchDauMauData = async (type, period) => {
+  const requestId = type === "DAU" ? ++dauRequestId : 0;
+  if (type === 'DAU') isDauLoading.value = true;
   if (type === 'MAU') isMauLoading.value = true;
   try{
     const resp = await projectStore.fetchDauMauDatas({ type, period })
-    const item = resp?.data?.data?.[0] || {};
+    if (type === "DAU" && requestId !== dauRequestId) return;
+    const rows = resp?.data?.data;
+    const item = type === "DAU" ? sumDauDocs(rows, period) : (rows?.[0] || {});
     if(type == 'MAU'){
       statsMauCount.value[0].stats = (item.count || 0).toLocaleString("en-IN");
       const currentMonth = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}`;
@@ -131,6 +165,8 @@ const fetchDauMauData = async (type, period) => {
       statsMau.value[1].stats = (item.primaryEvents?.profile_update || 0).toLocaleString("en-IN");
     } else {
       statsDauCount.value[0].stats = (item.count || 0).toLocaleString("en-IN");
+      const todayPeriod = `${today.getFullYear()}${String(today.getMonth() + 1).padStart(2, "0")}${String(today.getDate()).padStart(2, "0")}`;
+      statsDauCount.value[0].title = period === todayPeriod ? "DAU Count (Today)" : "DAU Count";
       // statsDau.value[0].stats = (item.primaryEvents?.notifications || 0).toLocaleString("en-IN");
       statsDau.value[0].stats = (item.primaryEvents?.event_activity || 0).toLocaleString("en-IN");
       // statsDau.value[2].stats = (item.primaryEvents?.in_app_engagement || 0).toLocaleString("en-IN");
@@ -140,6 +176,7 @@ const fetchDauMauData = async (type, period) => {
   }catch(e){
     console.error(e)
   } finally {
+    if (type === 'DAU' && requestId === dauRequestId) isDauLoading.value = false;
     if (type === 'MAU') isMauLoading.value = false;
   }
 };
@@ -295,9 +332,7 @@ onMounted(async () => {
   globalDateRange.value = [oneWeekAgo, today];
   fetchChartData(oneWeekAgo, today);
   const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-  const DauDate = `${today.getFullYear()}${month}${day}`;
-  fetchDauMauData("DAU", DauDate);
+  fetchDauMauData("DAU", lastDauPeriod);
   const MauDate = `${today.getFullYear()}${month}`;
   fetchDauMauData("MAU", MauDate);
 });
@@ -331,8 +366,21 @@ onMounted(async () => {
             <VIcon icon="tabler-chart-line" size="22" />
             <span class="text-h6">Daily Active Users</span>
           </div>
+          <AppDateTimePicker
+            v-model="selectedDauDate"
+            style="width: 180px; max-width: 100%;"
+            density="compact"
+            prepend-inner-icon="tabler-calendar"
+            :config="{ dateFormat: 'd-m-Y', maxDate: tonight }"
+            @update:modelValue="onDauDateChange"
+          />
         </div>
-        <CardStatisticsTransactions :statistics="statsDauAll" />
+        <div class="section-loader-wrap">
+          <CardStatisticsTransactions :statistics="statsDauAll" />
+          <div v-if="isDauLoading" class="section-loader-overlay">
+            <VProgressCircular indeterminate color="primary" size="40" />
+          </div>
+        </div>
         <VDivider class="my-6" />
         <div class="d-flex align-center justify-space-between flex-wrap gap-3 mb-4" style="margin-top: -8px;">
           <div class="d-flex align-center gap-2">
