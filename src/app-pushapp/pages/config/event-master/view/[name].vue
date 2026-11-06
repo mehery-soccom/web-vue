@@ -79,17 +79,24 @@ const saveField = async (field) => {
 const rfmDraft = ref(null); // { isRfmConversionEvent, rfmValueProperty }
 const rfmError = ref("");
 
+const rfmPropertyTitle = (p) => (p.label && p.label !== p.key ? `${p.label} (${p.key})` : p.key);
+
+// propertyList first, then managed keys that are not already listed.
+const rfmProperties = computed(() => {
+  const own = event.value?.propertyList || [];
+  const seen = new Set(own.map((p) => p.key));
+  const managed = (event.value?.managedPropertyList || []).filter((p) => p.key && !seen.has(p.key));
+  return [...own, ...managed];
+});
+
 const rfmPropertyOptions = computed(() =>
-  (event.value?.propertyList || []).map((p) => ({
-    title: p.label && p.label !== p.key ? `${p.label} (${p.key})` : p.key,
-    value: p.key,
-  })),
+  rfmProperties.value.map((p) => ({ title: rfmPropertyTitle(p), value: p.key })),
 );
 
 const savedRfmProperty = computed(() => {
   const key = event.value?.rfmValueProperty;
   if (!key) return null;
-  const match = (event.value.propertyList || []).find((p) => p.key === key);
+  const match = rfmProperties.value.find((p) => p.key === key);
   return { key, label: match?.label && match.label !== key ? match.label : "" };
 });
 
@@ -115,7 +122,7 @@ const rfmChanged = (payload) =>
 
 const validateRfm = (payload) => {
   if (payload.isRfmConversionEvent && !payload.rfmValueProperty) {
-    rfmError.value = (event.value?.propertyList || []).length ? "Select a property" : "This event has no properties";
+    rfmError.value = rfmProperties.value.length ? "Select a property" : "This event has no properties";
     return false;
   }
   rfmError.value = "";

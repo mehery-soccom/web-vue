@@ -26,6 +26,8 @@ export default [
       {
         title: "Cohort Dynamix",
         to: "dashboards-cohort-dynamix",
+        badgeContent: "Beta",
+        badgeClass: "bg-light-primary text-primary",
       },
       // {
       //   title: 'eCommerce',
