@@ -56,7 +56,9 @@ onBeforeUnmount(() => {
         background: backgroundStyle,
         direction: props.template.style.align === 'right' ? 'rtl' : 'ltr',
       }">
-        <div class="close-btn">&times;</div>
+        <div class="close-btn" :style="{ backgroundColor: props.template.style.cross_bg_color,
+        color: props.template.style.cross_color,
+        border: `0.5px solid ${props.template.style.cross_border_color}` }">&times;</div>
         <div class="pop-up-vertical-content">
             <div class="text-block-road">
             <div v-if="!hasMedia" class="text-flex-wrapper"
