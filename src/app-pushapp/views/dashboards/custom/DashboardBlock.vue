@@ -117,6 +117,15 @@ const isAborted = (error) =>
   error?.name === "CanceledError" ||
   error?.name === "AbortError";
 
+const applyStats = (data = {}) => {
+  hasTotalEvents.value =
+    Object.prototype.hasOwnProperty.call(data, "total_events") &&
+    data.total_events != null;
+  uniqueUsers.value = toCount(data.unique_users);
+  totalEvents.value = hasTotalEvents.value ? toCount(data.total_events) : null;
+  countError.value = false;
+};
+
 const loadCount = async () => {
   countAbort?.abort();
   const controller = new AbortController();
@@ -130,25 +139,30 @@ const loadCount = async () => {
     isCountLoading.value = false;
     return;
   }
+
+  const payload = {
+    dateRange1: props.dateRange1,
+    dateRange2: props.dateRange2,
+    timezone: props.timezone,
+    filter: props.item.filter,
+  };
+  if (props.cohortId) payload.cohortId = props.cohortId;
+
+  const cached = store.getCachedEventFilterStats(payload);
+  if (cached) {
+    applyStats(cached);
+    isCountLoading.value = false;
+    return;
+  }
+
   isCountLoading.value = true;
   countError.value = false;
   try {
-    const payload = {
-      dateRange1: props.dateRange1,
-      dateRange2: props.dateRange2,
-      timezone: props.timezone,
-      filter: props.item.filter,
-    };
-    if (props.cohortId) payload.cohortId = props.cohortId;
-
     const res = await store.fetchEventFilterStats(payload, controller.signal);
     if (requestId !== countRequestId) return;
     const data = res?.data ?? {};
-    hasTotalEvents.value =
-      Object.prototype.hasOwnProperty.call(data, "total_events") &&
-      data.total_events != null;
-    uniqueUsers.value = toCount(data.unique_users);
-    totalEvents.value = hasTotalEvents.value ? toCount(data.total_events) : null;
+    store.rememberEventFilterStats(payload, data);
+    applyStats(data);
   } catch (e) {
     if (isAborted(e) || requestId !== countRequestId) return;
     uniqueUsers.value = null;

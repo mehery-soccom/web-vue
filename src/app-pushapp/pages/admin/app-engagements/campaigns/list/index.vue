@@ -138,6 +138,11 @@ const headers = [
     filterOptions: SUB_TYPES,
   },
   {
+    title: "Success",
+    key: "success.event",
+    sortable: false,
+  },
+  {
     title: "A/B",
     key: "abTesting.enabled",
     filterType: "switch",
@@ -250,6 +255,7 @@ const pagination = reactive({
     "action.template.code": null,
     // "action.template.type": null,
     "action.template.subType": null,
+    "success.event": null,
     "abTesting.enabled": false,
     // "schedule.enableActiveWindow": null,
     status: null,
@@ -435,6 +441,7 @@ const exportToExcel = async () => {
         Template: item.action?.template?.code,
         Type: item.action?.template?.type,
         SubType: item.action?.template?.subType,
+        Success: item.success?.event || "",
         "A/B Testing": item.abTesting?.enabled ? "Yes" : "No",
         Status: item.status,
         Count: total,
@@ -552,7 +559,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
             <!-- <td :colspan="headers.length"> -->
-            <td :colspan="6">
+            <td :colspan="7">
               <AbTestingMetrics
                 :abTesting="slotProps.item.raw.abTesting"
                 :stats="slotProps.item.raw.stats"
@@ -648,6 +655,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
               </div>
             </VTooltip>
           </IconBtn>
+        </template>
+
+        <template #[`item.success.event`]="{ item }">
+          {{ item.raw.success?.event || "-" }}
         </template>
 
         <!-- Template sub types -->

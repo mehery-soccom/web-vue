@@ -136,6 +136,11 @@ const headers = [
     key: "templateCode",
   },
   {
+    title: "Success",
+    key: "success.event",
+    sortable: false,
+  },
+  {
     title: "Status",
     key: "status",
     align: "center",
@@ -238,6 +243,7 @@ const pagination = reactive({
   filters: {
     campaignName: "",
     templateCode: "",
+    "success.event": "",
     status: "",
   },
   dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
@@ -425,6 +431,7 @@ const exportToExcel = async () => {
       const baseRow = {
         Name: item.campaignName,
         Template: item.templateCode,
+        Success: item.success?.event || "",
         Start: item.createdStamp ? smartFormatDate(item.createdStamp) : "N/A",
         Total: total,
         Sent: sent,
@@ -613,13 +620,17 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <!-- Expanded Row Data [ show-expand ] -->
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
-            <td :colspan="6">
+            <td :colspan="7">
               <NotificationCampaignExpansion
                 :stats="slotProps.item.raw.stats"
                 :success="slotProps.item.raw.success"
               />
             </td>
           </tr>
+        </template>
+
+        <template #[`item.success.event`]="{ item }">
+          {{ item.raw.success?.event || "-" }}
         </template>
 
         <!-- status -->
