@@ -416,10 +416,10 @@ const onUpdateOptions = (options) => {
 const exportToExcel = async () => {
   try {
     isExporting.value = true;
-    const { dateRange1, dateRange2, ...campaignParams } = pagination;
     const response = await appEngagementsStore.fetchFilters({
-      ...campaignParams,
-      page: -1,
+      ...pagination,
+      page: undefined,
+      itemsPerPage: undefined,
     });
 
     const rawResults = response.data.results || [];

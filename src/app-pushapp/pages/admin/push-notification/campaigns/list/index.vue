@@ -154,12 +154,12 @@ const headers = [
     key: "created.stamp",
     align: "center",
   },
-  {
-    title: "Created by",
-    key: "createdBy",
-    sortable: false,
-    align: "center",
-  },
+  // {
+  //   title: "Created by",
+  //   key: "createdBy",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Total",
     key: "messageCount",
@@ -404,10 +404,10 @@ const exportToExcel = async () => {
   try {
     isExporting.value = true;
 
-    const { dateRange1, dateRange2, ...campaignParams } = pagination;
     const response = await pushNotificationStore.fetchCampaigns({
-      ...campaignParams,
-      page: -1,
+      ...pagination,
+      page: undefined,
+      itemsPerPage: undefined,
     });
 
     const rawResults = response.data.results || [];
@@ -665,10 +665,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </div>
       </template> -->
 
-        <template #item.createdBy="{ item }">
+        <!-- <template #item.createdBy="{ item }">
           <span v-if="item.raw.createdBy">{{ item.raw.createdBy }}</span>
           <span v-else> - </span>
-        </template>
+        </template> -->
 
         <!-- numeric count columns with comma formatting -->
         <template #item.messageCount="{ item }">
