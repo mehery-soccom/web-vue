@@ -422,7 +422,7 @@ const onUpdateOptions = (options) => {
 const exportToExcel = async () => {
   try {
     isExporting.value = true;
-    const response = await appEngagementsStore.fetchFilters({
+    const response = await appEngagementsStore.fetchFiltersDownload({
       ...pagination,
       page: undefined,
       itemsPerPage: undefined,

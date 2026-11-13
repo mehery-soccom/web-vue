@@ -410,7 +410,7 @@ const exportToExcel = async () => {
   try {
     isExporting.value = true;
 
-    const response = await pushNotificationStore.fetchCampaigns({
+    const response = await pushNotificationStore.fetchCampaignsDownload({
       ...pagination,
       page: undefined,
       itemsPerPage: undefined,

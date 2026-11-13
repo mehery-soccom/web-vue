@@ -335,6 +335,18 @@ export const useAppEngagementsStore = defineStore("AppEngagementsStore", {
         },
       });
     },
+    fetchFiltersDownload(params) {
+      let { sortBy, filters, dateRange1, dateRange2, timezone  } = params;
+      let sort = sortBy
+        .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
+        .join(",");
+      return DataService.axios.get("/api/v1/notification/in-app/filters/download", {
+        params: {
+          sort: sort || "-created.stamp",
+          search: filters, dateRange1, dateRange2, timezone 
+        },
+      });
+    },
     fetchFilter({ id, ...params }) {
       return DataService.axios.get(
         `/api/v1/notification/in-app/filter/${id}`,

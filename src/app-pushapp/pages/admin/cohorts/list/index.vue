@@ -12,12 +12,12 @@ const headers = computed(() => [
   {
     title: "Name",
     key: "name",
-    align: "center",
+    align: "start",
   },
   {
     title: "Desc",
     key: "desc",
-    align: "center",
+    align: "start",
   },
   {
     title: "Active",
@@ -137,8 +137,8 @@ onMounted(async () => {});
       @update:options="onUpdateOptionsDebounced"
     >
       <template #item.name="{ item }">
-        <div class="d-flex align-center justify-center gap-2">
-          <span>{{ item.raw.name }}</span>
+        <div class="d-flex align-start justify-start gap-2">
+          <span class="text-start">{{ item.raw.name }}</span>
           <VChip
             v-if="item.raw.subtype === 'RFM'"
             size="x-small"
@@ -185,7 +185,7 @@ onMounted(async () => {});
           <VIcon icon="mdi-pencil-outline" />
           <VTooltip activator="parent">Edit</VTooltip>
         </IconBtn>
-        <span v-else class="d-inline-flex">
+        <span v-else>
           <IconBtn disabled>
             <VIcon icon="mdi-pencil-outline" />
           </IconBtn>

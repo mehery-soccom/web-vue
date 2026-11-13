@@ -147,6 +147,16 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       });
     },
 
+    fetchCampaignsDownload(params) {
+      let { sortBy, filters, dateRange1, dateRange2, timezone } = params;
+      let sort = sortBy
+        .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
+        .join(",");
+      return DataService.axios.get(`/api/v1/campaigns/download`, {
+        params: { sort: sort || "-created.stamp", search: filters, dateRange1, dateRange2, timezone },
+      });
+    },
+
     // 👉 Fetch Single Campaign
     fetchCampaign({ id }) {
       return DataService.axios.get(`/api/v1/campaign/${id}`);
