@@ -152,7 +152,7 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
       let sort = sortBy
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
-      return DataService.axios.get(`/api/v1/campaigns/download`, {
+      return DataService.axios.get(`/api/v1/campaign/download`, {
         params: { sort: sort || "-created.stamp", search: filters, dateRange1, dateRange2, timezone },
       });
     },

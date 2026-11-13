@@ -135,11 +135,11 @@ const headers = [
     title: "Template",
     key: "templateCode",
   },
-  {
-    title: "Success",
-    key: "success.event",
-    sortable: false,
-  },
+  // {
+  //   title: "Success",
+  //   key: "success.event",
+  //   sortable: false,
+  // },
   {
     title: "Status",
     key: "status",
@@ -159,12 +159,6 @@ const headers = [
     key: "created.stamp",
     align: "center",
   },
-  // {
-  //   title: "Created by",
-  //   key: "createdBy",
-  //   sortable: false,
-  //   align: "center",
-  // },
   {
     title: "Total",
     key: "messageCount",
@@ -176,39 +170,57 @@ const headers = [
   //   key: "schedule.isRecurring",
   //   filterType: "switch",
   // },
+  // {
+  //   title: "Sent",
+  //   key: "stats.sent",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Sent",
-    key: "stats.sent",
-    sortable: false,
-    align: "center",
-  },
-  {
-    title: "Sent %",
     key: "stats.sent_percent",
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "Opened",
+  //   key: "stats.opened",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Opened",
-    key: "stats.opened",
-    sortable: false,
-    align: "center",
-  },
-  {
-    title: "Opened %",
     key: "stats.opened_percent",
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "CTA",
+  //   key: "stats.cta.__count",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "CTA",
-    key: "stats.cta.__count",
+    key: "stats.cta_percent",
     sortable: false,
     align: "center",
   },
   {
-    title: "CTA %",
-    key: "stats.cta_percent",
+    title: "S-E",
+    key: "stats.success.event",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "S-U",
+    key: "stats.success.user",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "S-V",
+    key: "stats.success.value",
     sortable: false,
     align: "center",
   },
@@ -629,9 +641,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
           </tr>
         </template>
 
-        <template #[`item.success.event`]="{ item }">
+        <!-- <template #[`item.success.event`]="{ item }">
           {{ item.raw.success?.event || "-" }}
-        </template>
+        </template> -->
 
         <!-- status -->
         <template #item.status="{ item }">
@@ -780,6 +792,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.sent_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              Sent: {{ (item.raw.stats?.sent || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
         </template>
 
@@ -797,6 +812,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.opened_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              Opened: {{ (item.raw.stats?.opened || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
         </template>
 
@@ -814,7 +832,21 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.cta_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              CTA: {{ (item.raw.stats?.cta?.__count || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
+        </template>
+
+        <!-- success stats -->
+        <template #item.stats.success.event="{ item }">
+          {{ typeof item.raw.stats?.success?.event === "number" ? item.raw.stats.success.event.toLocaleString("en-IN") : "-" }}
+        </template>
+        <template #item.stats.success.user="{ item }">
+          {{ typeof item.raw.stats?.success?.user === "number" ? item.raw.stats.success.user.toLocaleString("en-IN") : "-" }}
+        </template>
+        <template #item.stats.success.value="{ item }">
+          {{ typeof item.raw.stats?.success?.value === "number" ? item.raw.stats.success.value.toLocaleString("en-IN") : "-" }}
         </template>
 
         <!-- Actions -->
