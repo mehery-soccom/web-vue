@@ -6,9 +6,31 @@ import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagement
 import { onMounted } from "vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
+const eventStore = useEventStore();
+
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successEventsLoading = ref(false);
+
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+const successPropertyItems = computed(() =>
+  successEventProperty.value
+    ? [{ title: successEventProperty.value, value: successEventProperty.value }]
+    : [],
+);
 
 const route = useRoute();
 const router = useRouter();
@@ -128,6 +150,10 @@ const tabs = [
     icon: "tabler-users",
   },
   {
+    title: "Success",
+    icon: "tabler-circle-check",
+  },
+  {
     title: "Scheduling",
     icon: "tabler-layout-grid",
   },
@@ -173,6 +199,9 @@ const loadCampaign = async () => {
       journey: data.journey || campaign.journey,
     });
 
+    successEvent.value = data.success?.event || null;
+    successEventProperty.value = data.success?.eventProperty || null;
+
     if (data.schedule) Object.assign(campaign.schedule, data.schedule);
     if (data.action?.template) campaign.action.template = data.action.template;
     if (data.action?.templateB) campaign.action.templateB = data.action.templateB;
@@ -210,6 +239,10 @@ const findCohortFilter = (node) => {
 };
 const campaignLoaded = ref(false);
 onMounted(async () => {
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
 //   await fetchTemplateList();
   await loadCampaign();
   campaignLoaded.value = true;
@@ -345,6 +378,40 @@ onMounted(async () => {
           v-model:filter="campaign.filter"
           v-model:abTesting="campaign.abTesting" :readonly="true"
         />
+      </VWindowItem>
+
+      <!-- tab-success -->
+      <VWindowItem>
+        <VCard class="pa-6">
+          <h3 class="mb-2">Success</h3>
+          <p class="text-caption mb-4">
+            Choose the event that counts as a successful outcome
+          </p>
+          <VRow>
+            <VCol cols="12" md="6">
+              <EventAutocomplete
+                v-model="successEvent"
+                :items="successEventItems"
+                app-style
+                label="Success event"
+                placeholder="Event Name"
+                :loading="successEventsLoading"
+                disabled
+              />
+            </VCol>
+            <VCol cols="12" md="6">
+              <AppAutocomplete
+                v-model="successEventProperty"
+                :items="successPropertyItems"
+                label="Event property"
+                placeholder="Select property"
+                persistent-hint
+                hint="Property to be tracked"
+                disabled
+              />
+            </VCol>
+          </VRow>
+        </VCard>
       </VWindowItem>
 
       <!-- tab-schedule -->

@@ -3,6 +3,8 @@ import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsS
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 const { show } = inject("snackbar");
 
@@ -10,6 +12,26 @@ const route = useRoute();
 const router = useRouter();
 const channelsStore = useChannelsStore();
 const pushNotificationStore = usePushNotificationStore();
+const eventStore = useEventStore();
+
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successEventsLoading = ref(false);
+
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+const successPropertyItems = computed(() =>
+  successEventProperty.value
+    ? [{ title: successEventProperty.value, value: successEventProperty.value }]
+    : [],
+);
 
 const audienceMode = ref("filter");
 const filterLink = ref(null);
@@ -104,6 +126,11 @@ const hasSliceFilter = (node) => {
 const campaignId = route.params.id;
 
 onMounted(async () => {
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
+
   try {
     const channelsRes = await channelsStore.fetchChannels();
     ChannelList.value = channelsRes.results || [];
@@ -142,6 +169,9 @@ onMounted(async () => {
       audienceMode.value = 'excel';
       // excelFileRef.value = campaign.filterLink;
     }
+
+    successEvent.value = campaign.success?.event || null;
+    successEventProperty.value = campaign.success?.eventProperty || null;
 
     if (campaign.schedule) {
       populateSchedule(campaign.schedule);
@@ -227,6 +257,7 @@ const populateSchedule = scheduleData => {
           <VTab value="tab-audience" :class="{ 'error-tab': tabErrors['tab-audience'] }"> Audience 
             <VIcon v-if="tabErrors['tab-audience']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
           </VTab>
+          <VTab value="tab-success"> Success </VTab>
           <VTab value="tab-schedule" :class="{ 'error-tab': tabErrors['tab-schedule'] }"> Scheduling 
             <VIcon v-if="tabErrors['tab-schedule']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
           </VTab>
@@ -387,6 +418,37 @@ const populateSchedule = scheduleData => {
                       :validate="validateAudienceFilter"
                     />
                   </div>
+                </VWindowItem>
+
+                <VWindowItem value="tab-success">
+                  <h3 class="mb-2">Success</h3>
+                  <p class="text-caption mb-4">
+                    Choose the event that counts as a successful outcome
+                  </p>
+                  <VRow>
+                    <VCol cols="12" md="6">
+                      <EventAutocomplete
+                        v-model="successEvent"
+                        :items="successEventItems"
+                        app-style
+                        label="Event"
+                        placeholder="Event Name"
+                        :loading="successEventsLoading"
+                        disabled
+                      />
+                    </VCol>
+                    <VCol cols="12" md="6">
+                      <AppAutocomplete
+                        v-model="successEventProperty"
+                        :items="successPropertyItems"
+                        label="Event property"
+                        placeholder="Select property"
+                        persistent-hint
+                        hint="Property to be tracked"
+                        disabled
+                      />
+                    </VCol>
+                  </VRow>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
@@ -614,9 +676,15 @@ const populateSchedule = scheduleData => {
 
             <VCardText class="d-flex gap-4">
               <VBtn
-                v-if="tab === 'tab-audience'"
+                v-if="tab === 'tab-success'"
                 variant="tonal"
                 @click="tab = 'tab-schedule'"
+                >Next<VIcon end icon="mdi-arrow-right"
+              /></VBtn>
+              <VBtn
+                v-if="tab === 'tab-audience'"
+                variant="tonal"
+                @click="tab = 'tab-success'"
                 >Next<VIcon end icon="mdi-arrow-right"
               /></VBtn>
               <VBtn
