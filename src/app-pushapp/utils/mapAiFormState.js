@@ -252,6 +252,14 @@ function resolveFilterType(raw) {
     FILTER_TYPES.find((t) => normLabel(t.value) === n) ||
     FILTER_TYPES.find((t) => normLabel(t.valueAlias) === n) ||
     FILTER_TYPES.find((t) => normLabel(t.title) === n);
+  // System/Custom Cohort are dropdown-only. Saved filters stay filterType "cohort".
+  if (
+    match?.value === "systemCohort" ||
+    match?.value === "customCohort" ||
+    n === "cohort"
+  ) {
+    return "cohort";
+  }
   return match?.value || raw;
 }
 

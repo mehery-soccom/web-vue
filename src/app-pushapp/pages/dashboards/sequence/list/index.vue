@@ -39,9 +39,30 @@ const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6));
 const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`);
 
 const formattedCohortList = computed(() => {
-  return cohortsStore.cohorts
-    .map(c => ({ title: c.name, value: c._id }))
-    .sort((a, b) => a.title.localeCompare(b.title));
+  const byName = (a, b) => String(a.name || "").localeCompare(String(b.name || ""));
+  const toItem = (cohort) => ({ title: cohort.name, value: cohort._id });
+  const cohorts = cohortsStore.cohorts || [];
+  const sections = [
+    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM") },
+    { header: "System", items: cohorts.filter((cohort) => cohort.type === "SYSTEM") },
+  ];
+  const items = [];
+  sections.forEach(({ header, items: sectionItems }) => {
+    if (!sectionItems.length) return;
+    items.push({
+      title: header,
+      isHeader: true,
+      value: `header-${header}`,
+      props: { disabled: true },
+    });
+    items.push(...sectionItems.sort(byName).map(toItem));
+  });
+  const other = cohorts
+    .filter((cohort) => cohort.type !== "CUSTOM" && cohort.type !== "SYSTEM")
+    .sort(byName)
+    .map(toItem);
+  items.push(...other);
+  return items;
 });
 
 // Helper to get cohort name from ID for chart labels
@@ -493,7 +514,17 @@ const exportToExcel = () => {
                   density="compact"
                   clearable
                   style="min-width: 200px;"
-                />
+                >
+                  <template #item="{ props: itemProps, item }">
+                    <VListSubheader
+                      v-if="item.raw.isHeader"
+                      class="cohort-section-header"
+                    >
+                      {{ item.raw.title }}
+                    </VListSubheader>
+                    <VListItem v-else v-bind="itemProps" />
+                  </template>
+                </VAutocomplete>
 
                 <VTooltip location="top" v-if="!isCompareMode">
                   <template #activator="{ props }">
@@ -521,7 +552,17 @@ const exportToExcel = () => {
                     density="compact"
                     clearable
                     style="min-width: 200px;"
-                  />
+                  >
+                    <template #item="{ props: itemProps, item }">
+                      <VListSubheader
+                        v-if="item.raw.isHeader"
+                        class="cohort-section-header"
+                      >
+                        {{ item.raw.title }}
+                      </VListSubheader>
+                      <VListItem v-else v-bind="itemProps" />
+                    </template>
+                  </VAutocomplete>
 
                   <VBtn 
                     icon="tabler-x" 
@@ -614,6 +655,15 @@ const exportToExcel = () => {
 </template>
 
 <style scoped>
+.cohort-section-header {
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--v-theme-primary));
+  opacity: 1;
+  min-height: 36px;
+}
 .border-dashed {
   border: 2px dashed rgba(var(--v-border-color), 0.3);
 }

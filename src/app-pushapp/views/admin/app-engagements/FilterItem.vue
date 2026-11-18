@@ -34,8 +34,10 @@ const emit = defineEmits(["remove", "update"]);
 const hasError = ref(false);
 const showCohortConfirm = ref(false);
 const pendingFilterType = ref(null);
+const pendingCohortKind = ref(null);
 const previousFilterType = ref(null);
 const skipCohortCheck = ref(false);
+const cohortKind = ref(null);
 const furtherGroupRef = ref(null);
 const datePresets = [
   { label: "Today", key: "today" },
@@ -51,7 +53,8 @@ const {
   FILTER_PERIODS,
   fetchFilterFields,
   fetchFilterFieldValues,
-} = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId });
+  resolveCohortKind,
+} = useAppEngagements(props.element, { onlyActiveCohorts: true, channelId, cohortKind });
 
 // === Clear error on change ===
 const clearErrorAndUpdate = () => {
@@ -134,6 +137,7 @@ watch(
     }
     // console.log("clear values 4", props.element);
     if (newVal === oldVal || oldVal === null) return;
+    if (newVal !== "cohort") cohortKind.value = null;
     props.element.field = null;
     props.element.operator = null;
     props.element.value = null;
@@ -152,6 +156,7 @@ watch(
         previousFilterType.value = oldVal;
         pendingFilterType.value = newVal;
         showCohortConfirm.value = true;
+        cohortKind.value = null;
         props.element.filterType = oldVal;
         return;
       }
@@ -310,17 +315,28 @@ const operatorItems = computed(() => {
 });
 const confirmCohortSelection = () => {
   skipCohortCheck.value = true;
+  cohortKind.value = pendingCohortKind.value;
   props.element.filterType = pendingFilterType.value;
   showCohortConfirm.value = false;
 };
 
 const cancelCohortSelection = () => {
+  pendingCohortKind.value = null;
+  cohortKind.value = null;
   props.element.filterType = previousFilterType.value;
   showCohortConfirm.value = false;
 };
 
+const isCohortTypeOption = (value) =>
+  value === "systemCohort" || value === "customCohort";
+
 const selectedFilterType = computed(() => {
   if (!props.element.filterType) return null;
+  if (props.element.filterType === "cohort") {
+    if (cohortKind.value === "SYSTEM") return "systemCohort";
+    if (cohortKind.value === "CUSTOM") return "customCohort";
+    return null;
+  }
 
   const valueObj = FILTER_TYPES.find(
     (t) =>
@@ -330,9 +346,49 @@ const selectedFilterType = computed(() => {
 
   return valueObj?.value || null;
 });
-function onFilterTypeChange(value) {
-  props.element.filterType = value;
 
+const fieldPlaceholder = computed(() => {
+  if (props.element.filterType === "slice") return "Select slice";
+  if (props.element.filterType === "cohort") {
+    if (cohortKind.value === "SYSTEM") return "Select system cohort";
+    if (cohortKind.value === "CUSTOM") return "Select custom cohort";
+    return "Select cohort";
+  }
+  return "Select field";
+});
+
+function clearFilterValues() {
+  props.element.field = null;
+  props.element.operator = null;
+  props.element.value = null;
+  props.element.freqOperator = null;
+  props.element.freqCount = null;
+  props.element.freqPeriod = null;
+  props.element.scannedEvents = null;
+}
+
+function onFilterTypeChange(value) {
+  const nextKind =
+    value === "systemCohort" ? "SYSTEM" : value === "customCohort" ? "CUSTOM" : null;
+  if (nextKind) {
+    pendingCohortKind.value = nextKind;
+    if (props.element.filterType !== "cohort") {
+      const previousType = props.element.filterType;
+      cohortKind.value = nextKind;
+      props.element.filterType = "cohort";
+      if (previousType == null) clearErrorAndUpdate();
+      return;
+    }
+    if (cohortKind.value !== nextKind) {
+      cohortKind.value = nextKind;
+      clearFilterValues();
+      clearErrorAndUpdate();
+    }
+    return;
+  }
+  cohortKind.value = null;
+  pendingCohortKind.value = null;
+  props.element.filterType = value;
   clearErrorAndUpdate();
 }
 function onFilterFieldChange(value) {
@@ -348,9 +404,30 @@ function onFilterFieldChange(value) {
   clearErrorAndUpdate();
 }
 
+async function ensureCohortKind() {
+  if (props.element.filterType !== "cohort" || !props.element.field || cohortKind.value) return;
+  const field = props.element.field;
+  const kind = await resolveCohortKind(field);
+  if (
+    props.element.filterType === "cohort" &&
+    props.element.field === field &&
+    !cohortKind.value
+  ) {
+    cohortKind.value = kind;
+  }
+}
+
 onMounted(async () => {
   await fetchFilterFieldValues();
+  await ensureCohortKind();
 });
+
+watch(
+  () => [props.element.filterType, props.element.field],
+  () => {
+    ensureCohortKind();
+  },
+);
 
 defineExpose({ isValid });
 </script>
@@ -389,11 +466,12 @@ defineExpose({ isValid });
             if (ignoreEventDatafilterType && f.value === 'eventData')
               return false;
             if (ignoreSlicefilterType && f.value === 'slice') return false;
-            if (ignoreCohortfilterType && f.value === 'cohort') return false;
+            if (ignoreCohortfilterType && isCohortTypeOption(f.value)) return false;
             if (ignoreProfileAttribute && f.value === 'additionalInfo') return false;
             if (ignoreSystemAttribute && f.value === 'attribute') return false;
             if (element.filterType === f.value) return true;
-            if (hasNormalFilter && !element.filterType && f.value === 'cohort')
+            if (element.filterType === 'cohort' && isCohortTypeOption(f.value)) return true;
+            if (hasNormalFilter && !element.filterType && isCohortTypeOption(f.value))
               return false;
             return true;
           })
@@ -420,13 +498,7 @@ defineExpose({ isValid });
         :items="
           element.filterType === 'eventData' ? eventDataFields : FILTER_FIELDS
         "
-        :placeholder="
-          element.filterType === 'slice'
-            ? 'Select slice'
-            : element.filterType === 'cohort'
-            ? 'Select cohort'
-            : 'Select field'
-        "
+        :placeholder="fieldPlaceholder"
         class="filter-entity field"
         :custom-filter="fieldFilter"
         @update:modelValue="onFilterFieldChange"

@@ -1,7 +1,8 @@
 import { CITIES, STATES } from "./geoOptions";
 
 export const FILTER_TYPES = [
-  { title: "Cohort", value: "cohort" },
+  { title: "System Cohort", value: "systemCohort" },
+  { title: "Custom Cohort", value: "customCohort" },
   { title: "Event", value: "customEvent" },
   { title: "Event Property", value: "eventData" },
   { title: "Profile Attribute", value: "additionalInfo" },

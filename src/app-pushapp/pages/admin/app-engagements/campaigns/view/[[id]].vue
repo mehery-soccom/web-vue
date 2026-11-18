@@ -5,32 +5,14 @@ import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import { onMounted } from "vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
-import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { loadEventPropertyTypes } from "@/app-pushapp/views/config/event-master/eventMaster";
 import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
+import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
 const eventStore = useEventStore();
-
-const successEvent = ref(null);
-const successEventProperty = ref(null);
-const successEventsLoading = ref(false);
-
-const successEventItems = computed(() =>
-  (eventStore.eventOptions || [])
-    .map((event) => ({
-      title: event.displayLabel,
-      value: event.eventName,
-    }))
-    .sort((a, b) => a.title.localeCompare(b.title)),
-);
-
-const successPropertyItems = computed(() =>
-  successEventProperty.value
-    ? [{ title: successEventProperty.value, value: successEventProperty.value }]
-    : [],
-);
 
 const route = useRoute();
 const router = useRouter();
@@ -138,7 +120,7 @@ watch(
 );
 const tabs = [
   {
-    title: "Trigger Event",
+    title: "Trigger",
     icon: "tabler-bolt",
   },
   {
@@ -174,6 +156,59 @@ const templateRef = ref();
 const templateBRef = ref();
 const audienceRef = ref();
 const scheduleRef = ref();
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successPropertyOptions = ref([]);
+const successPropertiesLoading = ref(false);
+const successEventsLoading = ref(false);
+const pendingSuccessProperty = ref(null);
+const NUMERIC_PROPERTY_TYPES = new Set(["INTEGER", "FLOAT"]);
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+watch(successEvent, async (eventName) => {
+  const savedProperty = pendingSuccessProperty.value;
+  successEventProperty.value = null;
+  successPropertyOptions.value = [];
+  pendingSuccessProperty.value = null;
+  if (!eventName) return;
+
+  successPropertiesLoading.value = true;
+  try {
+    const types = await loadEventPropertyTypes(eventName);
+    if (successEvent.value !== eventName) return;
+    const options = Object.entries(types || {})
+      .filter(([, dataType]) => NUMERIC_PROPERTY_TYPES.has(dataType))
+      .map(([key, dataType]) => ({ title: key, value: key, dataType }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    if (savedProperty && !options.some((option) => option.value === savedProperty)) {
+      options.push({ title: savedProperty, value: savedProperty });
+    }
+    successPropertyOptions.value = options;
+  } catch (error) {
+    console.error(error);
+    successPropertyOptions.value = savedProperty
+      ? [{ title: savedProperty, value: savedProperty }]
+      : [];
+  } finally {
+    if (successEvent.value === eventName) {
+      if (savedProperty) successEventProperty.value = savedProperty;
+      successPropertiesLoading.value = false;
+    }
+  }
+});
+
+const applySavedSuccess = (success) => {
+  pendingSuccessProperty.value = success?.eventProperty || null;
+  successEvent.value = success?.event || null;
+};
+
 const errors = ref({});
 const temp = ref(null);
 const tempB = ref(null);
@@ -205,6 +240,7 @@ const loadCampaign = async () => {
     if (data.schedule) Object.assign(campaign.schedule, data.schedule);
     if (data.action?.template) campaign.action.template = data.action.template;
     if (data.action?.templateB) campaign.action.templateB = data.action.templateB;
+    applySavedSuccess(data.success);
 
   } catch (error) {
     console.error(error);
@@ -244,6 +280,10 @@ onMounted(async () => {
     successEventsLoading.value = false;
   });
 //   await fetchTemplateList();
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
   await loadCampaign();
   campaignLoaded.value = true;
   // setInterval(()=> console.log("add page", templateRef?.isPreStep?.value, templateBRef?.isPreStep?.value), 10000);
@@ -385,7 +425,7 @@ onMounted(async () => {
         <VCard class="pa-6">
           <h3 class="mb-2">Success</h3>
           <p class="text-caption mb-4">
-            Choose the event that counts as a successful outcome
+            The event that counts as a successful outcome
           </p>
           <VRow>
             <VCol cols="12" md="6">
@@ -395,20 +435,27 @@ onMounted(async () => {
                 app-style
                 label="Success event"
                 placeholder="Event Name"
-                :loading="successEventsLoading"
                 disabled
+                :loading="successEventsLoading"
               />
             </VCol>
             <VCol cols="12" md="6">
               <AppAutocomplete
                 v-model="successEventProperty"
-                :items="successPropertyItems"
+                :items="successPropertyOptions"
                 label="Event property"
                 placeholder="Select property"
                 persistent-hint
                 hint="Property to be tracked"
                 disabled
+                :loading="successPropertiesLoading"
               />
+              <p
+                v-if="successEvent && !successPropertiesLoading && !successPropertyOptions.length"
+                class="text-caption text-medium-emphasis mt-1"
+              >
+                This event has no numeric properties.
+              </p>
             </VCol>
           </VRow>
         </VCard>

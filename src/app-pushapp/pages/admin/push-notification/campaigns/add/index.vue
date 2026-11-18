@@ -95,7 +95,7 @@ const tabErrors = ref({
   "tab-schedule": false,
 });
 
-const audienceMode = ref("slice"); // 'slice' | 'filter' | 'excel'
+const audienceMode = ref("cohort"); // 'cohort' | 'filter' | 'excel'
 const filterLink = ref(null);
 const excelUploading = ref(false);
 const excelFileName = ref(null);
@@ -144,10 +144,10 @@ watch(audienceMode, (newMode, oldMode) => {
   excelFileName.value = null;
   excelFileRef.value = null;
 
-  const switchedBetweenSliceAndFilter =
-    (oldMode === "slice" && newMode === "filter") ||
-    (oldMode === "filter" && newMode === "slice");
-  if (switchedBetweenSliceAndFilter) resetFilter();
+  const switchedBetweenCohortAndFilter =
+    (oldMode === "cohort" && newMode === "filter") ||
+    (oldMode === "filter" && newMode === "cohort");
+  if (switchedBetweenCohortAndFilter) resetFilter();
 });
 
 const validateAudienceFilter = async () => {
@@ -756,8 +756,8 @@ const applyAssistantCampaignState = (campaignState) => {
   if (rawFilter?.type === "group" && Array.isArray(rawFilter.children) && rawFilter.children.length) {
     if (aiPollSectionChanged("audience", campaignState.audience)) {
       const clonedFilter = cloneAudienceFilterTree(rawFilter);
-      const hasSlice = clonedFilter.children.some((c) => c.filterType === "slice");
-      audienceMode.value = hasSlice ? "slice" : "filter";
+      const hasCohort = clonedFilter.children.some((c) => c.filterType === "cohort");
+      audienceMode.value = hasCohort ? "cohort" : "filter";
       nextTick(() => {
         filter.type = clonedFilter.type;
         filter.conjunction = clonedFilter.conjunction;
@@ -1024,21 +1024,20 @@ watch([TemplateListSimple, ChannelList], () => {
                     divided
                     class="mb-6"
                   >
-                    <VBtn value="slice">Select Slice</VBtn>
+                    <VBtn value="cohort">Select Cohort</VBtn>
                     <VBtn value="filter">Real-Time Filter</VBtn>
                     <VBtn value="excel">Upload Profile Codes</VBtn>
                   </VBtnToggle>
 
-                  <div v-if="audienceMode === 'slice'">
+                  <div v-if="audienceMode === 'cohort'">
                     <FilterBuilder
                       v-model="filter"
                       :ignoreEventfilterType="true"
                       :ignoreEventDatafilterType="true"
                       :ignoreCustomEventfilterType="true"
-                      :ignoreCohortfilterType="true"
+                      :ignoreSlicefilterType="true"
                       :ignoreProfileAttribute="true"
                       :ignoreSystemAttribute="true"
-                      :channelId="notification.channel_id"
                       ref="filterRef"
                     />
                   </div>
@@ -1136,7 +1135,7 @@ watch([TemplateListSimple, ChannelList], () => {
                   </div>
 
                   <div
-                    v-if="audienceMode === 'slice' || audienceMode === 'filter'"
+                    v-if="audienceMode === 'cohort' || audienceMode === 'filter'"
                     class="d-flex justify-end mt-6"
                   >
                     <AudienceCountCheck

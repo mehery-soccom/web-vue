@@ -46,6 +46,8 @@ const onCreate = async () => {
 
     let payload = {
       ...cohort,
+      type: "CUSTOM",
+      subtype: "DYNAMIC",
     };
     await CohortsStore.createCohort(payload);
 
