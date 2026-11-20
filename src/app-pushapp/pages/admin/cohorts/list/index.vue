@@ -189,7 +189,7 @@ onMounted(async () => {});
           <IconBtn disabled>
             <VIcon icon="mdi-pencil-outline" />
           </IconBtn>
-          <VTooltip activator="parent">System RFM cohorts can't be edited</VTooltip>
+          <VTooltip activator="parent">System RFM+ cohorts can't be edited</VTooltip>
         </span>
         <IconBtn v-if="item.raw.active">
           <VIcon>mdi-trash</VIcon>
