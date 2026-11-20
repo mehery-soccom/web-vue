@@ -145,7 +145,7 @@ onMounted(async () => {});
             color="primary"
             variant="tonal"
           >
-            RFM
+            RFM+
           </VChip>
         </div>
       </template>
