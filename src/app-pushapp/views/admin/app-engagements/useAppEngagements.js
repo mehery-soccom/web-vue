@@ -10,6 +10,7 @@ import {
   FILTER_OPERATORS as _FILTER_OPERATORS,
   FILTER_PERIODS,
 } from "./data/filterOptions";
+import { sortSystemCohorts } from "@app-pushapp/views/admin/cohorts/systemCohortOrder";
 
 /* Shared Singleton State ( Make the data global and shared across all components using the composable ) */
 const FILTER_FIELDS_MAP = reactive({});
@@ -36,7 +37,7 @@ export const useAppEngagements = (source, config = {}) => {
     if (source.filterType === "cohort") {
       const kind = config.cohortKind?.value;
       if (kind === "SYSTEM") {
-        return sortByTitle(
+        return sortSystemCohorts(
           config.onlyActiveCohorts
             ? localCache.activeSystemCohorts || []
             : localCache.systemCohort || [],
@@ -208,8 +209,9 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[_type] = sortByTitle(results);
-        localCache[activeKey] = sortByTitle(activeCohorts);
+        const sortFn = _type === "systemCohort" ? sortSystemCohorts : sortByTitle;
+        localCache[_type] = sortFn(results);
+        localCache[activeKey] = sortFn(activeCohorts);
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${_type}:`, error);
