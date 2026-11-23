@@ -2,6 +2,7 @@
 import DashboardBlock from "@/app-pushapp/views/dashboards/custom/DashboardBlock.vue";
 import { useCustomDashboardStore } from "@/app-pushapp/views/dashboards/custom/useCustomDashboardStore";
 import { useCohortsStore } from "@app-pushapp/views/admin/cohorts/useCohortsStore";
+import { sortSystemCohorts } from "@app-pushapp/views/admin/cohorts/systemCohortOrder";
 import AppCombobox from "@/app-pushapp/@core/components/app-form-elements/AppCombobox.vue";
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue";
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters";
@@ -38,8 +39,8 @@ const formattedCohortList = computed(() => {
   const toItem = (cohort) => ({ title: cohort.name, value: cohort._id });
   const cohorts = cohortsStore.cohorts || [];
   const sections = [
-    { header: "System", items: cohorts.filter((cohort) => cohort.type === "SYSTEM") },
-    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM") },
+    { header: "System", items: sortSystemCohorts(cohorts.filter((cohort) => cohort.type === "SYSTEM")) },
+    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM").sort(byName) },
   ];
   const items = [];
   sections.forEach(({ header, items: sectionItems }) => {
@@ -50,7 +51,7 @@ const formattedCohortList = computed(() => {
       value: `header-${header}`,
       props: { disabled: true },
     });
-    items.push(...sectionItems.sort(byName).map(toItem));
+    items.push(...sectionItems.map(toItem));
   });
   const other = cohorts
     .filter((cohort) => cohort.type !== "CUSTOM" && cohort.type !== "SYSTEM")

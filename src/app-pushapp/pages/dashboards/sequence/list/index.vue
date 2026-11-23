@@ -3,6 +3,7 @@ import { ref, onMounted, computed, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { useSequenceStore } from '@app-pushapp/views/dashboards/sequence/useSequenceStore'; 
 import { useCohortsStore } from '@app-pushapp/views/admin/cohorts/useCohortsStore';
+import { sortSystemCohorts } from '@app-pushapp/views/admin/cohorts/systemCohortOrder';
 import { inject } from 'vue';
 import { useTheme } from "vuetify";
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue";
@@ -43,8 +44,8 @@ const formattedCohortList = computed(() => {
   const toItem = (cohort) => ({ title: cohort.name, value: cohort._id });
   const cohorts = cohortsStore.cohorts || [];
   const sections = [
-    { header: "System", items: cohorts.filter((cohort) => cohort.type === "SYSTEM") },
-    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM") },
+    { header: "System", items: sortSystemCohorts(cohorts.filter((cohort) => cohort.type === "SYSTEM")) },
+    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM").sort(byName) },
   ];
   const items = [];
   sections.forEach(({ header, items: sectionItems }) => {
@@ -55,7 +56,7 @@ const formattedCohortList = computed(() => {
       value: `header-${header}`,
       props: { disabled: true },
     });
-    items.push(...sectionItems.sort(byName).map(toItem));
+    items.push(...sectionItems.map(toItem));
   });
   const other = cohorts
     .filter((cohort) => cohort.type !== "CUSTOM" && cohort.type !== "SYSTEM")
