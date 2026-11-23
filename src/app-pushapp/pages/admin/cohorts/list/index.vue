@@ -80,6 +80,14 @@ const fetchItems = async (params) => {
   }
 };
 
+const cohortHasFilter = (item) =>
+  !!item?.filter && typeof item.filter === "object" && !Array.isArray(item.filter);
+
+const isDeleteLocked = (item) =>
+  item?.type === "SYSTEM" &&
+  (item?.subtype === "RFM" || item?.subtype === "STATIC") &&
+  cohortHasFilter(item);
+
 // 👉 Delete Item
 const deleteItem = (id, dialogCloseRef) => {
   isLoading.value = true;
@@ -137,7 +145,7 @@ onMounted(async () => {});
       @update:options="onUpdateOptionsDebounced"
     >
       <template #item.name="{ item }">
-        <div class="d-flex align-start justify-start gap-2">
+        <div class="d-flex align-center justify-start gap-2">
           <span class="text-start">{{ item.raw.name }}</span>
           <VChip
             v-if="item.raw.subtype === 'RFM'"
@@ -146,6 +154,29 @@ onMounted(async () => {});
             variant="tonal"
           >
             RFM+
+          </VChip>
+          <VChip
+            v-else-if="item.raw.subtype === 'STATIC'"
+            size="x-small"
+            color="secondary"
+            variant="tonal"
+          >
+            STATIC
+          </VChip>
+        </div>
+      </template>
+
+      <template #item.desc="{ item }">
+        <div class="d-flex flex-column align-start gap-1">
+          <span v-if="item.raw.desc">{{ item.raw.desc }}</span>
+          <VChip
+            v-if="!cohortHasFilter(item.raw)"
+            size="small"
+            color="warning"
+            variant="tonal"
+            prepend-icon="mdi-alert-circle-outline"
+          >
+            Please configure the cohort
           </VChip>
         </div>
       </template>
@@ -191,7 +222,7 @@ onMounted(async () => {});
           </IconBtn>
           <VTooltip activator="parent">System RFM+ cohorts can't be edited</VTooltip>
         </span>
-        <IconBtn v-if="item.raw.active">
+        <IconBtn v-if="item.raw.active && !isDeleteLocked(item.raw)">
           <VIcon>mdi-trash</VIcon>
           <v-dialog activator="parent" max-width="340">
             <template v-slot:default="{ isActive }">
@@ -218,6 +249,12 @@ onMounted(async () => {});
           </v-dialog>
           <VTooltip activator="parent">Delete</VTooltip>
         </IconBtn>
+        <span v-else-if="item.raw.active && isDeleteLocked(item.raw)">
+          <IconBtn disabled>
+            <VIcon>mdi-trash</VIcon>
+          </IconBtn>
+          <VTooltip activator="parent">System cohorts with a filter can't be deleted</VTooltip>
+        </span>
       </template>
     </MyDataTable>
   </VCard>
