@@ -6,6 +6,11 @@ export default [
     to: "config-setup-list",
   },
   {
+    title: "Mobile Apps",
+    icon: { icon: "tabler-plug" },
+    to: "admin-channels-list",
+  },
+  {
     title: "Event Master",
     icon: { icon: "tabler-database" },
     to: "config-event-master-list",
@@ -14,6 +19,12 @@ export default [
     title: "Library",
     icon: { icon: "tabler-books" },
     to: "config-library-list",
+  },
+  {
+    title: "Usage",
+    icon: { icon: "tabler-chart-bar" },
+    to: "admin-usage",
+    requiresAgenticAi: true,
   },
   {
     title: "Api Creds",

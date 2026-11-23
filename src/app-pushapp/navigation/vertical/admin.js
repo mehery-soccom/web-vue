@@ -1,10 +1,10 @@
 export default [
-  { heading: "Admin" },
-  {
-    title: "Mobile Apps",
-    icon: { icon: "tabler-plug" },
-    to: "admin-channels-list",
-  },
+  { heading: "Marketing" },
+  // {
+  //   title: "Mobile Apps",
+  //   icon: { icon: "tabler-plug" },
+  //   to: "admin-channels-list",
+  // },
   {
     title: "Push Notification",
     icon: { icon: "tabler-bell-ringing" },
@@ -17,10 +17,10 @@ export default [
       //   title: "Slices",
       //   to: "admin-push-notification-slices-list",
       // },
-      {
-        title: "Blast",
-        to: "admin-push-notification-campaigns-add",
-      },
+      // {
+      //   title: "Blast",
+      //   to: "admin-push-notification-campaigns-add",
+      // },
       // {
       //   title: "Trigger Rules",
       //   to: "admin-push-notification-trigger-rules-list",
@@ -55,10 +55,10 @@ export default [
     icon: { icon: "mdi-vector-polyline" },
     to: "admin-journey-list",
   },
-  {
-    title: "Usage",
-    icon: { icon: "tabler-chart-bar" },
-    to: "admin-usage",
-    requiresAgenticAi: true,
-  },
+  // {
+  //   title: "Usage",
+  //   icon: { icon: "tabler-chart-bar" },
+  //   to: "admin-usage",
+  //   requiresAgenticAi: true,
+  // },
 ];

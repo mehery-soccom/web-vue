@@ -63,8 +63,8 @@ const formattedCohortList = computed(() => {
   const toItem = (cohort) => ({ title: cohort.name, value: cohort._id })
   const cohorts = cohortsStore.cohorts || []
   const sections = [
-    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM") },
     { header: "System", items: cohorts.filter((cohort) => cohort.type === "SYSTEM") },
+    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM") },
   ]
   const items = []
   sections.forEach(({ header, items: sectionItems }) => {
