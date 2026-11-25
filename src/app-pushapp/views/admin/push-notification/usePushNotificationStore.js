@@ -4,6 +4,17 @@ import { defineStore } from "pinia";
 
 const PERSISTENT_CHAT_URL = "/nexuz/agentic/api/v1/persistentChat";
 
+const compactSearch = (filters) => {
+  const search = Object.fromEntries(
+    Object.entries(filters || {}).filter(([, value]) => {
+      if (value == null) return false;
+      if (typeof value === "string") return value.trim() !== "";
+      return true;
+    }),
+  );
+  return Object.keys(search).length ? search : undefined;
+};
+
 export const usePushNotificationStore = defineStore("PushNotificationStore", {
   state: () => ({
     buttonGroupList: [
@@ -143,7 +154,15 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
       return DataService.axios.get(`/api/v1/campaign`, {
-        params: { page, limit: itemsPerPage, sort, search: filters, dateRange1, dateRange2, timezone },
+        params: {
+          page,
+          limit: itemsPerPage,
+          sort,
+          search: compactSearch(filters),
+          dateRange1,
+          dateRange2,
+          timezone,
+        },
       });
     },
 
@@ -153,7 +172,13 @@ export const usePushNotificationStore = defineStore("PushNotificationStore", {
         .map((s) => `${s.order === "asc" ? "-" : ""}${s.key}`)
         .join(",");
       return DataService.axios.get(`/api/v1/campaign/download`, {
-        params: { sort: sort || "-created.stamp", search: filters, dateRange1, dateRange2, timezone },
+        params: {
+          sort: sort || "-created.stamp",
+          search: compactSearch(filters),
+          dateRange1,
+          dateRange2,
+          timezone,
+        },
       });
     },
 
