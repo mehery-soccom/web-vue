@@ -182,10 +182,17 @@ const deleteFromPayload = (template) => {
 };
 const createPayload = () => {
   if (template.view) delete template.view;
-  return {
+  const payload = {
     ...template,
+    style: { ...(template.style || {}) },
     profileVarMap: buildProfileVarMap(template.style),
   };
+  const dismissTimer = payload.style.dismiss_timer;
+  if (dismissTimer != null && dismissTimer !== "") {
+    const seconds = Number(dismissTimer);
+    if (!Number.isNaN(seconds)) payload.style.dismiss_timer = Math.round(seconds * 1000);
+  }
+  return payload;
 };
 const notificationPreviewRef = ref(null);
 async function saveTemplateHtml() {
@@ -344,6 +351,11 @@ const fetchDetails = async (val, isCopy = false) => {
         ...template,
         ..._template,
       });
+      const dismissTimer = template.style?.dismiss_timer;
+      if (dismissTimer != null && dismissTimer !== "") {
+        const ms = Number(dismissTimer);
+        if (!Number.isNaN(ms)) template.style.dismiss_timer = ms / 1000;
+      }
       await nextTick();
       if (isCopy) template.desc = "";
       // isPreStep.value = false;
