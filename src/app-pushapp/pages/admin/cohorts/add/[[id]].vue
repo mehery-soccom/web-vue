@@ -12,15 +12,46 @@ const router = useRouter();
 const CohortsStore = useCohortsStore();
 const { clearCache } = useAppEngagements();
 const isLoading = ref(false);
-const isViewMode = computed(() => !!route.params.id);
-const isEditing = computed(() => "edit" in route.query);
 const cohort = reactive({
   name: null,
   desc: null,
   filter: null,
 });
+const isViewMode = computed(() => !!route.params.id);
+const isSystemRfm = computed(() => cohort.subtype === "RFM");
+const isStatic = computed(() => cohort.subtype === "STATIC");
+const isEditing = computed(() => "edit" in route.query && !isSystemRfm.value);
+const savedHasFilter = ref(false);
+const isDescriptionOnly = computed(() => isStatic.value && savedHasFilter.value);
 const formRef = ref();
 const filterRef = ref(null);
+
+const cohortHasFilter = (value) =>
+  !!value && typeof value === "object" && !Array.isArray(value);
+
+const emptyFilter = () => ({
+  type: "group",
+  conjunction: "and",
+  children: [
+    {
+      type: "filter",
+      filterType: null,
+      field: null,
+      operator: null,
+      value: null,
+      freqOperator: null,
+      freqCount: null,
+      freqPeriod: null,
+      scannedEvents: null,
+    },
+  ],
+});
+
+const seedEditableFilter = () => {
+  if (isEditing.value && isStatic.value && !savedHasFilter.value && !cohort.filter) {
+    cohort.filter = emptyFilter();
+  }
+};
 
 const validateAudienceFilter = async () => {
   const filtervalid = await filterRef.value?.isValid();
@@ -45,6 +76,8 @@ const onCreate = async () => {
 
     let payload = {
       ...cohort,
+      type: "CUSTOM",
+      subtype: "DYNAMIC",
     };
     await CohortsStore.createCohort(payload);
 
@@ -66,20 +99,26 @@ const onCreate = async () => {
 };
 
 const onUpdate = async () => {
+  if (isSystemRfm.value) return;
+
   let validationResult = await formRef.value?.validate();
   if (!validationResult?.valid) return;
 
-  if (!(await validateAudienceFilter())) return;
+  if (!isDescriptionOnly.value && !(await validateAudienceFilter())) return;
 
   try {
     isLoading.value = true;
 
-    await CohortsStore.updateCohort({
-      id: route.params.id,
-      name: cohort.name,
-      desc: cohort.desc,
-      filter: cohort.filter,
-    });
+    const payload = isDescriptionOnly.value
+      ? { id: route.params.id, desc: cohort.desc }
+      : {
+          id: route.params.id,
+          name: cohort.name,
+          desc: cohort.desc,
+          filter: cohort.filter,
+        };
+
+    await CohortsStore.updateCohort(payload);
     clearCache("cohort");
     show({ message: "Cohort updated successfully", color: "success" });
     router.push({ name: "admin-cohorts-list" });
@@ -99,10 +138,12 @@ onMounted(async () => {
     CohortsStore.fetchCohort({ id: route.params.id })
       .then((response) => {
         const _cohort = response.data.data;
+        savedHasFilter.value = cohortHasFilter(_cohort.filter);
         Object.assign(cohort, {
           ...cohort,
           ..._cohort,
         });
+        seedEditableFilter();
       })
       .catch((error) => {
         const apiErr = error.response.data;
@@ -113,24 +154,16 @@ onMounted(async () => {
         });
       });
   } else {
-    cohort.filter = {
-      type: "group",
-      conjunction: "and",
-      children: [
-        {
-          type: "filter",
-          filterType: null,
-          field: null,
-          operator: null,
-          value: null,
-          freqOperator: null,
-          freqCount: null,
-          freqPeriod: null,
-          scannedEvents: null,
-        },
-      ],
-    };
+    cohort.filter = emptyFilter();
   }
+});
+
+watch(isEditing, (editing) => {
+  if (editing) {
+    seedEditableFilter();
+    return;
+  }
+  if (isStatic.value && !savedHasFilter.value) cohort.filter = null;
 });
 </script>
 
@@ -172,7 +205,7 @@ onMounted(async () => {
         :ignoreCohortfilterType="true"
         :showScannedEvents="true"
         ref="filterRef"
-        :readonly="isViewMode && !isEditing"
+        :readonly="(isViewMode && !isEditing) || isSystemRfm || isDescriptionOnly"
       />
     </VCardText>
 

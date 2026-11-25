@@ -123,7 +123,7 @@ const validateAudienceFilter = async () => {
   return !!(filterValid && filterStructureValid);
 };
 
-const MAX_BLOCKS = 12;
+const MAX_BLOCKS = 16;
 
 const onSave = async () => {
   const validationResult = await formRef.value?.validate();
@@ -150,7 +150,7 @@ const onSave = async () => {
         existing?.data?.data?.length ??
         0;
       if (total >= MAX_BLOCKS) {
-        show({ message: "You can add up to 12 blocks", color: "warning" });
+        show({ message: "You can add up to 16 blocks", color: "warning" });
         return;
       }
       await store.createDashboard(payload);

@@ -3,6 +3,9 @@ import { useChannelsStore } from "@app-pushapp/views/admin/channels/useChannelsS
 import { usePushNotificationStore } from "@app-pushapp/views/admin/push-notification/usePushNotificationStore";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
 import AudienceCountCheck from "@app-pushapp/views/admin/app-engagements/AudienceCountCheck.vue";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { loadEventPropertyTypes } from "@/app-pushapp/views/config/event-master/eventMaster";
+import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 const { show } = inject("snackbar");
 
@@ -10,6 +13,7 @@ const route = useRoute();
 const router = useRouter();
 const channelsStore = useChannelsStore();
 const pushNotificationStore = usePushNotificationStore();
+const eventStore = useEventStore();
 
 const audienceMode = ref("filter");
 const filterLink = ref(null);
@@ -62,6 +66,59 @@ const tabErrors = ref({
   "tab-schedule": false,
 });
 
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successPropertyOptions = ref([]);
+const successPropertiesLoading = ref(false);
+const successEventsLoading = ref(false);
+const pendingSuccessProperty = ref(null);
+const NUMERIC_PROPERTY_TYPES = new Set(["INTEGER", "FLOAT"]);
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+watch(successEvent, async (eventName) => {
+  const savedProperty = pendingSuccessProperty.value;
+  successEventProperty.value = null;
+  successPropertyOptions.value = [];
+  pendingSuccessProperty.value = null;
+  if (!eventName) return;
+
+  successPropertiesLoading.value = true;
+  try {
+    const types = await loadEventPropertyTypes(eventName);
+    if (successEvent.value !== eventName) return;
+    const options = Object.entries(types || {})
+      .filter(([, dataType]) => NUMERIC_PROPERTY_TYPES.has(dataType))
+      .map(([key, dataType]) => ({ title: key, value: key, dataType }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    if (savedProperty && !options.some((option) => option.value === savedProperty)) {
+      options.push({ title: savedProperty, value: savedProperty });
+    }
+    successPropertyOptions.value = options;
+  } catch (error) {
+    console.error(error);
+    successPropertyOptions.value = savedProperty
+      ? [{ title: savedProperty, value: savedProperty }]
+      : [];
+  } finally {
+    if (successEvent.value === eventName) {
+      if (savedProperty) successEventProperty.value = savedProperty;
+      successPropertiesLoading.value = false;
+    }
+  }
+});
+
+const applySavedSuccess = (success) => {
+  pendingSuccessProperty.value = success?.eventProperty || null;
+  successEvent.value = success?.event || null;
+};
+
 const schedule = reactive({
   durationType: "immediate",
   startDate: null,
@@ -94,16 +151,21 @@ const getTimeParts = (time) => {
   return ["00", "00"];
 };
 
-const hasSliceFilter = (node) => {
+const hasCohortFilter = (node) => {
   if (!node) return false;
-  if (node.type === 'filter' && node.filterType === 'slice') return true;
-  if (Array.isArray(node.children)) return node.children.some(hasSliceFilter);
+  if (node.type === 'filter' && node.filterType === 'cohort') return true;
+  if (Array.isArray(node.children)) return node.children.some(hasCohortFilter);
   return false;
 };
 
 const campaignId = route.params.id;
 
 onMounted(async () => {
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
+
   try {
     const channelsRes = await channelsStore.fetchChannels();
     ChannelList.value = channelsRes.results || [];
@@ -136,16 +198,21 @@ onMounted(async () => {
 
     if (campaign.filter) {
       Object.assign(filter, campaign.filter);
-      audienceMode.value = hasSliceFilter(campaign.filter) ? 'slice' : 'filter';
+      audienceMode.value = hasCohortFilter(campaign.filter) ? 'cohort' : 'filter';
     } else {
       filterLink.value = campaign.filterLink;
       audienceMode.value = 'excel';
       // excelFileRef.value = campaign.filterLink;
     }
 
+    successEvent.value = campaign.success?.event || null;
+    successEventProperty.value = campaign.success?.eventProperty || null;
+
     if (campaign.schedule) {
       populateSchedule(campaign.schedule);
     }
+
+    applySavedSuccess(campaign.success);
   } catch (error) {
     console.error(error);
     show({
@@ -227,6 +294,7 @@ const populateSchedule = scheduleData => {
           <VTab value="tab-audience" :class="{ 'error-tab': tabErrors['tab-audience'] }"> Audience 
             <VIcon v-if="tabErrors['tab-audience']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
           </VTab>
+          <VTab value="tab-success">Success</VTab>
           <VTab value="tab-schedule" :class="{ 'error-tab': tabErrors['tab-schedule'] }"> Scheduling 
             <VIcon v-if="tabErrors['tab-schedule']" size="16" color="error" class="ml-1"> mdi-exclamation-thick</VIcon>
           </VTab>
@@ -295,21 +363,20 @@ const populateSchedule = scheduleData => {
                     class="mb-6"
                     disabled
                   >
-                    <VBtn value="slice">Select Slice</VBtn>
+                    <VBtn value="cohort">Select Cohort</VBtn>
                     <VBtn value="filter">Real-Time Filter</VBtn>
                     <VBtn value="excel">Upload Profile Codes</VBtn>
                   </VBtnToggle>
 
-                  <div v-if="audienceMode === 'slice'">
+                  <div v-if="audienceMode === 'cohort'">
                     <FilterBuilder
                       v-model="filter" readonly
                       :ignoreEventfilterType="true"
                       :ignoreEventDatafilterType="true"
                       :ignoreCustomEventfilterType="true"
-                      :ignoreCohortfilterType="true"
+                      :ignoreSlicefilterType="true"
                       :ignoreProfileAttribute="true"
                       :ignoreSystemAttribute="true"
-                      :channelId="notification.channel_id"
                       ref="filterRef"
                     />
                   </div>
@@ -379,7 +446,7 @@ const populateSchedule = scheduleData => {
                   </div>
 
                   <div
-                    v-if="audienceMode === 'slice' || audienceMode === 'filter'"
+                    v-if="audienceMode === 'cohort' || audienceMode === 'filter'"
                     class="d-flex justify-end mt-6"
                   >
                     <AudienceCountCheck
@@ -387,6 +454,44 @@ const populateSchedule = scheduleData => {
                       :validate="validateAudienceFilter"
                     />
                   </div>
+                </VWindowItem>
+
+                <VWindowItem value="tab-success">
+                  <h3 class="mb-2">Success</h3>
+                  <p class="text-caption mb-4">
+                    The event that counts as a successful outcome
+                  </p>
+                  <VRow>
+                    <VCol cols="12" md="6">
+                      <EventAutocomplete
+                        v-model="successEvent"
+                        :items="successEventItems"
+                        app-style
+                        label="Event"
+                        placeholder="Event Name"
+                        disabled
+                        :loading="successEventsLoading"
+                      />
+                    </VCol>
+                    <VCol cols="12" md="6">
+                      <AppAutocomplete
+                        v-model="successEventProperty"
+                        :items="successPropertyOptions"
+                        label="Event property"
+                        placeholder="Select property"
+                        persistent-hint
+                        hint="Property to be tracked"
+                        disabled
+                        :loading="successPropertiesLoading"
+                      />
+                      <p
+                        v-if="successEvent && !successPropertiesLoading && !successPropertyOptions.length"
+                        class="text-caption text-medium-emphasis mt-1"
+                      >
+                        This event has no numeric properties.
+                      </p>
+                    </VCol>
+                  </VRow>
                 </VWindowItem>
 
                 <VWindowItem value="tab-schedule">
@@ -614,9 +719,15 @@ const populateSchedule = scheduleData => {
 
             <VCardText class="d-flex gap-4">
               <VBtn
-                v-if="tab === 'tab-audience'"
+                v-if="tab === 'tab-success'"
                 variant="tonal"
                 @click="tab = 'tab-schedule'"
+                >Next<VIcon end icon="mdi-arrow-right"
+              /></VBtn>
+              <VBtn
+                v-if="tab === 'tab-audience'"
+                variant="tonal"
+                @click="tab = 'tab-success'"
                 >Next<VIcon end icon="mdi-arrow-right"
               /></VBtn>
               <VBtn

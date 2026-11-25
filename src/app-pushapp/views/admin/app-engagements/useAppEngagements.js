@@ -10,6 +10,7 @@ import {
   FILTER_OPERATORS as _FILTER_OPERATORS,
   FILTER_PERIODS,
 } from "./data/filterOptions";
+import { sortSystemCohorts } from "@app-pushapp/views/admin/cohorts/systemCohortOrder";
 
 /* Shared Singleton State ( Make the data global and shared across all components using the composable ) */
 const FILTER_FIELDS_MAP = reactive({});
@@ -33,18 +34,31 @@ export const useAppEngagements = (source, config = {}) => {
   const FILTER_FIELDS = computed(() => {
     // console.log("FILTER_FIELDS", source?.filterType);
     if (!source?.filterType) return [];
-    if (source.filterType === "cohort")
-      return sortByTitle(
-        config.onlyActiveCohorts
-          ? localCache.activeCohorts || []
-          : localCache.cohort || [],
-      );
+    if (source.filterType === "cohort") {
+      const kind = config.cohortKind?.value;
+      if (kind === "SYSTEM") {
+        return sortSystemCohorts(
+          config.onlyActiveCohorts
+            ? localCache.activeSystemCohorts || []
+            : localCache.systemCohort || [],
+        );
+      }
+      if (kind === "CUSTOM") {
+        return sortByTitle(
+          config.onlyActiveCohorts
+            ? localCache.activeCustomCohorts || []
+            : localCache.customCohort || [],
+        );
+      }
+      return [];
+    }
     return sortByTitle(Object.values(FILTER_FIELDS_MAP).filter((o) => {
       const ft =
         source.filterType === "computedSystemAttribute"
           ? "attribute"
           : source.filterType;
       if (o.type !== ft) return false;
+      if (o.value === "rfm.cohort" && source.field !== "rfm.cohort") return false;
       if (ft === "slice" && config.channelId.value) {
         return String(o.channelId) === String(config.channelId.value);
       }
@@ -167,15 +181,23 @@ export const useAppEngagements = (source, config = {}) => {
       }
     }
 
-    if (_type === "cohort") {
+    if (_type === "systemCohort" || _type === "customCohort") {
+      const cohortType = _type === "systemCohort" ? "SYSTEM" : "CUSTOM";
+      const activeKey =
+        _type === "systemCohort" ? "activeSystemCohorts" : "activeCustomCohorts";
       isLoading.value = true;
       try {
-        const response = await DataService.axios.get("/api/v1/cohort");
+        const response = await DataService.axios.get("/api/v1/cohort", {
+          params: {
+            search: { type: cohortType },
+          },
+        });
         const resultsMap = {};
         const activeCohorts = [];
-        const results = response.data.results.map((el) => {
+        const results = (response.data?.results || []).map((el) => {
           const r = {
-            type: _type,
+            type: "cohort",
+            cohortType,
             title: el.name,
             value: el._id,
             meta: {
@@ -187,12 +209,14 @@ export const useAppEngagements = (source, config = {}) => {
           resultsMap[r.value] = r;
           return r;
         });
-        localCache[_type] = sortByTitle(results);
-        localCache.activeCohorts = sortByTitle(activeCohorts);
+        const sortFn = _type === "systemCohort" ? sortSystemCohorts : sortByTitle;
+        localCache[_type] = sortFn(results);
+        localCache[activeKey] = sortFn(activeCohorts);
         Object.assign(FILTER_FIELDS_MAP, resultsMap);
       } catch (error) {
         console.error(`Failed to fetch filter options for ${_type}:`, error);
         localCache[_type] = [];
+        localCache[activeKey] = [];
       } finally {
         isLoading.value = false;
       }
@@ -281,15 +305,29 @@ export const useAppEngagements = (source, config = {}) => {
     });
   }
 
+  async function resolveCohortKind(id) {
+    if (!id) return null;
+    await fetchFilterFields({ type: "systemCohort" });
+    if ((localCache.systemCohort || []).some((c) => c.value === id)) return "SYSTEM";
+    await fetchFilterFields({ type: "customCohort" });
+    if ((localCache.customCohort || []).some((c) => c.value === id)) return "CUSTOM";
+    return null;
+  }
+
   onMounted(() => {});
 
   if (source)
     watch(
-      source,
-      (newVal) => {
-        fetchFilterFields({ type: newVal?.filterType });
+      () => [source?.filterType, config.cohortKind?.value],
+      ([filterType, kind]) => {
+        if (filterType === "cohort") {
+          if (kind === "SYSTEM") fetchFilterFields({ type: "systemCohort" });
+          else if (kind === "CUSTOM") fetchFilterFields({ type: "customCohort" });
+          return;
+        }
+        fetchFilterFields({ type: filterType });
       },
-      { immediate: true, deep: true },
+      { immediate: true },
     );
 
   return {
@@ -304,6 +342,7 @@ export const useAppEngagements = (source, config = {}) => {
     FILTER_PERIODS,
     fetchFilterFields,
     fetchFilterFieldValues,
+    resolveCohortKind,
     clearCache,
     localCache,
   };

@@ -34,7 +34,7 @@ export const useUserStore = defineStore("UserStore", {
     // Evaluate profile cohorts
     async evaluateProfileCohorts(payload) {
       try {
-        const res = await DataService.axios.post("/api/v1/cohort/evaluate/profile?tnt=demo", payload);
+        const res = await DataService.axios.post("/api/v1/cohort/evaluate/profile", payload);
         return res.data;
       } catch (error) {
         console.error("Error evaluating cohorts:", error);

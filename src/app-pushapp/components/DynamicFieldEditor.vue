@@ -153,7 +153,7 @@ const updateValue = (fullKey, value) => {
 };
 
 const escapedInstruction =
-  `please use {{data.<variable_name>}} for custom variables in your template`
+  `please use {{data.<variable_name>}} or {{profile.<variable_name>}} for custom variables in your template`
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 </script>

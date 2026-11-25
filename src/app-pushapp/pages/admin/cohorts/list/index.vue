@@ -12,12 +12,12 @@ const headers = computed(() => [
   {
     title: "Name",
     key: "name",
-    align: "center",
+    align: "start",
   },
   {
     title: "Desc",
     key: "desc",
-    align: "center",
+    align: "start",
   },
   {
     title: "Active",
@@ -80,6 +80,14 @@ const fetchItems = async (params) => {
   }
 };
 
+const cohortHasFilter = (item) =>
+  !!item?.filter && typeof item.filter === "object" && !Array.isArray(item.filter);
+
+const isDeleteLocked = (item) =>
+  item?.type === "SYSTEM" &&
+  (item?.subtype === "RFM" || item?.subtype === "STATIC") &&
+  cohortHasFilter(item);
+
 // 👉 Delete Item
 const deleteItem = (id, dialogCloseRef) => {
   isLoading.value = true;
@@ -136,6 +144,43 @@ onMounted(async () => {});
       v-bind="pagination"
       @update:options="onUpdateOptionsDebounced"
     >
+      <template #item.name="{ item }">
+        <div class="d-flex align-center justify-start gap-2">
+          <span class="text-start">{{ item.raw.name }}</span>
+          <VChip
+            v-if="item.raw.subtype === 'RFM'"
+            size="x-small"
+            color="primary"
+            variant="tonal"
+          >
+            RFM+
+          </VChip>
+          <VChip
+            v-else-if="item.raw.subtype === 'STATIC'"
+            size="x-small"
+            color="secondary"
+            variant="tonal"
+          >
+            STATIC
+          </VChip>
+        </div>
+      </template>
+
+      <template #item.desc="{ item }">
+        <div class="d-flex flex-column align-start gap-1">
+          <span v-if="item.raw.desc">{{ item.raw.desc }}</span>
+          <VChip
+            v-if="!cohortHasFilter(item.raw)"
+            size="small"
+            color="warning"
+            variant="tonal"
+            prepend-icon="mdi-alert-circle-outline"
+          >
+            Please configure the cohort
+          </VChip>
+        </div>
+      </template>
+
       <!-- active -->
       <template #item.active="{ item }">
         <VIcon v-if="item.raw.active" size="16" color="success" start>
@@ -161,6 +206,7 @@ onMounted(async () => {});
           <VTooltip activator="parent">View</VTooltip>
         </IconBtn>
         <IconBtn
+          v-if="item.raw.subtype !== 'RFM'"
           :to="{
             name: 'admin-cohorts-add-id?',
             params: { id: item.raw._id },
@@ -170,7 +216,13 @@ onMounted(async () => {});
           <VIcon icon="mdi-pencil-outline" />
           <VTooltip activator="parent">Edit</VTooltip>
         </IconBtn>
-        <IconBtn v-if="item.raw.active">
+        <span v-else>
+          <IconBtn disabled>
+            <VIcon icon="mdi-pencil-outline" />
+          </IconBtn>
+          <VTooltip activator="parent">System RFM+ cohorts can't be edited</VTooltip>
+        </span>
+        <IconBtn v-if="item.raw.active && !isDeleteLocked(item.raw)">
           <VIcon>mdi-trash</VIcon>
           <v-dialog activator="parent" max-width="340">
             <template v-slot:default="{ isActive }">
@@ -197,6 +249,12 @@ onMounted(async () => {});
           </v-dialog>
           <VTooltip activator="parent">Delete</VTooltip>
         </IconBtn>
+        <span v-else-if="item.raw.active && isDeleteLocked(item.raw)">
+          <IconBtn disabled>
+            <VIcon>mdi-trash</VIcon>
+          </IconBtn>
+          <VTooltip activator="parent">System cohorts with a filter can't be deleted</VTooltip>
+        </span>
       </template>
     </MyDataTable>
   </VCard>

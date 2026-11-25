@@ -49,7 +49,9 @@ onBeforeUnmount(() => {
 <template>
   <transition name="fade-slide">
     <div class="preview-wrapper pop-up-dimensions" ref="wrapperRef">
-        <div class="close-btn">&times;</div>
+        <div class="close-btn" :style="{ backgroundColor: props.template.style.cross_bg_color,
+        color: props.template.style.cross_color,
+        border: `0.5px solid ${props.template.style.cross_border_color}` }">&times;</div>
         <div class="banner-wrapper" :style="{ height: (100 * scale) + 'px', background: backgroundStyle, direction: props.template.style.align === 'right' ? 'rtl' : 'ltr' }">
             <div class="banner-content" :style="{ flexDirection: props.template.style.horizontal_align === 'right' ? 'row-reverse' : 'row'}">
             <!-- Image -->

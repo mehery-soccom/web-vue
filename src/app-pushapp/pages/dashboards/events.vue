@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, watch } from 'vue'
 import { useEventStore } from '@app-pushapp/views/dashboards/event/useEventStore'
 import { useCohortsStore } from '@app-pushapp/views/admin/cohorts/useCohortsStore'
+import { sortSystemCohorts } from '@app-pushapp/views/admin/cohorts/systemCohortOrder'
 import CardStatisticsTransactions from '@app-pushapp/views/dashboards/event/CardStatisticsTransactions.vue'
 import AppDateTimePicker from "@/app-tikat/@core/components/app-form-elements/AppDateTimePicker.vue"
 import { useDatePickerFilters } from "@app-tikat/views/dashboard/analytics/useDatePickerFilters"
@@ -30,11 +31,11 @@ const trendOptions = ['Time of Day', 'Events over period', 'Users over period']
 const selectedSession = ref(null)
 const sessionOptions = ['Time To', 'Pages To']
 
-// Date Logic: Default last 7 days
+// Date Logic: Default today
 const tonight = new Date().setHours(23, 59, 59, 999)
 const formatDate = (date) => date.toLocaleDateString("en-GB").split("/").join("-")
-const sevenDaysAgo = new Date(new Date().setDate(new Date().getDate() - 6))
-const dateRange = ref(`${formatDate(sevenDaysAgo)} to ${formatDate(new Date())}`)
+const today = new Date()
+const dateRange = ref(`${formatDate(today)} to ${formatDate(today)}`)
 
 const optionIcons = {
   Snap: 'tabler-bolt',
@@ -59,9 +60,30 @@ const formattedEventList = computed(() => {
 
 
 const formattedCohortList = computed(() => {
-  return cohortsStore.cohorts
-    .map(c => ({ title: c.name, value: c._id }))
-    .sort((a, b) => a.title.localeCompare(b.title))
+  const byName = (a, b) => String(a.name || "").localeCompare(String(b.name || ""))
+  const toItem = (cohort) => ({ title: cohort.name, value: cohort._id })
+  const cohorts = cohortsStore.cohorts || []
+  const sections = [
+    { header: "System", items: sortSystemCohorts(cohorts.filter((cohort) => cohort.type === "SYSTEM")) },
+    { header: "Custom", items: cohorts.filter((cohort) => cohort.type === "CUSTOM").sort(byName) },
+  ]
+  const items = []
+  sections.forEach(({ header, items: sectionItems }) => {
+    if (!sectionItems.length) return
+    items.push({
+      title: header,
+      isHeader: true,
+      value: `header-${header}`,
+      props: { disabled: true },
+    })
+    items.push(...sectionItems.map(toItem))
+  })
+  const other = cohorts
+    .filter((cohort) => cohort.type !== "CUSTOM" && cohort.type !== "SYSTEM")
+    .sort(byName)
+    .map(toItem)
+  items.push(...other)
+  return items
 })
 
 // sessions cant have event options- app_open and page_open
@@ -191,7 +213,17 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
             density="compact"
             clearable
             style="min-width: 200px;"
-          />
+          >
+            <template #item="{ props: itemProps, item }">
+              <VListSubheader
+                v-if="item.raw.isHeader"
+                class="cohort-section-header"
+              >
+                {{ item.raw.title }}
+              </VListSubheader>
+              <VListItem v-else v-bind="itemProps" />
+            </template>
+          </VAutocomplete>
 
           <AppDateTimePicker
             v-model="dateRange"
@@ -362,6 +394,15 @@ watch([selectedEvent, analyticsType,selectedCohort], () => {
 </template>
 
 <style scoped>
+.cohort-section-header {
+  font-weight: 800;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(var(--v-theme-primary));
+  opacity: 1;
+  min-height: 36px;
+}
 .border-dashed {
   border: 2px dashed rgba(var(--v-border-color), 0.3);
 }

@@ -137,6 +137,11 @@ const headers = [
     filterType: "select",
     filterOptions: SUB_TYPES,
   },
+  // {
+  //   title: "Success",
+  //   key: "success.event",
+  //   sortable: false,
+  // },
   {
     title: "A/B",
     key: "abTesting.enabled",
@@ -170,39 +175,57 @@ const headers = [
     sortable: false,
     align: "center",
   },
-  {
-    title: "Created by",
-    key: "created.byUser",
-    sortable: false,
-    align: "center",
-  },
+  // {
+  //   title: "Created by",
+  //   key: "created.byUser",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Count",
     key: "stats.total",
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "Delivered",
+  //   key: "stats.sent",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
-    title: "Delivered",
-    key: "stats.sent",
-    sortable: false,
-    align: "center",
-  },
-  {
-    title: "Delivery %",
+    title: "Delivery",
     key: "stats.sent_percent",
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "CTA",
+  //   key: "stats.cta.__count",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "CTA",
-    key: "stats.cta.__count",
+    key: "stats.cta_percent",
     sortable: false,
     align: "center",
   },
   {
-    title: "CTA %",
-    key: "stats.cta_percent",
+    title: "S-E",
+    key: "stats.success.event",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "S-U",
+    key: "stats.success.user",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "S-V",
+    key: "stats.success.value",
     sortable: false,
     align: "center",
   },
@@ -250,6 +273,7 @@ const pagination = reactive({
     "action.template.code": null,
     // "action.template.type": null,
     "action.template.subType": null,
+    // "success.event": null,
     "abTesting.enabled": false,
     // "schedule.enableActiveWindow": null,
     status: null,
@@ -416,10 +440,10 @@ const onUpdateOptions = (options) => {
 const exportToExcel = async () => {
   try {
     isExporting.value = true;
-    const { dateRange1, dateRange2, ...campaignParams } = pagination;
-    const response = await appEngagementsStore.fetchFilters({
-      ...campaignParams,
-      page: -1,
+    const response = await appEngagementsStore.fetchFiltersDownload({
+      ...pagination,
+      page: undefined,
+      itemsPerPage: undefined,
     });
 
     const rawResults = response.data.results || [];
@@ -435,6 +459,7 @@ const exportToExcel = async () => {
         Template: item.action?.template?.code,
         Type: item.action?.template?.type,
         SubType: item.action?.template?.subType,
+        Success: item.success?.event || "",
         "A/B Testing": item.abTesting?.enabled ? "Yes" : "No",
         Status: item.status,
         Count: total,
@@ -442,6 +467,9 @@ const exportToExcel = async () => {
         "Delivery %": `${sentPercent}%`,
         "Total CTA": ctaCount,
         "CTA %": `${ctaPercent}%`,
+        Events: typeof item.stats?.success?.event === "number" ? item.stats.success.event : "",
+        Users: typeof item.stats?.success?.user === "number" ? item.stats.success.user : "",
+        Value: typeof item.stats?.success?.value === "number" ? item.stats.success.value : "",
       };
 
       const dynamicCTAs = {};
@@ -549,8 +577,12 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
             <!-- <td :colspan="headers.length"> -->
-            <td :colspan="6">
-              <AbTestingMetrics :abTesting="slotProps.item.raw.abTesting" :stats="slotProps.item.raw.stats" />
+            <td :colspan="7">
+              <AbTestingMetrics
+                :abTesting="slotProps.item.raw.abTesting"
+                :stats="slotProps.item.raw.stats"
+                :success="slotProps.item.raw.success"
+              />
             </td>
           </tr>
         </template>
@@ -643,6 +675,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
           </IconBtn>
         </template>
 
+        <!-- <template #[`item.success.event`]="{ item }">
+          {{ item.raw.success?.event || "-" }}
+        </template> -->
+
         <!-- Template sub types -->
         <template #item.action.template.subType="{ item }">
           {{ item.raw.action.template.subType }}
@@ -653,12 +689,12 @@ const onUpdateOptionsDebounced = debounce((options) => {
           }}
         </template>
 
-        <template #item.created.byUser="{ item }">
+        <!-- <template #item.created.byUser="{ item }">
           <span v-if="item.raw.created && item.raw.created.byUser">{{
             item.raw.created.byUser
           }}</span>
           <span v-else> - </span>
-        </template>
+        </template> -->
 
         <!-- numeric count columns with comma formatting -->
         <template #item.stats.total="{ item }">
@@ -679,6 +715,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.sent_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              Sent: {{ (item.raw.stats?.sent || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
         </template>
 
@@ -690,7 +729,21 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.cta_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              CTA: {{ (item.raw.stats?.cta?.__count || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
+        </template>
+
+        <!-- success stats -->
+        <template #item.stats.success.event="{ item }">
+          {{ typeof item.raw.stats?.success?.event === "number" ? item.raw.stats.success.event.toLocaleString("en-IN") : "-" }}
+        </template>
+        <template #item.stats.success.user="{ item }">
+          {{ typeof item.raw.stats?.success?.user === "number" ? item.raw.stats.success.user.toLocaleString("en-IN") : "-" }}
+        </template>
+        <template #item.stats.success.value="{ item }">
+          {{ typeof item.raw.stats?.success?.value === "number" ? item.raw.stats.success.value.toLocaleString("en-IN") : "-" }}
         </template>
 
         <!-- Actions -->

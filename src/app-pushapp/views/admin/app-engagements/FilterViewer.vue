@@ -1,13 +1,14 @@
 <script setup>
-import { computed, onMounted } from "vue";
+import { computed, onMounted, watch } from "vue";
 import { useAppEngagements } from "@/app-pushapp/views/admin/app-engagements/useAppEngagements";
+import { FILTER_OPERATORS } from "@/app-pushapp/views/admin/app-engagements/data/filterOptions";
 
 const props = defineProps({
   node: { type: Object, required: true },
   level: { type: Number, default: 0 }
 });
 
-const { localCache, fetchFilterFields } = useAppEngagements();
+const { localCache, fetchFilterFields, resolveCohortKind } = useAppEngagements();
 
 const formatFieldName = (field) => {
   if (!field) return "";
@@ -20,12 +21,37 @@ const indent = computed(() => ({
   marginLeft: "10px",
 }));
 
+const isRfmCohort = computed(() => props.node?.field === "rfm.cohort");
+
+const rfmOperatorLabel = computed(() => {
+  const match = FILTER_OPERATORS.find((op) => op.value === props.node?.operator);
+  return match?.title || props.node?.operator || "";
+});
+
+const matchedCohort = computed(() => {
+  if (props.node?.filterType !== "cohort" || !props.node?.field) return null;
+  const field = props.node.field;
+  return (
+    (localCache.systemCohort || []).find((x) => x.value === field) ||
+    (localCache.customCohort || []).find((x) => x.value === field) ||
+    null
+  );
+});
+
+const cohortTypeLabel = computed(() => {
+  if (matchedCohort.value?.cohortType === "SYSTEM") return "System Cohort";
+  if (matchedCohort.value?.cohortType === "CUSTOM") return "Custom Cohort";
+  return "Cohort";
+});
+
 const resolvedFieldName = computed(() => {
   const filterType = props.node?.filterType;
   const field = props.node?.field;
 
   if (!filterType || !field) return "";
-  if (!["cohort", "slice", "customEvent"].includes(filterType)) {
+  if (field === "rfm.cohort") return "RFM Cohort";
+  if (filterType === "cohort") return matchedCohort.value?.title || field;
+  if (!["slice", "customEvent"].includes(filterType)) {
     return formatFieldName(field);
   }
 
@@ -38,9 +64,21 @@ const resolvedFieldName = computed(() => {
   return found?.title || field;
 });
 
+watch(
+  () => [props.node?.filterType, props.node?.field],
+  async ([filterType, field]) => {
+    if (filterType !== "cohort" || !field) return;
+    const known =
+      (localCache.systemCohort || []).some((x) => x.value === field) ||
+      (localCache.customCohort || []).some((x) => x.value === field);
+    if (!known) await resolveCohortKind(field);
+  },
+  { immediate: true },
+);
+
 onMounted(async () => {
   const filterType = props.node?.filterType;
-  if (["cohort", "slice", "customEvent"].includes(filterType) && !localCache[filterType]) {
+  if (["slice", "customEvent"].includes(filterType) && !localCache[filterType]) {
     await fetchFilterFields({ type: filterType });
   }
 });
@@ -66,7 +104,7 @@ onMounted(async () => {
       <div class="filter-card">
         <!-- FILTER TYPE -->
         <div v-if="node.filterType" class="filter-type">
-          {{ formatFieldName(node.filterType) }} : 
+          {{ node.filterType === 'cohort' ? cohortTypeLabel : formatFieldName(node.filterType) }} :
         </div>
         <div class="filter-row">
           <!-- frequency filter -->
@@ -85,6 +123,13 @@ onMounted(async () => {
             <span v-if="node.freqPeriod">
               {{ formatFieldName(node.freqPeriod).toLowerCase() }}
             </span>
+          </template>
+
+          <!-- system RFM cohort: Equals and the value as stored -->
+          <template v-else-if="isRfmCohort">
+            <strong> {{ resolvedFieldName }}</strong>
+            {{ rfmOperatorLabel }}
+            <strong>{{ node.value }}</strong>
           </template>
 
           <!-- normal filter -->

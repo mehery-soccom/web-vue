@@ -15,22 +15,27 @@ import CampaignAdd from '../pages/admin/app-engagements/campaigns/add/index.vue'
 import CampaignView from '../pages/admin/app-engagements/campaigns/view/[[id]].vue';
 import TemplateList2 from '../pages/admin/push-notification/templates/list/index.vue';
 import Slices from '../pages/admin/push-notification/slices/list/index.vue';
+import SliceAdd from '../pages/admin/push-notification/slices/add/[[id]].vue';
 import TemplateAdd2 from '../pages/admin/push-notification/templates/add/[[id]].vue';
 import CampaignList2 from '../pages/admin/push-notification/campaigns/list/index.vue';
 import CampaignAdd2 from '../pages/admin/push-notification/campaigns/add/index.vue';
 import CampaignView2 from '../pages/admin/push-notification/campaigns/view/[[id]].vue';
 import CustomDashboardList from "../pages/dashboards/custom/list/index.vue";
 import CustomDashboardAdd from "../pages/dashboards/custom/add/[[id]].vue";
+import CohortDynamix from "../pages/dashboards/cohort-dynamix/index.vue";
 import ChannelsAdd from '../pages/admin/channels/add/[[id]].vue';
 import ChannelsList from '../pages/admin/channels/list/index.vue';
 import Cohorts from '../pages/admin/cohorts/list/index.vue';
 import FlowList from '../pages/admin/journey/list/index.vue';
 import FlowAdd from '../pages/admin/journey/add/[[id]].vue'
+import Usage from '../pages/admin/usage/index.vue';
 import CohortsList from '../pages/admin/cohorts/list/index.vue';
 import CohortsAdd from '../pages/admin/cohorts/add/[[id]].vue'
 import LinksPageAdd from '../pages/config/library/add/[[id]].vue';
 import Setup from '../pages/config/setup/list';
 import LinksPageList from '../pages/config/library/list/index.vue';
+import EventMasterList from '../pages/config/event-master/list/index.vue';
+import EventMasterView from '../pages/config/event-master/view/[name].vue';
 import UninstallDataConfig from '../pages/config/library/uninstall-data/index.vue';
 import ApiCredentialsList from '../pages/config/apicredentials/list/index.vue';
 
@@ -232,6 +237,19 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
+      path: "/admin/usage",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-usage",
+          component: Usage,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/admin/push-notification/templates/list",
       component: DefaultLayout,
       children: [
@@ -349,6 +367,19 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
+      path: "/admin/push-notification/slices/add/:id?",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "admin-push-notification-slices-add-id?",
+          component: SliceAdd,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/admin/push-notification/campaigns/list",
       component: DefaultLayout,
       children: [
@@ -401,6 +432,19 @@ if (!routes || routes?.length < 3) {
       ],
     },
     {
+      path: "/dashboards/cohort-dynamix",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "dashboards-cohort-dynamix",
+          component: CohortDynamix,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
       path: "/config/setup/list",
       component: DefaultLayout,
       children: [
@@ -447,6 +491,32 @@ if (!routes || routes?.length < 3) {
           path: "",
           name: "config-library-uninstall-data",
           component: UninstallDataConfig,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/event-master/list",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-event-master-list",
+          component: EventMasterList,
+          props: true,
+          meta: { layout: "default" },
+        },
+      ],
+    },
+    {
+      path: "/config/event-master/view/:name",
+      component: DefaultLayout,
+      children: [
+        {
+          path: "",
+          name: "config-event-master-view",
+          component: EventMasterView,
           props: true,
           meta: { layout: "default" },
         },

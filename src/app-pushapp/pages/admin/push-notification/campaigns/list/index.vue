@@ -135,6 +135,11 @@ const headers = [
     title: "Template",
     key: "templateCode",
   },
+  // {
+  //   title: "Success",
+  //   key: "success.event",
+  //   sortable: false,
+  // },
   {
     title: "Status",
     key: "status",
@@ -155,12 +160,6 @@ const headers = [
     align: "center",
   },
   {
-    title: "Created by",
-    key: "createdBy",
-    sortable: false,
-    align: "center",
-  },
-  {
     title: "Total",
     key: "messageCount",
     sortable: false,
@@ -171,39 +170,57 @@ const headers = [
   //   key: "schedule.isRecurring",
   //   filterType: "switch",
   // },
+  // {
+  //   title: "Sent",
+  //   key: "stats.sent",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Sent",
-    key: "stats.sent",
-    sortable: false,
-    align: "center",
-  },
-  {
-    title: "Sent %",
     key: "stats.sent_percent",
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "Opened",
+  //   key: "stats.opened",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "Opened",
-    key: "stats.opened",
-    sortable: false,
-    align: "center",
-  },
-  {
-    title: "Opened %",
     key: "stats.opened_percent",
     sortable: false,
     align: "center",
   },
+  // {
+  //   title: "CTA",
+  //   key: "stats.cta.__count",
+  //   sortable: false,
+  //   align: "center",
+  // },
   {
     title: "CTA",
-    key: "stats.cta.__count",
+    key: "stats.cta_percent",
     sortable: false,
     align: "center",
   },
   {
-    title: "CTA %",
-    key: "stats.cta_percent",
+    title: "S-E",
+    key: "stats.success.event",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "S-U",
+    key: "stats.success.user",
+    sortable: false,
+    align: "center",
+  },
+  {
+    title: "S-V",
+    key: "stats.success.value",
     sortable: false,
     align: "center",
   },
@@ -238,6 +255,7 @@ const pagination = reactive({
   filters: {
     campaignName: "",
     templateCode: "",
+    "success.event": "",
     status: "",
   },
   dateRange1: new Date(sevenDaysAgo).setHours(0, 0, 0, 0),
@@ -276,6 +294,7 @@ function formatFieldName(field) {
   const withSpaces = str.replace(/_/g, " ");
   return withSpaces.charAt(0).toUpperCase() + withSpaces.slice(1);
 }
+const exportOptionalStat = (value) => (typeof value === "number" ? value : "");
 const getReadableRecurrence = (schedule) => {
   if (!schedule) return "N/A";
 
@@ -403,10 +422,10 @@ const exportToExcel = async () => {
   try {
     isExporting.value = true;
 
-    const { dateRange1, dateRange2, ...campaignParams } = pagination;
-    const response = await pushNotificationStore.fetchCampaigns({
-      ...campaignParams,
-      page: -1,
+    const response = await pushNotificationStore.fetchCampaignsDownload({
+      ...pagination,
+      page: undefined,
+      itemsPerPage: undefined,
     });
 
     const rawResults = response.data.results || [];
@@ -424,6 +443,7 @@ const exportToExcel = async () => {
       const baseRow = {
         Name: item.campaignName,
         Template: item.templateCode,
+        Success: item.success?.event || "",
         Start: item.createdStamp ? smartFormatDate(item.createdStamp) : "N/A",
         Total: total,
         Sent: sent,
@@ -432,6 +452,9 @@ const exportToExcel = async () => {
         "Opened %": `${openedPercent}%`,
         "Total CTA": ctaCount,
         "CTA %": `${ctaPercent}%`,
+        Events: exportOptionalStat(item.stats?.success?.event),
+        Users: exportOptionalStat(item.stats?.success?.user),
+        Value: exportOptionalStat(item.stats?.success?.value),
       };
 
       const dynamicCTAs = {};
@@ -609,13 +632,18 @@ const onUpdateOptionsDebounced = debounce((options) => {
         <!-- Expanded Row Data [ show-expand ] -->
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
-            <td :colspan="6">
+            <td :colspan="7">
               <NotificationCampaignExpansion
                 :stats="slotProps.item.raw.stats"
+                :success="slotProps.item.raw.success"
               />
             </td>
           </tr>
         </template>
+
+        <!-- <template #[`item.success.event`]="{ item }">
+          {{ item.raw.success?.event || "-" }}
+        </template> -->
 
         <!-- status -->
         <template #item.status="{ item }">
@@ -660,10 +688,10 @@ const onUpdateOptionsDebounced = debounce((options) => {
         </div>
       </template> -->
 
-        <template #item.createdBy="{ item }">
+        <!-- <template #item.createdBy="{ item }">
           <span v-if="item.raw.createdBy">{{ item.raw.createdBy }}</span>
           <span v-else> - </span>
-        </template>
+        </template> -->
 
         <!-- numeric count columns with comma formatting -->
         <template #item.messageCount="{ item }">
@@ -764,6 +792,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.sent_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              Sent: {{ (item.raw.stats?.sent || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
         </template>
 
@@ -781,6 +812,9 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.opened_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              Opened: {{ (item.raw.stats?.opened || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
         </template>
 
@@ -798,7 +832,21 @@ const onUpdateOptionsDebounced = debounce((options) => {
             <VChip size="x-small" variant="flat" color="primary">
               {{ item.raw.stats.cta_percent }}%
             </VChip>
+            <VTooltip activator="parent" location="top">
+              CTA: {{ (item.raw.stats?.cta?.__count || 0).toLocaleString("en-IN") }}
+            </VTooltip>
           </div>
+        </template>
+
+        <!-- success stats -->
+        <template #item.stats.success.event="{ item }">
+          {{ typeof item.raw.stats?.success?.event === "number" ? item.raw.stats.success.event.toLocaleString("en-IN") : "-" }}
+        </template>
+        <template #item.stats.success.user="{ item }">
+          {{ typeof item.raw.stats?.success?.user === "number" ? item.raw.stats.success.user.toLocaleString("en-IN") : "-" }}
+        </template>
+        <template #item.stats.success.value="{ item }">
+          {{ typeof item.raw.stats?.success?.value === "number" ? item.raw.stats.success.value.toLocaleString("en-IN") : "-" }}
         </template>
 
         <!-- Actions -->

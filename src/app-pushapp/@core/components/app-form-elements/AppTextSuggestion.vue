@@ -15,6 +15,10 @@ const props = defineProps({
     type: Array,
     required: true,
   },
+  extraSuggestions: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const attrs = useAttrs();
@@ -30,7 +34,7 @@ function flattenKeys(obj = {}, parent = "") {
 
 const flatSuggestions = computed(() => {
   const appendSuggestions = ["data."]; // can be a prop
-  return [...flattenKeys(props.suggestions), ...appendSuggestions];
+  return [...new Set([...flattenKeys(props.suggestions), ...appendSuggestions, ...props.extraSuggestions])];
 });
 
 const model = defineModel({ type: String, default: "" });
@@ -41,7 +45,9 @@ const setupTextcomplete = () => {
   const editorEl = textareaRef.value?.$el?.querySelector(props.type);
   if (!editorEl) return;
 
-  const textcomplete = new Textcomplete(new Textarea(editorEl));
+  const textcomplete = new Textcomplete(new Textarea(editorEl), {
+    dropdown: { maxCount: Infinity },
+  });
 
   textcomplete.register([
     {
@@ -61,12 +67,34 @@ const setupTextcomplete = () => {
     },
   ]);
 
+  // textcomplete scrolls every activated (hovered) item to the top, which cascades the list to the bottom
+  const keepItemInView = (listEl, itemEl) => {
+    const top = itemEl.offsetTop;
+    const bottom = top + itemEl.offsetHeight;
+    if (top < listEl.scrollTop) listEl.scrollTop = top;
+    else if (bottom > listEl.scrollTop + listEl.clientHeight) {
+      listEl.scrollTop = bottom - listEl.clientHeight;
+    }
+  };
+
   // Ensure dropdown appended to body
   textcomplete.on("rendered", () => {
     const dropdownEl = textcomplete.dropdown?.el;
     if (dropdownEl && !document.body.contains(dropdownEl)) {
       document.body.appendChild(dropdownEl);
     }
+
+    (textcomplete.dropdown?.items || []).forEach((item) => {
+      const activate = item.activate.bind(item);
+      item.activate = () => {
+        const listEl = textcomplete.dropdown.el;
+        const scrollTop = listEl.scrollTop;
+        activate();
+        listEl.scrollTop = scrollTop;
+        keepItemInView(listEl, item.el);
+        return item;
+      };
+    });
   });
 
   const reposition = () => {
@@ -120,8 +148,9 @@ const currentComponent = computed(() => {
 .textcomplete-dropdown {
   position: absolute !important;
   z-index: 9999;
-  background-color: var(--v-theme-surface, #fff);
-  border: 1px solid var(--v-border-color, #ccc);
+  background-color: #fff;
+  background-color: rgb(var(--v-theme-surface));
+  border: 1px solid rgba(var(--v-border-color), var(--v-border-opacity, 0.12));
   border-radius: 6px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
   padding: 4px 0;
@@ -129,7 +158,7 @@ const currentComponent = computed(() => {
   min-width: 160px;
   max-height: 240px;
   overflow-y: auto;
-  backdrop-filter: blur(4px);
+  opacity: 1;
 }
 
 .textcomplete-item {
@@ -138,29 +167,31 @@ const currentComponent = computed(() => {
   white-space: nowrap;
   text-overflow: ellipsis;
   overflow: hidden;
-  color: var(--v-theme-on-surface, #212121);
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity, 0.87));
+  background-color: transparent;
 }
 
 .textcomplete-item.active,
 .textcomplete-item:hover {
-  background-color: rgba(var(--v-theme-surface-variant), 0.1);
-  color: var(--v-theme-on-primary, #000);
+  background-color: rgba(var(--v-theme-on-surface), 0.08);
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity, 0.87));
 }
 
 /* Dark theme support */
 .v-theme--dark .textcomplete-dropdown {
-  background-color: var(--v-theme-surface, #121212);
-  border-color: var(--v-border-color, #333);
+  background-color: #121212;
+  background-color: rgb(var(--v-theme-surface));
+  border-color: rgba(var(--v-border-color), var(--v-border-opacity, 0.12));
 }
 
 .v-theme--dark .textcomplete-item {
-  color: var(--v-theme-on-surface, #eee);
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity, 0.87));
 }
 
 .v-theme--dark .textcomplete-item.active,
 .v-theme--dark .textcomplete-item:hover {
-  background-color: rgba(var(--v-theme-surface-variant), 0.2);
-  color: var(--v-theme-on-primary, #fff);
+  background-color: rgba(var(--v-theme-on-surface), 0.12);
+  color: rgba(var(--v-theme-on-surface), var(--v-high-emphasis-opacity, 0.87));
 }
 
 /* Hide empty header/footer */

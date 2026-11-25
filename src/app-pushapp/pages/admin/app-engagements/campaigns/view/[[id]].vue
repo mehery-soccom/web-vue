@@ -5,10 +5,14 @@ import Schedule from "@app-pushapp/views/admin/app-engagements/Schedule.vue";
 import { useAppEngagementsStore } from "@/app-pushapp/views/admin/app-engagements/useAppEngagementsStore";
 import { onMounted } from "vue";
 import FilterBuilder from "@app-pushapp/views/admin/app-engagements/FilterBuilder.vue";
+import EventAutocomplete from "@/app-pushapp/views/config/event-master/EventAutocomplete.vue";
+import { loadEventPropertyTypes } from "@/app-pushapp/views/config/event-master/eventMaster";
+import { useEventStore } from "@app-pushapp/views/dashboards/event/useEventStore";
 import validateFilterStructure from "@/app-pushapp/utils/validateFilterStructure";
 
 const { show } = inject("snackbar");
 const appEngagementsStore = useAppEngagementsStore();
+const eventStore = useEventStore();
 
 const route = useRoute();
 const router = useRouter();
@@ -116,7 +120,7 @@ watch(
 );
 const tabs = [
   {
-    title: "Trigger Event",
+    title: "Trigger",
     icon: "tabler-bolt",
   },
   {
@@ -126,6 +130,10 @@ const tabs = [
   {
     title: "Audience",
     icon: "tabler-users",
+  },
+  {
+    title: "Success",
+    icon: "tabler-circle-check",
   },
   {
     title: "Scheduling",
@@ -148,6 +156,59 @@ const templateRef = ref();
 const templateBRef = ref();
 const audienceRef = ref();
 const scheduleRef = ref();
+const successEvent = ref(null);
+const successEventProperty = ref(null);
+const successPropertyOptions = ref([]);
+const successPropertiesLoading = ref(false);
+const successEventsLoading = ref(false);
+const pendingSuccessProperty = ref(null);
+const NUMERIC_PROPERTY_TYPES = new Set(["INTEGER", "FLOAT"]);
+const successEventItems = computed(() =>
+  (eventStore.eventOptions || [])
+    .map((event) => ({
+      title: event.displayLabel,
+      value: event.eventName,
+    }))
+    .sort((a, b) => a.title.localeCompare(b.title)),
+);
+
+watch(successEvent, async (eventName) => {
+  const savedProperty = pendingSuccessProperty.value;
+  successEventProperty.value = null;
+  successPropertyOptions.value = [];
+  pendingSuccessProperty.value = null;
+  if (!eventName) return;
+
+  successPropertiesLoading.value = true;
+  try {
+    const types = await loadEventPropertyTypes(eventName);
+    if (successEvent.value !== eventName) return;
+    const options = Object.entries(types || {})
+      .filter(([, dataType]) => NUMERIC_PROPERTY_TYPES.has(dataType))
+      .map(([key, dataType]) => ({ title: key, value: key, dataType }))
+      .sort((a, b) => a.title.localeCompare(b.title));
+    if (savedProperty && !options.some((option) => option.value === savedProperty)) {
+      options.push({ title: savedProperty, value: savedProperty });
+    }
+    successPropertyOptions.value = options;
+  } catch (error) {
+    console.error(error);
+    successPropertyOptions.value = savedProperty
+      ? [{ title: savedProperty, value: savedProperty }]
+      : [];
+  } finally {
+    if (successEvent.value === eventName) {
+      if (savedProperty) successEventProperty.value = savedProperty;
+      successPropertiesLoading.value = false;
+    }
+  }
+});
+
+const applySavedSuccess = (success) => {
+  pendingSuccessProperty.value = success?.eventProperty || null;
+  successEvent.value = success?.event || null;
+};
+
 const errors = ref({});
 const temp = ref(null);
 const tempB = ref(null);
@@ -173,9 +234,13 @@ const loadCampaign = async () => {
       journey: data.journey || campaign.journey,
     });
 
+    successEvent.value = data.success?.event || null;
+    successEventProperty.value = data.success?.eventProperty || null;
+
     if (data.schedule) Object.assign(campaign.schedule, data.schedule);
     if (data.action?.template) campaign.action.template = data.action.template;
     if (data.action?.templateB) campaign.action.templateB = data.action.templateB;
+    applySavedSuccess(data.success);
 
   } catch (error) {
     console.error(error);
@@ -210,7 +275,15 @@ const findCohortFilter = (node) => {
 };
 const campaignLoaded = ref(false);
 onMounted(async () => {
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
 //   await fetchTemplateList();
+  successEventsLoading.value = true;
+  eventStore.fetchEventOptions().finally(() => {
+    successEventsLoading.value = false;
+  });
   await loadCampaign();
   campaignLoaded.value = true;
   // setInterval(()=> console.log("add page", templateRef?.isPreStep?.value, templateBRef?.isPreStep?.value), 10000);
@@ -345,6 +418,47 @@ onMounted(async () => {
           v-model:filter="campaign.filter"
           v-model:abTesting="campaign.abTesting" :readonly="true"
         />
+      </VWindowItem>
+
+      <!-- tab-success -->
+      <VWindowItem>
+        <VCard class="pa-6">
+          <h3 class="mb-2">Success</h3>
+          <p class="text-caption mb-4">
+            The event that counts as a successful outcome
+          </p>
+          <VRow>
+            <VCol cols="12" md="6">
+              <EventAutocomplete
+                v-model="successEvent"
+                :items="successEventItems"
+                app-style
+                label="Success event"
+                placeholder="Event Name"
+                disabled
+                :loading="successEventsLoading"
+              />
+            </VCol>
+            <VCol cols="12" md="6">
+              <AppAutocomplete
+                v-model="successEventProperty"
+                :items="successPropertyOptions"
+                label="Event property"
+                placeholder="Select property"
+                persistent-hint
+                hint="Property to be tracked"
+                disabled
+                :loading="successPropertiesLoading"
+              />
+              <p
+                v-if="successEvent && !successPropertiesLoading && !successPropertyOptions.length"
+                class="text-caption text-medium-emphasis mt-1"
+              >
+                This event has no numeric properties.
+              </p>
+            </VCol>
+          </VRow>
+        </VCard>
       </VWindowItem>
 
       <!-- tab-schedule -->

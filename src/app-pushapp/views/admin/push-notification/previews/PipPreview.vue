@@ -42,7 +42,9 @@ const toggleMinimize = () => {
             style="width: 100%; height: 100%; object-fit: cover;" class="bord"
             ></video>
             <div v-if="isMinimized" class="close-btn mini" @click="toggleMinimize"><img src="./../../../../assets/images/icons/previews/maximize.png" alt="Max" style="color: white;" class="bord"></img></div>
-            <div v-else class="close-btn">&times;</div>
+            <div v-else class="close-btn" :style="{ backgroundColor: props.template.style.cross_bg_color,
+            color: props.template.style.cross_color,
+            border: `0.5px solid ${props.template.style.cross_border_color}` }">&times;</div>
         </div>
       </div>
     </div>
