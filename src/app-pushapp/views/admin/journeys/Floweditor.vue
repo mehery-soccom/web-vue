@@ -17,6 +17,7 @@ import { FILTER_FIELDS_MAP } from '../app-engagements/data/filterOptions'
 import FilterBuilder from '../app-engagements/FilterBuilder.vue'
 import { fmtNum } from '@app-pushapp/@core/utils/formatters'
 import EventAutocomplete from '../../config/event-master/EventAutocomplete.vue'
+import { isBroadcastKind } from './journeyKind'
 
 // Props
 
@@ -24,7 +25,12 @@ const props = defineProps({
   initialFlow: { type: Object, default: null },
   disabled: { type: Boolean, default: false },
   analyticsNodesMap: { type: Object, default: () => ({}) },
+  kind: { type: String, default: 'EVENT' },
+  audienceMode: { type: String, default: '' },
+  currentNodeId: { type: String, default: '' },
 })
+
+const isBroadcast = computed(() => isBroadcastKind(props.kind))
 
 
 // API LAYER
@@ -230,6 +236,37 @@ const NODE_DEFS = {
       window: { value: 2, unit: 'hour' },
     }),
   },
+  BROADCAST: {
+    label: 'Broadcast',
+    icon: '📣',
+    color: '#059669',
+    hasInput: true,
+    fixedOutputs: [{ id: 'completed', label: 'Completed' }],
+    defaultAttrs: () => ({
+      channel: 'push',
+      channelType: 'SEND_NOTIFICATION',
+      channelId: null,
+      template: { code: null, name: null },
+      filter: {
+        type: 'group',
+        conjunction: 'and',
+        children: [
+          {
+            _id: crypto.randomUUID(),
+            type: 'filter',
+            filterType: null,
+            field: null,
+            operator: null,
+            value: null,
+            freqOperator: null,
+            freqCount: null,
+            freqPeriod: null,
+            scannedEvents: null,
+          },
+        ],
+      },
+    }),
+  },
   WAIT: {
     label: 'WAIT',
     icon: '⏱',
@@ -253,6 +290,95 @@ const NODE_DEFS = {
 }
 
 const PALETTE_CODES = ['CONDITION', 'ACTOR', 'EXPECTATION', 'WAIT', 'END']
+const BROADCAST_PALETTE_CODES = ['BROADCAST', 'WAIT', 'END']
+const paletteCodes = computed(() => (isBroadcast.value ? BROADCAST_PALETTE_CODES : PALETTE_CODES))
+const BROADCAST_WAIT_UNITS = [
+  { title: 'Minutes', value: 'minutes' },
+  { title: 'Hours', value: 'hours' },
+  { title: 'Days', value: 'days' },
+]
+
+function createTriggerNode() {
+  return {
+    id: 'node_1',
+    type: 'flow-node',
+    position: { x: 60, y: 200 },
+    data: {
+      code: 'TRIGGER',
+      attrs: { type: 'appevent', appevent: '' },
+    },
+  }
+}
+
+function createBroadcastEntryNode() {
+  return {
+    id: 'node_1',
+    type: 'flow-node',
+    position: { x: 60, y: 200 },
+    data: {
+      code: 'BROADCAST',
+      entry: true,
+      attrs: NODE_DEFS.BROADCAST.defaultAttrs(),
+    },
+  }
+}
+
+function nodeHasInput(data) {
+  if (data?.code === 'BROADCAST' && data.entry) return false
+  return !!NODE_DEFS[data?.code]?.hasInput
+}
+
+function isProtectedNode(node) {
+  if (node?.data?.code === 'TRIGGER') return true
+  return node?.data?.code === 'BROADCAST' && !!node?.data?.entry
+}
+
+function defaultAttrsFor(code) {
+  if (isBroadcast.value && code === 'WAIT') return { duration: { value: 2, unit: 'minutes' } }
+  if (isBroadcast.value && code === 'END') return {}
+  return NODE_DEFS[code].defaultAttrs()
+}
+
+function hasConfiguredFilter(filter) {
+  return (filter?.children || []).some((child) => child.field || (child.children && child.children.length))
+}
+
+function pluralWaitUnit(unit) {
+  return { minute: 'minutes', minutes: 'minutes', hour: 'hours', hours: 'hours', day: 'days', days: 'days' }[unit] || unit
+}
+
+function waitParts(attrs) {
+  if (attrs?.duration) return attrs.duration
+  return attrs?.window || {}
+}
+
+function waitUntilLabel(nodeId) {
+  if (props.currentNodeId !== nodeId) return ""
+  const node = nodes.value.find((item) => item.id === nodeId)
+  if (node?.data?.code !== "WAIT") return ""
+  const duration = waitParts(node.data?.attrs)
+  const value = Number(duration?.value)
+  const unit = pluralWaitUnit(duration?.unit)
+  const ms = { minutes: 60000, hours: 3600000, days: 86400000 }[unit]
+  if (!value || !ms) return ""
+  const incoming = edges.value.find((edge) => edge.target === nodeId)
+  const started = props.analyticsNodesMap?.[incoming?.source]?.endedAtIso
+  const start = new Date(started)
+  if (!started || Number.isNaN(start.getTime())) return ""
+  return new Intl.DateTimeFormat(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(start.getTime() + value * ms))
+}
+
+function broadcastWaitItems(unit) {
+  if (!unit || BROADCAST_WAIT_UNITS.some((item) => item.value === unit)) return BROADCAST_WAIT_UNITS
+  return [{ title: unit, value: unit }, ...BROADCAST_WAIT_UNITS]
+}
+
+function isCampaignBadge(stats) {
+  return !!stats && (stats.messageCount != null || stats.sent != null || stats.failed != null || stats.opened != null)
+}
 const showGrid = ref(true);
 const MESSAGE_CHANNELS = {
   SEND_WHATSAPP: { contactType: 'WHATSAPP', label: 'WhatsApp Channel' },
@@ -394,7 +520,7 @@ function cleanupDeletedNode(nodeId) {
 async function requestNodeDeletion(nodeId) {
   if (props.disabled) return
   const node = nodes.value.find((n) => n.id === nodeId)
-  if (!node || node.data?.code === 'TRIGGER') return
+  if (!node || isProtectedNode(node)) return
 
   const ok = await openConfirm(getNodeDeleteMessage(node))
   if (!ok) return
@@ -503,17 +629,7 @@ const {
   viewport,
 } = useVueFlow()
 
-const nodes = ref([
-  {
-    id: 'node_1',
-    type: 'flow-node',
-    position: { x: 60, y: 200 },
-    data: {
-      code: 'TRIGGER',
-      attrs: { type: 'appevent', appevent: '' },
-    },
-  },
-])
+const nodes = ref([isBroadcast.value ? createBroadcastEntryNode() : createTriggerNode()])
 
 const edges = ref([])
 _nodeId = 2
@@ -527,7 +643,8 @@ onInit(() => {
       if (nodes.value.length === 1) setViewport({ x: 0, y: 0, zoom: 1.25 })
       else fitView()
     })
-    loadEventOptionsFor('node_1')
+    if (isBroadcast.value) loadChannelOptionsFor('node_1', 'SEND_NOTIFICATION')
+    else loadEventOptionsFor('node_1')
   }
 })
 watch(() => props.initialFlow,
@@ -535,8 +652,25 @@ watch(() => props.initialFlow,
 );
 
 // Connect
+function wouldCycle(sourceId, targetId) {
+  if (!sourceId || !targetId || sourceId === targetId) return true
+  const stack = [targetId]
+  const seen = new Set()
+  while (stack.length) {
+    const current = stack.pop()
+    if (current === sourceId) return true
+    if (seen.has(current)) continue
+    seen.add(current)
+    for (const edge of edges.value) {
+      if (edge.source === current) stack.push(edge.target)
+    }
+  }
+  return false
+}
+
 onConnect((connection) => {
   if (props.disabled) return
+  if (isBroadcast.value && wouldCycle(connection.source, connection.target)) return
   const outputId = connection.sourceHandle
   const sourceNode = nodes.value.find((n) => n.id === connection.source)
   const outputDef = sourceNode ? getOutputs(sourceNode).find((o) => o.id === outputId) : null
@@ -558,7 +692,7 @@ onNodesChange(async (changes) => {
     if (c.type === 'remove') {
       if (props.disabled) continue
       const node = nodes.value.find((n) => n.id === c.id)
-      if (node?.data?.code === 'TRIGGER') continue
+      if (isProtectedNode(node)) continue
       const ok = await openConfirm(getNodeDeleteMessage(node))
       if (ok) {
         next.push(c)
@@ -609,6 +743,13 @@ function onNodeClick({ node }) {
     }
     if (node.data.attrs.channelId && cache.templateOptions.length === 0) {
       loadTemplateOptionsFor(node.id, node.data.attrs.channelType, node.data.attrs.channelId)
+    }
+  }
+  if (node.data.code === 'BROADCAST') {
+    const channelType = node.data.attrs.channelType || 'SEND_NOTIFICATION'
+    if (cache.channelOptions.length === 0) loadChannelOptionsFor(node.id, channelType)
+    if (node.data.attrs.channelId && cache.templateOptions.length === 0) {
+      loadTemplateOptionsFor(node.id, channelType, node.data.attrs.channelId)
     }
   }
 }
@@ -785,7 +926,81 @@ const connectedAppEventForInspectedNode = computed(() => {
   if (!inspectedNode.value || inspectedNode.value.data.code !== 'CONDITION') return null
   return findUpstreamAppEvent(inspectedNode.value.id)
 })
+function hasCycle() {
+  const visiting = new Set()
+  const visited = new Set()
+  const outgoing = new Map()
+  for (const edge of edges.value) {
+    if (!outgoing.has(edge.source)) outgoing.set(edge.source, [])
+    outgoing.get(edge.source).push(edge.target)
+  }
+  function walk(id) {
+    if (visiting.has(id)) return true
+    if (visited.has(id)) return false
+    visiting.add(id)
+    for (const next of outgoing.get(id) || []) {
+      if (walk(next)) return true
+    }
+    visiting.delete(id)
+    visited.add(id)
+    return false
+  }
+  return nodes.value.some((node) => walk(node.id))
+}
+
+function validateBroadcastFlow() {
+  const errors = []
+  const invalidIds = new Set()
+  const allowed = new Set(['BROADCAST', 'WAIT', 'END'])
+  const incoming = new Map(nodes.value.map((node) => [node.id, 0]))
+  for (const edge of edges.value) {
+    if (incoming.has(edge.target)) incoming.set(edge.target, incoming.get(edge.target) + 1)
+  }
+  const roots = nodes.value.filter((node) => (incoming.get(node.id) || 0) === 0)
+  const ends = nodes.value.filter((node) => node.data.code === 'END')
+
+  if (roots.length !== 1 || roots[0]?.data?.code !== 'BROADCAST') {
+    errors.push({ nodeId: roots[0]?.id, label: 'Broadcast', messages: ['The journey needs one Broadcast entry'] })
+    if (roots[0]?.id) invalidIds.add(roots[0].id)
+  }
+  if (ends.length !== 1) {
+    errors.push({ nodeId: ends[0]?.id, label: 'Complete', messages: ['The journey needs exactly one Complete node'] })
+    ends.forEach((node) => invalidIds.add(node.id))
+  }
+  if (hasCycle()) {
+    errors.push({ nodeId: null, label: 'Flow', messages: ['The flow cannot contain a cycle'] })
+  }
+
+  for (const node of nodes.value) {
+    const code = node.data.code
+    const attrs = node.data.attrs || {}
+    const messages = []
+    if (!allowed.has(code)) messages.push('This node is not allowed on this journey')
+    if (code === 'BROADCAST') {
+      if (!attrs.channelId) messages.push('Select an app')
+      if (!attrs.template?.code) messages.push('Select a template')
+      if (props.audienceMode === 'FLEXIBLE' && !hasConfiguredFilter(attrs.filter)) {
+        messages.push('Configure the audience filter')
+      }
+      if (!isOutputConnected(node.id, 'completed')) messages.push('Connect the output to a node')
+    } else if (code === 'WAIT') {
+      const duration = attrs.duration || {}
+      if (!duration.value) messages.push('Set the wait time')
+      if (!duration.unit) messages.push('Select the time unit')
+      if (!isOutputConnected(node.id, 'completed')) messages.push('Connect the output to a node')
+    }
+    if (messages.length) {
+      invalidIds.add(node.id)
+      errors.push({ nodeId: node.id, label: NODE_DEFS[code]?.label || code, messages })
+    }
+  }
+
+  invalidNodeIds.value = invalidIds
+  return { valid: errors.length === 0, errors }
+}
+
 function validateFlow() {
+  if (isBroadcast.value) return validateBroadcastFlow()
   const errors = []
   const invalidIds = new Set()
 
@@ -868,6 +1083,8 @@ function onDrop(event) {
   document.body.style.userSelect = ''
   const code = event.dataTransfer?.getData('application/flownode') || draggedType.value
   if (!code || !NODE_DEFS[code] || code === 'TRIGGER') return
+  if (isBroadcast.value && !BROADCAST_PALETTE_CODES.includes(code)) return
+  if (isBroadcast.value && code === 'END' && nodes.value.some((node) => node.data.code === 'END')) return
 
   const raw = screenToFlowCoordinate({ x: event.clientX, y: event.clientY })
   const GRID = 20
@@ -881,7 +1098,7 @@ function onDrop(event) {
     id: nodeId,
     type: 'flow-node',
     position,
-    data: { code, attrs: NODE_DEFS[code].defaultAttrs() },
+    data: { code, entry: false, attrs: defaultAttrsFor(code) },
   }
 
   const { off } = onNodesInitialized(() => {
@@ -899,7 +1116,56 @@ function onDrop(event) {
 }
 
 // Build & save the backend-shaped payload
+function buildBroadcastPayload() {
+  const nodesDict = {}
+  for (const node of nodes.value) {
+    const code = node.data.code
+    const attrs = node.data.attrs || {}
+    const entry = { id: node.id, code, attrs: {} }
+    if (code === 'BROADCAST') {
+      entry.attrs = {
+        channel: 'push',
+        channelType: 'SEND_NOTIFICATION',
+        channelId: attrs.channelId,
+        template: {
+          code: attrs.template?.code,
+          name: attrs.template?.name,
+        },
+      }
+      if (hasConfiguredFilter(attrs.filter)) entry.attrs.filter = attrs.filter
+      entry.outputs = [{ id: 'completed' }]
+    } else if (code === 'WAIT') {
+      const duration = attrs.duration || {}
+      entry.attrs = {
+        duration: {
+          value: Number(duration.value),
+          unit: pluralWaitUnit(duration.unit),
+        },
+      }
+      entry.outputs = [{ id: 'completed' }]
+    } else if (code === 'END') {
+      entry.attrs = {}
+    }
+    nodesDict[node.id] = entry
+  }
+
+  const edgesArr = edges.value.map((edge) => ({
+    id: edge.id,
+    source: {
+      node: edge.source,
+      output: edge.data?.output ?? edge.sourceHandle ?? null,
+    },
+    target: { node: edge.target },
+  }))
+
+  return {
+    flow: { nodes: nodesDict, edges: edgesArr },
+    flowRenderer: { drawflow: { Home: toObject() } },
+  }
+}
+
 function buildFlowPayload() {
+  if (isBroadcast.value) return buildBroadcastPayload()
   const nodesDict = {}
   for (const n of nodes.value) {
     const code = n.data.code
@@ -1008,12 +1274,34 @@ function ensureFilterIds(node) {
   return node;
 }
 
+function ensureBroadcastEditorAttrs(attrs) {
+  const next = { ...(attrs || {}) }
+  if (!next.channel) next.channel = 'push'
+  if (!next.channelType) next.channelType = 'SEND_NOTIFICATION'
+  if (!next.template) next.template = { code: null, name: null }
+  if (!next.filter) next.filter = NODE_DEFS.BROADCAST.defaultAttrs().filter
+  else ensureFilterIds(next.filter)
+  return next
+}
+
+function markBroadcastEntry() {
+  if (!isBroadcast.value) return
+  const incoming = new Set(edges.value.map((edge) => edge.target))
+  nodes.value = nodes.value.map((node) => {
+    if (node.data?.code !== 'BROADCAST') return node
+    return { ...node, data: { ...node.data, entry: !incoming.has(node.id) } }
+  })
+}
+
 function loadFlow(payload) {
   const home = payload?.flowRenderer?.drawflow?.Home
   if (home && Array.isArray(home.nodes) && home.nodes.length > 0) {
     home.nodes.forEach((n) => {
       if (n.data?.code === 'CONDITION' && n.data?.attrs?.filter) {
         ensureFilterIds(n.data.attrs.filter);
+      }
+      if (n.data?.code === 'BROADCAST') {
+        n.data.attrs = ensureBroadcastEditorAttrs(n.data.attrs)
       }
     })
     nodes.value = home.nodes
@@ -1033,12 +1321,15 @@ function loadFlow(payload) {
         id,
         type: 'flow-node',
         position: { x: 60 + i * 260, y: 180 },
-        data: { code: n.code, attrs: n.attrs || {} },
+        data: {
+          code: n.code,
+          attrs: n.code === 'BROADCAST' ? ensureBroadcastEditorAttrs(n.attrs) : (n.attrs || {}),
+        },
       }
     })
 
-    edges.value = flowEdges.map((e) => ({
-      id: e.id,
+    edges.value = flowEdges.map((e, index) => ({
+      id: e.id || `edge_${index + 1}`,
       type: 'flow-edge',
       source: e.source.node,
       target: e.target.node,
@@ -1050,6 +1341,8 @@ function loadFlow(payload) {
 
     nextTick(() => fitView())
   }
+
+  markBroadcastEntry()
 
   const maxNodeNum = Math.max(0, ...nodes.value.map((n) => Number(String(n.id).match(/(\d+)$/)?.[1]) || 0))
   const maxEdgeNum = Math.max(0, ...edges.value.map((e) => Number(String(e.id).match(/(\d+)$/)?.[1]) || 0))
@@ -1107,8 +1400,12 @@ const nodeBodyLines = (node) => {
     }
     return lines
   }
+  if (data.code === 'BROADCAST') {
+    return [`${channelAbbrev(attrs.channelType)} · ${attrs.template?.name || attrs.template?.code || 'No Template'}`]
+  }
   if (data.code === 'WAIT') {
-    return [`Wait for (${attrs.window?.value ?? ''}${attrs.window?.unit?.[0] || ''})`]
+    const wait = waitParts(attrs)
+    return [`Wait for (${wait.value ?? ''}${wait.unit?.[0] || ''})`]
   }
   if (data.code === 'END') {
     return [attrs.status ? formatLabel(attrs.status) : 'Terminates Flow']
@@ -1172,11 +1469,13 @@ const buildFlowHtml = (title = 'Journey flow') => {
     const y = (node.position?.y ?? 0) + oy
     const stats = props.analyticsNodesMap?.[node.id]
     const badges = stats
-      ? `<div class="badges"><span class="reached">Reached ${escapeHtml(fmtNum(stats.reachedCount ?? 0))}</span>${
+      ? (stats.messageCount != null || stats.sent != null
+        ? `<div class="badges"><span class="reached">Messages ${escapeHtml(fmtNum(stats.messageCount ?? 0))}</span><span class="current">Sent ${escapeHtml(fmtNum(stats.sent ?? 0))}</span><span class="current">Failed ${escapeHtml(fmtNum(stats.failed ?? 0))}</span><span class="reached">Opened ${escapeHtml(fmtNum(stats.opened ?? 0))}</span></div>`
+        : `<div class="badges"><span class="reached">Reached ${escapeHtml(fmtNum(stats.reachedCount ?? 0))}</span>${
           node.data?.code === 'TRIGGER'
             ? ''
             : `<span class="current">Here ${escapeHtml(fmtNum(stats.currentlyAtCount ?? 0))}</span>`
-        }</div>`
+        }</div>`)
       : ''
     const body = nodeBodyLines(node).map((line) => escapeHtml(line)).join('<br>')
     return `<article class="node" style="left:${x}px;top:${y}px;--c:${def.color || '#94a3b8'}">${badges}<div class="card"><div class="head"><span>${def.icon || ''}</span><span>${escapeHtml(def.label || node.data?.code || 'Node')}</span></div><div class="body">${body}</div></div></article>`
@@ -1247,8 +1546,14 @@ const buildFlowHtml = (title = 'Journey flow') => {
 
 function clearAll() {
   if (props.disabled) return
-  const trigger = nodes.value.find((n) => n.data.code === 'TRIGGER')
-  nodes.value = trigger ? [trigger] : []
+  if (isBroadcast.value) {
+    const entry = nodes.value.find((node) => node.data.code === 'BROADCAST' && node.data.entry)
+      || createBroadcastEntryNode()
+    nodes.value = [entry]
+  } else {
+    const trigger = nodes.value.find((n) => n.data.code === 'TRIGGER')
+    nodes.value = trigger ? [trigger] : []
+  }
   edges.value = []
   showClearDialog.value = false;
 }
@@ -1357,9 +1662,9 @@ defineExpose({
 
       <div v-if="!disabled" class="sidebar-section">
         <p class="section-label">Nodes</p>
-        <p class="field-hint" style="margin:0 0 4px">Trigger is added automatically and can't be duplicated.</p>
+        <p class="field-hint" style="margin:0 0 4px">{{ isBroadcast ? 'The first Broadcast node is the entry and can’t be duplicated as an entry.' : 'Trigger is added automatically and can\'t be duplicated.' }}</p>
         <div
-          v-for="code in PALETTE_CODES" :key="code"
+          v-for="code in paletteCodes" :key="code"
           class="node-pill"
           :style="{ '--pill-color': NODE_DEFS[code].color }"
           draggable="true"
@@ -1383,7 +1688,7 @@ defineExpose({
             <VCard>
               <VCardTitle>Clear Canvas?</VCardTitle>
               <VCardText>
-                This will remove all nodes and connections from the canvas except Start node.
+                This will remove all nodes and connections from the canvas except the entry node.
                 This action cannot be undone.
               </VCardText>
               <VCardActions>
@@ -1398,12 +1703,13 @@ defineExpose({
       <div class="sidebar-section hint-section">
         <p class="section-label">Tips</p>
         <ul class="hints">
-          <li>Start is fixed — set its app event in the inspector</li>
+          <li v-if="isBroadcast">Broadcast is the entry — set its channel, app, and template in the inspector</li>
+          <li v-else>Start is fixed — set its app event in the inspector</li>
           <li>Drag a node type onto canvas</li>
           <li>Drag from a colored dot to connect an output</li>
           <li>Click a node to edit its settings</li>
           <li>Select + Backspace to delete</li>
-          <li>ACTOR outputs come from listeners you add</li>
+          <li v-if="!isBroadcast">ACTOR outputs come from listeners you add</li>
         </ul>
       </div>
     </aside>
@@ -1439,37 +1745,77 @@ defineExpose({
 
         <!-- ── FLOW NODE ── -->
         <template #node-flow-node="{ id, data, selected }">
-          <Handle v-if="NODE_DEFS[data.code]?.hasInput" type="target" :position="Position.Left" class="flow-handle-in" />
+          <Handle v-if="nodeHasInput(data)" type="target" :position="Position.Left" class="flow-handle-in" />
 
           <!-- Analytics counts shown above node when in analytics mode -->
-          <div v-if="analyticsNodesMap[id]" class="node-analytics-badge">
-            <VTooltip location="top">
-              <template #activator="{ props }">
-                <span v-bind="props" class="analytics-badge-reached">
-                  <VIcon size="11" style="margin-bottom:1px">tabler-user-check</VIcon>
-                  {{ fmtNum(analyticsNodesMap[id].reachedCount) }}
-                </span>
-              </template>
-              <span>Reached</span>
-            </VTooltip>
-            <VTooltip location="top" v-if="data.code !== 'TRIGGER'">
-              <template #activator="{ props }">
-                <span v-bind="props" class="analytics-badge-current">
-                  <VIcon size="11" style="margin-bottom:1px">tabler-users</VIcon>
-                  {{ fmtNum(analyticsNodesMap[id].currentlyAtCount) }}
-                </span>
-              </template>
-              <span>Currently at</span>
-            </VTooltip>
+          <div v-if="analyticsNodesMap[id]" class="node-analytics-badge" :class="{ campaign: isCampaignBadge(analyticsNodesMap[id]) }">
+            <template v-if="isCampaignBadge(analyticsNodesMap[id])">
+              <VTooltip location="top">
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-reached">{{ fmtNum(analyticsNodesMap[id].messageCount ?? 0) }}</span>
+                </template>
+                <span>Messages</span>
+              </VTooltip>
+              <VTooltip location="top">
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-current">{{ fmtNum(analyticsNodesMap[id].sent ?? 0) }}</span>
+                </template>
+                <span>Sent</span>
+              </VTooltip>
+              <VTooltip location="top">
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-failed">{{ fmtNum(analyticsNodesMap[id].failed ?? 0) }}</span>
+                </template>
+                <span>Failed</span>
+              </VTooltip>
+              <VTooltip location="top">
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-opened">{{ fmtNum(analyticsNodesMap[id].opened ?? 0) }}</span>
+                </template>
+                <span>Opened</span>
+              </VTooltip>
+              <VTooltip
+                v-if="analyticsNodesMap[id].startedAt || analyticsNodesMap[id].endedAt"
+                location="top"
+              >
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-ran">
+                    <VIcon size="14" icon="mdi-clock-outline" />
+                  </span>
+                </template>
+                <div>Started @ {{ analyticsNodesMap[id].startedAt || "—" }}</div>
+                <div>Ended @ {{ analyticsNodesMap[id].endedAt || "—" }}</div>
+              </VTooltip>
+            </template>
+            <template v-else>
+              <VTooltip location="top">
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-reached">
+                    <VIcon size="11" style="margin-bottom:1px">tabler-user-check</VIcon>
+                    {{ fmtNum(analyticsNodesMap[id].reachedCount) }}
+                  </span>
+                </template>
+                <span>Reached</span>
+              </VTooltip>
+              <VTooltip location="top" v-if="data.code !== 'TRIGGER'">
+                <template #activator="{ props }">
+                  <span v-bind="props" class="analytics-badge-current">
+                    <VIcon size="11" style="margin-bottom:1px">tabler-users</VIcon>
+                    {{ fmtNum(analyticsNodesMap[id].currentlyAtCount) }}
+                  </span>
+                </template>
+                <span>Currently at</span>
+              </VTooltip>
+            </template>
           </div>
 
           <div
             class="flow-node"
-            :class="{ selected, invalid: invalidNodeIds.has(id) }"
+            :class="{ selected, invalid: invalidNodeIds.has(id), 'is-current': currentNodeId && currentNodeId === id }"
             :style="{ '--node-color': NODE_DEFS[data.code]?.color }"
           >
             <button
-              v-if="!disabled && data.code !== 'TRIGGER'"
+              v-if="!disabled && !isProtectedNode({ data })"
               type="button"
               class="node-delete-btn"
               :aria-label="`Delete ${NODE_DEFS[data.code]?.label || 'node'}`"
@@ -1477,6 +1823,15 @@ defineExpose({
             >
               ✕
             </button>
+            <div v-if="currentNodeId === id" class="node-now-badge">
+              Now
+              <VTooltip v-if="waitUntilLabel(id)" location="top">
+                <template #activator="{ props: tip }">
+                  <VIcon v-bind="tip" size="12" icon="mdi-clock-outline" class="node-now-clock" />
+                </template>
+                <span>Until @ {{ waitUntilLabel(id) }}</span>
+              </VTooltip>
+            </div>
             <div class="flow-node-head">
               <span class="flow-node-icon">{{ NODE_DEFS[data.code]?.icon }}</span>
               <span class="flow-node-code">{{ NODE_DEFS[data.code]?.label }}</span>
@@ -1501,8 +1856,13 @@ defineExpose({
                 <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />  
                 · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}</div>
               </template>
+              <template v-else-if="data.code === 'BROADCAST'">
+                {{ channelAbbrev(data.attrs.channelType) }}
+                <VIcon :icon="channelIcon(data.attrs.channelType)" size="16" :style="{ color: NODE_DEFS[data.code]?.color, marginTop: '-2px' }" />
+                · {{ data.attrs.template?.name || data.attrs.template?.code || 'No Template' }}
+              </template>
               <template v-else-if="data.code === 'WAIT'">
-                <div>Wait for ({{ data.attrs.window?.value }}{{ data.attrs.window?.unit?.[0] }})</div>
+                <div>Wait for ({{ waitParts(data.attrs).value }}{{ waitParts(data.attrs).unit?.[0] }})</div>
               </template>
               <template v-else-if="data.code === 'END'">
                 <span v-if="data.attrs.status">
@@ -1766,7 +2126,70 @@ defineExpose({
             <p class="field-hint">Outputs: <code>Success</code> / <code>Failed</code></p>
           </template>
 
+          <template v-else-if="inspectedNode.data.code === 'BROADCAST'">
+            <AppSelect
+              label="Action"
+              model-value="SEND_NOTIFICATION"
+              :items="[{ title: 'Push notification', value: 'SEND_NOTIFICATION' }]"
+              disabled
+            />
+            <AppSelect
+              label="App"
+              :model-value="inspectedNode.data.attrs.channelId"
+              :items="optionCache[inspectedNode.id]?.channelOptions || []"
+              item-title="title"
+              item-value="value"
+              :loading="optionCache[inspectedNode.id]?.loadingChannel"
+              :disabled="disabled"
+              @update:model-value="value => onChannelIdChange(inspectedNode.id, 'SEND_NOTIFICATION', value)"
+            />
+            <AppAutocomplete
+              label="Template"
+              :model-value="inspectedNode.data.attrs.template?.code"
+              :items="optionCache[inspectedNode.id]?.templateOptions || []"
+              item-title="title"
+              item-value="value"
+              :loading="optionCache[inspectedNode.id]?.loadingTemplate"
+              :disabled="disabled || !inspectedNode.data.attrs.channelId"
+              clearable
+              @update:model-value="value => onTemplateChange(inspectedNode.id, value, 'BROADCAST')"
+            />
+            <p v-if="audienceMode === 'FLEXIBLE'" class="field-hint">
+              This filter runs when the node runs.
+            </p>
+            <p v-else class="field-hint">
+              Leave this empty to send the frozen audience. A filter keeps only the matching profiles for this send. Profiles that do not match stay in the snapshot for later nodes.
+            </p>
+            <FilterBuilder
+              v-model="inspectedNode.data.attrs.filter"
+              vertical
+              :ignoreEventfilterType="true"
+              :ignoreEventDatafilterType="true"
+              :ignoreCustomEventfilterType="true"
+              :ignoreCohortfilterType="true"
+              :ignoreSlicefilterType="true"
+              :readonly="disabled"
+            />
+          </template>
+
           <!-- WAIT/DELAY -->
+          <template v-else-if="inspectedNode.data.code === 'WAIT' && isBroadcast">
+            <AppTextField
+              label="Time"
+              type="number"
+              :model-value="inspectedNode.data.attrs.duration?.value"
+              :disabled="disabled"
+              @update:model-value="value => setNodeAttr('duration.value', Number(value))"
+            />
+            <AppSelect
+              label="Time Unit"
+              :model-value="inspectedNode.data.attrs.duration?.unit"
+              :items="broadcastWaitItems(inspectedNode.data.attrs.duration?.unit)"
+              :disabled="disabled"
+              @update:model-value="value => setNodeAttr('duration.unit', value)"
+            />
+            <p class="field-hint">Outputs: <code>Completed</code> should be connected to another node.</p>
+          </template>
           <template v-else-if="inspectedNode.data.code === 'WAIT'">
             <AppTextField
               label="Time"
@@ -1790,6 +2213,9 @@ defineExpose({
           </template>
 
           <!-- END -->
+          <template v-else-if="inspectedNode.data.code === 'END' && isBroadcast">
+            <p class="field-hint">Terminates the journey here.</p>
+          </template>
           <template v-else-if="inspectedNode.data.code === 'END'">
             <AppSelect
               label="Status"
@@ -1990,6 +2416,40 @@ defineExpose({
 }
 .flow-node-key { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; opacity: .6; margin-top: 2px; }
 .flow-node-body { padding: 9px 11px 11px; font-size: 12px; min-height: 16px; word-break: break-word; }
+.flow-node.is-current {
+  box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.45), 0 6px 16px rgba(0,0,0,0.08);
+}
+.node-now-badge {
+  position: absolute;
+  top: -12px;
+  left: 12px;
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: #059669;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.node-now-clock {
+  color: #fff;
+  cursor: default;
+}
+.analytics-badge-ran {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.06);
+  color: rgba(15, 23, 42, 0.72);
+  border-radius: 10px;
+  padding: 2px 6px;
+  cursor: default;
+}
 .flow-node.invalid {
   border-color: #dc2626 !important;
   box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.25), 0 6px 16px rgba(0,0,0,0.08);
@@ -2013,8 +2473,15 @@ defineExpose({
   pointer-events: auto;
   z-index: 2;
 }
+.node-analytics-badge.campaign {
+  top: -34px;
+  left: -20px;
+  right: -20px;
+}
 .analytics-badge-reached,
-.analytics-badge-current {
+.analytics-badge-current,
+.analytics-badge-failed,
+.analytics-badge-opened {
   cursor: default;
 }
 .analytics-badge-reached {
@@ -2028,6 +2495,20 @@ defineExpose({
   display: flex; align-items: center; gap: 3px;
   background: rgba(var(--v-theme-warning), 0.15);
   color: rgb(var(--v-theme-warning));
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+.analytics-badge-failed {
+  display: flex; align-items: center; gap: 3px;
+  background: rgba(var(--v-theme-error), 0.12);
+  color: rgb(var(--v-theme-error));
+  border-radius: 10px;
+  padding: 2px 8px;
+}
+.analytics-badge-opened {
+  display: flex; align-items: center; gap: 3px;
+  background: rgba(var(--v-theme-success), 0.12);
+  color: rgb(var(--v-theme-success));
   border-radius: 10px;
   padding: 2px 8px;
 }
