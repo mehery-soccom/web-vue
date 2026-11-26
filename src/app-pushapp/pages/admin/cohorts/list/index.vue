@@ -20,6 +20,13 @@ const headers = computed(() => [
     align: "start",
   },
   {
+    title: "System",
+    key: "type",
+    align: "center",
+    filterType: "switch",
+    sortable: false,
+  },
+  {
     title: "Active",
     key: "active",
     align: "center",
@@ -46,6 +53,7 @@ const pagination = reactive({
   filters: {
     name: null,
     active: true,
+    type: false,
   },
 });
 
@@ -67,7 +75,11 @@ const fetchItems = async (params) => {
   try {
     isLoading.value = true;
 
-    const response = await CohortsStore.fetchCohorts(params);
+    const filters = { ...(params.filters || {}) };
+    if (filters.type) filters.type = "SYSTEM";
+    else delete filters.type;
+
+    const response = await CohortsStore.fetchCohorts({ ...params, filters });
     items.value = response.data.results.map((r) => ({
       ...r,
       id: r._id,
@@ -167,8 +179,13 @@ onMounted(async () => {});
       </template>
 
       <template #item.desc="{ item }">
-        <div class="d-flex flex-column align-start gap-1">
-          <span v-if="item.raw.desc">{{ item.raw.desc }}</span>
+        <div class="d-flex flex-column align-start gap-1 cohort-desc-cell">
+          <span v-if="item.raw.desc" class="cohort-desc-text">
+            {{ item.raw.desc }}
+            <VTooltip activator="parent" location="top" max-width="480">
+              {{ item.raw.desc }}
+            </VTooltip>
+          </span>
           <VChip
             v-if="!cohortHasFilter(item.raw)"
             size="small"
@@ -187,6 +204,17 @@ onMounted(async () => {});
           mdi-check
         </VIcon>
         <VIcon v-else size="16" color="error" start> mdi-close </VIcon>
+      </template>
+
+      <!-- type -->
+      <template #item.type="{ item }">
+        <VChip
+          size="small"
+          :color="item.raw.type === 'SYSTEM' ? 'primary' : 'secondary'"
+          variant="tonal"
+        >
+          {{ item.raw.type === "SYSTEM" ? "System" : "Custom" }}
+        </VChip>
       </template>
 
       <!-- created at -->
@@ -260,4 +288,15 @@ onMounted(async () => {});
   </VCard>
 </template>
 
-<style lang="scss"></style>
+<style lang="scss">
+.cohort-desc-cell {
+  max-width: 30vw;
+}
+.cohort-desc-text {
+  display: block;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+</style>

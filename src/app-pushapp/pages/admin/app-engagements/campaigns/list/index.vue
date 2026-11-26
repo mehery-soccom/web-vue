@@ -572,7 +572,7 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
     <VCol cols="12">
       <MyDataTable :headers="headers" :items="formattedItems" :loading="isLoading" :server-side="true"
-        v-bind="pagination" @update:options="onUpdateOptionsDebounced">
+        v-bind="pagination" @update:options="onUpdateOptionsDebounced" class="inapp-campaigns-table">
         <!-- Expanded Row Data [ show-expand ] -->
         <template #expanded-row="slotProps">
           <tr class="v-data-table__tr">
@@ -585,6 +585,15 @@ const onUpdateOptionsDebounced = debounce((options) => {
               />
             </td>
           </tr>
+        </template>
+
+        <template #item.title="{ item }">
+          <span class="campaign-cell-truncate campaign-cell-truncate--name">
+            {{ item.raw.title }}
+            <VTooltip activator="parent" location="top" max-width="480">
+              {{ item.raw.title }}
+            </VTooltip>
+          </span>
         </template>
 
         <!-- status -->
@@ -630,12 +639,22 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
         <!-- Template codes -->
         <template #item.action.template.code="{ item }">
-          {{ item.raw.action.template.code }}
-          {{
-            item.raw.action.templateB?.code
-              ? "| " + item.raw.action.templateB?.code
-              : ""
-          }}
+          <span class="campaign-cell-truncate">
+            {{ item.raw.action.template.code }}
+            {{
+              item.raw.action.templateB?.code
+                ? " | " + item.raw.action.templateB?.code
+                : ""
+            }}
+            <VTooltip activator="parent" location="top" max-width="480">
+              {{ item.raw.action.template.code }}
+              {{
+                item.raw.action.templateB?.code
+                  ? " | " + item.raw.action.templateB?.code
+                  : ""
+              }}
+            </VTooltip>
+          </span>
         </template>
 
         <!-- Template types -->
@@ -681,12 +700,22 @@ const onUpdateOptionsDebounced = debounce((options) => {
 
         <!-- Template sub types -->
         <template #item.action.template.subType="{ item }">
-          {{ item.raw.action.template.subType }}
-          {{
-            item.raw.action.templateB?.subType
-              ? "| " + item.raw.action.templateB?.subType
-              : ""
-          }}
+          <span class="campaign-cell-truncate">
+            {{ item.raw.action.template.subType }}
+            {{
+              item.raw.action.templateB?.subType
+                ? " | " + item.raw.action.templateB?.subType
+                : ""
+            }}
+            <VTooltip activator="parent" location="top" max-width="480">
+              {{ item.raw.action.template.subType }}
+              {{
+                item.raw.action.templateB?.subType
+                  ? " | " + item.raw.action.templateB?.subType
+                  : ""
+              }}
+            </VTooltip>
+          </span>
         </template>
 
         <!-- <template #item.created.byUser="{ item }">
@@ -854,6 +883,27 @@ const onUpdateOptionsDebounced = debounce((options) => {
 .my-data-table {
   .v-table__wrapper {
     min-height: 100px;
+  }
+}
+
+.inapp-campaigns-table {
+  .v-data-table__td,
+  .v-data-table__th,
+  td,
+  th {
+    padding-inline: 10px !important;
+  }
+
+  .campaign-cell-truncate {
+    display: block;
+    max-width: 8vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .campaign-cell-truncate--name {
+    max-width: 10vw;
   }
 }
 

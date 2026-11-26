@@ -509,7 +509,17 @@ watch(
                           prepend-inner-icon="mdi-link"
                           :items="optionsPath || []"
                           :clearable=true item-title="code" item-value="code"
-                        />
+                        >
+                          <template #item="{ props, item }">
+                            <VListItem v-bind="props">
+                              <VListItemSubtitle class="ml-auto text-xs text-gray-500">
+                                <span v-if="item.raw?.label">
+                                  Name : {{ item.raw?.label }}
+                                </span>
+                              </VListItemSubtitle>
+                            </VListItem>
+                          </template>
+                        </AppCombobox>
                       </VCol>
 
                       <VCol cols="12" md="6">
