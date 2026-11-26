@@ -459,7 +459,7 @@ const managedHeaders = [
 
             <!-- RFM Conversion Event -->
             <tr>
-              <td class="text-medium-emphasis">Monetary event for RFM</td>
+              <td class="text-medium-emphasis">Monetary event for RFM+</td>
               <td class="py-3">
                 <div v-if="rfmDraft && !rfmLocked" class="rfm-yes-no">
                   <MyBooleanPicker
